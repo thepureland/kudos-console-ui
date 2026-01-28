@@ -1,0 +1,12 @@
+[versions]
+junit = "6.0.2"
+kotlin = "2.3.0"
+
+[libraries]
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
+junit = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+
+
+[plugins]
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
