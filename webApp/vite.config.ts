@@ -9,6 +9,11 @@ export default defineConfig(({ command }) => ({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // minify: 'esbuild',
+    // sourcemap: false,
+    // rollupOptions: {
+    //   treeshake: true,
+    // },
   },
   optimizeDeps: {
     // Suppress missing sourcemap warnings from Kotlin/JS dependency output
