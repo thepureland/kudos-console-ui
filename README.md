@@ -1,32 +1,20 @@
-This is a Kotlin Multiplatform project targeting Web.
+# Kudos Console UI
 
-* [/shared](./shared/src) is for the code that will be shared between all targets in the project.
-  The most important subfolder is [commonMain](./shared/src/commonMain/kotlin). If preferred, you
-  can add code to the platform-specific folders here too.
+## 项目定位
+这是一个 Kotlin Multiplatform for Web 工程，职责分层如下：
 
-* [/webApp](./webApp) contains web React application. It uses the Kotlin/JS library produced
-  by the [shared](./shared) module.
+- 展现层：`webApp/`，使用 TypeScript + Vue + Element Plus。
+- 领域模型 / 业务逻辑 / 与服务端通信：`shared/`，由 Kotlin Multiplatform 负责。
 
-### Build and Run Web Application
+## 开发期无后端支持
+在没有真实服务端的情况下，项目也要能完整跑通，因此开发期会 mock 服务端数据。
 
-To build and run the development version of the web app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-1. Install [Node.js](https://nodejs.org/en/download) (which includes `npm`)
-2. Build Kotlin/JS shared code:
-   - on macOS/Linux
-     ```shell
-     ./gradlew :shared:jsBrowserDevelopmentLibraryDistribution
-     ```
-   - on Windows
-     ```shell
-     .\gradlew.bat :shared:jsBrowserDevelopmentLibraryDistribution
-     ```
-3. Build and run the web application
-   ```shell
-   npm install
-   npm run start
-   ```
+现有实现：
+- `shared/` 内部使用 Ktor `MockEngine` 返回 mock 响应，确保共享层逻辑也被验证。
+- 默认在 `localhost/127.0.0.1` 环境下启用 mock，可通过 `window.__KUDOS_USE_MOCK__` 强制开关。
 
----
+## 开发命令
+在项目根目录执行：
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+- 启动开发服务：`npm run start`
+- 生产构建：`npm run build`
