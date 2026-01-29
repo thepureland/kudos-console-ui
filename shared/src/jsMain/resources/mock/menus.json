@@ -1,0 +1,27 @@
+[
+  {
+    "path": "/dashboard",
+    "name": "Dashboard",
+    "icon": "HomeFilled",
+    "children": null
+  },
+  {
+    "path": "/settings",
+    "name": "Settings",
+    "icon": "Setting",
+    "children": [
+      {
+        "path": "/settings/profile",
+        "name": "Profile",
+        "icon": "User",
+        "children": null
+      },
+      {
+        "path": "/settings/security",
+        "name": "Security",
+        "icon": "Lock",
+        "children": null
+      }
+    ]
+  }
+]

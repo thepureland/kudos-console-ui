@@ -1,4 +1,4 @@
-package io.kudos.console.ui.kudos_console_ui.api
+package io.kudos.console.ui.api
 
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
