@@ -1,6 +1,5 @@
-package io.kudos.console.ui.kudos_console_ui.api
+package io.kudos.console.ui.api
 
-import io.kudos.console.ui.api.AuthApi
 import io.kudos.console.ui.login.LoginRequest
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport

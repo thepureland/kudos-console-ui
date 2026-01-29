@@ -1,4 +1,4 @@
-package io.kudos.console.ui.kudos_console_ui.api
+package io.kudos.console.ui.api
 
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
