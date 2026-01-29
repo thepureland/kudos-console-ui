@@ -1,4 +1,4 @@
-package io.kudos.console.ui.kudos_console_ui
+package io.kudos.console.ui
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

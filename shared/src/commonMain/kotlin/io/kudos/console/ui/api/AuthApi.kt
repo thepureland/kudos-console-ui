@@ -1,6 +1,6 @@
-package io.kudos.console.ui.kudos_console_ui.api
+package io.kudos.console.ui.api
 
-import io.kudos.console.ui.kudos_console_ui.login.LoginRequest
+import io.kudos.console.ui.login.LoginRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get

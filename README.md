@@ -11,7 +11,8 @@
 
 现有实现：
 - `shared/` 内部使用 Ktor `MockEngine` 返回 mock 响应，确保共享层逻辑也被验证。
-- 默认在 `localhost/127.0.0.1` 环境下启用 mock，可通过 `window.__KUDOS_USE_MOCK__` 强制开关。
+- mock 数据以 JSON 形式存放在 `shared/src/jsMain/resources/mock/`。
+- 通过 Gradle 属性 `-PuseMock=true` 启用 mock；未启用时会在构建阶段排除 `resources/mock/**`。
 
 ## 开发命令
 在项目根目录执行：

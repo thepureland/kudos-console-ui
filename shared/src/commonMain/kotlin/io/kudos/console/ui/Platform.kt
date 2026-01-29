@@ -1,4 +1,4 @@
-package io.kudos.console.ui.kudos_console_ui
+package io.kudos.console.ui
 
 interface Platform {
     val name: String

@@ -1,36 +1,19 @@
 package io.kudos.console.ui.kudos_console_ui.api
 
-import io.kudos.console.ui.kudos_console_ui.login.LoginRequest
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.js.Js
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.request.url
-import io.ktor.serialization.kotlinx.json.json
+import io.kudos.console.ui.api.AuthApi
+import io.kudos.console.ui.login.LoginRequest
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.promise
-import kotlinx.serialization.json.Json
 
 private const val TOKEN_KEY = "kudos_token"
 
-private fun rawWindow(): dynamic = js("window")
-
-private fun shouldUseMock(): Boolean {
-    val window = rawWindow()
-    val forced = window.__KUDOS_USE_MOCK__ as? Boolean
-    if (forced != null) return forced
-    val hostname = window.location.hostname as? String ?: return false
-    return hostname == "localhost" || hostname == "127.0.0.1"
-}
+// JS interop: direct access to window for localStorage and env flags.
+internal fun rawWindow(): dynamic = js("window")
 
 /** 仅 jsMain 使用：浏览器 localStorage 存取 token */
-private object TokenStorage {
+internal object TokenStorage {
     fun get(): String? = rawWindow().localStorage.getItem(TOKEN_KEY) as? String
 
     fun set(s: String) {
@@ -42,33 +25,7 @@ private object TokenStorage {
     }
 }
 
-private fun createHttpClient(): HttpClient =
-    if (shouldUseMock()) {
-        HttpClient(createMockEngine()) {
-            install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                })
-            }
-            defaultRequest {
-                url(rawWindow().location.origin.unsafeCast<String>())
-                TokenStorage.get()?.let { header("Authorization", "Bearer $it") }
-            }
-        }
-    } else {
-        HttpClient(Js) {
-            install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                })
-            }
-            defaultRequest {
-                url(rawWindow().location.origin.unsafeCast<String>())
-                TokenStorage.get()?.let { header("Authorization", "Bearer $it") }
-            }
-        }
-    }
-
+// Shared API wrapper used by JS consumers.
 private val authApi = AuthApi(createHttpClient())
 
 /**
@@ -79,6 +36,7 @@ private val authApi = AuthApi(createHttpClient())
 class AuthApiExposed {
     private val scope = MainScope()
 
+    // Return Promises for JS/TS callers (no suspend export).
     fun login(request: LoginRequest) = scope.promise {
         val response = authApi.login(request)
         TokenStorage.set(response.token)
