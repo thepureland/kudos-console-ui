@@ -1,10 +1,11 @@
 <template>
   <div class="login-page">
+    <RainEffect />
     <div class="login-card-wrapper">
       <el-card class="login-card" shadow="always">
         <template #header>
           <div class="login-header">
-            <h1 class="login-title">后台管理系统</h1>
+            <h1 class="login-title">Kudos控制台</h1>
             <p class="login-subtitle">请登录</p>
           </div>
         </template>
@@ -83,6 +84,7 @@ import { User, Lock, Key } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { LoginRequest, AuthApiFactory } from 'shared';
+import RainEffect from './RainEffect.vue';
 import './Login.css';
 
 const formRef = ref<FormInstance>();
@@ -111,10 +113,12 @@ const rules: FormRules = {
 };
 
 const loading = ref(false);
+// 雨层容器引用（用于动态插入雨滴/涟漪）
 
 function focusTotp() {
   totpInputRef.value?.focus();
 }
+
 
 async function handleSubmit() {
   if (!formRef.value) return;
@@ -148,4 +152,5 @@ async function doLogin() {
     loading.value = false;
   }
 }
+
 </script>
