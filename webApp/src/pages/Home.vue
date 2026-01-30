@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <el-card class="card" shadow="always">
+    <el-card class="card" shadow="always" v-loading="loading">
       <template #header>
         <div class="header">
           <div>
@@ -24,14 +24,14 @@
       </el-alert>
 
       <el-descriptions title="当前用户 (/api/me)" :column="1" border class="mb16">
-        <el-descriptions-item label="用户名">{{ me?.username }}</el-descriptions-item>
-        <el-descriptions-item label="展示名">{{ me?.displayName }}</el-descriptions-item>
-        <el-descriptions-item label="角色">{{ me?.roles?.join(', ') }}</el-descriptions-item>
+        <el-descriptions-item label="用户名">{{ me?.username ?? '-' }}</el-descriptions-item>
+        <el-descriptions-item label="展示名">{{ me?.displayName ?? '-' }}</el-descriptions-item>
+        <el-descriptions-item label="角色">{{ meRoles }}</el-descriptions-item>
       </el-descriptions>
 
       <el-descriptions title="菜单 (/api/menus)" :column="1" border>
         <el-descriptions-item label="JSON">
-          <pre class="pre">{{ menus }}</pre>
+          <pre class="pre">{{ menusText }}</pre>
         </el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -39,22 +39,42 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { AuthApiFactory } from 'shared';
 import type { User, MenuItem } from 'shared';
 
 const me = ref<User | null>(null);
 const menus = ref<MenuItem[] | null>(null);
+const loading = ref(false);
+
+const meRoles = computed(() => {
+  const roles = me.value?.roles ?? [];
+  return roles.length > 0 ? roles.join(', ') : '-';
+});
+
+const menusText = computed(() => {
+  if (!menus.value) {
+    return '';
+  }
+  try {
+    return JSON.stringify(menus.value, null, 2);
+  } catch {
+    return String(menus.value);
+  }
+});
 
 async function refresh() {
   try {
+    loading.value = true;
     const api = AuthApiFactory.getInstance().getAuthApi();
     me.value = await api.getMe();
     menus.value = await api.getMenus();
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '加载失败';
     ElMessage.error(msg);
+  } finally {
+    loading.value = false;
   }
 }
 

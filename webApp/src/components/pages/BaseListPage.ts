@@ -1,0 +1,334 @@
+import {ElMessage, ElMessageBox} from "element-plus"
+import { BasePage } from "./BasePage"
+
+/**
+ * 列表页面处理抽象父类
+ *
+ * @author K
+ * @since 1.0.0
+ */
+export abstract class BaseListPage extends BasePage {
+
+    protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
+        super(props, context)
+    }
+
+    protected initBaseState(): any {
+        return {
+            tableData: [],
+            sort: {
+                orderProperty: '',
+                orderDirection: ''
+            },
+            pagination: {
+                total: 0,
+                pageNo: 1,
+                pageSize: 10
+            },
+            addDialogVisible: false,
+            editDialogVisible: false,
+            detailDialogVisible: false,
+            rid: '',
+            selectedItems: []
+        }
+    }
+
+    protected createSearchParams(): any {
+        const params = {}
+        if (this.state.sort.orderProperty) {
+            params["orders"] = [{
+                property: this.state.sort.orderProperty,
+                direction: this.state.sort.orderDirection,
+            }]
+        }
+        if (this.state.pagination) {
+            params["pageNo"] = this.state.pagination.pageNo
+            params["pageSize"] = this.state.pagination.pageSize
+        }
+        const searchParams = this.state.searchParams
+        if (searchParams) {
+            for (const paramName in searchParams) {
+                params[paramName] = searchParams[paramName]
+            }
+        }
+        return params
+    }
+
+    protected getSearchUrl(): string {
+        return this.getRootActionPath() + "/search"
+    }
+
+    protected getDeleteUrl(): string {
+        return this.getRootActionPath() + "/delete"
+    }
+
+    protected getBatchDeleteUrl(): string {
+        return this.getRootActionPath() + "/batchDelete"
+    }
+
+    protected getDetailUrl(): string {
+        return this.getRootActionPath() + "/getDetail"
+    }
+
+    protected getUpdateActiveUrl(): string {
+        return this.getRootActionPath() + "/updateActive"
+    }
+
+    protected getSelectedIds(): Array<any> {
+        const ids = []
+        for (let row of this.state.selectedItems) {
+            ids.push(this.getRowId(row))
+        }
+        return ids
+    }
+
+    protected createDeleteParams(row: any): any {
+        return {
+            id: this.getRowId(row)
+        }
+    }
+
+    protected createBatchDeleteParams(): any {
+        return this.getSelectedIds()
+    }
+
+    protected getDeleteMessage(row: any): string {
+        return '确定要删除该数据？'
+    }
+
+    protected getBatchDeleteMessage(rows: Array<any>): string {
+        return "确定要删除这" + rows.length + "行数据吗？"
+    }
+
+    protected getRowId(row: any): string | number {
+        return row.id
+    }
+
+    public search: () => void
+
+    protected async doSearch() {
+        const params = this.createSearchParams()
+        if (!params) {
+            return
+        }
+
+        const result = await ajax({url: this.getSearchUrl(), method: "post", params})
+        if (result.code == 200) {
+            this.postSearchSuccessfully(result.data)
+        } else {
+            ElMessage.error('查询失败！')
+        }
+    }
+
+    protected postSearchSuccessfully(data: any) {
+        if (data.first && data.second) {
+            this.state.tableData = data.first
+            this.state.pagination.total = data.second
+        } else {
+            this.state.tableData = data
+        }
+    }
+
+    public handleSizeChange: (newSize: number) => void
+
+    protected doHandleSizeChange(newSize: number) {
+        this.state.pagination.pageSize = newSize
+        this.search()
+    }
+
+    public handleCurrentChange: (newCurrent: number) => void
+
+    protected doHandleCurrentChange(newCurrent: number) {
+        if (newCurrent) {
+            this.state.pagination.pageNo = newCurrent
+            this.search()
+        }
+    }
+
+    public handleSelectionChange: (selection: any[]) => void
+
+    protected doHandleSelectionChange(selection: any[]) {
+        this.state.selectedItems = selection
+    }
+
+    public resetSearchFields: () => void
+
+    protected doResetSearchFields() {
+        this.state.pagination.pageNo = 1
+        const searchParams = this.state.searchParams
+        if (searchParams) {
+            for (const paramName in searchParams) {
+                searchParams[paramName] = null
+            }
+        }
+    }
+
+    public handleSortChange: (column: { prop?: string; order?: string }) => void
+
+    protected doHandleSortChange(column: { prop?: string; order?: string }) {
+        this.state.sort.orderProperty = column.prop
+        this.state.sort.orderDirection = column.order == "ascending" ? "ASC" : "DESC"
+        this.doSearch()
+    }
+
+    public handleFilter: (value: any, row: any, column: any) => void
+
+    protected doHandleFilter(value: any, row: any, column: any) {
+        const property = column['property']
+        return row[property] === value
+    }
+
+    public handleDelete: (row: any) => void
+
+    protected async doHandleDelete(row: any) {
+        const confirmResult = await ElMessageBox.confirm(this.getDeleteMessage(row), '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+        }).catch(err => err)
+        if (confirmResult !== 'confirm') {
+            return
+        }
+        const params = this.createDeleteParams(row)
+        const result = await ajax({url: this.getDeleteUrl(), method: "delete", params: params})
+        if (result.data === true) {
+            ElMessage.success('删除成功！')
+            this.doAfterDelete([params["id"]])
+        } else {
+            ElMessage.error('删除失败！')
+        }
+    }
+
+    public multiDelete: () => void
+
+    protected async doMultiDelete() {
+        const rows = this.state.selectedItems
+        if (!rows || rows.length == 0) {
+            ElMessage.info('请先选择要删除的数据！')
+        } else {
+            const confirmResult = await ElMessageBox.confirm(this.getBatchDeleteMessage(rows), '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).catch(err => err)
+            if (confirmResult !== 'confirm') {
+                return
+            }
+            const params = this.createBatchDeleteParams()
+            const result = await ajax({url: this.getBatchDeleteUrl(), method: "post", params: params})
+            if (result.data === true) {
+                ElMessage.success('删除成功！')
+                this.doAfterDelete(this.getSelectedIds())
+            } else {
+                ElMessage.error('删除失败！')
+            }
+        }
+    }
+
+    public handleDetail: (row: any) => void
+
+    protected doHandleDetail(row: any) {
+        this.state.detailDialogVisible = true
+        this.state.rid = this.getRowId(row)
+    }
+
+    public updateActive: (row: any) => void
+
+    protected async doUpdateActive(row: any) {
+        const params = {
+            id: this.getRowId(row),
+            active: row.active
+        }
+        if (row.subSysDictCode) {
+            params["subSysDictCode"] = row.subSysDictCode
+        }
+        const result = await ajax({url: this.getUpdateActiveUrl(), params})
+        if (!result.data) {
+            ElMessage.error('启用状态更新失败！')
+        }
+    }
+
+    public handleEdit: (row: any) => void
+
+    protected doHandleEdit(row: any) {
+        this.state.editDialogVisible = true
+        this.state.rid = this.getRowId(row)
+    }
+
+    public openAddDialog: () => void
+
+    protected doOpenAddDialog() {
+        this.state.addDialogVisible = true
+    }
+
+    public afterAdd: (params: any) => void
+
+    protected doAfterAdd(params: any) {
+        this.search()
+    }
+
+    public afterEdit: (params: any) => void
+
+    protected doAfterEdit(params: any) {
+        this.search()
+    }
+
+    public afterDelete: (ids: Array<any>) => void
+
+    protected doAfterDelete(ids: Array<any>) {
+        this.search()
+    }
+
+    protected convertThis() {
+        super.convertThis()
+        this.handleSizeChange = (newSize: number) => {
+            this.doHandleSizeChange(newSize)
+        }
+        this.handleCurrentChange = (newCurrent: number) => {
+            this.doHandleCurrentChange(newCurrent)
+        }
+        this.search = () => {
+            this.doSearch()
+        }
+        this.resetSearchFields = () => {
+            this.doResetSearchFields()
+        }
+        this.handleSortChange = (column: { prop?: string; order?: string }) => {
+            this.doHandleSortChange(column)
+        }
+        this.handleFilter = (value: any, row: any, column: any) => {
+            this.doHandleFilter(value, row, column)
+        }
+        this.handleDelete = (row: any) => {
+            this.doHandleDelete(row)
+        }
+        this.handleEdit = (row: any) => {
+            this.doHandleEdit(row)
+        }
+        this.handleDetail = (row: any) => {
+            this.doHandleDetail(row)
+        }
+        this.afterAdd = (params: any) => {
+            this.doAfterAdd(params)
+        }
+        this.afterEdit = (params: any) => {
+            this.doAfterEdit(params)
+        }
+        this.afterDelete = (ids: Array<any>) => {
+            this.doAfterDelete(ids)
+        }
+        this.openAddDialog = () => {
+            this.doOpenAddDialog()
+        }
+        this.multiDelete = () => {
+            this.doMultiDelete()
+        }
+        this.updateActive = (row: any) => {
+            this.doUpdateActive(row)
+        }
+        this.handleSelectionChange = (selection: any[]) => {
+            this.doHandleSelectionChange(selection)
+        }
+    }
+
+}
