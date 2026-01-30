@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "cropperjs": "^1.6.1",
-    "element-plus": "^2.13.1",
+    "element-plus": "^2.13.2",
     "shared": "0.0.0-unspecified",
     "vue": "^3.5.27",
     "vue-cropperjs": "^5.0.0",
