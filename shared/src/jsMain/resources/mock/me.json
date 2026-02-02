@@ -2,5 +2,6 @@
   "id": "u_10001",
   "username": "admin",
   "displayName": "Admin",
-  "roles": ["ADMIN"]
+  "roles": ["ADMIN"],
+  "unreadMessageCount": 2
 }

@@ -21,7 +21,8 @@ data class User(
     val id: String,
     val username: String,
     val displayName: String,
-    val roles: List<String>
+    val roles: List<String>,
+    val unreadMessageCount: Int = 0
 )
 
 /** 菜单项（支持嵌套） */

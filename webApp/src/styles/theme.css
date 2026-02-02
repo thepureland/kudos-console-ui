@@ -1,0 +1,475 @@
+/*
+ * 多主题 Token：4 套 SaaS/后台方案，每套含 light/dark
+ * 使用 data-theme 切换，所有 token 为 CSS 变量，便于复用
+ */
+
+/* ========== A. 经典「冷静专业」蓝（最通用） ========== */
+html[data-theme='a-light'] {
+  color-scheme: light;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
+  --text: #0F172A;
+  --muted: #475569;
+  --primary: #2563EB;
+  --on-primary: #FFFFFF;
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  /* 映射到现有 --theme-* / --el-* */
+  --theme-bg-page: var(--bg);
+  --theme-bg-content: var(--surface);
+  --theme-bg-card: var(--surface);
+  --theme-bg-card-hover: #F1F5F9;
+  --theme-bg-tags: var(--surface);
+  --theme-bg-tag: #F1F5F9;
+  --theme-bg-tag-active: var(--primary);
+  --theme-border: var(--border);
+  --theme-border-card: var(--border);
+  --theme-text: var(--text);
+  --theme-text-muted: var(--muted);
+  --theme-accent: var(--primary);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --theme-shadow-tags: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --theme-header-bg: #1E3A5F;
+  --theme-header-bg-end: #0F172A;
+  --theme-header-text: #E2E8F0;
+  --theme-header-text-muted: #94A3B8;
+  --theme-header-border: rgba(255, 255, 255, 0.2);
+  --theme-sidebar-bg: #1E293B;
+  --theme-sidebar-text: #CBD5E1;
+  --theme-sidebar-active-bg: rgba(37, 99, 235, 0.2);
+  --theme-sidebar-active-text: #60A5FA;
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: #334155;
+  --el-text-color-secondary: var(--muted);
+  --el-color-primary: var(--primary);
+  --el-fill-color-blank: var(--surface);
+  --el-bg-color: var(--surface);
+}
+
+html[data-theme='a-dark'] {
+  color-scheme: dark;
+  --bg: #0B1220;
+  --surface: #111827;
+  --border: #1F2937;
+  --text: #E5E7EB;
+  --muted: #94A3B8;
+  --primary: #3B82F6;
+  --on-primary: #0B1220;
+  --success: #22C55E;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --theme-bg-page: var(--bg);
+  --theme-bg-content: var(--bg);
+  --theme-bg-card: var(--surface);
+  --theme-bg-card-hover: #1F2937;
+  --theme-bg-tags: var(--surface);
+  --theme-bg-tag: #1F2937;
+  --theme-bg-tag-active: var(--primary);
+  --theme-border: var(--border);
+  --theme-border-card: var(--border);
+  --theme-text: var(--text);
+  --theme-text-muted: var(--muted);
+  --theme-accent: var(--primary);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --theme-shadow-tags: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --theme-header-bg: var(--surface);
+  --theme-header-bg-end: var(--bg);
+  --theme-header-text: var(--text);
+  --theme-header-text-muted: var(--muted);
+  --theme-header-border: rgba(255, 255, 255, 0.15);
+  --theme-sidebar-bg: #0F172A;
+  --theme-sidebar-text: var(--muted);
+  --theme-sidebar-active-bg: rgba(59, 130, 246, 0.2);
+  --theme-sidebar-active-text: #60A5FA;
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: var(--muted);
+  --el-text-color-secondary: #9CA3AF;
+  --el-color-primary: var(--primary);
+  --el-fill-color-blank: var(--surface);
+  --el-bg-color: var(--bg);
+}
+
+/* ========== B. 「高级黑金」偏质感（管理端/金融风） ========== */
+html[data-theme='b-light'] {
+  color-scheme: light;
+  --bg: #FAFAFA;
+  --surface: #FFFFFF;
+  --border: #E4E4E7;
+  --text: #18181B;
+  --muted: #71717A;
+  --primary: #A78BFA;
+  --on-primary: #FFFFFF;
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --theme-bg-page: var(--bg);
+  --theme-bg-content: var(--surface);
+  --theme-bg-card: var(--surface);
+  --theme-bg-card-hover: #F4F4F5;
+  --theme-bg-tags: var(--surface);
+  --theme-bg-tag: #F4F4F5;
+  --theme-bg-tag-active: var(--primary);
+  --theme-border: var(--border);
+  --theme-border-card: var(--border);
+  --theme-text: var(--text);
+  --theme-text-muted: var(--muted);
+  --theme-accent: var(--primary);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --theme-shadow-tags: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --theme-header-bg: #3F3F46;
+  --theme-header-bg-end: #27272A;
+  --theme-header-text: #FAFAFA;
+  --theme-header-text-muted: #A1A1AA;
+  --theme-header-border: rgba(255, 255, 255, 0.15);
+  --theme-sidebar-bg: #27272A;
+  --theme-sidebar-text: #D4D4D8;
+  --theme-sidebar-active-bg: rgba(167, 139, 250, 0.2);
+  --theme-sidebar-active-text: #A78BFA;
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: #3F3F46;
+  --el-text-color-secondary: var(--muted);
+  --el-color-primary: var(--primary);
+  --el-fill-color-blank: var(--surface);
+  --el-bg-color: var(--surface);
+}
+
+html[data-theme='b-dark'] {
+  color-scheme: dark;
+  --bg: #0A0A0B;
+  --surface: #111113;
+  --border: #27272A;
+  --text: #F4F4F5;
+  --muted: #A1A1AA;
+  --primary: #A78BFA;
+  --on-primary: #0A0A0B;
+  --success: #22C55E;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --theme-bg-page: var(--bg);
+  --theme-bg-content: var(--bg);
+  --theme-bg-card: var(--surface);
+  --theme-bg-card-hover: #18181B;
+  --theme-bg-tags: var(--surface);
+  --theme-bg-tag: #18181B;
+  --theme-bg-tag-active: var(--primary);
+  --theme-border: var(--border);
+  --theme-border-card: var(--border);
+  --theme-text: var(--text);
+  --theme-text-muted: var(--muted);
+  --theme-accent: var(--primary);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --theme-shadow-tags: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --theme-header-bg: var(--surface);
+  --theme-header-bg-end: var(--bg);
+  --theme-header-text: var(--text);
+  --theme-header-text-muted: var(--muted);
+  --theme-header-border: rgba(255, 255, 255, 0.1);
+  --theme-sidebar-bg: #18181B;
+  --theme-sidebar-text: var(--muted);
+  --theme-sidebar-active-bg: rgba(167, 139, 250, 0.2);
+  --theme-sidebar-active-text: #A78BFA;
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: var(--muted);
+  --el-text-color-secondary: #A1A1AA;
+  --el-color-primary: var(--primary);
+  --el-fill-color-blank: var(--surface);
+  --el-bg-color: var(--bg);
+}
+
+/* ========== C. 「清爽绿蓝」偏健康/效率 ========== */
+html[data-theme='c-light'] {
+  color-scheme: light;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
+  --text: #0F172A;
+  --muted: #475569;
+  --primary: #0EA5E9;
+  --on-primary: #FFFFFF;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --theme-bg-page: var(--bg);
+  --theme-bg-content: var(--surface);
+  --theme-bg-card: var(--surface);
+  --theme-bg-card-hover: #F0FDFA;
+  --theme-bg-tags: var(--surface);
+  --theme-bg-tag: #E0F2FE;
+  --theme-bg-tag-active: var(--primary);
+  --theme-border: var(--border);
+  --theme-border-card: var(--border);
+  --theme-text: var(--text);
+  --theme-text-muted: var(--muted);
+  --theme-accent: var(--primary);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --theme-shadow-tags: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --theme-header-bg: #0C4A6E;
+  --theme-header-bg-end: #075985;
+  --theme-header-text: #E0F2FE;
+  --theme-header-text-muted: #7DD3FC;
+  --theme-header-border: rgba(255, 255, 255, 0.2);
+  --theme-sidebar-bg: #075985;
+  --theme-sidebar-text: #BAE6FD;
+  --theme-sidebar-active-bg: rgba(14, 165, 233, 0.25);
+  --theme-sidebar-active-text: #38BDF8;
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: #334155;
+  --el-text-color-secondary: var(--muted);
+  --el-color-primary: var(--primary);
+  --el-fill-color-blank: var(--surface);
+  --el-bg-color: var(--surface);
+}
+
+html[data-theme='c-dark'] {
+  color-scheme: dark;
+  --bg: #071A1A;
+  --surface: #0B2A2A;
+  --border: #134E4A;
+  --text: #ECFEFF;
+  --muted: #5EEAD4;
+  --primary: #2DD4BF;
+  --on-primary: #071A1A;
+  --success: #34D399;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --theme-bg-page: var(--bg);
+  --theme-bg-content: var(--bg);
+  --theme-bg-card: var(--surface);
+  --theme-bg-card-hover: #0F3D3D;
+  --theme-bg-tags: var(--surface);
+  --theme-bg-tag: #134E4A;
+  --theme-bg-tag-active: var(--primary);
+  --theme-border: var(--border);
+  --theme-border-card: var(--border);
+  --theme-text: var(--text);
+  --theme-text-muted: var(--muted);
+  --theme-accent: var(--primary);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --theme-shadow-tags: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --theme-header-bg: var(--surface);
+  --theme-header-bg-end: var(--bg);
+  --theme-header-text: var(--text);
+  --theme-header-text-muted: var(--muted);
+  --theme-header-border: rgba(255, 255, 255, 0.12);
+  --theme-sidebar-bg: #0F3D3D;
+  --theme-sidebar-text: #99F6E4;
+  --theme-sidebar-active-bg: rgba(45, 212, 191, 0.2);
+  --theme-sidebar-active-text: #2DD4BF;
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: var(--muted);
+  --el-text-color-secondary: #99F6E4;
+  --el-color-primary: var(--primary);
+  --el-fill-color-blank: var(--surface);
+  --el-bg-color: var(--bg);
+}
+
+/* ========== D. 「暖色品牌」但不土（营销+产品一体） ========== */
+html[data-theme='d-light'] {
+  color-scheme: light;
+  --bg: #FFF7ED;
+  --surface: #FFFFFF;
+  --border: #FED7AA;
+  --text: #1F2937;
+  --muted: #9A3412;
+  --primary: #F97316;
+  --on-primary: #FFFFFF;
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --theme-bg-page: var(--bg);
+  --theme-bg-content: var(--surface);
+  --theme-bg-card: var(--surface);
+  --theme-bg-card-hover: #FFEDD5;
+  --theme-bg-tags: var(--surface);
+  --theme-bg-tag: #FFEDD5;
+  --theme-bg-tag-active: var(--primary);
+  --theme-border: var(--border);
+  --theme-border-card: var(--border);
+  --theme-text: var(--text);
+  --theme-text-muted: var(--muted);
+  --theme-accent: var(--primary);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --theme-shadow-tags: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --theme-header-bg: #C2410C;
+  --theme-header-bg-end: #9A3412;
+  --theme-header-text: #FFEDD5;
+  --theme-header-text-muted: #FDBA74;
+  --theme-header-border: rgba(255, 255, 255, 0.2);
+  --theme-sidebar-bg: #9A3412;
+  --theme-sidebar-text: #FED7AA;
+  --theme-sidebar-active-bg: rgba(249, 115, 22, 0.25);
+  --theme-sidebar-active-text: #FB923C;
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: #431407;
+  --el-text-color-secondary: var(--muted);
+  --el-color-primary: var(--primary);
+  --el-fill-color-blank: var(--surface);
+  --el-bg-color: var(--surface);
+}
+
+html[data-theme='d-dark'] {
+  color-scheme: dark;
+  --bg: #1F130A;
+  --surface: #2B1A0D;
+  --border: #7C2D12;
+  --text: #FFF7ED;
+  --muted: #FDBA74;
+  --primary: #FB923C;
+  --on-primary: #1F130A;
+  --success: #22C55E;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --theme-bg-page: var(--bg);
+  --theme-bg-content: var(--bg);
+  --theme-bg-card: var(--surface);
+  --theme-bg-card-hover: #431407;
+  --theme-bg-tags: var(--surface);
+  --theme-bg-tag: #431407;
+  --theme-bg-tag-active: var(--primary);
+  --theme-border: var(--border);
+  --theme-border-card: var(--border);
+  --theme-text: var(--text);
+  --theme-text-muted: var(--muted);
+  --theme-accent: var(--primary);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --theme-shadow-tags: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --theme-header-bg: var(--surface);
+  --theme-header-bg-end: var(--bg);
+  --theme-header-text: var(--text);
+  --theme-header-text-muted: var(--muted);
+  --theme-header-border: rgba(255, 255, 255, 0.12);
+  --theme-sidebar-bg: #431407;
+  --theme-sidebar-text: #FDBA74;
+  --theme-sidebar-active-bg: rgba(251, 146, 60, 0.2);
+  --theme-sidebar-active-text: #FB923C;
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: var(--muted);
+  --el-text-color-secondary: #FDBA74;
+  --el-color-primary: var(--primary);
+  --el-fill-color-blank: var(--surface);
+  --el-bg-color: var(--bg);
+}
+
+/* 默认使用 A 浅色（未设置 data-theme 时） */
+:root {
+  color-scheme: light;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
+  --text: #0F172A;
+  --muted: #475569;
+  --primary: #2563EB;
+  --on-primary: #FFFFFF;
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+}
+:root:not([data-theme]) {
+  --theme-bg-page: var(--bg);
+  --theme-bg-content: var(--surface);
+  --theme-bg-card: var(--surface);
+  --theme-bg-card-hover: #F1F5F9;
+  --theme-bg-tags: var(--surface);
+  --theme-bg-tag: #F1F5F9;
+  --theme-bg-tag-active: var(--primary);
+  --theme-border: var(--border);
+  --theme-border-card: var(--border);
+  --theme-text: var(--text);
+  --theme-text-muted: var(--muted);
+  --theme-accent: var(--primary);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --theme-shadow-tags: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --theme-header-bg: #1E3A5F;
+  --theme-header-bg-end: #0F172A;
+  --theme-header-text: #E2E8F0;
+  --theme-header-text-muted: #94A3B8;
+  --theme-header-border: rgba(255, 255, 255, 0.2);
+  --theme-sidebar-bg: #1E293B;
+  --theme-sidebar-text: #CBD5E1;
+  --theme-sidebar-active-bg: rgba(37, 99, 235, 0.2);
+  --theme-sidebar-active-text: #60A5FA;
+  --el-text-color-primary: var(--text);
+  --el-text-color-regular: #334155;
+  --el-text-color-secondary: var(--muted);
+  --el-color-primary: var(--primary);
+  --el-fill-color-blank: var(--surface);
+  --el-bg-color: var(--surface);
+}
+
+/* ---------- 使用变量的全局样式（Tags、Content、Welcome 等） ---------- */
+.tags,
+.tags-close-box {
+  background: var(--theme-bg-tags);
+  box-shadow: var(--theme-shadow-tags);
+}
+
+.tags-li:not(.active) {
+  background: var(--theme-bg-tag);
+  border-color: var(--theme-border);
+  color: var(--theme-text-muted);
+}
+
+.tags-li.active {
+  background: var(--theme-bg-tag-active);
+  border-color: var(--theme-bg-tag-active);
+  color: var(--on-primary, #fff);
+}
+
+.content {
+  background: var(--theme-bg-content);
+}
+
+.welcome {
+  background: var(--theme-bg-page);
+}
+
+.hero {
+  background: var(--theme-bg-card);
+  box-shadow: var(--theme-shadow);
+}
+
+.greeting,
+.subtitle,
+.section-title,
+.card-desc,
+.tips {
+  color: var(--theme-text-muted);
+}
+
+.title,
+.card-title {
+  color: var(--theme-text);
+}
+
+.card {
+  background: var(--theme-bg-card);
+  border-color: var(--theme-border-card);
+}
+
+.card:hover {
+  border-color: var(--theme-accent);
+  background: var(--theme-bg-card-hover);
+}
+
+.card--active {
+  border-color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent) 15%, transparent);
+}
+
+.card-icon {
+  background: var(--theme-bg-tag);
+  color: var(--theme-text-muted);
+}
+
+.card:hover .card-icon,
+.card--active .card-icon {
+  background: var(--theme-accent);
+  color: var(--on-primary, #fff);
+}
+
+.tips {
+  background: var(--theme-bg-card);
+  border-color: var(--theme-border);
+}
