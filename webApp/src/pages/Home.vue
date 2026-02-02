@@ -1,128 +1,73 @@
 <template>
-  <div class="page">
-    <el-card class="card" shadow="always" v-loading="loading">
-      <template #header>
-        <div class="header">
-          <div>
-            <div class="title">已登录（Mock）</div>
-            <div class="subtitle">用于本地跑通前后端交互流程</div>
-          </div>
-          <el-button type="danger" plain @click="handleLogout">退出登录</el-button>
-        </div>
-      </template>
-
-      <el-alert
-        title="Mock 说明"
-        type="info"
-        :closable="false"
-        show-icon
-        class="mb16"
-      >
-        <template #default>
-          登录接口：<code>/api/auth/login</code>，默认验证码：<code>000000</code>
-        </template>
-      </el-alert>
-
-      <el-descriptions title="当前用户 (/api/me)" :column="1" border class="mb16">
-        <el-descriptions-item label="用户名">{{ me?.username ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="展示名">{{ me?.displayName ?? '-' }}</el-descriptions-item>
-        <el-descriptions-item label="角色">{{ meRoles }}</el-descriptions-item>
-      </el-descriptions>
-
-      <el-descriptions title="菜单 (/api/menus)" :column="1" border>
-        <el-descriptions-item label="JSON">
-          <pre class="pre">{{ menusText }}</pre>
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-card>
+  <!-- Home 布局：Header + Sidebar + (Tags + 主内容)。content-box 宽度随 store.state.collapse 变化 -->
+  <div class="home">
+    <v-header />
+    <v-sidebar />
+    <div class="content-box" :class="{ 'content-collapse': collapse }">
+      <v-tags />
+      <div class="content">
+        <router-view v-slot="{ Component }">
+          <transition name="move" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { ElMessage } from 'element-plus';
-import { AuthApiFactory } from 'shared';
-import type { User, MenuItem } from 'shared';
+import { computed } from 'vue';
+import { useStore } from 'vuex';
+import vHeader from '../components/widgets/Header.vue';
+import vSidebar from '../components/widgets/Sidebar.vue';
+import vTags from '../components/widgets/Tags.vue';
 
-const me = ref<User | null>(null);
-const menus = ref<MenuItem[] | null>(null);
-const loading = ref(false);
-
-const meRoles = computed(() => {
-  const roles = me.value?.roles ?? [];
-  return roles.length > 0 ? roles.join(', ') : '-';
-});
-
-const menusText = computed(() => {
-  if (!menus.value) {
-    return '';
-  }
-  try {
-    return JSON.stringify(menus.value, null, 2);
-  } catch {
-    return String(menus.value);
-  }
-});
-
-async function refresh() {
-  try {
-    loading.value = true;
-    const api = AuthApiFactory.getInstance().getAuthApi();
-    me.value = await api.getMe();
-    menus.value = await api.getMenus();
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : '加载失败';
-    ElMessage.error(msg);
-  } finally {
-    loading.value = false;
-  }
-}
-
-function handleLogout() {
-  AuthApiFactory.getInstance().getAuthApi().logout();
-  ElMessage.success('已退出');
-  location.reload();
-}
-
-onMounted(() => {
-  refresh();
-});
+const store = useStore();
+/** 侧栏是否折叠，来自 store，与 content-box 宽度联动 */
+const collapse = computed(() => store.state.collapse);
 </script>
 
 <style scoped>
-.page {
-  min-height: 100vh;
-  padding: 24px;
-  background: #f5f7fa;
+.home {
+  padding-top: 56px; /* 为固定 header 留出空间 */
+  position: relative;
+  min-height: 100vh; /* 保证绝对定位的 sidebar/content-box 有参照高度 */
 }
-.card {
-  max-width: 920px;
-  margin: 0 auto;
-  border-radius: 12px;
+
+/* header 固定顶部，sidebar 与 content-box 从 56px 起对齐 */
+.home :deep(.header) {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
 }
-.header {
+
+/* 主内容区容器：左侧留出 sidebar 宽度，折叠时 64px */
+.content-box {
+  position: absolute;
+  top: 56px;
+  left: 250px;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  transition: left 0.3s;
 }
-.title {
-  font-weight: 600;
-  font-size: 16px;
+
+.content-box.content-collapse {
+  left: 64px;
 }
-.subtitle {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 4px;
-}
-.mb16 {
-  margin-bottom: 16px;
-}
-.pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 12px;
-  line-height: 1.4;
+
+/* 子页面渲染区域，可滚动 */
+.content {
+  position: relative;
+  z-index: 0;
+  flex: 1;
+  padding: 12px;
+  overflow: auto;
+  min-height: 0;
 }
 </style>

@@ -80,12 +80,15 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
 import { User, Lock, Key } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { LoginRequest, AuthApiFactory } from 'shared';
 import RainEffect from './RainEffect.vue';
 import './Login.css';
+
+const router = useRouter();
 
 const formRef = ref<FormInstance>();
 const totpInputRef = ref<{ focus: () => void }>();
@@ -144,7 +147,7 @@ async function doLogin() {
     const api = AuthApiFactory.getInstance().getAuthApi();
     await api.login(request);
     ElMessage.success('登录成功');
-    location.reload();
+    await router.push('/home');
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '登录失败';
     ElMessage.error(msg);

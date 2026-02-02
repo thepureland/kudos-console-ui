@@ -50,6 +50,7 @@ class AuthApiExposed {
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 object AuthApiFactory {
+    fun getInstance(): AuthApiFactory = this
     fun getAuthApi(): AuthApiExposed = AuthApiExposed()
     fun hasToken(): Boolean = TokenStorage.get() != null
 }
