@@ -52,5 +52,6 @@ class AuthApiExposed {
 object AuthApiFactory {
     fun getInstance(): AuthApiFactory = this
     fun getAuthApi(): AuthApiExposed = AuthApiExposed()
+    fun getBackendApi(): BackendApiExposed = BackendApiExposed()
     fun hasToken(): Boolean = TokenStorage.get() != null
 }

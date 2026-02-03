@@ -2,6 +2,7 @@ import { ElMessage } from "element-plus"
 import { ref } from "vue"
 import { ValidationRuleAdapter } from "../validation/ValidationRuleAdapter"
 import { BasePage } from "./BasePage"
+import { backendRequest } from "../../utils/backendRequest"
 
 
 /**
@@ -73,7 +74,7 @@ export abstract class BaseAddEditPage extends BasePage {
 
     protected async loadRowObject() {
         const params = this.createRowObjectLoadParams()
-        const result = await ajax({url: this.getRowObjectLoadUrl(), params});
+        const result = await backendRequest({url: this.getRowObjectLoadUrl(), params});
         if (result.code == 200) {
             this.fillForm(result.data)
             super.render()
@@ -83,7 +84,7 @@ export abstract class BaseAddEditPage extends BasePage {
     }
 
     protected async initValidationRule(): Promise<any> {
-        const result = await ajax({url: this.getValidationRuleUrl()});
+        const result = await backendRequest({url: this.getValidationRuleUrl()});
         if (result.code == 200) {
             this.state.rules = new ValidationRuleAdapter(result.data, () => {
                 return this.form.value.model
@@ -104,7 +105,7 @@ export abstract class BaseAddEditPage extends BasePage {
             if (!valid) return ElMessage.error('验证未通过')
             const params = this.createSubmitParams()
             if (params) {
-                const result = await ajax({url: this.getSubmitUrl(), method: "post", params})
+                const result = await backendRequest({url: this.getSubmitUrl(), method: "post", params})
                 if (result.code == 200) {
                     ElMessage.success('保存成功！')
                     this.form.value.resetFields()

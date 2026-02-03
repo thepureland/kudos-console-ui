@@ -1,0 +1,14 @@
+{
+  "code": 200,
+  "data": {
+    "(kuark:sys, sub_sys)": {
+      "console": "控制台",
+      "service_a": "服务A"
+    },
+    "(kuark:sys, cache_strategy)": {
+      "local": "本地",
+      "redis": "Redis",
+      "caffeine": "Caffeine"
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Pair } from "../model/Pair";
+import { backendRequest } from "../../utils/backendRequest";
 
 /**
  * 列表页面处理抽象父类
@@ -78,7 +79,7 @@ export abstract class BasePage {
             module: module,
             dictType: dictType
         }
-        const result = await ajax({ url: "sys/dictItem/getDictItemMap", params })
+        const result = await backendRequest({ url: "sys/dictItem/getDictItemMap", params })
         if (result.code == 200) {
             this.dictCache.set(key, result.data)
         } else {
@@ -101,7 +102,7 @@ export abstract class BasePage {
         }
         if (params.length == 0) return
 
-        const result = await ajax({ url: "sys/dictItem/batchGetDictItemMap", method: "post", params })
+        const result = await backendRequest({ url: "sys/dictItem/batchGetDictItemMap", method: "post", params })
         if (result.code == 200) {
             for (let key in result.data) {
                 const parts = key.slice(1, -1).split(", ")

@@ -1,6 +1,7 @@
 import { ElMessage } from "element-plus"
 import { BaseListPage } from "./BaseListPage"
 import { Pair } from "../model/Pair"
+import { backendRequest } from "../../utils/backendRequest"
 
 /**
  * 多租户支持的列表页面处理抽象父类
@@ -89,7 +90,7 @@ export abstract class TenantSupportListPage extends BaseListPage {
     }
 
     private async loadTenants() {
-        const result = await ajax({url: "sys/tenant/getAllActiveTenants", method: "post"})
+        const result = await backendRequest({url: "sys/tenant/getAllActiveTenants", method: "post"})
         if (result.code == 200) {
             const options = []
             const subSyses = this.getDictItems("kuark:sys", "sub_sys")

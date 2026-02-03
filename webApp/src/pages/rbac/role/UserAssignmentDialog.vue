@@ -1,3 +1,9 @@
+<!--
+ * 角色关联用户
+ *
+ * @author: K
+ * @since 1.0.0
+ -->
 <template>
   <el-dialog title="关联用户" v-model="visible" width="25%" center @close="close">
     <el-transfer
@@ -27,6 +33,7 @@
 import {defineComponent, reactive, toRefs} from "vue"
 import { BaseDetailPage } from '../../../components/pages/BaseDetailPage'
 import {ElMessage} from "element-plus";
+import { backendRequest } from '../../../utils/backendRequest';
 
 class UserAssignmentDialog extends BaseDetailPage {
 
@@ -80,7 +87,7 @@ class UserAssignmentDialog extends BaseDetailPage {
       userIds: this.state.assignedUsers
     }
     // @ts-ignore
-    const result = await ajax({url: this.getRootActionPath() + "/assignUser", method: "post", params})
+    const result = await backendRequest({url: this.getRootActionPath() + "/assignUser", method: "post", params})
     if (result.code == 200) {
       ElMessage.success('保存成功！')
       this.context.emit('update:modelValue', false)

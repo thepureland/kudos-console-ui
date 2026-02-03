@@ -1,0 +1,8 @@
+{
+  "code": 200,
+  "data": {
+    "name": [{ "message": "缓存名称必填" }],
+    "subSysDictCode": [{ "message": "请选择子系统" }],
+    "strategyDictCode": [{ "message": "请选择缓存策略" }]
+  }
+}

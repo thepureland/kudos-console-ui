@@ -1,5 +1,6 @@
 import {ElMessage, ElMessageBox} from "element-plus"
 import { BasePage } from "./BasePage"
+import { backendRequest } from "../../utils/backendRequest"
 
 /**
  * 列表页面处理抽象父类
@@ -112,7 +113,7 @@ export abstract class BaseListPage extends BasePage {
             return
         }
 
-        const result = await ajax({url: this.getSearchUrl(), method: "post", params})
+        const result = await backendRequest({url: this.getSearchUrl(), method: "post", params})
         if (result.code == 200) {
             this.postSearchSuccessfully(result.data)
         } else {
@@ -190,7 +191,7 @@ export abstract class BaseListPage extends BasePage {
             return
         }
         const params = this.createDeleteParams(row)
-        const result = await ajax({url: this.getDeleteUrl(), method: "delete", params: params})
+        const result = await backendRequest({url: this.getDeleteUrl(), method: "delete", params: params})
         if (result.data === true) {
             ElMessage.success('删除成功！')
             this.doAfterDelete([params["id"]])
@@ -215,7 +216,7 @@ export abstract class BaseListPage extends BasePage {
                 return
             }
             const params = this.createBatchDeleteParams()
-            const result = await ajax({url: this.getBatchDeleteUrl(), method: "post", params: params})
+            const result = await backendRequest({url: this.getBatchDeleteUrl(), method: "post", params: params})
             if (result.data === true) {
                 ElMessage.success('删除成功！')
                 this.doAfterDelete(this.getSelectedIds())
@@ -242,7 +243,7 @@ export abstract class BaseListPage extends BasePage {
         if (row.subSysDictCode) {
             params["subSysDictCode"] = row.subSysDictCode
         }
-        const result = await ajax({url: this.getUpdateActiveUrl(), params})
+        const result = await backendRequest({url: this.getUpdateActiveUrl(), params})
         if (!result.data) {
             ElMessage.error('启用状态更新失败！')
         }

@@ -108,6 +108,7 @@ import ResourceDetail from './ResourceDetail.vue'
 import { BaseListPage } from '../../../components/pages/BaseListPage'
 import {ElMessage} from "element-plus"
 import { Pair } from '../../../components/model/Pair'
+import { backendRequest } from '../../../utils/backendRequest'
 
 class ListPage extends BaseListPage {
 
@@ -185,7 +186,7 @@ class ListPage extends BaseListPage {
     this.setParamsForTree(node, true)
     const params = this.createSearchParams()
     // @ts-ignore
-    const result = await ajax({url: "sys/resource/loadTreeNodes", method: "post", params});
+    const result = await backendRequest({url: "sys/resource/loadTreeNodes", method: "post", params});
     if (result.code == 200) {
       resolve(result.data)
     } else {
@@ -218,7 +219,7 @@ class ListPage extends BaseListPage {
     params.id = nodeData.id
     params.resourceTypeDictCode = this.getResourceTypeByNode(node)
     // @ts-ignore
-    const result = await ajax({url: "sys/resource/searchOnClick", method: "post", params});
+    const result = await backendRequest({url: "sys/resource/searchOnClick", method: "post", params});
     if (result.code == 200) {
       this.state.tableData = result.data.first
       this.state.pagination.total = result.data.second
@@ -277,7 +278,7 @@ class ListPage extends BaseListPage {
       }]
     }
     // @ts-ignore
-    const result = await ajax({url: "sys/resource/searchByTree", method: "post", params})
+    const result = await backendRequest({url: "sys/resource/searchByTree", method: "post", params})
     if (result.code == 200) {
       this.state.tableData = result.data.first
       this.state.pagination.total = result.data.second

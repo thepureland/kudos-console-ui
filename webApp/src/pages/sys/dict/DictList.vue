@@ -105,6 +105,7 @@ import DictItemDetail from './DictItemDetail.vue'
 import { BaseListPage } from '../../../components/pages/BaseListPage'
 import {ElMessage} from "element-plus"
 import { Pair } from '../../../components/model/Pair'
+import { backendRequest } from '../../../utils/backendRequest'
 
 class ListPage extends BaseListPage {
 
@@ -313,7 +314,7 @@ class ListPage extends BaseListPage {
       active: this.state.searchParams.active ? true : null
     }
     // @ts-ignore
-    const result = await ajax({url: "sys/dict/loadTreeNodes", method: "post", params});
+    const result = await backendRequest({url: "sys/dict/loadTreeNodes", method: "post", params});
     if (result.code == 200) {
       resolve(result.data)
     } else {
@@ -345,7 +346,7 @@ class ListPage extends BaseListPage {
       isDict: node.level === 2
     }
     // @ts-ignore
-    const result = await ajax({url: "sys/dict/getDict", params});
+    const result = await backendRequest({url: "sys/dict/getDict", params});
     if (result.code == 200) {
       this.state.tableData = [result.data]
       this.state.pagination.total = 1
@@ -377,7 +378,7 @@ class ListPage extends BaseListPage {
       }]
     }
     // @ts-ignore
-    const result = await ajax({url: "sys/dict/searchByTree", method: "post", params});
+    const result = await backendRequest({url: "sys/dict/searchByTree", method: "post", params});
     if (result.code == 200) {
       this.state.tableData = result.data.first
       this.state.pagination.total = result.data.second
@@ -401,7 +402,7 @@ class ListPage extends BaseListPage {
 
   private async loadDictTypes() {
     // @ts-ignore
-    const result = await ajax({url: "sys/dict/loadDictTypes"})
+    const result = await backendRequest({url: "sys/dict/loadDictTypes"})
     if (result.code == 200) {
       result.data.forEach((val) => {
         this.state.dictTypes.push({"value": val}) // el-autocomplete要求数据项一定要有value属性, 否则下拉列表出不来

@@ -34,6 +34,7 @@
 import {defineComponent, reactive, ref, toRefs} from "vue"
 import {ElMessage, ElTree} from "element-plus";
 import { BasePage } from '../../../components/pages/BasePage';
+import { backendRequest } from '../../../utils/backendRequest';
 
 class Page extends BasePage {
 
@@ -73,7 +74,7 @@ class Page extends BasePage {
     }
     const url = this.getRootActionPath() + "/getMenuPermissions"
     // @ts-ignore
-    const result = await ajax({url: url, params})
+    const result = await backendRequest({url: url, params})
     if (result.code == 200) {
       this.state.menuData = result.data.first
 
@@ -116,7 +117,7 @@ class Page extends BasePage {
     }
     const url = this.getRootActionPath() + "/setRolePermissions"
     // @ts-ignore
-    const result = await ajax({url: url, method: 'post', params})
+    const result = await backendRequest({url: url, method: 'post', params})
     if (result.code == 200) {
       ElMessage.info('授权成功！')
       this.close()

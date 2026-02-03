@@ -105,6 +105,7 @@ import AccountDetail from './AccountDetail.vue'
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage'
 import { Pair } from '../../../components/model/Pair'
 import {ElMessage} from "element-plus";
+import { backendRequest } from '../../../utils/backendRequest';
 
 class ListPage extends TenantSupportListPage {
 
@@ -155,7 +156,7 @@ class ListPage extends TenantSupportListPage {
       tenantId: pair.second
     }
     // @ts-ignore
-    const result = await ajax({url: "user/organization/loadTree", params})
+    const result = await backendRequest({url: "user/organization/loadTree", params})
     if (result.code == 200) {
       this.state.organizations = result.data
     } else {

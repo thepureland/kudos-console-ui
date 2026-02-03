@@ -1,3 +1,9 @@
+<!--
+ * 字典添加/编辑
+ *
+ * @author: K
+ * @since 1.0.0
+ -->
 <template>
   <el-dialog title="添加字典信息" v-model="visible" width="30%" center @close="close">
     <el-form ref="form" :model="formModel" label-width="80px" :rules="rules" :validate-on-rule-change="false">
@@ -30,6 +36,7 @@
 import {defineComponent, reactive, ref, toRefs} from "vue";
 import {ElMessage} from 'element-plus';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
+import { backendRequest } from '../../../utils/backendRequest';
 
 class AddEditPage extends BaseAddEditPage {
 
@@ -125,7 +132,7 @@ class AddEditPage extends BaseAddEditPage {
       active: true
     }
     // @ts-ignore
-    const result = await ajax({url: "sys/dict/loadTreeNodes", method: "post", params})
+    const result = await backendRequest({url: "sys/dict/loadTreeNodes", method: "post", params})
     if (result.code == 200) {
       for (let item of result.data) {
         this.state.parentCache[item["id"]] = item["code"]

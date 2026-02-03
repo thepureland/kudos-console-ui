@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import Home from '../pages/Home.vue';
 import Welcome from '../pages/Welcome.vue';
 import Placeholder from '../pages/Placeholder.vue';
+import CacheList from '../pages/sys/cache/CacheList.vue';
 import Login from '../components/Login/Login.vue';
 import NotFound from '../pages/404.vue';
 
@@ -13,7 +14,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: 'home', name: 'home', component: Welcome, meta: { titleKey: 'route.home', icon: 'HomeFilled' } },
       { path: 'sys/basic', name: 'sys-basic', redirect: '/sys/cache' },
-      { path: 'sys/cache', name: 'sys-cache', component: Placeholder, meta: { titleKey: 'route.sysCache', icon: 'Coin' } },
+      { path: 'sys/cache', name: 'sys-cache', component: CacheList, meta: { titleKey: 'route.sysCache', icon: 'Coin' } },
       { path: 'sys/dict', name: 'sys-dict', component: Placeholder, meta: { titleKey: 'route.sysDict', icon: 'Collection' } },
       { path: 'sys/param', name: 'sys-param', component: Placeholder, meta: { titleKey: 'route.sysParam', icon: 'Document' } },
       { path: 'sys/subsys', name: 'sys-subsys', component: Placeholder, meta: { titleKey: 'route.sysSubsys', icon: 'Document' } },
