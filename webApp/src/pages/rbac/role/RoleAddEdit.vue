@@ -26,7 +26,7 @@
 
 <script lang='ts'>
 import {defineComponent, reactive, toRefs} from "vue";
-import {TenantSupportAddEditPage} from "../../../base/page/TenantSupportAddEditPage.ts";
+import { TenantSupportAddEditPage } from '../../../components/pages/TenantSupportAddEditPage';
 
 class AddEditPage extends TenantSupportAddEditPage {
 

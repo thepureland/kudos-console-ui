@@ -81,6 +81,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
 import { User, Lock, Key } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
@@ -89,6 +90,7 @@ import RainEffect from './RainEffect.vue';
 import './Login.css';
 
 const router = useRouter();
+const store = useStore();
 
 const formRef = ref<FormInstance>();
 const totpInputRef = ref<{ focus: () => void }>();
@@ -146,6 +148,7 @@ async function doLogin() {
   try {
     const api = AuthApiFactory.getInstance().getAuthApi();
     await api.login(request);
+    store.commit('setAuthenticated', true);
     ElMessage.success('登录成功');
     await router.push('/home');
   } catch (e: unknown) {

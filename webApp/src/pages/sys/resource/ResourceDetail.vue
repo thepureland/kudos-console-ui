@@ -60,8 +60,8 @@
 
 <script lang='ts'>
 import {defineComponent, reactive, toRefs} from "vue"
-import {BaseDetailPage} from "../../../base/page/BaseDetailPage.ts"
-import {Pair} from "../../../base/Pair.ts";
+import { BaseDetailPage } from '../../../components/pages/BaseDetailPage'
+import { Pair } from '../../../components/model/Pair';
 
 class DetailPage extends BaseDetailPage {
 

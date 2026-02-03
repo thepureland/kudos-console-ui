@@ -102,9 +102,9 @@ import {defineComponent, reactive, ref, toRefs} from "vue"
 import DictAddEdit from './DictAddEdit.vue'
 import DictDetail from './DictDetail.vue'
 import DictItemDetail from './DictItemDetail.vue'
-import {BaseListPage} from "../../../base/page/BaseListPage.ts"
+import { BaseListPage } from '../../../components/pages/BaseListPage'
 import {ElMessage} from "element-plus"
-import {Pair} from "../../../base/Pair.ts"
+import { Pair } from '../../../components/model/Pair'
 
 class ListPage extends BaseListPage {
 

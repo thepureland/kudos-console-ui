@@ -52,7 +52,7 @@
 
 <script lang='ts'>
 import {defineComponent, reactive, toRefs} from "vue"
-import {TenantSupportListPage} from "../../../base/page/TenantSupportListPage.ts"
+import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage'
 import MenuRoleAssignDialog from "./MenuRoleAssignDialog.vue"
 
 

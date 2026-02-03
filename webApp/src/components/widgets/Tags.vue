@@ -19,7 +19,12 @@
       </ul>
     </div>
     <div class="tags-list-wrap" ref="wrapRef">
-      <ul class="tags-list" ref="listRef">
+      <ul
+        class="tags-list"
+        ref="listRef"
+        @dragover.prevent="onDragOverList"
+        @drop="onDropList"
+      >
         <li
           v-for="(item, index) in visibleTags"
           :key="item.path"
@@ -175,8 +180,10 @@ onMounted(() => {
   resizeObserver = new ResizeObserver(scheduleMeasure);
   resizeObserver.observe(wrap);
   scheduleMeasure();
+  document.addEventListener('dragend', onDragEnd, true);
 });
 onUnmounted(() => {
+  document.removeEventListener('dragend', onDragEnd, true);
   if (resizeObserver && wrapRef.value) {
     resizeObserver.disconnect();
     resizeObserver = null;
@@ -287,13 +294,34 @@ function onDragOver(e: DragEvent, index: number) {
 function onDragLeave() {
   dragOverIndex.value = null;
 }
+function doDrop(from: number, toIndex: number) {
+  if (from === toIndex) return;
+  store.commit('reorderTags', { fromIndex: from, toIndex });
+}
 function onDrop(e: DragEvent, toIndex: number) {
   e.preventDefault();
   e.stopPropagation();
   const from = dragFromIndex.value;
   if (from === null) return;
-  if (from !== toIndex) store.commit('reorderTags', { fromIndex: from, toIndex });
+  doDrop(from, toIndex);
   dragOverIndex.value = null;
+}
+/** 列表容器上的 drop：用最后一次 dragover 的索引，避免在标签间隙松开时放不下 */
+function onDropList(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  const from = dragFromIndex.value;
+  if (from === null) return;
+  const toIndex = dragOverIndex.value ?? from;
+  doDrop(from, toIndex);
+  dragOverIndex.value = null;
+}
+function onDragOverList(e: DragEvent) {
+  e.preventDefault();
+  e.dataTransfer!.dropEffect = 'move';
+  if (dragOverIndex.value === null && dragFromIndex.value !== null) {
+    dragOverIndex.value = visibleTags.value.length;
+  }
 }
 function onDragEnd() {
   dragFromIndex.value = null;
@@ -370,11 +398,11 @@ function onDragEnd() {
 }
 
 .tags-li[draggable='true'] {
-  cursor: grab;
+  cursor: pointer;
 }
 
 .tags-li:active[draggable='true'] {
-  cursor: grabbing;
+  cursor: pointer;
 }
 
 .tags-li.tags-li-dragging {

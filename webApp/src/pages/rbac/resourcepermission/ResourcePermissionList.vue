@@ -69,8 +69,8 @@
 <script lang='ts'>
 import {defineComponent, reactive, toRefs, ref} from "vue"
 import {ElMessage} from "element-plus"
-import {Pair} from "../../../base/Pair.ts"
-import {TenantSupportListPage} from "../../../base/page/TenantSupportListPage.ts";
+import { Pair } from '../../../components/model/Pair'
+import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
 
 class ListPage extends TenantSupportListPage {
 

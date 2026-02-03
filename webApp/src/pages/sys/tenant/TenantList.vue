@@ -83,8 +83,8 @@
 import {defineComponent, reactive, toRefs} from "vue";
 import TenantAddEdit from './TenantAddEdit.vue';
 import TenantDetail from './TenantDetail.vue';
-import {BaseListPage} from "../../../base/page/BaseListPage.ts";
-import {Pair} from "../../../base/Pair.ts";
+import { BaseListPage } from '../../../components/pages/BaseListPage';
+import { Pair } from '../../../components/model/Pair';
 
 class ListPage extends BaseListPage {
 

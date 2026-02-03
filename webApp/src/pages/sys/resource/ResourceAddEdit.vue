@@ -32,7 +32,7 @@
 <script lang='ts'>
 import {defineComponent, reactive, toRefs} from "vue"
 import {ElMessage} from 'element-plus'
-import {BaseAddEditPage} from "../../../base/page/BaseAddEditPage.ts"
+import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage'
 
 class AddEditPage extends BaseAddEditPage {
 

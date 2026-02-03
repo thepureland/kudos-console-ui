@@ -114,8 +114,8 @@ import RoleDetail from './RoleDetail.vue'
 import MenuAuthorization from './MenuAuthorization.vue'
 import UserListDialog from './UserListDialog.vue'
 import UserAssignmentDialog from './UserAssignmentDialog.vue'
-import {TenantSupportListPage} from "../../../base/page/TenantSupportListPage.ts";
-import {Pair} from "../../../base/Pair.ts"
+import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
+import { Pair } from '../../../components/model/Pair'
 
 class ListPage extends TenantSupportListPage {
 

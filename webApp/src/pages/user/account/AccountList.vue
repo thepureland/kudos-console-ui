@@ -102,8 +102,8 @@
 import {defineComponent, reactive, toRefs} from "vue"
 import AccountAddEdit from './AccountAddEdit.vue'
 import AccountDetail from './AccountDetail.vue'
-import {TenantSupportListPage} from "../../../base/page/TenantSupportListPage.ts"
-import {Pair} from "../../../base/Pair.ts"
+import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage'
+import { Pair } from '../../../components/model/Pair'
 import {ElMessage} from "element-plus";
 
 class ListPage extends TenantSupportListPage {

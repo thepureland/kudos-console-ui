@@ -34,7 +34,7 @@
 
 <script lang='ts'>
 import {defineComponent, reactive, ref, toRefs} from "vue";
-import {OrgSupportAddEditPage} from "../../../base/page/OrgSupportAddEditPage.ts";
+import { OrgSupportAddEditPage } from '../../../components/pages/OrgSupportAddEditPage';
 
 class AddEditPage extends OrgSupportAddEditPage {
 
