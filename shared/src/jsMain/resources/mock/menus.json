@@ -1,55 +1,77 @@
 [
   {
     "path": "/home",
-    "name": "首页",
+    "name": "menu.home",
     "icon": "HomeFilled",
     "children": null
   },
   {
     "path": "/tabs",
-    "name": "消息中心",
+    "name": "menu.tabs",
     "icon": "Bell",
     "children": null
   },
   {
     "path": "/sys",
-    "name": "系统管理",
+    "name": "menu.sys",
     "icon": "Setting",
     "children": [
       {
-        "path": "/sys/cache",
-        "name": "缓存管理",
-        "icon": "Coin",
+        "path": "/sys/basic",
+        "name": "menu.sysBasic",
+        "icon": "Document",
+        "children": [
+          { "path": "/sys/cache", "name": "menu.sysCache", "icon": "Coin", "children": null },
+          { "path": "/sys/dict", "name": "menu.sysDict", "icon": "Collection", "children": null },
+          { "path": "/sys/param", "name": "menu.sysParam", "icon": "Document", "children": null }
+        ]
+      },
+      {
+        "path": "/sys/subsys",
+        "name": "menu.sysSubsys",
+        "icon": "Document",
         "children": null
       },
       {
-        "path": "/sys/dict",
-        "name": "字典管理",
+        "path": "/sys/microservice",
+        "name": "menu.sysMicroservice",
+        "icon": "Connection",
+        "children": null
+      },
+      {
+        "path": "/sys/datasource",
+        "name": "menu.sysDatasource",
         "icon": "Collection",
         "children": null
       },
       {
-        "path": "/sys/param",
-        "name": "参数配置",
+        "path": "/sys/resource",
+        "name": "menu.sysResource",
         "icon": "Document",
+        "children": null
+      },
+      {
+        "path": "/sys/i18n",
+        "name": "menu.sysI18n",
+        "icon": "Setting",
         "children": null
       }
     ]
   },
   {
     "path": "/user",
-    "name": "用户与组织",
+    "name": "menu.user",
     "icon": "User",
     "children": [
       {
         "path": "/user/account",
-        "name": "账号管理",
+        "name": "menu.userAccount",
         "icon": "UserFilled",
         "children": null
       },
       {
         "path": "/user/organization",
-        "name": "组织管理",
+        "name": "menu.userOrganization",
         "icon": "OfficeBuilding",
         "children": null
       }
@@ -57,18 +79,18 @@
   },
   {
     "path": "/rbac",
-    "name": "权限管理",
+    "name": "menu.rbac",
     "icon": "Lock",
     "children": [
       {
         "path": "/rbac/role",
-        "name": "角色管理",
+        "name": "menu.rbacRole",
         "icon": "Key",
         "children": null
       },
       {
         "path": "/rbac/group",
-        "name": "用户组",
+        "name": "menu.rbacGroup",
         "icon": "User",
         "children": null
       }

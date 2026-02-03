@@ -1,6 +1,6 @@
 <template>
-  <!-- 左侧导航：el-menu 多级 + 折叠 + router，数据来自接口或 localhost fallback -->
-  <div class="sidebar">
+  <!-- 左侧导航：el-menu 多级 + 折叠 + router，宽度由 store.sidebarWidth 控制（可拖拽分界线调整） -->
+  <div class="sidebar" :class="sidebarTimeClass" :style="sidebarStyle">
     <el-menu
       class="sidebar-el-menu"
       :default-active="onRoutes"
@@ -19,13 +19,21 @@
             </template>
             <template v-for="subItem in item.children" :key="subItem.index">
               <el-sub-menu v-if="subItem.children" :index="subItem.index">
-                <template #title>{{ menuLabel(subItem) }}</template>
+                <template #title>
+                  <el-icon v-if="subItem.icon">
+                    <component :is="subItem.icon" />
+                  </el-icon>
+                  <span>{{ menuLabel(subItem) }}</span>
+                </template>
                 <el-menu-item
                   v-for="(threeItem, i) in subItem.children"
-                  :key="i"
+                  :key="threeItem.index"
                   :index="threeItem.index"
                 >
-                  {{ menuLabel(threeItem) }}
+                  <el-icon v-if="threeItem.icon">
+                    <component :is="threeItem.icon" />
+                  </el-icon>
+                  <template #title>{{ menuLabel(threeItem) }}</template>
                 </el-menu-item>
               </el-sub-menu>
               <el-menu-item v-else :index="subItem.index">
@@ -83,28 +91,29 @@ const { t } = useI18n();
 const route = useRoute();
 const store = useStore();
 const collapse = computed(() => store.state.collapse);
+/** 侧栏展开时的宽度（px），与 Home 页分界线拖拽联动，来自 store */
+const sidebarWidth = computed(() => store.state.sidebarWidth);
 const onRoutes = computed(() => route.path);
 
+/** 侧栏根节点宽度：折叠时 64px（与 el-menu 折叠一致），展开时为 store.sidebarWidth；菜单区用 width:100% 填满 */
+const sidebarStyle = computed(() => ({
+  width: collapse.value ? '64px' : `${sidebarWidth.value}px`,
+}));
+
+/** 根据时段给 sidebar 加 class，用于 ::after 叠加层（与 Header/Welcome 一致） */
+const sidebarTimeClass = computed(() => {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 11) return 'sidebar--time-morning';
+  if (h >= 11 && h < 17) return 'sidebar--time-afternoon';
+  if (h >= 17 && h < 21) return 'sidebar--time-evening';
+  return 'sidebar--time-night';
+});
+
 // ---------- 菜单项文案与图标 ----------
-/** 路径 → i18n key，menuLabel 据此翻译 */
-const PATH_MENU_KEY: Record<string, string> = {
-  '/home': 'menu.home',
-  '/tabs': 'menu.tabs',
-  '/sys': 'menu.sys',
-  '/sys/cache': 'menu.sysCache',
-  '/sys/dict': 'menu.sysDict',
-  '/sys/param': 'menu.sysParam',
-  '/user': 'menu.user',
-  '/user/account': 'menu.userAccount',
-  '/user/organization': 'menu.userOrganization',
-  '/rbac': 'menu.rbac',
-  '/rbac/role': 'menu.rbacRole',
-  '/rbac/group': 'menu.rbacGroup',
-};
+/** 服务端 / shared 返回的 name 为 i18n key，直接用 t(titleKey) 显示 */
 function menuLabel(item: MenuItem): string {
   if (item.titleKey) return t(item.titleKey);
-  const key = PATH_MENU_KEY[item.index];
-  return key ? t(key) : item.title;
+  return item.title;
 }
 
 const iconMap: Record<string, unknown> = {
@@ -123,12 +132,12 @@ const iconMap: Record<string, unknown> = {
 function resolveIcon(name: string | null | undefined): unknown {
   return name ? iconMap[name] ?? Setting : Setting;
 }
-/** 将 shared 返回的菜单结构转为本地 MenuItem（path → titleKey，用于 i18n） */
+/** 将服务端 / shared 菜单转为本地 MenuItem，name 即 i18n key，用作 titleKey */
 function mapMenusFromShared(items: Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>): MenuItem[] {
   return items.map((it) => ({
     index: it.path,
     title: it.name,
-    titleKey: PATH_MENU_KEY[it.path],
+    titleKey: it.name,
     icon: resolveIcon(it.icon ?? null),
     children: it.children?.length ? mapMenusFromShared(it.children as Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>) : undefined,
   }));
@@ -152,9 +161,22 @@ function getFallbackMenus(): MenuItem[] {
       titleKey: 'menu.sys',
       icon: Setting,
       children: [
-        { index: '/sys/cache', title: '缓存管理', titleKey: 'menu.sysCache', icon: Coin },
-        { index: '/sys/dict', title: '字典管理', titleKey: 'menu.sysDict', icon: Collection },
-        { index: '/sys/param', title: '参数配置', titleKey: 'menu.sysParam', icon: Document },
+        {
+          index: '/sys/basic',
+          title: '基础配置',
+          titleKey: 'menu.sysBasic',
+          icon: Document,
+          children: [
+            { index: '/sys/cache', title: '缓存管理', titleKey: 'menu.sysCache', icon: Coin },
+            { index: '/sys/dict', title: '字典管理', titleKey: 'menu.sysDict', icon: Collection },
+            { index: '/sys/param', title: '参数配置', titleKey: 'menu.sysParam', icon: Document },
+          ],
+        },
+        { index: '/sys/subsys', title: '子系统', titleKey: 'menu.sysSubsys', icon: Document },
+        { index: '/sys/microservice', title: '微服务', titleKey: 'menu.sysMicroservice', icon: Setting },
+        { index: '/sys/datasource', title: '数据源', titleKey: 'menu.sysDatasource', icon: Collection },
+        { index: '/sys/resource', title: '资源', titleKey: 'menu.sysResource', icon: Document },
+        { index: '/sys/i18n', title: '国际化', titleKey: 'menu.sysI18n', icon: Setting },
       ],
     },
     {
@@ -216,28 +238,75 @@ onMounted(() => loadMenuData());
   top: 56px;
   bottom: 0;
   z-index: 1;
-  overflow-y: scroll;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 时段叠加层：覆盖在侧栏背景上，不遮挡菜单；与 Header 时段一致 */
+.sidebar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sidebar.sidebar--time-morning::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(100, 150, 255, 0.08) 100%);
+}
+
+.sidebar.sidebar--time-afternoon::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.04) 100%);
+}
+
+.sidebar.sidebar--time-evening::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 180, 100, 0.06) 100%);
+}
+
+.sidebar.sidebar--time-night::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(140, 140, 200, 0.06) 100%);
+}
+
+.sidebar-el-menu {
+  position: relative;
+  z-index: 0;
 }
 
 .sidebar::-webkit-scrollbar {
-  width: 0;
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
 }
 
 .sidebar-el-menu {
   transition: width 0.25s ease;
   background-color: var(--theme-sidebar-bg) !important;
+  height: auto !important;
+  min-height: 100%;
+}
+
+/* 让菜单列表随内容增高，避免底部项被裁切；由 .sidebar 负责纵向滚动 */
+.sidebar-el-menu :deep(ul),
+.sidebar-el-menu :deep(.el-menu) {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
 }
 
 .sidebar-el-menu :deep(.el-menu-item),
 .sidebar-el-menu :deep(.el-sub-menu__title) {
   color: var(--theme-sidebar-text);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 .sidebar-el-menu :deep(.el-menu-item:hover),
 .sidebar-el-menu :deep(.el-sub-menu__title:hover) {
   background-color: rgba(255, 255, 255, 0.08) !important;
   color: var(--theme-header-text) !important;
+  transform: translateX(2px);
 }
 
 .sidebar-el-menu :deep(.el-menu-item.is-active) {
@@ -245,12 +314,63 @@ onMounted(() => loadMenuData());
   color: var(--theme-sidebar-active-text) !important;
 }
 
-.sidebar-el-menu:not(.el-menu--collapse) {
-  width: 250px;
+/* 嵌套子菜单内项（二级、三级）：强制使用侧栏文字色，避免浅色主题下被 --el-text-color 覆盖导致对比度不足 */
+.sidebar-el-menu :deep(.el-sub-menu .el-menu .el-menu-item),
+.sidebar-el-menu :deep(.el-sub-menu .el-menu .el-sub-menu__title),
+.sidebar-el-menu :deep(.el-sub-menu .el-sub-menu .el-menu .el-menu-item),
+.sidebar-el-menu :deep(.el-sub-menu .el-sub-menu .el-menu .el-sub-menu__title) {
+  color: var(--theme-sidebar-text) !important;
+}
+.sidebar-el-menu :deep(.el-sub-menu .el-menu .el-menu-item:hover),
+.sidebar-el-menu :deep(.el-sub-menu .el-menu .el-sub-menu__title:hover),
+.sidebar-el-menu :deep(.el-sub-menu .el-sub-menu .el-menu .el-menu-item:hover),
+.sidebar-el-menu :deep(.el-sub-menu .el-sub-menu .el-menu .el-sub-menu__title:hover) {
+  color: var(--theme-header-text) !important;
+  transform: translateX(2px);
+}
+.sidebar-el-menu :deep(.el-sub-menu .el-menu .el-menu-item.is-active),
+.sidebar-el-menu :deep(.el-sub-menu .el-sub-menu .el-menu .el-menu-item.is-active) {
+  color: var(--theme-sidebar-active-text) !important;
 }
 
-.sidebar > ul {
-  height: 100%;
+/* 展开时菜单区填满侧栏容器（容器宽度由 store.sidebarWidth 控制，可拖拽分界线调整） */
+.sidebar-el-menu:not(.el-menu--collapse) {
+  width: 100%;
+}
+
+/* 菜单项文案过长时换行显示，避免被裁切（覆盖 Element Plus 默认 overflow/ellipsis） */
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title),
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-menu-item) {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 48px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  line-height: 1.4;
+}
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title) {
+  flex-wrap: wrap;
+}
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-menu-item .el-menu-item__title),
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title .el-sub-menu__title-wrap),
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title span:not(.el-sub-menu__icon-arrow)),
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-menu-item > span),
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title > *:not(.el-sub-menu__icon-arrow)) {
+  overflow: visible !important;
+  white-space: normal !important;
+  word-break: break-word;
+  line-height: 1.4;
+  max-width: 100% !important;
+  min-width: 0;
+}
+.sidebar-el-menu :deep(.el-sub-menu__icon-arrow) {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.sidebar > .sidebar-el-menu,
+.sidebar-el-menu > ul {
+  display: block;
 }
 
 /* 子菜单展开箭头颜色与旋转 */
@@ -263,17 +383,23 @@ onMounted(() => loadMenuData());
   transform: rotate(180deg);
 }
 
-/* 子菜单展开/收起：缩短时长 + 小 max-height 减少“空跑”，缓动更顺滑 */
-.sidebar-el-menu :deep(.el-sub-menu .el-menu) {
+/* 子菜单展开/收起：用 max-height 做动画，值足够大以便展开后全部可见、由外层 .sidebar 滚动 */
+/* 强制子菜单区域使用侧栏背景，避免浅色主题下 Element 使用 --el-bg-color 导致浅底+浅字对比度不足 */
+/* 支持二级、三级嵌套：.el-sub-menu .el-menu 与 .el-sub-menu .el-sub-menu .el-menu */
+.sidebar-el-menu :deep(.el-sub-menu .el-menu),
+.sidebar-el-menu :deep(.el-sub-menu .el-sub-menu .el-menu) {
+  background-color: var(--theme-sidebar-bg) !important;
   overflow: hidden;
   transition: max-height 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sidebar-el-menu :deep(.el-sub-menu:not(.is-opened) .el-menu) {
+.sidebar-el-menu :deep(.el-sub-menu:not(.is-opened) .el-menu),
+.sidebar-el-menu :deep(.el-sub-menu .el-sub-menu:not(.is-opened) .el-menu) {
   max-height: 0;
 }
 
-.sidebar-el-menu :deep(.el-sub-menu.is-opened .el-menu) {
-  max-height: 320px;
+.sidebar-el-menu :deep(.el-sub-menu.is-opened .el-menu),
+.sidebar-el-menu :deep(.el-sub-menu .el-sub-menu.is-opened .el-menu) {
+  max-height: 2000px;
 }
 </style>
