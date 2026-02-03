@@ -7,7 +7,7 @@ import './styles/theme.css';
 import router from './router';
 import store from './store';
 import { i18n } from './i18n';
-import { ajax } from './utils/ajax';
+import { backendRequest } from './utils/backendRequest';
 
 const VALID_THEMES = ['a-light', 'a-dark', 'b-light', 'b-dark', 'c-light', 'c-dark', 'd-light', 'd-dark'];
 const rawTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('theme') : null;
@@ -24,6 +24,6 @@ app.use(i18n);
 app.use(ElementPlus);
 app.use(store);
 app.use(router);
-// 挂载全局 ajax 以兼容旧页面调用
-(window as unknown as { ajax?: typeof ajax }).ajax = ajax;
+// 统一走 shared：全局 ajax 指向 backendRequest
+(window as unknown as { ajax?: typeof backendRequest }).ajax = backendRequest;
 app.mount('#root');

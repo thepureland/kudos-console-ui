@@ -77,6 +77,7 @@
 import {defineComponent, reactive, toRefs} from "vue"
 import { BaseDetailPage } from '../../../components/pages/BaseDetailPage'
 import {ElMessage} from "element-plus";
+import { backendRequest } from '../../../utils/backendRequest';
 
 class DetailPage extends BaseDetailPage {
 
@@ -103,7 +104,7 @@ class DetailPage extends BaseDetailPage {
       dictId: this.props.rid
     }
     // @ts-ignore
-    const result = await ajax({url: "sys/dictItem/getDictItemsByDictId", params});
+    const result = await backendRequest({url: "sys/dictItem/getDictItemsByDictId", params});
     if (result.code == 200) {
       this.state.tableData = result.data
     } else {

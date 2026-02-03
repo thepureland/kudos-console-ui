@@ -1,0 +1,19 @@
+{
+  "code": 200,
+  "data": {
+    "id": "cache-1",
+    "name": "userCache",
+    "subSysDictCode": "console",
+    "strategyDictCode": "caffeine",
+    "writeOnBoot": true,
+    "writeInTime": false,
+    "builtIn": false,
+    "active": true,
+    "ttl": 3600,
+    "remark": "用户信息缓存",
+    "createTime": [2024, 1, 15, 10, 0, 0],
+    "updateTime": [2024, 2, 1, 14, 30, 0],
+    "createUser": "admin",
+    "updateUser": "admin"
+  }
+}

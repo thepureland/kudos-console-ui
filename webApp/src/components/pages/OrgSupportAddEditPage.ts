@@ -1,5 +1,6 @@
 import { ElMessage } from "element-plus"
 import { TenantSupportAddEditPage } from "./TenantSupportAddEditPage"
+import { backendRequest } from "../../utils/backendRequest"
 
 
 /**
@@ -80,7 +81,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
                 parentId: this.getParentId(node),
                 active: true
             }
-            const result = await ajax({url: "user/organization/lazyLoadTree", method: "post", params})
+            const result = await backendRequest({url: "user/organization/lazyLoadTree", method: "post", params})
             if (result.code == 200) {
                 resolve(result.data)
             } else {

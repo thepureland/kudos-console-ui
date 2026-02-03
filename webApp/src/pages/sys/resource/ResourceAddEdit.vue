@@ -1,3 +1,9 @@
+<!--
+ * 资源添加/编辑
+ *
+ * @author: K
+ * @since 1.0.0
+ -->
 <template>
   <el-dialog title="添加资源信息" v-model="visible" width="30%" center @close="close">
     <el-form ref="form" :model="formModel" label-width="80px" :rules="rules" :validate-on-rule-change="false">
@@ -33,6 +39,7 @@
 import {defineComponent, reactive, toRefs} from "vue"
 import {ElMessage} from 'element-plus'
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage'
+import { backendRequest } from '../../../utils/backendRequest'
 
 class AddEditPage extends BaseAddEditPage {
 
@@ -112,7 +119,7 @@ class AddEditPage extends BaseAddEditPage {
       active: true
     }
     // @ts-ignore
-    const result = await ajax({url: "sys/resource/loadTreeNodes", method: "post", params})
+    const result = await backendRequest({url: "sys/resource/loadTreeNodes", method: "post", params})
     if (result.code == 200) {
       resolve(result.data)
     } else {

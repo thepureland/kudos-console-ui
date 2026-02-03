@@ -78,18 +78,21 @@ abstract class GenerateMockData : DefaultTask() {
             .asFile
         outFile.parentFile.mkdirs()
 
-        val entries = files.joinToString(",\n") { file ->
+        // 每个 json 注册两条 path：/api/xxx（AuthApi 等）与 /xxx（BackendApi 如 /sys/cache/search）
+        val entries = files.flatMap { file ->
             val rel = root.toPath().relativize(file.toPath()).toString().replace(File.separatorChar, '/')
             val noExt = rel.removeSuffix(".json")
-            val apiPath = "/api/$noExt"
             val json = file.readText().trim()
             val escaped = json
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\$", "\\$")
                 .replace("\n", "\\n")
-            "        \"$apiPath\" to \"$escaped\""
-        }
+            listOf(
+                "\"/api/$noExt\" to \"$escaped\"",
+                "\"/$noExt\" to \"$escaped\""
+            )
+        }.joinToString(",\n")
 
         outFile.writeText(
             """

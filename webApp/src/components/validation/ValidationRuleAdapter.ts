@@ -1,3 +1,5 @@
+import { backendRequest } from "../../utils/backendRequest";
+
 /**
  * 校验规则适配器，用于将服务端返回的校验规则适配为async-validator的校验规则
  *
@@ -239,7 +241,7 @@ export class ValidationRuleAdapter {
                 const params = {}
                 params[propName] = value
 
-                const result = await ajax({url: ruleDetails[0].requestUrl, params})
+                const result = await backendRequest({url: ruleDetails[0].requestUrl, params})
                 if (result.code == 200) {
                     resolve()
                 } else {

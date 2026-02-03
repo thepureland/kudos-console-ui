@@ -1,5 +1,6 @@
 import { BasePage } from "./BasePage"
 import { ElMessage } from "element-plus"
+import { backendRequest } from "../../utils/backendRequest"
 
 /**
  * 详情页面处理抽象父类
@@ -56,7 +57,7 @@ export abstract class BaseDetailPage extends BasePage {
 
     protected async loadData() {
         const params = this.createDetailLoadParams()
-        const result = await ajax({url: this.getDetailLoadUrl(), params});
+        const result = await backendRequest({url: this.getDetailLoadUrl(), params});
         if (result.code == 200) {
             this.postLoadDataSuccessfully(result.data)
         } else {

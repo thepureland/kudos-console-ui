@@ -71,6 +71,7 @@ import {defineComponent, reactive, toRefs, ref} from "vue"
 import {ElMessage} from "element-plus"
 import { Pair } from '../../../components/model/Pair'
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
+import { backendRequest } from '../../../utils/backendRequest';
 
 class ListPage extends TenantSupportListPage {
 
@@ -142,7 +143,7 @@ class ListPage extends TenantSupportListPage {
       subSysDictCode: subSysDictCode
     }
     // @ts-ignore
-    const result = await ajax({url: "sys/resource/getSimpleMenus", params})
+    const result = await backendRequest({url: "sys/resource/getSimpleMenus", params})
     if (result.code == 200) {
       this.state.menus = result.data
     } else {
@@ -166,7 +167,7 @@ class ListPage extends TenantSupportListPage {
     params.id = nodeData.id
     params.resourceTypeDictCode = this.getResourceTypeByNode(node)
     // @ts-ignore
-    const result = await ajax({url: "sys/resource/searchOnClick", method: "post", params});
+    const result = await backendRequest({url: "sys/resource/searchOnClick", method: "post", params});
     if (result.code == 200) {
       this.state.tableData = result.data.first
       this.state.pagination.total = result.data.second
@@ -225,7 +226,7 @@ class ListPage extends TenantSupportListPage {
       }]
     }
     // @ts-ignore
-    const result = await ajax({url: "rbac/resourcepermission/searchTree", method: "post", params})
+    const result = await backendRequest({url: "rbac/resourcepermission/searchTree", method: "post", params})
     if (result.code == 200) {
       this.state.tableData = result.data.first
       this.state.pagination.total = result.data.second

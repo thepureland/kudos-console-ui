@@ -2,6 +2,7 @@ import { createI18n } from 'vue-i18n';
 import zhCN from '../locales/zh-CN';
 import zhTW from '../locales/zh-TW';
 import enUS from '../locales/en-US';
+import { backendRequest } from '../utils/backendRequest';
 
 export type LocaleId = 'zh-CN' | 'zh-TW' | 'en-US';
 
@@ -32,7 +33,7 @@ export const i18n = createI18n({
 /** 从服务端拉取某语言的翻译并 merge 到当前 i18n（与本地语言包合并，服务端键优先） */
 export async function loadMessagesFromServer(locale: LocaleId): Promise<void> {
   try {
-    const res = await ajax({ url: `${I18N_API_PATH}/${locale}` });
+    const res = await backendRequest({ url: `${I18N_API_PATH}/${locale}` });
     const messages = (res && typeof res === 'object' && 'data' in res ? (res as { data: Record<string, unknown> }).data : res) as Record<string, unknown> | undefined;
     if (messages && typeof messages === 'object') {
       i18n.global.mergeLocaleMessage(locale, messages);

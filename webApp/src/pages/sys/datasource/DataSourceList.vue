@@ -92,6 +92,7 @@ import DataSourceDetail from './DataSourceDetail.vue'
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
 import { Pair } from '../../../components/model/Pair';
 import {ElMessage} from "element-plus";
+import { backendRequest } from '../../../utils/backendRequest';
 
 class ListPage extends TenantSupportListPage {
 
@@ -145,7 +146,7 @@ class ListPage extends TenantSupportListPage {
     const url = "sys/dataSource/resetPassword"
 
     // @ts-ignore
-    const result = await ajax({url: url, params})
+    const result = await backendRequest({url: url, params})
     if (result.code = 200) {
       ElMessage.info('重置密码成功！')
     } else {

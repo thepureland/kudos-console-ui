@@ -1,3 +1,9 @@
+<!--
+ * 左侧导航栏
+ *
+ * @author: K
+ * @since 1.0.0
+ -->
 <template>
   <!-- 左侧导航：el-menu 多级 + 折叠 + router，宽度由 store.sidebarWidth 控制（可拖拽分界线调整） -->
   <div class="sidebar" :class="sidebarTimeClass" :style="sidebarStyle">
@@ -77,7 +83,7 @@ import {
   Key,
 } from '@element-plus/icons-vue';
 import { AuthApiFactory } from 'shared';
-/** 菜单接口失败时使用 main 挂载的全局 ajax（env.d.ts 声明）请求 getAuthorisedMenus */
+import { backendRequest } from '../../utils/backendRequest';
 
 interface MenuItem {
   index: string;
@@ -221,7 +227,7 @@ async function loadMenuData() {
     }
   }
   try {
-    const result = await ajax({ url: 'user/account/getAuthorisedMenus' }) as { data: MenuItem[] };
+    const result = await backendRequest({ url: 'user/account/getAuthorisedMenus' }) as { data: MenuItem[] };
     menuData.value = result.data ?? [];
   } catch {
     if (isLocalhost()) menuData.value = getFallbackMenus();

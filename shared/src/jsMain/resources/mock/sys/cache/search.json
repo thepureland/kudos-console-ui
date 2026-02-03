@@ -1,0 +1,30 @@
+{
+  "code": 200,
+  "data": {
+    "first": [
+      {
+        "id": "cache-1",
+        "name": "userCache",
+        "subSysDictCode": "console",
+        "strategyDictCode": "caffeine",
+        "writeOnBoot": true,
+        "writeInTime": false,
+        "ttl": 3600,
+        "remark": "用户信息缓存",
+        "active": true
+      },
+      {
+        "id": "cache-2",
+        "name": "dictCache",
+        "subSysDictCode": "console",
+        "strategyDictCode": "redis",
+        "writeOnBoot": false,
+        "writeInTime": true,
+        "ttl": 86400,
+        "remark": "字典缓存",
+        "active": true
+      }
+    ],
+    "second": 2
+  }
+}

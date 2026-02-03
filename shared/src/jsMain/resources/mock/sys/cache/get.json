@@ -1,0 +1,14 @@
+{
+  "code": 200,
+  "data": {
+    "id": "cache-1",
+    "name": "userCache",
+    "subSysDictCode": "console",
+    "strategyDictCode": "caffeine",
+    "writeOnBoot": true,
+    "writeInTime": false,
+    "ttl": 3600,
+    "managementBeanName": null,
+    "remark": "用户信息缓存"
+  }
+}

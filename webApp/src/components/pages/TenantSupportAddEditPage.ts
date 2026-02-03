@@ -1,5 +1,6 @@
 import { ElMessage } from "element-plus"
 import { BaseAddEditPage } from "./BaseAddEditPage"
+import { backendRequest } from "../../utils/backendRequest"
 
 
 /**
@@ -61,7 +62,7 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
     }
 
     protected async loadTenants() {
-        const result = await ajax({url: "sys/tenant/getAllActiveTenants", method: "post"})
+        const result = await backendRequest({url: "sys/tenant/getAllActiveTenants", method: "post"})
         if (result.code == 200) {
             const options = []
             const subSyses = this.getDictItems("kuark:sys", "sub_sys")

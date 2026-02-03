@@ -1,54 +1,68 @@
-<!--
- * 缓存新增/编辑
- *
- * @author: K
- * @since 1.0.0
- -->
-
+<!-- 缓存新增/编辑 -->
 <template>
-  <el-dialog title="添加缓存信息" v-model="visible" width="33%" center @close="close">
-    <el-form ref="form" :model="formModel" label-width="160px" :rules="rules" :validate-on-rule-change="false">
+  <el-dialog
+    v-model="visible"
+    title="添加缓存信息"
+    width="33%"
+    center
+    @close="close"
+  >
+    <el-form
+      ref="form"
+      :model="formModel"
+      :rules="rules"
+      label-width="160px"
+      :validate-on-rule-change="false"
+    >
       <el-form-item label="缓存名称" prop="name" class="is-required">
         <el-col :span="8">
-          <el-input v-model="formModel.name"/>
+          <el-input v-model="formModel.name" />
         </el-col>
-        <el-col :span="16" v-if="props.rid">
-          <span style="color: red">&nbsp;&nbsp;更改后仅当重启应用才生效！</span>
+        <el-col v-if="props.rid" :span="16">
+          <span class="form-tip form-tip--warn">更改后仅当重启应用才生效！</span>
         </el-col>
       </el-form-item>
       <el-form-item label="子系统" prop="subSysDictCode" class="is-required">
         <el-select v-model="formModel.subSysDictCode" placeholder="请选择子系统" clearable>
-          <el-option v-for="item in getDictItems('kuark:sys', 'sub_sys')"
-                     :key="item.first" :value="item.first" :label="item.second"/>
+          <el-option
+            v-for="item in getDictItems('kuark:sys', 'sub_sys')"
+            :key="item.first"
+            :value="item.first"
+            :label="item.second"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="缓存策略" prop="strategyDictCode" class="is-required">
         <el-col :span="8">
           <el-select v-model="formModel.strategyDictCode" placeholder="请选择缓存策略" clearable>
-            <el-option v-for="item in getDictItems('kuark:sys', 'cache_strategy')"
-                       :key="item.first" :value="item.first" :label="item.second"/>
+            <el-option
+              v-for="item in getDictItems('kuark:sys', 'cache_strategy')"
+              :key="item.first"
+              :value="item.first"
+              :label="item.second"
+            />
           </el-select>
         </el-col>
-        <el-col :span="16" v-if="props.rid">
-          <span style="color: red">&nbsp;&nbsp;更改后仅当重启应用才生效！</span>
+        <el-col v-if="props.rid" :span="16">
+          <span class="form-tip form-tip--warn">更改后仅当重启应用才生效！</span>
         </el-col>
       </el-form-item>
       <el-form-item label="是否启动时写缓存" prop="writeOnBoot">
-        <el-switch v-model="formModel.writeOnBoot" :active-value=true :inactive-value=false></el-switch>
+        <el-switch v-model="formModel.writeOnBoot" :active-value="true" :inactive-value="false" />
       </el-form-item>
       <el-form-item label="是否及时回写缓存" prop="writeInTime">
-        <el-switch v-model="formModel.writeInTime" :active-value=true :inactive-value=false></el-switch>
+        <el-switch v-model="formModel.writeInTime" :active-value="true" :inactive-value="false" />
       </el-form-item>
       <el-form-item label="TTL(秒)" prop="ttl">
         <el-col :span="8">
-          <el-input v-model="formModel.ttl"/>
+          <el-input v-model="formModel.ttl" />
         </el-col>
-        <el-col :span="16" v-if="props.rid">
-          <span style="color: red">&nbsp;&nbsp;更改后仅当重启应用且重载缓存才生效！</span>
+        <el-col v-if="props.rid" :span="16">
+          <span class="form-tip form-tip--warn">更改后仅当重启应用且重载缓存才生效！</span>
         </el-col>
       </el-form-item>
       <el-form-item label="备注" prop="remark">
-        <el-input v-model="formModel.remark"/>
+        <el-input v-model="formModel.remark" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -60,17 +74,27 @@
   </el-dialog>
 </template>
 
-<script lang='ts'>
-import {defineComponent, reactive, ref, toRefs} from "vue";
+<script lang="ts">
+import { defineComponent, reactive, toRefs } from 'vue';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
 
-class AddEditPage extends BaseAddEditPage {
+interface FormModel {
+  name: string | null;
+  subSysDictCode: string | null;
+  strategyDictCode: string | null;
+  writeOnBoot: boolean;
+  writeInTime: boolean;
+  ttl: string | number | null;
+  managementBeanName: string | null;
+  remark: string | null;
+}
 
-  constructor(props, context, nameInput) {
-    super(props, context)
+class AddEditPage extends BaseAddEditPage {
+  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    super(props, context);
   }
 
-  protected initState(): any {
+  protected initState(): Record<string, unknown> {
     return {
       formModel: {
         name: null,
@@ -80,34 +104,46 @@ class AddEditPage extends BaseAddEditPage {
         writeInTime: false,
         ttl: null,
         managementBeanName: null,
-        remark: null
-      },
-    }
+        remark: null,
+      } as FormModel,
+    };
   }
 
-  protected getRootActionPath(): String {
-    return "sys/cache"
+  protected getRootActionPath(): string {
+    return 'sys/cache';
   }
-
 }
 
 export default defineComponent({
-  name: "~CacheAddEdit",
+  name: 'CacheAddEdit',
   props: {
-    modelValue: Boolean,
-    rid: String
+    modelValue: {
+      type: Boolean,
+      default: false,
+    },
+    rid: {
+      type: String,
+      default: '',
+    },
   },
-  emits: ['update:modelValue', "response"],
-  setup(props, context) {
-    const page = reactive(new AddEditPage(props, context))
+  emits: ['update:modelValue', 'response'],
+  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    const page = reactive(new AddEditPage(props, context)) as AddEditPage & { state: Record<string, unknown> };
     return {
       ...toRefs(page),
       ...toRefs(page.state),
-    }
-  }
-})
+      props,
+    };
+  },
+});
 </script>
 
-<style lang='css' scoped>
+<style scoped>
+.form-tip {
+  margin-left: 8px;
+}
 
+.form-tip--warn {
+  color: var(--el-color-danger);
+}
 </style>
