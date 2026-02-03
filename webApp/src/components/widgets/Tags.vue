@@ -9,6 +9,7 @@
           :key="'ruler-' + item.path"
           class="tags-li"
         >
+          <span class="tags-li-icon" aria-hidden="true"><span /></span>
           <span class="tags-li-title">{{ tagTitle(item) }}</span>
           <span class="tag-close">×</span>
         </li>
@@ -38,6 +39,7 @@
           @dragleave="onDragLeave"
           @dblclick.stop="closeTags(index)"
         >
+          <el-icon class="tags-li-icon"><component :is="tagIcon(item)" /></el-icon>
           <router-link :to="item.path" class="tags-li-title">{{ tagTitle(item) }}</router-link>
           <span class="tag-close" @click.stop="closeTags(index)" aria-label="关闭">×</span>
         </li>
@@ -72,11 +74,15 @@
       </ul>
     </div>
     <div class="tags-close-box">
-      <el-dropdown @command="handleTags">
-        <el-button size="small" type="primary">
-          {{ t('tags.options') }}
-          <i class="el-icon-arrow-down el-icon--right"></i>
-        </el-button>
+      <el-dropdown trigger="hover" @command="handleTags">
+        <button
+          type="button"
+          class="tags-options-trigger"
+          :title="t('tags.options')"
+          aria-label="标签选项"
+        >
+          <el-icon><CaretBottom /></el-icon>
+        </button>
         <template #dropdown>
           <el-dropdown-menu size="small">
             <el-dropdown-item command="other">{{ t('tags.closeOther') }}</el-dropdown-item>
@@ -92,9 +98,23 @@
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import { onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import type { RouteLocationNormalizedLoaded } from 'vue-router';
-import { ArrowDown } from '@element-plus/icons-vue';
+import {
+  ArrowDown,
+  Bell,
+  CaretBottom,
+  Coin,
+  Collection,
+  Document,
+  HomeFilled,
+  Key,
+  Lock,
+  OfficeBuilding,
+  Setting,
+  User,
+  UserFilled,
+} from '@element-plus/icons-vue';
 import type { TagItem } from '../../store/index';
 
 const { t } = useI18n();
@@ -165,10 +185,45 @@ onUnmounted(() => {
 watch(tagsList, scheduleMeasure, { deep: true });
 watch(() => t('tags.more'), scheduleMeasure);
 
-// ---------- 标签文案与路由同步 ----------
+// ---------- 标签文案与图标（与侧栏菜单一致） ----------
 const isActive = (path: string) => path === route.fullPath;
 function tagTitle(item: { titleKey?: string; title?: string }) {
   return item.titleKey ? t(item.titleKey) : (item.title ?? '');
+}
+
+const tagIconMap: Record<string, unknown> = {
+  Bell,
+  HomeFilled,
+  Setting,
+  Coin,
+  Collection,
+  Document,
+  User,
+  UserFilled,
+  OfficeBuilding,
+  Lock,
+  Key,
+};
+/** path → icon 名，用于从 localStorage 恢复的标签无 icon 时回退 */
+const pathToIcon: Record<string, string> = {
+  '/home': 'HomeFilled',
+  '/tabs': 'Bell',
+  '/sys/cache': 'Coin',
+  '/sys/dict': 'Collection',
+  '/sys/param': 'Document',
+  '/sys/subsys': 'Document',
+  '/sys/microservice': 'Setting',
+  '/sys/datasource': 'Collection',
+  '/sys/resource': 'Document',
+  '/sys/i18n': 'Setting',
+  '/user/account': 'UserFilled',
+  '/user/organization': 'OfficeBuilding',
+  '/rbac/role': 'Key',
+  '/rbac/group': 'User',
+};
+function tagIcon(item: TagItem): unknown {
+  const name = item.icon ?? pathToIcon[item.path];
+  return name ? tagIconMap[name] ?? Setting : Setting;
 }
 /** 路由进入/更新时往 store 追加标签，最多 12 个 */
 function setTags(r: RouteLocationNormalizedLoaded) {
@@ -178,12 +233,14 @@ function setTags(r: RouteLocationNormalizedLoaded) {
     store.commit('setTagsItem', {
       name: r.name,
       titleKey: r.meta?.titleKey as string | undefined,
+      icon: r.meta?.icon as string | undefined,
       path: r.fullPath,
     });
   }
 }
 setTags(route);
-onBeforeRouteUpdate((to) => setTags(to));
+/** 监听路由变化：侧栏/链接跳转时 Tags 不是路由组件，onBeforeRouteUpdate 不会触发，故用 watch 同步标签 */
+watch(() => route.fullPath, () => setTags(route));
 
 // ---------- 关闭与选项 ----------
 function closeTags(index: number) {
@@ -257,7 +314,7 @@ function onDragEnd() {
   display: flex;
   align-items: center;
   background: var(--theme-bg-tags);
-  padding-right: 86px; /* 为右侧「选项」按钮区留空 */
+  padding-right: 52px; /* 为右侧选项图标区留空 */
   box-shadow: var(--theme-shadow-tags);
   isolation: isolate;
 }
@@ -308,7 +365,7 @@ function onDragEnd() {
   border: 1px solid var(--theme-border);
   background: var(--theme-bg-tag);
   color: var(--theme-text-muted);
-  transition: border-color 0.2s, background 0.2s, color 0.2s;
+  transition: border-color 0.2s, background 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
   user-select: none;
 }
 
@@ -364,8 +421,47 @@ function onDragEnd() {
   50% { opacity: 0.75; }
 }
 
+.tags-li-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.tags-li-icon :deep(.el-icon) {
+  font-size: inherit;
+}
+
+/* 尺子中占位与真实图标同宽 */
+.tags-ruler .tags-li-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.tags-ruler .tags-li-icon span {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
 .tags-li:not(.active):hover {
   background: var(--theme-bg-card-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  animation: tag-hover-flash 0.45s ease-out;
+}
+
+@keyframes tag-hover-flash {
+  0% { background: var(--theme-bg-card-hover); }
+  35% { background: color-mix(in srgb, var(--theme-accent) 18%, var(--theme-bg-card-hover)); }
+  100% { background: var(--theme-bg-card-hover); }
 }
 
 .tags-li.active {
@@ -383,20 +479,23 @@ function onDragEnd() {
   text-decoration: none;
 }
 
+/* 视觉仍为 14×14，向右和上下扩大可点区域，不改变标签宽度、不侵入标题区 */
 .tag-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 14px;
   height: 14px;
-  margin-left: 2px;
+  margin: -4px -8px -4px 2px;
+  padding: 4px 8px 4px 0;
+  box-sizing: content-box;
   border-radius: 50%;
   font-size: 14px;
   line-height: 1;
   color: inherit;
   opacity: 0.7;
   transition: opacity 0.2s, background 0.2s;
-  cursor: default;
+  cursor: pointer;
 }
 
 .tag-close:hover {
@@ -444,12 +543,38 @@ function onDragEnd() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 76px;
+  width: 44px;
   height: 36px;
   padding: 0 6px;
   background: var(--theme-bg-tags);
-  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.04);
+  /* 左侧用轻微内阴影过渡，替代生硬竖线 */
+  box-shadow: inset 8px 0 10px -6px rgba(0, 0, 0, 0.06);
   z-index: 10;
+}
+
+.tags-options-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--theme-border);
+  border-radius: 6px;
+  background: var(--theme-bg-tag);
+  color: var(--theme-text-muted);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.tags-options-trigger:hover {
+  color: var(--theme-accent);
+  background: var(--theme-bg-card-hover);
+  border-color: var(--theme-accent);
+}
+
+.tags-options-trigger .el-icon {
+  font-size: 16px;
 }
 
 /* 「更多」下拉项：圆角矩形框，样式与标签栏一致（下拉可能 teleport 到 body，用 :deep 确保生效） */

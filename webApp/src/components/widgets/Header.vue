@@ -1,5 +1,5 @@
 <template>
-  <div class="header">
+  <div class="header" :class="headerTimeClass">
     <!-- 左侧：折叠按钮 + Logo + 面包屑；右侧：全屏 / 主题 / 语言 / 消息 / 用户下拉 -->
     <div class="header-left">
       <button type="button" class="collapse-btn" aria-label="折叠侧栏" @click="collapseChange">
@@ -32,19 +32,16 @@
           <el-icon><FullScreen /></el-icon>
         </el-tooltip>
       </button>
-      <el-dropdown trigger="click" @command="handleThemeCommand">
+      <el-dropdown trigger="hover" @command="handleThemeCommand">
         <button
           type="button"
           class="icon-btn theme-trigger"
-          :title="currentThemeLabel"
           :aria-label="t('header.theme')"
         >
-          <el-tooltip effect="dark" :content="currentThemeLabel" placement="bottom">
-            <span class="theme-trigger-inner">
-              <span class="theme-preview" :style="{ background: currentThemeColor }" />
-              <el-icon class="theme-caret"><CaretBottom /></el-icon>
-            </span>
-          </el-tooltip>
+          <span class="theme-trigger-inner">
+            <span class="theme-preview" :style="{ background: currentThemeColor }" />
+            <el-icon class="theme-caret"><CaretBottom /></el-icon>
+          </span>
         </button>
         <template #dropdown>
           <el-dropdown-menu>
@@ -62,15 +59,13 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <el-dropdown trigger="click" @command="handleLocaleCommand">
-        <button type="button" class="icon-btn lang-trigger" :title="t('header.language')" aria-label="语言">
-          <el-tooltip effect="dark" :content="t('header.language')" placement="bottom">
-            <span class="lang-trigger-inner">
-              <span class="lang-flag">{{ currentLocaleFlag }}</span>
-              <span class="lang-label">{{ currentLocaleNativeLabel }}</span>
-              <el-icon class="theme-caret"><CaretBottom /></el-icon>
-            </span>
-          </el-tooltip>
+      <el-dropdown trigger="hover" @command="handleLocaleCommand">
+        <button type="button" class="icon-btn lang-trigger" :aria-label="t('header.language')">
+          <span class="lang-trigger-inner">
+            <span class="lang-flag">{{ currentLocaleFlag }}</span>
+            <span class="lang-label">{{ currentLocaleNativeLabel }}</span>
+            <el-icon class="theme-caret"><CaretBottom /></el-icon>
+          </span>
         </button>
         <template #dropdown>
           <el-dropdown-menu>
@@ -94,7 +89,7 @@
         </el-tooltip>
         <span v-if="message" class="badge">{{ message > 99 ? '99+' : message }}</span>
       </router-link>
-      <el-dropdown trigger="click" @command="handleCommand">
+      <el-dropdown trigger="hover" @command="handleCommand">
         <div class="user-area">
           <img :src="avatar" alt="" class="avatar" />
           <span class="username">{{ username }}</span>
@@ -115,6 +110,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
+import { ElMessageBox } from 'element-plus';
 import { Bell, CaretBottom, Expand, Fold, FullScreen } from '@element-plus/icons-vue';
 import { AuthApiFactory } from 'shared';
 import { localeOptions, setLocale, type LocaleId } from '../../i18n';
@@ -124,6 +120,15 @@ const route = useRoute();
 const router = useRouter();
 const store = useStore();
 const collapse = computed(() => store.state.collapse);
+
+/** 根据时段给 header 加 class，用于 ::after 叠加层（与 Welcome hero 时段一致） */
+const headerTimeClass = computed(() => {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 11) return 'header--time-morning';
+  if (h >= 11 && h < 17) return 'header--time-afternoon';
+  if (h >= 17 && h < 21) return 'header--time-evening';
+  return 'header--time-night';
+});
 
 // ---------- 多语言 ----------
 const currentLocaleId = ref<LocaleId>((locale.value as string) as LocaleId);
@@ -146,6 +151,12 @@ const SEGMENT_BREADCRUMB: Record<string, { titleKey: string; firstChildPath: str
   user: { titleKey: 'route.user', firstChildPath: '/user/account' },
   rbac: { titleKey: 'route.rbac', firstChildPath: '/rbac/role' },
 };
+/** 三级菜单：当前路径属于某「中间级」时，面包屑插入该级（path → 中间级 titleKey） */
+const BREADCRUMB_MIDDLE: Record<string, { titleKey: string; path: string }> = {
+  '/sys/cache': { titleKey: 'route.sysBasic', path: '/sys/basic' },
+  '/sys/dict': { titleKey: 'route.sysBasic', path: '/sys/basic' },
+  '/sys/param': { titleKey: 'route.sysBasic', path: '/sys/basic' },
+};
 type BreadcrumbItem = { titleKey: string; path: string };
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
   const path = route.path;
@@ -154,11 +165,14 @@ const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
   if (segments.length === 0) return [{ titleKey: 'route.home', path: '/home' }];
   if (segments.length === 1 && segments[0] === 'home') return [{ titleKey: 'route.home', path: '/home' }];
   const parent = SEGMENT_BREADCRUMB[segments[0]];
+  const middle = BREADCRUMB_MIDDLE[path];
   if (parent) {
-    return [
+    const items: BreadcrumbItem[] = [
       { titleKey: parent.titleKey, path: parent.firstChildPath },
-      { titleKey, path: route.path },
     ];
+    if (middle) items.push({ titleKey: middle.titleKey, path: middle.path });
+    items.push({ titleKey, path: route.path });
+    return items;
   }
   return [{ titleKey, path: route.path }];
 });
@@ -199,11 +213,24 @@ async function fetchUser() {
     }
   }
 }
-function handleCommand(command: string) {
+async function handleCommand(command: string) {
   if (command === 'logout') {
-    AuthApiFactory.getInstance().getAuthApi().logout();
-    localStorage.removeItem('current_username');
-    router.push('/login');
+    try {
+      await ElMessageBox.confirm(
+        t('header.logoutConfirmMessage'),
+        t('header.logoutConfirm'),
+        {
+          confirmButtonText: t('header.confirmOk'),
+          cancelButtonText: t('header.cancel'),
+          type: 'warning',
+        }
+      );
+      AuthApiFactory.getInstance().getAuthApi().logout();
+      localStorage.removeItem('current_username');
+      router.push('/login');
+    } catch {
+      // 用户取消，不执行退出
+    }
   } else if (command === 'user') {
     router.push('/user/account');
   }
@@ -285,6 +312,8 @@ onUnmounted(() => {
 </script>
 <style scoped>
 .header {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -296,7 +325,38 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
+/* 时段叠加层：全铺伪元素，不覆盖主题背景；内容区 z-index 高于伪元素 */
+.header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.header.header--time-morning::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(100, 150, 255, 0.08) 100%);
+  border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+}
+
+.header.header--time-afternoon::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.04) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.header.header--time-evening::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 180, 100, 0.06) 100%);
+  border-bottom: 1px solid rgba(255, 200, 150, 0.25);
+}
+
+.header.header--time-night::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(140, 140, 200, 0.06) 100%);
+  border-bottom: 1px solid rgba(160, 160, 220, 0.2);
+}
+
 .header-left {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   min-width: 250px;
@@ -324,7 +384,7 @@ onUnmounted(() => {
 
 .logo {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--theme-header-text);
@@ -368,6 +428,8 @@ onUnmounted(() => {
 }
 
 .header-right {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -384,7 +446,7 @@ onUnmounted(() => {
   background: transparent;
   color: var(--theme-header-text-muted);
   text-decoration: none;
-  transition: color 0.2s, background 0.2s;
+  transition: color 0.2s;
   position: relative;
   cursor: pointer;
   font: inherit;
@@ -397,11 +459,42 @@ a.icon-btn {
 
 .icon-btn:hover {
   color: var(--theme-header-text);
-  background: rgba(255, 255, 255, 0.06);
+}
+
+.icon-btn:focus,
+.icon-btn:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .icon-btn :deep(.el-icon) {
   font-size: 18px;
+}
+
+/* 去掉三个下拉触发层的外白内蓝框（Element 默认 hover/focus 样式） */
+.header-right :deep(.el-dropdown) {
+  outline: none;
+}
+.header-right :deep(.el-dropdown .el-dropdown__trigger),
+.header-right :deep(.el-dropdown > *) {
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border: none !important;
+}
+.header-right :deep(.el-dropdown .el-dropdown__trigger:hover),
+.header-right :deep(.el-dropdown .el-dropdown__trigger:focus),
+.header-right :deep(.el-dropdown > *:hover),
+.header-right :deep(.el-dropdown > *:focus) {
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border: none !important;
+}
+.header-right :deep(.el-dropdown .el-dropdown__trigger:focus-visible),
+.header-right :deep(.el-dropdown > *:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .theme-trigger {
@@ -523,12 +616,18 @@ html.dark .theme-option-swatch {
   margin-left: 8px;
   border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  outline: none;
+  border: none;
+  background: transparent;
 }
 
-.user-area:hover {
-  background: rgba(255, 255, 255, 0.06);
+.user-area:focus,
+.user-area:focus-visible {
+  outline: none;
+  box-shadow: none;
+  background: transparent;
 }
+
 
 .avatar {
   width: 32px;
