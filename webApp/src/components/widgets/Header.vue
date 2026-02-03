@@ -2,7 +2,15 @@
   <div class="header" :class="headerTimeClass">
     <!-- 左侧：折叠按钮 + Logo + 面包屑；右侧：全屏 / 主题 / 语言 / 消息 / 用户下拉 -->
     <div class="header-left">
-      <button type="button" class="collapse-btn" aria-label="折叠侧栏" @click="collapseChange">
+      <button
+        type="button"
+        class="collapse-btn"
+        :class="{ 'is-hover-lift': collapseBtnHover }"
+        aria-label="折叠侧栏"
+        @click="collapseChange"
+        @mouseenter="collapseBtnHover = true"
+        @mouseleave="collapseBtnHover = false"
+      >
         <el-icon><Fold v-if="!collapse" /><Expand v-else /></el-icon>
       </button>
       <router-link to="/home" class="logo">{{ t('header.appName') }}</router-link>
@@ -21,22 +29,45 @@
       </nav>
     </div>
     <div class="header-right">
+      <router-link
+        to="/tabs"
+        class="icon-btn"
+        :class="{ 'is-hover-lift': messagesLinkHover }"
+        :title="t('header.messages')"
+        @mouseenter="messagesLinkHover = true"
+        @mouseleave="messagesLinkHover = false"
+      >
+        <el-tooltip effect="dark" :content="message ? t('header.messagesCount', { n: message }) : t('header.messages')" placement="bottom">
+          <el-icon><Bell /></el-icon>
+        </el-tooltip>
+        <span v-if="message" class="badge">{{ message > 99 ? '99+' : message }}</span>
+      </router-link>
       <button
         type="button"
         class="icon-btn"
+        :class="{ 'is-hover-lift': fullscreenBtnHover }"
         :title="isFullscreen ? t('header.exitFullscreen') : t('header.fullscreen')"
         aria-label="全屏切换"
         @click="toggleFullscreen"
+        @mouseenter="fullscreenBtnHover = true"
+        @mouseleave="fullscreenBtnHover = false"
       >
         <el-tooltip effect="dark" :content="isFullscreen ? t('header.exitFullscreen') + ' (Esc)' : t('header.fullscreen')" placement="bottom">
           <el-icon><FullScreen /></el-icon>
         </el-tooltip>
       </button>
-      <el-dropdown trigger="hover" @command="handleThemeCommand">
+      <el-dropdown
+        trigger="hover"
+        @command="handleThemeCommand"
+        @visible-change="(v: boolean) => themeDropdownVisible = v"
+      >
         <button
           type="button"
           class="icon-btn theme-trigger"
+          :class="{ 'is-hover-lift': themeTriggerHover || themeDropdownVisible }"
           :aria-label="t('header.theme')"
+          @mouseenter="themeTriggerHover = true"
+          @mouseleave="themeTriggerHover = false"
         >
           <span class="theme-trigger-inner">
             <span class="theme-preview" :style="{ background: currentThemeColor }" />
@@ -59,8 +90,19 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <el-dropdown trigger="hover" @command="handleLocaleCommand">
-        <button type="button" class="icon-btn lang-trigger" :aria-label="t('header.language')">
+      <el-dropdown
+        trigger="hover"
+        @command="handleLocaleCommand"
+        @visible-change="(v: boolean) => langDropdownVisible = v"
+      >
+        <button
+          type="button"
+          class="icon-btn lang-trigger"
+          :class="{ 'is-hover-lift': langTriggerHover || langDropdownVisible }"
+          :aria-label="t('header.language')"
+          @mouseenter="langTriggerHover = true"
+          @mouseleave="langTriggerHover = false"
+        >
           <span class="lang-trigger-inner">
             <span class="lang-flag">{{ currentLocaleFlag }}</span>
             <span class="lang-label">{{ currentLocaleNativeLabel }}</span>
@@ -83,14 +125,17 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <router-link to="/tabs" class="icon-btn" :title="t('header.messages')">
-        <el-tooltip effect="dark" :content="message ? t('header.messagesCount', { n: message }) : t('header.messages')" placement="bottom">
-          <el-icon><Bell /></el-icon>
-        </el-tooltip>
-        <span v-if="message" class="badge">{{ message > 99 ? '99+' : message }}</span>
-      </router-link>
-      <el-dropdown trigger="hover" @command="handleCommand">
-        <div class="user-area">
+      <el-dropdown
+        trigger="hover"
+        @command="handleCommand"
+        @visible-change="(v: boolean) => userDropdownVisible = v"
+      >
+        <div
+          class="user-area"
+          :class="{ 'is-hover-lift': userAreaHover || userDropdownVisible }"
+          @mouseenter="userAreaHover = true"
+          @mouseleave="userAreaHover = false"
+        >
           <img :src="avatar" alt="" class="avatar" />
           <span class="username">{{ username }}</span>
           <el-icon class="caret"><CaretBottom /></el-icon>
@@ -120,6 +165,17 @@ const route = useRoute();
 const router = useRouter();
 const store = useStore();
 const collapse = computed(() => store.state.collapse);
+
+// ---------- 图标悬停上移（JS 控制 .is-hover-lift，下拉项在“悬停或展开”时保持上移避免闪烁） ----------
+const collapseBtnHover = ref(false);
+const fullscreenBtnHover = ref(false);
+const messagesLinkHover = ref(false);
+const themeTriggerHover = ref(false);
+const themeDropdownVisible = ref(false);
+const langTriggerHover = ref(false);
+const langDropdownVisible = ref(false);
+const userAreaHover = ref(false);
+const userDropdownVisible = ref(false);
 
 /** 根据时段给 header 加 class，用于 ::after 叠加层（与 Welcome hero 时段一致） */
 const headerTimeClass = computed(() => {
@@ -226,6 +282,7 @@ async function handleCommand(command: string) {
         }
       );
       AuthApiFactory.getInstance().getAuthApi().logout();
+      store.commit('setAuthenticated', false);
       localStorage.removeItem('current_username');
       router.push('/login');
     } catch {
@@ -374,7 +431,7 @@ onUnmounted(() => {
   background: transparent;
   color: var(--theme-header-text-muted);
   cursor: pointer;
-  transition: color 0.2s, background 0.2s;
+  transition: color 0.2s, background 0.2s, transform 0.2s ease;
 }
 
 .collapse-btn:hover {
@@ -446,7 +503,7 @@ onUnmounted(() => {
   background: transparent;
   color: var(--theme-header-text-muted);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color 0.2s, transform 0.2s ease;
   position: relative;
   cursor: pointer;
   font: inherit;
@@ -459,6 +516,13 @@ a.icon-btn {
 
 .icon-btn:hover {
   color: var(--theme-header-text);
+}
+
+/* 悬停上移：由 JS 切换 .is-hover-lift，统一在此处写 transform */
+.header :deep(.collapse-btn.is-hover-lift),
+.header :deep(.icon-btn.is-hover-lift),
+.header :deep(.user-area.is-hover-lift) {
+  transform: translateY(-2px) !important;
 }
 
 .icon-btn:focus,
@@ -619,6 +683,7 @@ html.dark .theme-option-swatch {
   outline: none;
   border: none;
   background: transparent;
+  transition: transform 0.2s ease;
 }
 
 .user-area:focus,
@@ -648,5 +713,13 @@ html.dark .theme-option-swatch {
 .user-area .caret {
   font-size: 12px;
   color: var(--theme-header-text-muted);
+}
+</style>
+<style>
+/* 非 scoped 兜底：确保 .is-hover-lift 的 transform 不被其它样式覆盖 */
+.header .collapse-btn.is-hover-lift,
+.header .icon-btn.is-hover-lift,
+.header .user-area.is-hover-lift {
+  transform: translateY(-2px) !important;
 }
 </style>

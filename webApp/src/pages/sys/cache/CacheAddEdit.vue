@@ -62,7 +62,7 @@
 
 <script lang='ts'>
 import {defineComponent, reactive, ref, toRefs} from "vue";
-import {BaseAddEditPage} from "../../../base/page/BaseAddEditPage.ts";
+import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
 
 class AddEditPage extends BaseAddEditPage {
 

@@ -116,8 +116,8 @@
 import {defineComponent, reactive, toRefs} from "vue";
 import CacheAddEdit from './CacheAddEdit.vue';
 import CacheDetail from './CacheDetail.vue';
-import {BaseListPage} from "../../../base/page/BaseListPage.ts";
-import {Pair} from "../../../base/Pair.ts";
+import { BaseListPage } from '../../../components/pages/BaseListPage';
+import { Pair } from '../../../components/model/Pair';
 import {ElMessage} from "element-plus";
 
 class ListPage extends BaseListPage {

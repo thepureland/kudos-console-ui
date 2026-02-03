@@ -1,4 +1,5 @@
 import { createStore } from 'vuex';
+import { AuthApiFactory } from 'shared';
 
 export type TagItem = {
   name?: string;
@@ -19,6 +20,8 @@ const SIDEBAR_WIDTH_MAX = 480;
 const SIDEBAR_WIDTH_DEFAULT = 280;
 
 type RootState = {
+  /** 是否已登录（与 localStorage token 同步，登录成功后设为 true 以便 App.vue 立即切换为 router-view） */
+  isAuthenticated: boolean;
   collapse: boolean;
   /** 侧栏展开时的宽度（px），由 Home 页分界线拖拽调整，持久化到 localStorage */
   sidebarWidth: number;
@@ -65,12 +68,17 @@ function loadSavedSidebarWidth(): number {
 
 const store = createStore<RootState>({
   state: {
+    isAuthenticated: AuthApiFactory.getInstance().hasToken(),
     collapse: savedCollapse,
     sidebarWidth: loadSavedSidebarWidth(),
     tagsList: loadSavedTags(),
   },
   mutations: {
-    handleCollapse(state, collapse: boolean) {
+    /** 登录成功后调用，使 App.vue 立即显示 router-view 而非 Login */
+    setAuthenticated(state: RootState, value: boolean) {
+      state.isAuthenticated = value;
+    },
+    handleCollapse(state: RootState, collapse: boolean) {
       state.collapse = collapse;
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(STORAGE_KEYS.collapse, String(collapse));

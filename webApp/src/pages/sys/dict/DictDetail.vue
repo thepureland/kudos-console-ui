@@ -75,7 +75,7 @@
 
 <script lang='ts'>
 import {defineComponent, reactive, toRefs} from "vue"
-import {BaseDetailPage} from "../../../base/page/BaseDetailPage.ts"
+import { BaseDetailPage } from '../../../components/pages/BaseDetailPage'
 import {ElMessage} from "element-plus";
 
 class DetailPage extends BaseDetailPage {

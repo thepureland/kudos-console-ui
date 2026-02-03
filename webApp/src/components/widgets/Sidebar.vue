@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, markRaw, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useRoute } from 'vue-router';
@@ -116,21 +116,22 @@ function menuLabel(item: MenuItem): string {
   return item.title;
 }
 
+/** 图标名 → 组件；用 markRaw 避免被放入 ref(menuData) 时变成响应式触发 Vue 警告 */
 const iconMap: Record<string, unknown> = {
-  Bell,
-  HomeFilled,
-  Setting,
-  Coin,
-  Collection,
-  Document,
-  User,
-  UserFilled,
-  OfficeBuilding,
-  Lock,
-  Key,
+  Bell: markRaw(Bell),
+  HomeFilled: markRaw(HomeFilled),
+  Setting: markRaw(Setting),
+  Coin: markRaw(Coin),
+  Collection: markRaw(Collection),
+  Document: markRaw(Document),
+  User: markRaw(User),
+  UserFilled: markRaw(UserFilled),
+  OfficeBuilding: markRaw(OfficeBuilding),
+  Lock: markRaw(Lock),
+  Key: markRaw(Key),
 };
 function resolveIcon(name: string | null | undefined): unknown {
-  return name ? iconMap[name] ?? Setting : Setting;
+  return name ? iconMap[name] ?? iconMap.Setting : iconMap.Setting;
 }
 /** 将服务端 / shared 菜单转为本地 MenuItem，name 即 i18n key，用作 titleKey */
 function mapMenusFromShared(items: Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>): MenuItem[] {
@@ -150,53 +151,53 @@ function isLocalhost(): boolean {
   const h = typeof window !== 'undefined' ? window.location?.hostname : '';
   return h === 'localhost' || h === '127.0.0.1';
 }
-/** localhost 且接口不可用时使用的静态菜单（文案仍通过 titleKey 走 i18n） */
+/** localhost 且接口不可用时使用的静态菜单（文案仍通过 titleKey 走 i18n）；图标从 iconMap 取，已是 markRaw */
 function getFallbackMenus(): MenuItem[] {
   return [
-    { index: '/home', title: '首页', titleKey: 'menu.home', icon: HomeFilled },
-    { index: '/tabs', title: '消息中心', titleKey: 'menu.tabs', icon: Bell },
+    { index: '/home', title: '首页', titleKey: 'menu.home', icon: iconMap.HomeFilled },
+    { index: '/tabs', title: '消息中心', titleKey: 'menu.tabs', icon: iconMap.Bell },
     {
       index: '/sys',
       title: '系统管理',
       titleKey: 'menu.sys',
-      icon: Setting,
+      icon: iconMap.Setting,
       children: [
         {
           index: '/sys/basic',
           title: '基础配置',
           titleKey: 'menu.sysBasic',
-          icon: Document,
+          icon: iconMap.Document,
           children: [
-            { index: '/sys/cache', title: '缓存管理', titleKey: 'menu.sysCache', icon: Coin },
-            { index: '/sys/dict', title: '字典管理', titleKey: 'menu.sysDict', icon: Collection },
-            { index: '/sys/param', title: '参数配置', titleKey: 'menu.sysParam', icon: Document },
+            { index: '/sys/cache', title: '缓存管理', titleKey: 'menu.sysCache', icon: iconMap.Coin },
+            { index: '/sys/dict', title: '字典管理', titleKey: 'menu.sysDict', icon: iconMap.Collection },
+            { index: '/sys/param', title: '参数配置', titleKey: 'menu.sysParam', icon: iconMap.Document },
           ],
         },
-        { index: '/sys/subsys', title: '子系统', titleKey: 'menu.sysSubsys', icon: Document },
-        { index: '/sys/microservice', title: '微服务', titleKey: 'menu.sysMicroservice', icon: Setting },
-        { index: '/sys/datasource', title: '数据源', titleKey: 'menu.sysDatasource', icon: Collection },
-        { index: '/sys/resource', title: '资源', titleKey: 'menu.sysResource', icon: Document },
-        { index: '/sys/i18n', title: '国际化', titleKey: 'menu.sysI18n', icon: Setting },
+        { index: '/sys/subsys', title: '子系统', titleKey: 'menu.sysSubsys', icon: iconMap.Document },
+        { index: '/sys/microservice', title: '微服务', titleKey: 'menu.sysMicroservice', icon: iconMap.Setting },
+        { index: '/sys/datasource', title: '数据源', titleKey: 'menu.sysDatasource', icon: iconMap.Collection },
+        { index: '/sys/resource', title: '资源', titleKey: 'menu.sysResource', icon: iconMap.Document },
+        { index: '/sys/i18n', title: '国际化', titleKey: 'menu.sysI18n', icon: iconMap.Setting },
       ],
     },
     {
       index: '/user',
       title: '用户与组织',
       titleKey: 'menu.user',
-      icon: User,
+      icon: iconMap.User,
       children: [
-        { index: '/user/account', title: '账号管理', titleKey: 'menu.userAccount', icon: UserFilled },
-        { index: '/user/organization', title: '组织管理', titleKey: 'menu.userOrganization', icon: OfficeBuilding },
+        { index: '/user/account', title: '账号管理', titleKey: 'menu.userAccount', icon: iconMap.UserFilled },
+        { index: '/user/organization', title: '组织管理', titleKey: 'menu.userOrganization', icon: iconMap.OfficeBuilding },
       ],
     },
     {
       index: '/rbac',
       title: '权限管理',
       titleKey: 'menu.rbac',
-      icon: Lock,
+      icon: iconMap.Lock,
       children: [
-        { index: '/rbac/role', title: '角色管理', titleKey: 'menu.rbacRole', icon: Key },
-        { index: '/rbac/group', title: '用户组', titleKey: 'menu.rbacGroup', icon: User },
+        { index: '/rbac/role', title: '角色管理', titleKey: 'menu.rbacRole', icon: iconMap.Key },
+        { index: '/rbac/group', title: '用户组', titleKey: 'menu.rbacGroup', icon: iconMap.User },
       ],
     },
   ];

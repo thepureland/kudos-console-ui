@@ -57,9 +57,9 @@
 
 <script lang='ts'>
 import {defineComponent, reactive, toRefs} from "vue"
-import {BaseListPage} from "../../../base/page/BaseListPage.ts"
+import { BaseListPage } from '../../../components/pages/BaseListPage'
 import AccountDetail from '../../user/account/AccountDetail.vue'
-import {Pair} from "../../../base/Pair.ts"
+import { Pair } from '../../../components/model/Pair'
 
 class UserListDialog extends BaseListPage {
 

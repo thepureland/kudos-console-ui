@@ -33,7 +33,7 @@
 <script lang='ts'>
 import {defineComponent, reactive, ref, toRefs} from "vue"
 import {ElMessage, ElTree} from "element-plus";
-import {BasePage} from "../../../base/page/BasePage.ts";
+import { BasePage } from '../../../components/pages/BasePage';
 
 class Page extends BasePage {
 
