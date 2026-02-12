@@ -68,6 +68,7 @@
                     class="more-item-row"
                     :class="{ 'more-item-active': item.path === route.fullPath }"
                   >
+                    <el-icon class="more-item-icon"><component :is="tagIcon(item)" /></el-icon>
                     <span class="more-item-title">{{ tagTitle(item) }}</span>
                     <span class="more-item-close" @click.stop="closeTags(maxVisibleCount + i)" aria-label="关闭">×</span>
                   </span>
@@ -635,6 +636,22 @@ function onDragEnd() {
   color: #fff;
   background: var(--theme-bg-tag-active);
   border-color: var(--theme-bg-tag-active);
+}
+
+.more-dropdown-item .more-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.more-dropdown-item .more-item-icon :deep(.el-icon) {
+  font-size: inherit;
 }
 
 .more-dropdown-item .more-item-title {
