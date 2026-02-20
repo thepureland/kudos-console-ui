@@ -3,8 +3,8 @@
   "data": {
     "console": "控制台",
     "service_a": "服务A",
-    "local": "本地",
-    "redis": "Redis",
-    "caffeine": "Caffeine"
+    "LOCAL_REMOTE": "LOCAL_REMOTE",
+    "SINGLE_LOCAL": "SINGLE_LOCAL",
+    "REMOTE": "REMOTE"
   }
 }

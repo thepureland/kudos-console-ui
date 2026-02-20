@@ -7,7 +7,7 @@ plugins {
 // Keep shared build outputs under root build/shared
 buildDir = rootProject.layout.buildDirectory.dir("shared").get().asFile
 
-val useMockFlag = (project.findProperty("useMock") as String?) == "true"
+val useMockFlag = (project.findProperty("useMock") as String?)?.toBoolean() ?: true
 val mockJsonDir = layout.projectDirectory.dir("src/jsMain/resources/mock")
 val generatedMockDir = layout.buildDirectory.dir("generated/mock")
 
@@ -74,7 +74,7 @@ abstract class GenerateMockData : DefaultTask() {
         }
 
         val outFile = outputDir.get()
-            .file("io/kudos/console/ui/kudos_console_ui/api/MockJsonStore.kt")
+            .file("io/kudos/console/ui/api/MockJsonStore.kt")
             .asFile
         outFile.parentFile.mkdirs()
 
@@ -96,7 +96,7 @@ abstract class GenerateMockData : DefaultTask() {
 
         outFile.writeText(
             """
-            package io.kudos.console.ui.kudos_console_ui.api
+            package io.kudos.console.ui.api
 
             internal object MockJsonStore {
                 val byPath: Map<String, String> = mapOf(
@@ -112,6 +112,8 @@ val generateMockData by tasks.registering(GenerateMockData::class) {
     mockDir.set(mockJsonDir)
     outputDir.set(generatedMockDir)
     useMock.set(useMockFlag)
-}tasks.matching { it.name == "compileKotlinJs" }.configureEach {
+}
+
+tasks.matching { it.name == "compileKotlinJs" }.configureEach {
     dependsOn(generateMockData)
 }
