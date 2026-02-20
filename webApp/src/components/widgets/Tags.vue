@@ -43,6 +43,7 @@
           @dragend="onDragEnd"
           @dragleave="onDragLeave"
           @dblclick.stop="closeTags(index)"
+          @click="goToPath(item.path)"
         >
           <el-icon class="tags-li-icon"><component :is="tagIcon(item)" /></el-icon>
           <router-link :to="item.path" class="tags-li-title">{{ tagTitle(item) }}</router-link>
@@ -229,6 +230,17 @@ const pathToIcon: Record<string, string> = {
   '/rbac/role': 'Key',
   '/rbac/group': 'User',
 };
+
+/** 标签关闭时清理页面数据状态持久化（保留列可见性与操作列显隐相关 key） */
+const PERSISTED_STATE_KEYS_BY_PATH: Record<string, string[]> = {
+  '/sys/cache': ['cacheList.queryState'],
+};
+
+function clearPersistedStateByPath(path: string) {
+  const keys = PERSISTED_STATE_KEYS_BY_PATH[path];
+  if (!keys || keys.length === 0 || typeof localStorage === 'undefined') return;
+  keys.forEach((key) => localStorage.removeItem(key));
+}
 function tagIcon(item: TagItem): unknown {
   const name = item.icon ?? pathToIcon[item.path];
   return name ? tagIconMap[name] ?? Setting : Setting;
@@ -253,6 +265,9 @@ watch(() => route.fullPath, () => setTags(route));
 // ---------- 关闭与选项 ----------
 function closeTags(index: number) {
   const delItem = tagsList.value[index];
+  if (delItem?.path) {
+    clearPersistedStateByPath(delItem.path);
+  }
   store.commit('delTagsItem', { index });
   const next = tagsList.value[index] ?? tagsList.value[index - 1];
   if (next) {
@@ -262,10 +277,19 @@ function closeTags(index: number) {
   }
 }
 function closeAll() {
+  tagsList.value.forEach((item) => {
+    clearPersistedStateByPath(item.path);
+  });
   store.commit('clearTags');
   router.push('/');
 }
 function closeOther() {
+  const currentPath = route.fullPath;
+  tagsList.value.forEach((item) => {
+    if (item.path !== currentPath) {
+      clearPersistedStateByPath(item.path);
+    }
+  });
   const cur = tagsList.value.filter((item) => item.path === route.fullPath);
   store.commit('closeTagsOther', cur);
 }
@@ -274,6 +298,10 @@ function handleTags(command: string) {
 }
 function goToTag(cmd: { item: TagItem; visibleIndex: number }) {
   router.push(cmd.item.path);
+}
+function goToPath(path: string) {
+  if (route.fullPath === path) return;
+  router.push(path);
 }
 
 // ---------- 拖拽排序 ----------

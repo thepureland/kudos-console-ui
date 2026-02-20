@@ -15,7 +15,7 @@
       </button>
       <router-link to="/home" class="logo">{{ t('header.appName') }}</router-link>
       <nav class="breadcrumb" aria-label="面包屑">
-        <template v-for="(item, i) in breadcrumbItems" :key="item.path">
+        <template v-for="(item, i) in breadcrumbItems" :key="`${item.path}__${item.titleKey}__${i}`">
           <span v-if="i > 0" class="breadcrumb-sep">/</span>
           <router-link
             v-if="i < breadcrumbItems.length - 1"
