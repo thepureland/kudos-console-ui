@@ -27,7 +27,8 @@
         </el-col>
       </el-row>
 
-      <el-table border stripe :data="tableData" height="650" @selection-change="handleSelectionChange"
+      <div ref="tableWrapRef">
+      <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                 :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange" default-expand-all
                 row-key="id">
         <el-table-column type="index" width="50"/>
@@ -41,6 +42,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <menu-role-assign-dialog v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit"
                                :rid="rid" :subSysDictCode="subSysDictCode" :tenantId="tenantId"/>
@@ -51,9 +53,10 @@
 </template>
 
 <script lang='ts'>
-import {defineComponent, reactive, toRefs} from "vue"
-import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage'
-import MenuRoleAssignDialog from "./MenuRoleAssignDialog.vue"
+import { defineComponent, reactive, toRefs } from 'vue';
+import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
+import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
+import MenuRoleAssignDialog from './MenuRoleAssignDialog.vue';
 
 
 class ListPage extends TenantSupportListPage {
@@ -83,12 +86,15 @@ export default defineComponent({
   name: "~index",
   components: {MenuRoleAssignDialog},
   setup(props, context) {
-    const listPage = reactive(new ListPage(props, context))
+    const listPage = reactive(new ListPage(props, context));
+    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
     return {
       ...toRefs(listPage.state),
       ...toRefs(listPage),
-    }
-  }
+      tableWrapRef,
+      paginationRef,
+    };
+  },
 })
 </script>
 

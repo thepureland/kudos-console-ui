@@ -35,7 +35,8 @@
         </el-col>
       </el-row>
 
-      <el-table border stripe :data="tableData" height="650" @selection-change="handleSelectionChange"
+      <div ref="tableWrapRef">
+      <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                 :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
         <el-table-column type="selection" width="39"/>
         <el-table-column type="index" width="50"/>
@@ -61,8 +62,9 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
-      <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
+      <el-pagination ref="paginationRef" @size-change="handleSizeChange" @current-change="handleCurrentChange"
                      :current-page="pagination.pageNo" :page-size="pagination.pageSize"
                      layout="total, sizes, prev, pager, next, jumper" :total="pagination.total"/>
 
@@ -76,10 +78,11 @@
 </template>
 
 <script lang='ts'>
-import {defineComponent, reactive, toRefs} from "vue"
-import UserGroupAddEdit from './UserGroupAddEdit.vue'
-import UserGroupDetail from './UserGroupDetail.vue'
-import { BaseListPage } from '../../../components/pages/BaseListPage'
+import { defineComponent, reactive, toRefs } from 'vue';
+import UserGroupAddEdit from './UserGroupAddEdit.vue';
+import UserGroupDetail from './UserGroupDetail.vue';
+import { BaseListPage } from '../../../components/pages/BaseListPage';
+import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
 
 class ListPage extends BaseListPage {
 
@@ -106,12 +109,15 @@ export default defineComponent({
   name: "~index",
   components: {UserGroupAddEdit, UserGroupDetail},
   setup(props, context) {
-    const listPage = reactive(new ListPage(props, context))
+    const listPage = reactive(new ListPage(props, context));
+    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
     return {
       ...toRefs(listPage.state),
       ...toRefs(listPage),
-    }
-  }
+      tableWrapRef,
+      paginationRef,
+    };
+  },
 })
 </script>
 

@@ -39,7 +39,8 @@
         </el-col>
       </el-row>
 
-      <el-table border stripe :data="tableData" height="650" @selection-change="handleSelectionChange"
+      <div ref="tableWrapRef">
+      <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                 :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
         <el-table-column type="selection" width="39"/>
         <el-table-column type="index" width="50"/>
@@ -89,8 +90,9 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
-      <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
+      <el-pagination ref="paginationRef" @size-change="handleSizeChange" @current-change="handleCurrentChange"
                      :current-page="pagination.pageNo" :page-size="pagination.pageSize"
                      layout="total, sizes, prev, pager, next, jumper" :total="pagination.total"/>
 
@@ -108,13 +110,14 @@
 </template>
 
 <script lang='ts'>
-import {defineComponent, reactive, toRefs} from "vue"
-import RoleAddEdit from './RoleAddEdit.vue'
-import RoleDetail from './RoleDetail.vue'
-import MenuAuthorization from './MenuAuthorization.vue'
-import UserListDialog from './UserListDialog.vue'
-import UserAssignmentDialog from './UserAssignmentDialog.vue'
+import { defineComponent, reactive, toRefs } from 'vue';
+import RoleAddEdit from './RoleAddEdit.vue';
+import RoleDetail from './RoleDetail.vue';
+import MenuAuthorization from './MenuAuthorization.vue';
+import UserListDialog from './UserListDialog.vue';
+import UserAssignmentDialog from './UserAssignmentDialog.vue';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
+import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
 import { Pair } from '../../../components/model/Pair'
 
 class ListPage extends TenantSupportListPage {
@@ -204,12 +207,15 @@ export default defineComponent({
   name: "~index",
   components: {RoleAddEdit, RoleDetail, MenuAuthorization, UserAssignmentDialog, UserListDialog},
   setup(props, context) {
-    const listPage = reactive(new ListPage(props, context))
+    const listPage = reactive(new ListPage(props, context));
+    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
     return {
       ...toRefs(listPage.state),
       ...toRefs(listPage),
-    }
-  }
+      tableWrapRef,
+      paginationRef,
+    };
+  },
 })
 </script>
 

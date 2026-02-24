@@ -371,6 +371,7 @@ function onDragEnd() {
   display: flex;
   align-items: center;
   background: var(--theme-bg-tags);
+  padding-left: 12px; /* 与左侧菜单栏留一点间距 */
   padding-right: 52px; /* 为右侧选项图标区留空 */
   box-shadow: var(--theme-shadow-tags);
   isolation: isolate;

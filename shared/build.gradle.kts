@@ -112,8 +112,6 @@ val generateMockData by tasks.registering(GenerateMockData::class) {
     mockDir.set(mockJsonDir)
     outputDir.set(generatedMockDir)
     useMock.set(useMockFlag)
-}
-
-tasks.matching { it.name == "compileKotlinJs" }.configureEach {
+}tasks.matching { it.name == "compileKotlinJs" }.configureEach {
     dependsOn(generateMockData)
 }

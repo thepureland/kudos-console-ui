@@ -11,7 +11,6 @@
       class="sidebar-el-menu"
       :default-active="onRoutes"
       :collapse="collapse"
-      unique-opened
       router
     >
       <template v-for="item in menuData" :key="item.index">
@@ -244,9 +243,13 @@ onMounted(() => loadMenuData());
   left: 0;
   top: 56px;
   bottom: 0;
+  height: calc(100vh - 56px); /* 明确高度，确保过长时出现纵向滚动条 */
   z-index: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Firefox 滚动条更明显 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.08);
 }
 
 /* 时段叠加层：覆盖在侧栏背景上，不遮挡菜单；与 Header 时段一致 */
@@ -279,13 +282,23 @@ onMounted(() => loadMenuData());
   z-index: 0;
 }
 
+/* 侧栏滚动条更明显 */
 .sidebar::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .sidebar-el-menu {

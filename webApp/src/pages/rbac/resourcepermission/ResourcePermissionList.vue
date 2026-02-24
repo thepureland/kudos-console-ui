@@ -45,7 +45,8 @@
       </el-aside>
 
       <el-main>
-        <el-table border stripe :data="tableData" height="750" @selection-change="handleSelectionChange"
+        <div ref="tableWrapRef">
+        <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                   :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
           <el-table-column type="index" width="50"/>
           <el-table-column label="资源名称" prop="name" sortable="custom"/>
@@ -58,6 +59,7 @@
             </template>
           </el-table-column>
         </el-table>
+        </div>
 
       </el-main>
     </el-container>
@@ -67,10 +69,11 @@
 </template>
 
 <script lang='ts'>
-import {defineComponent, reactive, toRefs, ref} from "vue"
-import {ElMessage} from "element-plus"
-import { Pair } from '../../../components/model/Pair'
+import { defineComponent, reactive, toRefs, ref } from 'vue';
+import { ElMessage } from 'element-plus';
+import { Pair } from '../../../components/model/Pair';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
+import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
 import { backendRequest } from '../../../utils/backendRequest';
 
 class ListPage extends TenantSupportListPage {
@@ -252,14 +255,17 @@ export default defineComponent({
   name: "~index",
   components: {},
   setup(props, context) {
-    const tree = ref()
-    const listPage = reactive(new ListPage(props, context, tree))
+    const tree = ref();
+    const listPage = reactive(new ListPage(props, context, tree));
+    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
     return {
       ...toRefs(listPage.state),
       ...toRefs(listPage),
-      tree
-    }
-  }
+      tree,
+      tableWrapRef,
+      paginationRef,
+    };
+  },
 })
 </script>
 

@@ -36,7 +36,8 @@
         </el-col>
       </el-row>
 
-      <el-table border stripe :data="tableData" height="650" @selection-change="handleSelectionChange"
+      <div ref="tableWrapRef">
+      <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                 :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange" default-expand-all
                 row-key="id">
         <el-table-column type="selection" width="39"/>
@@ -65,6 +66,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <el-dialog v-model="passwordDialogVisible" title="请输入新密码" width="20%">
         <el-input v-model="newPassword"/>
@@ -86,10 +88,11 @@
 </template>
 
 <script lang='ts'>
-import {defineComponent, reactive, toRefs} from "vue"
-import DataSourceAddEdit from './DataSourceAddEdit.vue'
-import DataSourceDetail from './DataSourceDetail.vue'
+import { defineComponent, reactive, toRefs } from 'vue';
+import DataSourceAddEdit from './DataSourceAddEdit.vue';
+import DataSourceDetail from './DataSourceDetail.vue';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
+import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
 import { Pair } from '../../../components/model/Pair';
 import {ElMessage} from "element-plus";
 import { backendRequest } from '../../../utils/backendRequest';
@@ -170,12 +173,15 @@ export default defineComponent({
   name: "~index",
   components: {DataSourceAddEdit, DataSourceDetail},
   setup(props, context) {
-    const listPage = reactive(new ListPage(props, context))
+    const listPage = reactive(new ListPage(props, context));
+    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
     return {
       ...toRefs(listPage.state),
       ...toRefs(listPage),
-    }
-  }
+      tableWrapRef,
+      paginationRef,
+    };
+  },
 })
 </script>
 

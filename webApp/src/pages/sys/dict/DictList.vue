@@ -54,7 +54,8 @@
             </el-col>
           </el-row>
 
-          <el-table border stripe :data="tableData" height="650" @selection-change="handleSelectionChange"
+          <div ref="tableWrapRef">
+          <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                     :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
             <el-table-column type="selection" width="39"/>
             <el-table-column type="index" width="50"/>
@@ -79,8 +80,9 @@
               </template>
             </el-table-column>
           </el-table>
+          </div>
 
-          <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
+          <el-pagination ref="paginationRef" @size-change="handleSizeChange" @current-change="handleCurrentChange"
                          :current-page="pagination.pageNo" :page-size="pagination.pageSize"
                          layout="total, sizes, prev, pager, next, jumper" :total="pagination.total"/>
         </el-col>
@@ -98,11 +100,12 @@
 </template>
 
 <script lang='ts'>
-import {defineComponent, reactive, ref, toRefs} from "vue"
-import DictAddEdit from './DictAddEdit.vue'
-import DictDetail from './DictDetail.vue'
-import DictItemDetail from './DictItemDetail.vue'
-import { BaseListPage } from '../../../components/pages/BaseListPage'
+import { defineComponent, reactive, ref, toRefs } from 'vue';
+import DictAddEdit from './DictAddEdit.vue';
+import DictDetail from './DictDetail.vue';
+import DictItemDetail from './DictItemDetail.vue';
+import { BaseListPage } from '../../../components/pages/BaseListPage';
+import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
 import {ElMessage} from "element-plus"
 import { Pair } from '../../../components/model/Pair'
 import { backendRequest } from '../../../utils/backendRequest'
@@ -437,14 +440,17 @@ export default defineComponent({
   name: "~index",
   components: {DictAddEdit, DictDetail, DictItemDetail},
   setup(props, context) {
-    const tree = ref()
-    const listPage = reactive(new ListPage(props, context, tree))
+    const tree = ref();
+    const listPage = reactive(new ListPage(props, context, tree));
+    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
     return {
       ...toRefs(listPage.state),
       ...toRefs(listPage),
-      tree
-    }
-  }
+      tree,
+      tableWrapRef,
+      paginationRef,
+    };
+  },
 })
 </script>
 

@@ -1,0 +1,75 @@
+/*
+ * 列表页共用样式：使用 ListPageLayout 的页面在根节点加 class="list-page-common" 后引入（scoped）。
+ * 包含：根容器、工具栏、动态宽度搜索框、栏位可见性面板、表格单元格/操作列、分页。
+ *
+ * @author: K
+ * @author: AI: Cursor
+ * @since 1.0.0
+ */
+.list-page-common {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.list-page-common .toolbar {
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.list-page-common .col-search-name,
+.list-page-common .col-search-subsys {
+  flex: 0 0 auto;
+  max-width: none;
+}
+
+.list-page-common .search-name-input-wrap,
+.list-page-common .search-select-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.list-page-common .search-name-input-mirror {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: pre;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 32px;
+  padding: 0 11px;
+  box-sizing: border-box;
+}
+
+.list-page-common .search-name-input,
+.list-page-common .search-select-input {
+  min-width: 0;
+}
+
+.list-page-common .column-visibility-title {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.list-page-common .column-visibility-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 以下为当前组件内类名，操作列图标与占位区域 */
+.list-page-common .operate-column-icon {
+  cursor: pointer;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.list-page-common .operation-column-hover-area {
+  width: 100%;
+  height: 100%;
+}

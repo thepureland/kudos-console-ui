@@ -36,7 +36,8 @@
         </el-col>
       </el-row>
 
-      <el-table border stripe :data="tableData" height="650" @selection-change="handleSelectionChange"
+      <div ref="tableWrapRef">
+      <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                 :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange" default-expand-all
                 row-key="id">
         <el-table-column type="selection" width="39"/>
@@ -68,6 +69,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <domain-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd"/>
       <domain-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid"/>
@@ -79,10 +81,11 @@
 </template>
 
 <script lang='ts'>
-import {defineComponent, reactive, toRefs} from "vue"
-import DomainAddEdit from './DomainAddEdit.vue'
-import DomainDetail from './DomainDetail.vue'
+import { defineComponent, reactive, toRefs } from 'vue';
+import DomainAddEdit from './DomainAddEdit.vue';
+import DomainDetail from './DomainDetail.vue';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
+import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
 import { Pair } from '../../../components/model/Pair';
 import {ElMessage} from "element-plus";
 
@@ -127,12 +130,15 @@ export default defineComponent({
   name: "~index",
   components: {DomainAddEdit, DomainDetail},
   setup(props, context) {
-    const listPage = reactive(new ListPage(props, context))
+    const listPage = reactive(new ListPage(props, context));
+    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
     return {
       ...toRefs(listPage.state),
       ...toRefs(listPage),
-    }
-  }
+      tableWrapRef,
+      paginationRef,
+    };
+  },
 })
 </script>
 

@@ -253,7 +253,14 @@ export abstract class BaseListPage extends BasePage {
         this.state.tableMaxHeight = fallback
     }
 
-    /** 根据表格容器与分页元素计算可用最大高度。 */
+    /** 表头约高（px），用于“按行数推算内容高度”（含边框/内边距）。 */
+    private static readonly TABLE_HEADER_HEIGHT = 56
+    /** 单行行高（px），与列表页 .el-table__row 一致；含行线/边框余量。 */
+    private static readonly TABLE_ROW_HEIGHT_WITH_BORDER = 34
+    /** 表格边框、内边距、滚动条等额外高度（px）；略大以保证 10 行时最后一行底部不被裁掉。 */
+    private static readonly TABLE_HEIGHT_BUFFER = 164
+
+    /** 根据表格容器与分页元素计算可用最大高度；并随当前页行数增加而增高（在可用空间内）。 */
     public updateTableMaxHeightByElements(
         tableWrapEl: HTMLElement | null,
         paginationEl: HTMLElement | null
@@ -265,8 +272,12 @@ export abstract class BaseListPage extends BasePage {
         }
         const paginationHeight = paginationEl?.offsetHeight ?? 0
         const top = tableWrapEl.getBoundingClientRect().top
-        const available = Math.floor(window.innerHeight - top - paginationHeight - this.tableBottomSafeGap)
-        this.state.tableMaxHeight = Math.max(this.tableMaxHeightMin, available)
+        const byViewport = Math.floor(window.innerHeight - top - paginationHeight - this.tableBottomSafeGap)
+        const byWrap = tableWrapEl.offsetHeight > 0 ? tableWrapEl.offsetHeight : 0
+        const available = byWrap > 0 ? Math.max(byViewport, byWrap) : byViewport
+        const rowCount = (this.state.tableData as any[])?.length ?? 0
+        const contentHeight = BaseListPage.TABLE_HEADER_HEIGHT + rowCount * BaseListPage.TABLE_ROW_HEIGHT_WITH_BORDER + BaseListPage.TABLE_HEIGHT_BUFFER
+        this.state.tableMaxHeight = Math.max(this.tableMaxHeightMin, Math.min(available, contentHeight))
     }
 
     /** 从本地存储恢复列表查询态。 */
@@ -358,6 +369,24 @@ export abstract class BaseListPage extends BasePage {
     /** 将布尔值格式化为指定文案。 */
     public formatBoolean(value: unknown, trueText: string, falseText: string): string {
         return value ? trueText : falseText
+    }
+
+    /** 用于 el-table :filtered-value：null/undefined 转为 []，否则 [value]，供列表页表头筛选绑定。 */
+    public getFilteredValueForColumn(value: unknown): unknown[] {
+        return value === null || value === undefined ? [] : [value]
+    }
+
+    /** 生成布尔列的表头筛选映射项，供 applyRemoteTableFilters 使用。 */
+    public createBooleanFilterMapping(paramName: string): {
+        paramName: string
+        parser: (value: unknown) => boolean | null
+        emptyValue: null
+    } {
+        return {
+            paramName,
+            parser: (value: unknown) => this.parseBooleanFilterValue(value),
+            emptyValue: null
+        }
     }
 
     /** 将表头筛选变更映射到远程查询参数并触发查询。 */

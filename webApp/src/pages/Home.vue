@@ -36,7 +36,7 @@
         >
           <router-view v-slot="{ Component }">
             <transition name="move" mode="out-in">
-              <component :is="Component" />
+              <component v-if="Component" :is="Component" />
             </transition>
           </router-view>
         </div>
@@ -105,6 +105,8 @@ let removeBefore: (() => void) | undefined;
 let removeAfter: (() => void) | undefined;
 
 onMounted(() => {
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
   removeBefore = router.beforeEach(() => {
     contentLoading.value = true;
   });
@@ -116,6 +118,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
   removeBefore?.();
   removeAfter?.();
 });
@@ -123,9 +127,11 @@ onUnmounted(() => {
 
 <style scoped>
 .home {
+  box-sizing: border-box; /* padding 计入 height，避免 100vh + 56px 导致整页滚动 */
   padding-top: 56px; /* 为固定 header 留出空间 */
   position: relative;
-  min-height: 100vh; /* 保证绝对定位的 sidebar/content-box 有参照高度 */
+  height: 100vh; /* 固定高度，避免整页出现滚动条 */
+  overflow: hidden; /* 禁止整页滚动，仅侧栏与内容区内部滚动 */
 }
 
 /* header 固定顶部，sidebar 与 content-box 从 56px 起对齐 */
@@ -147,6 +153,12 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   transition: left 0.2s ease;
+  min-height: 0; /* flex 子项可正确收缩，使 .content 的 overflow 生效 */
+}
+
+/* 标签栏不参与收缩，不随内容区滚动 */
+.content-box > *:first-child {
+  flex-shrink: 0;
 }
 
 /* 拖拽分界线时取消 left 过渡，避免跟手延迟 */
@@ -194,13 +206,14 @@ onUnmounted(() => {
   position: relative;
   z-index: 0;
   flex: 1;
-  padding: 12px;
+  padding: 8px 12px;
   overflow: auto;
   min-height: 0;
 }
 
-/* 骨架屏消失后首屏内容轻淡入，减少闪一下的感觉 */
+/* 骨架屏消失后首屏内容轻淡入，减少闪一下的感觉；height: 100% 使子页可填满内容区（如 CacheList 仅表格内滚动） */
 .content-inner {
+  height: 100%;
   min-height: 100%;
   opacity: 0;
 }
