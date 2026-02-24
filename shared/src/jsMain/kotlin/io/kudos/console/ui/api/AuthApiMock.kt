@@ -199,6 +199,63 @@ private fun applySort(rows: List<JsonObject>, orderProperty: String?, orderDirec
     return if (orderDirection == "DESC") sorted.reversed() else sorted
 }
 
+private data class DataSourceSearchParams(
+    val subSysDictCode: String?,
+    val tenantId: String?,
+    val microserviceCode: String?,
+    val name: String,
+    val active: Boolean?,
+    val pageNo: Int,
+    val pageSize: Int,
+)
+
+private fun parseDataSourceSearchParams(params: JsonObject): DataSourceSearchParams {
+    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
+    val microserviceCode = primitiveString(params, "microserviceCode")?.takeIf { it.isNotBlank() }
+    val name = parseOptionalStringParam(params, "name").orEmpty()
+    val active = parseOptionalBooleanParam(params, "active")
+    val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
+    val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, MAX_PAGE_SIZE)
+    return DataSourceSearchParams(subSysDictCode, tenantId, microserviceCode, name, active, pageNo, pageSize)
+}
+
+private fun buildDataSourceSearchResponse(path: String, requestJson: String): String {
+    val fixture = MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
+    val fixtureObj = parseJsonObjectOrEmpty(fixture)
+    val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
+    val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
+    val paramsObj = parseJsonObjectOrEmpty(requestJson)
+    val params = parseDataSourceSearchParams(paramsObj)
+
+    val filtered = allRows.filter { row ->
+        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowTenantId = primitiveString(row, "tenantId").orEmpty()
+        val rowMicroservice = primitiveString(row, "microservice").orEmpty()
+        val rowName = primitiveString(row, "name").orEmpty()
+        val rowActive = primitiveBoolean(row, "active")
+        (params.subSysDictCode == null || params.subSysDictCode == rowSubSys) &&
+            (params.tenantId == null || params.tenantId == rowTenantId) &&
+            (params.microserviceCode == null || params.microserviceCode == rowMicroservice) &&
+            (params.name.isEmpty() || rowName.contains(params.name, ignoreCase = true)) &&
+            (params.active == null || rowActive == params.active)
+    }
+
+    val total = filtered.size
+    val fromIndex = ((params.pageNo - 1) * params.pageSize).coerceAtLeast(0)
+    val toIndex = min(fromIndex + params.pageSize, total)
+    val pageRows = if (fromIndex >= total) emptyList() else filtered.subList(fromIndex, toIndex)
+
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", buildJsonObject {
+            put("first", JsonArray(pageRows))
+            put("second", JsonPrimitive(total))
+        })
+    }
+    return response.toString()
+}
+
 private fun buildCacheSearchResponse(path: String, requestJson: String): String {
     val fixture = MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
     val fixtureObj = parseJsonObjectOrEmpty(fixture)
@@ -259,6 +316,11 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/sys/cache/search", "/api/sys/cache/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildCacheSearchResponse(path, requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/dataSource/search", "/api/sys/dataSource/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildDataSourceSearchResponse(path, requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
         else -> {

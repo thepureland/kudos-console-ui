@@ -41,8 +41,9 @@ export abstract class TenantSupportListPage extends BaseListPage {
         return true
     }
 
+    /** 是否必须先选择子系统/租户才能搜索；默认 false，可不选直接搜索（按条件筛选）。 */
     protected isRequireSubSysOrTenantForSearch(): boolean {
-        return true
+        return false
     }
 
     protected createSearchParams() {

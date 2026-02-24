@@ -18,51 +18,52 @@
       :operation-column-hide-text="t('cacheList.actions.hideOperationColumn')"
       @table-wrap-mounted="onTableWrapMounted"
     >
-      <!-- 工具栏：名称搜索（动态宽度）、子系统下拉、搜索/重置/新增/批量删除 -->
+      <!-- 工具栏：布局由 ListPageLayout + list-page-common 提供，此处仅填 slot 内容 -->
       <template #toolbar>
-        <el-row :gutter="20" class="toolbar">
-          <el-col :span="2" class="col-search-name">
-            <div class="search-name-input-wrap">
-              <span ref="nameInputMirrorRef" class="search-name-input-mirror">{{ searchParams.name || namePlaceholder }}</span>
-              <el-input
-                v-model="searchParams.name"
-                :placeholder="namePlaceholder"
-                clearable
-                :style="{ width: nameInputWidth + 'px' }"
-                class="search-name-input"
-                @keyup="(e) => e.key === 'Enter' && search()"
-                @input="updateNameInputWidth"
-                @change="search"
+        <div class="toolbar-cell toolbar-name">
+          <div class="search-name-input-wrap">
+            <span ref="nameInputMirrorRef" class="search-name-input-mirror">{{ searchParams.name || namePlaceholder }}</span>
+            <el-input
+              v-model="searchParams.name"
+              :placeholder="namePlaceholder"
+              clearable
+              class="search-name-input"
+              @keyup="(e) => e.key === 'Enter' && search()"
+              @input="updateNameInputWidth"
+              @change="search"
+            />
+          </div>
+        </div>
+        <div class="toolbar-cell toolbar-subsys">
+          <div class="search-select-wrap">
+            <span ref="subSysSelectMirrorRef" class="search-name-input-mirror">{{ subSysSelectDisplayText }}</span>
+            <el-select
+              v-model="searchParams.atomicServiceCode"
+              :placeholder="subSysPlaceholder"
+              clearable
+              class="search-select-input"
+              @change="() => { updateSubSysSelectWidth(); search(); }"
+            >
+              <el-option
+                v-for="item in getDictItems('kuark:sys', 'sub_sys')"
+                :key="item.first"
+                :value="item.first"
+                :label="item.second"
               />
-            </div>
-          </el-col>
-          <el-col :span="2" class="col-search-subsys">
-            <div class="search-select-wrap">
-              <span ref="subSysSelectMirrorRef" class="search-name-input-mirror">{{ subSysSelectDisplayText }}</span>
-              <el-select
-                v-model="searchParams.atomicServiceCode"
-                :placeholder="subSysPlaceholder"
-                clearable
-                :style="{ width: subSysSelectWidth + 'px' }"
-                class="search-select-input"
-                @change="() => { updateSubSysSelectWidth(); search(); }"
-              >
-                <el-option
-                  v-for="item in getDictItems('kuark:sys', 'sub_sys')"
-                  :key="item.first"
-                  :value="item.first"
-                  :label="item.second"
-                />
-              </el-select>
-            </div>
-          </el-col>
-          <el-col :span="15">
-            <el-button type="primary" round @click="search">{{ t('cacheList.actions.search') }}</el-button>
-            <el-button type="primary" round @click="resetSearchFields">{{ t('cacheList.actions.reset') }}</el-button>
-            <el-button type="success" @click="openAddDialog">{{ t('cacheList.actions.add') }}</el-button>
-            <el-button type="danger" @click="multiDelete">{{ t('cacheList.actions.delete') }}</el-button>
-          </el-col>
-        </el-row>
+            </el-select>
+          </div>
+        </div>
+        <div class="toolbar-extra">
+          <el-checkbox v-model="searchParams.active" class="active-only-checkbox" @change="search">
+            {{ t('cacheList.actions.activeOnly') }}
+          </el-checkbox>
+        </div>
+        <div class="toolbar-buttons">
+          <el-button type="primary" round @click="search">{{ t('cacheList.actions.search') }}</el-button>
+          <el-button type="primary" round @click="resetSearchFields">{{ t('cacheList.actions.reset') }}</el-button>
+          <el-button type="success" @click="openAddDialog">{{ t('cacheList.actions.add') }}</el-button>
+          <el-button type="danger" @click="multiDelete">{{ t('cacheList.actions.delete') }}</el-button>
+        </div>
       </template>
       <!-- 栏位可见性面板：勾选控制各列显示/隐藏（列顺序在表头拖拽调整） -->
       <template #columnVisibilityPanel>
@@ -385,7 +386,7 @@ class ListPage extends BaseListPage {
         name: null,
         atomicServiceCode: null,
         strategyDictCode: null,
-        active: null,
+        active: true,
         writeOnBoot: null,
         writeInTime: null,
       },
@@ -399,6 +400,16 @@ class ListPage extends BaseListPage {
   /** 接口根路径，用于请求与路由 */
   protected getRootActionPath(): string {
     return 'sys/cache';
+  }
+
+  /** 仅当勾选「仅启用」时传 active=true；不勾选时传 null，后端返回启用+未启用全部 */
+  protected createSearchParams(): Record<string, unknown> | null {
+    const params = super.createSearchParams();
+    if (params && this.state.searchParams) {
+      const sp = this.state.searchParams as Record<string, unknown>;
+      (params as Record<string, unknown>).active = sp.active === true ? true : null;
+    }
+    return params;
   }
 
   /** 构造下拉菜单命令参数，供 el-dropdown 的 command 使用 */

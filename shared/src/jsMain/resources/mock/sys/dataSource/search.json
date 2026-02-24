@@ -1,0 +1,52 @@
+{
+  "code": 200,
+  "data": {
+    "first": [
+      {
+        "id": "1",
+        "name": "主数据源",
+        "subSysDictCode": "console",
+        "tenantId": "default",
+        "tenantName": "默认租户",
+        "microservice": "ams-sys",
+        "url": "jdbc:mysql://localhost:3306/console",
+        "username": "root",
+        "active": true
+      },
+      {
+        "id": "2",
+        "name": "从库数据源",
+        "subSysDictCode": "console",
+        "tenantId": "default",
+        "tenantName": "默认租户",
+        "microservice": "ams-sys",
+        "url": "jdbc:mysql://localhost:3307/console_read",
+        "username": "readonly",
+        "active": true
+      },
+      {
+        "id": "3",
+        "name": "console-租户二",
+        "subSysDictCode": "console",
+        "tenantId": "tenant_2",
+        "tenantName": "租户二",
+        "microservice": "ams-sys",
+        "url": "jdbc:mysql://localhost:3306/console_t2",
+        "username": "root",
+        "active": true
+      },
+      {
+        "id": "4",
+        "name": "日志库",
+        "subSysDictCode": "service_a",
+        "tenantId": "1",
+        "tenantName": "租户A1",
+        "microservice": "ams-log",
+        "url": "jdbc:mysql://localhost:3306/log",
+        "username": "log",
+        "active": false
+      }
+    ],
+    "second": 4
+  }
+}

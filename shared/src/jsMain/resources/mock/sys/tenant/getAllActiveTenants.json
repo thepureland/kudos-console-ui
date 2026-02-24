@@ -1,0 +1,12 @@
+{
+  "code": 200,
+  "data": {
+    "console": {
+      "default": "默认租户",
+      "tenant_2": "租户二"
+    },
+    "service_a": {
+      "1": "租户A1"
+    }
+  }
+}

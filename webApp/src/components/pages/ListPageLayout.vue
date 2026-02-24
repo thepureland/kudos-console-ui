@@ -9,7 +9,9 @@
 <template>
   <div class="list-page-layout">
     <el-card class="list-page-card">
-      <slot name="toolbar" />
+      <div class="list-page-toolbar">
+        <slot name="toolbar" />
+      </div>
       <div
         :ref="(el) => assignTableWrapRef(el)"
         class="list-page-table-wrap"
@@ -158,6 +160,17 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.list-page-toolbar {
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .list-page-table-wrap {

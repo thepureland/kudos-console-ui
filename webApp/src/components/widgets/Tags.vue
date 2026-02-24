@@ -234,6 +234,7 @@ const pathToIcon: Record<string, string> = {
 /** 标签关闭时清理页面数据状态持久化（保留列可见性与操作列显隐相关 key） */
 const PERSISTED_STATE_KEYS_BY_PATH: Record<string, string[]> = {
   '/sys/cache': ['cacheList.queryState'],
+  '/sys/datasource': ['dataSourceList.queryState'],
 };
 
 function clearPersistedStateByPath(path: string) {
