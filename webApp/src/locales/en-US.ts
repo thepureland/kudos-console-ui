@@ -26,6 +26,7 @@ export default {
     sysCache: 'Cache',
     sysDict: 'Dictionary',
     sysParam: 'Parameters',
+    sysDomain: 'Domain',
     sysSubsys: 'Subsystems',
     sysMicroservice: 'Microservices',
     sysDatasource: 'Data Sources',
@@ -47,6 +48,7 @@ export default {
     sysCache: 'Cache',
     sysDict: 'Dictionary',
     sysParam: 'Parameters',
+    sysDomain: 'Domain',
     sysSubsys: 'Subsystems',
     sysMicroservice: 'Microservices',
     sysDatasource: 'Data Sources',
@@ -204,5 +206,10 @@ export default {
     columns: { dictType: 'Dict Type', dictName: 'Dict Name', module: 'Atomic Service', itemCode: 'Item Code', itemName: 'Item Name', parentCode: 'Parent Code', seqNo: 'Order', active: 'Active', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
     messages: { loadTreeFailed: 'Dict tree load failed!', loadFailed: 'Data load failed!', loadDictTypesFailed: 'Dict type list load failed!', deleteDictConfirm: 'Deleting this dict type will remove all dict items. Continue?', deleteItemConfirm: 'This will cascade delete all child nodes if any. Continue?', batchDeleteConfirm: 'Deleting dict types removes all their items; deleting items may cascade delete children. ', batchDeleteItemPrefix: 'This will cascade delete all child nodes if any. ' },
+  },
+  domainList: {
+    placeholders: { domain: 'Domain', subSysTenant: 'Subsystem/Tenant' },
+    columns: { domain: 'Domain', subSys: 'Subsystem', tenant: 'Tenant', active: 'Active', remark: 'Remark', createTime: 'Create Time', operation: 'Operation' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
 };
