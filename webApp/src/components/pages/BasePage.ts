@@ -11,7 +11,7 @@ import { backendRequest } from "../../utils/backendRequest";
  */
 export abstract class BasePage {
 
-    public dictCache: Map<string, Record<string, string>> // Map<模块---字典类型, Map<字典项编码，字典项名称>>
+    public dictCache: Map<string, Record<string, string>> // Map<原子服务---字典类型, Map<字典项编码，字典项名称>>
     public state: Record<string, any>
     public visible = ref(false)
 

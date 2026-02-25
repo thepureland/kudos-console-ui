@@ -1,9 +1,9 @@
 <template>
   <el-dialog title="添加参数信息" v-model="visible" width="30%" center @close="close">
     <el-form ref="form" :model="formModel" label-width="90px" :rules="rules" :validate-on-rule-change="false">
-      <el-form-item label="所属模块" prop="module" class="is-required">
+      <el-form-item label="原子服务" prop="module" class="is-required">
         <el-select v-model="formModel.module" placeholder="Select">
-          <el-option v-for="item in modules" :key="item.value" :label="item.value" :value="item.value"/>
+          <el-option v-for="item in atomicServices" :key="item.value" :label="item.value" :value="item.value"/>
         </el-select>
       </el-form-item>
       <el-form-item label="参数名称" prop="paramName" class="is-required">
@@ -40,7 +40,7 @@ class AddEditPage extends BaseAddEditPage {
 
   constructor(props, context) {
     super(props, context)
-    this.loadModules()
+    this.loadAtomicServices()
   }
 
   protected initState(): any {
@@ -53,7 +53,7 @@ class AddEditPage extends BaseAddEditPage {
         seqNo: 0,
         remark: null
       },
-      modules: []
+      atomicServices: []
     }
   }
 
@@ -61,16 +61,13 @@ class AddEditPage extends BaseAddEditPage {
     return "sys/param"
   }
 
-  private async loadModules() {
+  private async loadAtomicServices() {
     this.loadDicts([
         new Pair("kuark:sys", "module")
-    ]).then(()=> {
+    ]).then(() => {
         const items = this.getDictItems("kuark:sys", "module")
-        const moduleCodes = []
-        for (let item of items) {
-            moduleCodes.push({"value": item.first}) // el-autocomplete要求数据项一定要有value属性, 否则下拉列表出不来
-            this.state.modules = moduleCodes
-        }
+        const list = items.map((item) => ({ value: item.first }))
+        this.state.atomicServices = list
     })
   }
 

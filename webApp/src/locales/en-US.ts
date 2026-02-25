@@ -187,15 +187,22 @@ export default {
     },
   },
   paramList: {
-    placeholders: { module: 'Module', paramName: 'Param Name', paramValue: 'Param Value' },
+    placeholders: { module: 'Atomic Service', paramName: 'Param Name', paramValue: 'Param Value' },
     common: { yes: 'Yes', no: 'No', confirm: 'Confirm', cancel: 'Cancel' },
-    columns: { paramName: 'Param Name', paramValue: 'Param Value', defaultValue: 'Default Value', module: 'Module', seqNo: 'Order', active: 'Active', operation: 'Operation' },
+    columns: { paramName: 'Param Name', paramValue: 'Param Value', defaultValue: 'Default Value', module: 'Atomic Service', seqNo: 'Order', remark: 'Remark', active: 'Active', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
-  dictList: {
-    placeholders: { module: 'Module', dictType: 'Dict Type', dictName: 'Dict Name', itemCode: 'Item Code', itemName: 'Item Name' },
-    common: { yes: 'Yes', no: 'No', confirm: 'Confirm', cancel: 'Cancel' },
-    columns: { dictType: 'Dict Type', dictName: 'Dict Name', module: 'Module', itemCode: 'Item Code', itemName: 'Item Name', parentCode: 'Parent Code', seqNo: 'Order', active: 'Active', operation: 'Operation' },
+  resourceList: {
+    placeholders: { resourceType: 'Resource Type', subSys: 'Subsystem', name: 'Resource Name' },
+    columns: { subSys: 'Subsystem', resourceType: 'Resource Type', name: 'Name', url: 'URL', icon: 'Icon', seqNo: 'Order', active: 'Active', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+    messages: { loadTreeFailed: 'Resource tree load failed!', loadFailed: 'Data load failed!' },
+  },
+  dictList: {
+    placeholders: { module: 'Atomic Service', dictType: 'Dict Type', dictName: 'Dict Name', itemCode: 'Item Code', itemName: 'Item Name' },
+    common: { yes: 'Yes', no: 'No', confirm: 'Confirm', cancel: 'Cancel' },
+    columns: { dictType: 'Dict Type', dictName: 'Dict Name', module: 'Atomic Service', itemCode: 'Item Code', itemName: 'Item Name', parentCode: 'Parent Code', seqNo: 'Order', active: 'Active', operation: 'Operation' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+    messages: { loadTreeFailed: 'Dict tree load failed!', loadFailed: 'Data load failed!', loadDictTypesFailed: 'Dict type list load failed!', deleteDictConfirm: 'Deleting this dict type will remove all dict items. Continue?', deleteItemConfirm: 'This will cascade delete all child nodes if any. Continue?', batchDeleteConfirm: 'Deleting dict types removes all their items; deleting items may cascade delete children. ', batchDeleteItemPrefix: 'This will cascade delete all child nodes if any. ' },
   },
 };

@@ -296,6 +296,297 @@ private fun buildCacheSearchResponse(path: String, requestJson: String): String 
     return response.toString()
 }
 
+private data class ParamSearchParams(
+    val module: String,
+    val paramName: String,
+    val paramValue: String,
+    val active: Boolean?,
+    val pageNo: Int,
+    val pageSize: Int,
+    val orderProperty: String?,
+    val orderDirection: String,
+)
+
+private val PARAM_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
+    "paramName", "paramValue", "defaultValue", "module", "seqNo", "active", "remark",
+)
+
+private fun parseParamSearchParams(params: JsonObject): ParamSearchParams {
+    val module = parseOptionalStringParam(params, "module") ?: ""
+    val paramName = parseOptionalStringParam(params, "paramName") ?: ""
+    val paramValue = parseOptionalStringParam(params, "paramValue") ?: ""
+    val active = parseOptionalBooleanParam(params, "active")
+    val pageNo = parsePositiveIntParam(params, "pageNo", 1) ?: 1
+    val pageSizeRaw = parsePositiveIntParam(params, "pageSize", 10) ?: 10
+    val pageSize = pageSizeRaw.coerceAtMost(MAX_PAGE_SIZE)
+    val sortPair = parseSortParamForParam(params)
+    return ParamSearchParams(
+        module = module.trim(),
+        paramName = paramName.trim(),
+        paramValue = paramValue.trim(),
+        active = active,
+        pageNo = pageNo,
+        pageSize = pageSize,
+        orderProperty = sortPair.first,
+        orderDirection = sortPair.second,
+    )
+}
+
+private fun parseSortParamForParam(params: JsonObject): Pair<String?, String> {
+    val element = params["orders"] ?: return null to "ASC"
+    if (element !is JsonArray) return null to "ASC"
+    val first = element.firstOrNull() ?: return null to "ASC"
+    if (first !is JsonObject) return null to "ASC"
+    val property = first["property"]
+    val direction = first["direction"]
+    if (property !is JsonPrimitive || !property.isString) return null to "ASC"
+    val propertyValue = property.contentOrNull ?: return null to "ASC"
+    if (propertyValue !in PARAM_SEARCH_ALLOWED_SORT_PROPERTIES) return null to "ASC"
+    val directionValue = if (direction is JsonPrimitive && direction.isString) {
+        (direction.contentOrNull ?: "ASC").uppercase()
+    } else "ASC"
+    return if (directionValue == "DESC") propertyValue to "DESC" else propertyValue to "ASC"
+}
+
+private fun buildParamSearchResponse(path: String, requestJson: String): String {
+    val fixture = MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
+    val fixtureObj = parseJsonObjectOrEmpty(fixture)
+    val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
+    val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
+    val paramsObj = parseJsonObjectOrEmpty(requestJson)
+    val params = parseParamSearchParams(paramsObj)
+
+    var filtered = allRows.filter { row ->
+        val rowModule = primitiveString(row, "module").orEmpty()
+        val rowParamName = primitiveString(row, "paramName").orEmpty()
+        val rowParamValue = primitiveString(row, "paramValue").orEmpty()
+        val rowActive = primitiveBoolean(row, "active")
+        (params.module.isEmpty() || rowModule == params.module) &&
+            (params.paramName.isEmpty() || rowParamName.contains(params.paramName, ignoreCase = true)) &&
+            (params.paramValue.isEmpty() || rowParamValue.contains(params.paramValue, ignoreCase = true)) &&
+            (params.active == null || rowActive == params.active)
+    }
+
+    filtered = applySort(filtered, params.orderProperty, params.orderDirection)
+
+    val total = filtered.size
+    val fromIndex = ((params.pageNo - 1) * params.pageSize).coerceAtLeast(0)
+    val toIndex = min(fromIndex + params.pageSize, total)
+    val pageRows = if (fromIndex >= total) emptyList() else filtered.subList(fromIndex, toIndex)
+
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", buildJsonObject {
+            put("first", JsonArray(pageRows))
+            put("second", JsonPrimitive(total))
+        })
+    }
+    return response.toString()
+}
+
+private data class ResourceSearchParams(
+    val subSysDictCode: String,
+    val resourceTypeDictCode: String,
+    val name: String,
+    val active: Boolean?,
+    val pageNo: Int,
+    val pageSize: Int,
+    val orderProperty: String?,
+    val orderDirection: String,
+)
+
+private val RESOURCE_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
+    "name", "url", "icon", "seqNo", "active", "subSysDictCode", "resourceTypeDictCode",
+)
+
+private fun parseResourceSearchParams(params: JsonObject): ResourceSearchParams {
+    val subSysDictCode = parseOptionalStringParam(params, "subSysDictCode")?.trim() ?: ""
+    val resourceTypeDictCode = parseOptionalStringParam(params, "resourceTypeDictCode")?.trim() ?: ""
+    val name = parseOptionalStringParam(params, "name")?.trim() ?: ""
+    val active = parseOptionalBooleanParam(params, "active")
+    val pageNo = parsePositiveIntParam(params, "pageNo", 1) ?: 1
+    val pageSizeRaw = parsePositiveIntParam(params, "pageSize", 10) ?: 10
+    val pageSize = pageSizeRaw.coerceAtMost(MAX_PAGE_SIZE)
+    val sortPair = parseSortParamForResource(params)
+    return ResourceSearchParams(
+        subSysDictCode = subSysDictCode,
+        resourceTypeDictCode = resourceTypeDictCode,
+        name = name,
+        active = active,
+        pageNo = pageNo,
+        pageSize = pageSize,
+        orderProperty = sortPair.first,
+        orderDirection = sortPair.second,
+    )
+}
+
+private fun parseSortParamForResource(params: JsonObject): Pair<String?, String> {
+    val element = params["orders"] ?: return null to "ASC"
+    if (element !is JsonArray) return null to "ASC"
+    val first = element.firstOrNull() ?: return null to "ASC"
+    if (first !is JsonObject) return null to "ASC"
+    val property = first["property"]
+    val direction = first["direction"]
+    if (property !is JsonPrimitive || !property.isString) return null to "ASC"
+    val propertyValue = property.contentOrNull ?: return null to "ASC"
+    if (propertyValue !in RESOURCE_SEARCH_ALLOWED_SORT_PROPERTIES) return null to "ASC"
+    val directionValue = if (direction is JsonPrimitive && direction.isString) {
+        (direction.contentOrNull ?: "ASC").uppercase()
+    } else "ASC"
+    return if (directionValue == "DESC") propertyValue to "DESC" else propertyValue to "ASC"
+}
+
+private fun buildResourceSearchResponse(path: String, requestJson: String): String {
+    val fixture = MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
+    val fixtureObj = parseJsonObjectOrEmpty(fixture)
+    val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
+    val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
+    val paramsObj = parseJsonObjectOrEmpty(requestJson)
+    val params = parseResourceSearchParams(paramsObj)
+
+    var filtered = allRows.filter { row ->
+        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowType = primitiveString(row, "resourceTypeDictCode").orEmpty()
+        val rowName = primitiveString(row, "name").orEmpty()
+        val rowActive = primitiveBoolean(row, "active")
+        (params.subSysDictCode.isEmpty() || rowSubSys == params.subSysDictCode) &&
+            (params.resourceTypeDictCode.isEmpty() || rowType == params.resourceTypeDictCode) &&
+            (params.name.isEmpty() || rowName.contains(params.name, ignoreCase = true)) &&
+            (params.active == null || rowActive == params.active)
+    }
+
+    filtered = applySort(filtered, params.orderProperty, params.orderDirection)
+
+    val total = filtered.size
+    val fromIndex = ((params.pageNo - 1) * params.pageSize).coerceAtLeast(0)
+    val toIndex = min(fromIndex + params.pageSize, total)
+    val pageRows = if (fromIndex >= total) emptyList() else filtered.subList(fromIndex, toIndex)
+
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", buildJsonObject {
+            put("first", JsonArray(pageRows))
+            put("second", JsonPrimitive(total))
+        })
+    }
+    return response.toString()
+}
+
+/** Mock 字典列表搜索：返回 first=行列表、second=总数。 */
+private fun buildDictSearchResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
+    val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, 500)
+    val mockRows = listOf(
+        buildJsonObject {
+            put("dictId", JsonPrimitive("dict_1"))
+            put("dictType", JsonPrimitive("dict_type"))
+            put("dictName", JsonPrimitive("字典类型"))
+            put("module", JsonPrimitive("module"))
+            put("itemId", JsonNull)
+            put("itemCode", JsonNull)
+            put("itemName", JsonNull)
+            put("parentCode", JsonNull)
+            put("seqNo", JsonNull)
+            put("active", JsonPrimitive(true))
+        },
+        buildJsonObject {
+            put("dictId", JsonPrimitive("dict_2"))
+            put("dictType", JsonPrimitive("user_status"))
+            put("dictName", JsonPrimitive("用户状态"))
+            put("module", JsonPrimitive("module"))
+            put("itemId", JsonNull)
+            put("itemCode", JsonNull)
+            put("itemName", JsonNull)
+            put("parentCode", JsonNull)
+            put("seqNo", JsonNull)
+            put("active", JsonPrimitive(true))
+        },
+    )
+    val total = mockRows.size
+    val fromIndex = ((pageNo - 1) * pageSize).coerceAtLeast(0)
+    val toIndex = min(fromIndex + pageSize, total)
+    val pageRows = if (fromIndex >= total) emptyList<JsonObject>() else mockRows.subList(fromIndex, toIndex)
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", buildJsonObject {
+            put("first", JsonArray(pageRows))
+            put("second", JsonPrimitive(total))
+        })
+    }
+    return response.toString()
+}
+
+/** Mock 字典按树查询：与 search 相同结构 first/second，供展开树节点时表格数据。 */
+private fun buildDictSearchByTreeResponse(requestJson: String): String = buildDictSearchResponse(requestJson)
+
+/** Mock 字典树：根=模块(code)，第二层=字典类型(id+code)，第三层=字典项(id+code)。 */
+private fun buildDictLoadTreeNodesResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val parentId = primitiveString(params, "parentId")?.takeIf { it.isNotBlank() }
+    val firstLevel = primitiveBoolean(params, "firstLevel") == true
+
+    val nodes: List<JsonObject> = when {
+        parentId == null -> listOf(
+            buildJsonObject { put("id", JsonPrimitive("module")); put("code", JsonPrimitive("module")) },
+            buildJsonObject { put("id", JsonPrimitive("sub_sys")); put("code", JsonPrimitive("sub_sys")) },
+            buildJsonObject { put("id", JsonPrimitive("resource_type")); put("code", JsonPrimitive("resource_type")) },
+            buildJsonObject { put("id", JsonPrimitive("cache_strategy")); put("code", JsonPrimitive("cache_strategy")) },
+            buildJsonObject { put("id", JsonPrimitive("dict_type")); put("code", JsonPrimitive("dict_type")) },
+        )
+        firstLevel -> listOf(
+            buildJsonObject { put("id", JsonPrimitive("dict_${parentId}_1")); put("code", JsonPrimitive("dict_${parentId}_1")) },
+            buildJsonObject { put("id", JsonPrimitive("dict_${parentId}_2")); put("code", JsonPrimitive("dict_${parentId}_2")) },
+        )
+        else -> listOf(
+            buildJsonObject { put("id", JsonPrimitive("item_${parentId}_1")); put("code", JsonPrimitive("item_1")) },
+            buildJsonObject { put("id", JsonPrimitive("item_${parentId}_2")); put("code", JsonPrimitive("item_2")) },
+        )
+    }
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", JsonArray(nodes))
+    }
+    return response.toString()
+}
+
+/** Mock 资源树：根=资源类型，第二层=子系统，第三层=资源节点（从 search fixture 取）。 */
+private fun buildResourceLoadTreeNodesResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val level = primitiveInt(params, "level") ?: 0
+    val parentId = primitiveString(params, "parentId")?.takeIf { it.isNotBlank() }
+    val resourceTypeDictCode = primitiveString(params, "resourceTypeDictCode")?.takeIf { it.isNotBlank() }
+    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+
+    val nodes: List<JsonObject> = when {
+        level == 0 || (parentId == null && resourceTypeDictCode == null) -> listOf(
+            buildJsonObject { put("id", JsonPrimitive("menu")); put("name", JsonPrimitive("菜单")) },
+            buildJsonObject { put("id", JsonPrimitive("button")); put("name", JsonPrimitive("按钮")) },
+        )
+        level == 1 || (resourceTypeDictCode != null && subSysDictCode == null) -> listOf(
+            buildJsonObject { put("id", JsonPrimitive("console")); put("name", JsonPrimitive("控制台")) },
+            buildJsonObject { put("id", JsonPrimitive("service_a")); put("name", JsonPrimitive("服务A")) },
+        )
+        else -> {
+            val fixture = MockJsonStore.byPath["/sys/resource/search"] ?: return "{\"code\":200,\"data\":[]}"
+            val fixtureObj = parseJsonObjectOrEmpty(fixture)
+            val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
+            val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
+            allRows.take(5).map { row ->
+                buildJsonObject {
+                    put("id", row["id"] ?: JsonPrimitive(""))
+                    put("name", row["name"] ?: JsonPrimitive(""))
+                }
+            }
+        }
+    }
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", JsonArray(nodes))
+    }
+    return response.toString()
+}
+
 // Responds using JSON fixtures loaded into MockJsonStore at build time.
 internal fun createMockEngine(): MockEngine = MockEngine { request ->
     val path = request.url.encodedPath
@@ -321,6 +612,78 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/sys/dataSource/search", "/api/sys/dataSource/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDataSourceSearchResponse(path, requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/param/search", "/api/sys/param/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildParamSearchResponse(path, requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/resource/search", "/api/sys/resource/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildResourceSearchResponse(path, requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/resource/loadTreeNodes", "/api/sys/resource/loadTreeNodes" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildResourceLoadTreeNodesResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/resource/searchByTree", "/api/sys/resource/searchByTree" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildResourceSearchResponse("/sys/resource/search", requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/dict/loadDictTypes", "/api/sys/dict/loadDictTypes" -> {
+            val data = JsonArray(
+                listOf(
+                    JsonPrimitive("module"),
+                    JsonPrimitive("sub_sys"),
+                    JsonPrimitive("resource_type"),
+                    JsonPrimitive("cache_strategy"),
+                    JsonPrimitive("dict_type"),
+                )
+            )
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", data)
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/dict/loadTreeNodes", "/api/sys/dict/loadTreeNodes" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildDictLoadTreeNodesResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/dict/search", "/api/sys/dict/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildDictSearchResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/dict/searchByTree", "/api/sys/dict/searchByTree" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildDictSearchByTreeResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/dict/getDict", "/api/sys/dict/getDict" -> {
+            val id = request.url.parameters["id"] ?: ""
+            val isDict = request.url.parameters["isDict"]?.toBooleanStrictOrNull() == true
+            val row = buildJsonObject {
+                put("dictId", JsonPrimitive("dict_$id"))
+                put("dictType", JsonPrimitive("dict_type"))
+                put("dictName", JsonPrimitive(if (isDict) "字典类型" else "字典项"))
+                put("module", JsonPrimitive("module"))
+                put("itemId", if (isDict) JsonNull else JsonPrimitive("item_$id"))
+                put("itemCode", if (isDict) JsonNull else JsonPrimitive("item_$id"))
+                put("itemName", if (isDict) JsonNull else JsonPrimitive("项名称"))
+                put("parentCode", JsonNull)
+                put("seqNo", if (isDict) JsonNull else JsonPrimitive(0))
+                put("active", JsonPrimitive(true))
+            }
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", row)
+            }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
         else -> {

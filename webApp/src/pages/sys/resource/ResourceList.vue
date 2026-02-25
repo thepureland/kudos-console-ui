@@ -1,327 +1,566 @@
 <!--
- * 资源列表
+ * 资源列表：左侧树 + 右侧 ListPageLayout（工具栏、表格、分页），mock 在 shared，国际化。
  *
  * @author: K
+ * @author: AI: Cursor
  * @since 1.0.0
  -->
-
-
 <template>
-  <div>
-    <el-breadcrumb separator="/">
-      <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
-      <el-breadcrumb-item>系统配置</el-breadcrumb-item>
-      <el-breadcrumb-item>资源列表</el-breadcrumb-item>
-    </el-breadcrumb>
-
-    <el-card>
-      <el-row :gutter="20" class="toolbar">
-        <el-col :span="2">
-          <el-tree ref="tree" :props="resourceTreeProps" :load="loadTree" :expand-on-click-node="false" node-key="id"
-                   @node-expand="expandTreeNode"
-                   @node-click="(nodeData,node)=>clickTreeNode(nodeData,node)" accordion lazy/>
-        </el-col>
-        <el-col :span="22">
-          <el-row :gutter="20" class="toolbar">
-            <el-col :span="2">
-              <el-select v-model="searchParams.resourceTypeDictCode" placeholder="资源类型" clearable>
-                <el-option v-for="item in getDictItems('kuark:sys', 'resource_type')"
-                           :key="item.first" :value="item.first" :label="item.second"/>
-              </el-select>
-            </el-col>
-            <el-col :span="2">
-              <el-select v-model="searchParams.subSysDictCode" placeholder="子系统" clearable>
-                <el-option v-for="item in getDictItems('kuark:sys', 'sub_sys')"
-                           :key="item.first" :value="item.first" :label="item.second"/>
-              </el-select>
-            </el-col>
-            <el-col :span="2">
-              <el-input v-model="searchParams.name" placeholder="资源名称" @change="search" clearable/>
-            </el-col>
-
-            <el-col :span="1">
-              <el-checkbox v-model="searchParams.active" label="仅启用" class="el-input" checked/>
-            </el-col>
-
-            <el-col :span="13">
-              <el-button type="primary" round @click="search">搜索</el-button>
-              <el-button type="primary" round @click="resetSearchFields">重置</el-button>
-              <el-button type="success" @click="openAddDialog">添加</el-button>
-              <el-button type="danger" @click="multiDelete">删除</el-button>
-            </el-col>
-          </el-row>
-
-
-          <div ref="tableWrapRef">
-          <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
-                    :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
-            <el-table-column type="selection" width="39"/>
-            <el-table-column type="index" width="50"/>
-            <el-table-column label="子系统" prop="subSysDictCode">
-              <template #default="scope">
-                {{ transDict("kuark:sys", "sub_sys", scope.row.subSysDictCode) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="资源类型" prop="resourceTypeDictCode">
-              <template #default="scope">
-                {{ transDict("kuark:sys", "resource_type", scope.row.resourceTypeDictCode) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="资源名称" prop="name" sortable="custom"/>
-            <el-table-column label="URL" prop="url" sortable="custom"/>
-            <el-table-column label="图标" prop="icon" sortable="custom"/>
-            <el-table-column label="顺序" prop="seqNo" sortable="custom"/>
-            <el-table-column label="启用">
-              <template #default="scope">
-                <el-switch v-model="scope.row.active" :active-value=true :inactive-value=false
-                           @change="updateActive(scope.row)"/>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" align="center">
-              <template #default="scope">
-                <edit @click="handleEdit(scope.row)" class="operate-column-icon"/>
-                <delete @click="handleDelete(scope.row)" class="operate-column-icon"/>
-                <tickets @click="handleDetail(scope.row)" class="operate-column-icon"/>
-              </template>
-            </el-table-column>
-          </el-table>
+  <div class="resource-list-page list-page-common">
+    <el-card class="resource-list-card">
+      <el-row :gutter="12" class="resource-list-row">
+        <el-col :span="3" class="resource-tree-col">
+          <div class="resource-tree-wrap">
+            <el-tree
+              ref="tree"
+              :props="resourceTreeProps"
+              :load="loadTree"
+              :expand-on-click-node="false"
+              node-key="id"
+              accordion
+              lazy
+              @node-expand="expandTreeNode"
+              @node-click="(nodeData, node) => clickTreeNode(nodeData, node)"
+            />
           </div>
-
-          <el-pagination ref="paginationRef" @size-change="handleSizeChange" @current-change="handleCurrentChange"
-                         :current-page="pagination.pageNo" :page-size="pagination.pageSize"
-                         layout="total, sizes, prev, pager, next, jumper" :total="pagination.total"/>
+        </el-col>
+        <el-col :span="21" class="resource-table-col">
+          <list-page-layout
+            :table-wrap-ref="listLayoutRefs.tableWrapRef"
+            :list-page="listPage"
+            :operation-column-storage-key="OPERATION_COLUMN_PINNED_STORAGE_KEY"
+            :column-panel-show-text="t('resourceList.actions.showColumnPanel')"
+            :column-panel-hide-text="t('resourceList.actions.hideColumnPanel')"
+            :operation-column-show-text="t('resourceList.actions.showOperationColumn')"
+            :operation-column-hide-text="t('resourceList.actions.hideOperationColumn')"
+            @table-wrap-mounted="onTableWrapMounted"
+          >
+            <template #toolbar>
+              <div class="toolbar-cell toolbar-subsys">
+                <el-select
+                  v-model="searchParams.resourceTypeDictCode"
+                  :placeholder="t('resourceList.placeholders.resourceType')"
+                  clearable
+                  class="search-select-input"
+                  @change="search"
+                >
+                  <el-option
+                    v-for="item in getDictItems('kuark:sys', 'resource_type')"
+                    :key="item.first"
+                    :value="item.first"
+                    :label="item.second"
+                  />
+                </el-select>
+              </div>
+              <div class="toolbar-cell toolbar-subsys">
+                <el-select
+                  v-model="searchParams.subSysDictCode"
+                  :placeholder="t('resourceList.placeholders.subSys')"
+                  clearable
+                  class="search-select-input"
+                  @change="search"
+                >
+                  <el-option
+                    v-for="item in getDictItems('kuark:sys', 'sub_sys')"
+                    :key="item.first"
+                    :value="item.first"
+                    :label="item.second"
+                  />
+                </el-select>
+              </div>
+              <div class="toolbar-cell toolbar-name">
+                <el-input
+                  v-model="searchParams.name"
+                  :placeholder="t('resourceList.placeholders.name')"
+                  clearable
+                  class="search-name-input"
+                  @keyup="(e) => e.key === 'Enter' && search()"
+                  @change="search"
+                />
+              </div>
+              <div class="toolbar-extra">
+                <el-checkbox v-model="searchParams.active" class="active-only-checkbox" @change="search">
+                  {{ t('resourceList.actions.activeOnly') }}
+                </el-checkbox>
+              </div>
+              <div class="toolbar-buttons">
+                <el-button type="primary" round @click="search">{{ t('resourceList.actions.search') }}</el-button>
+                <el-button type="primary" round @click="resetSearchFields">{{ t('resourceList.actions.reset') }}</el-button>
+                <el-button type="success" @click="openAddDialog">{{ t('resourceList.actions.add') }}</el-button>
+                <el-button type="danger" @click="multiDelete">{{ t('resourceList.actions.delete') }}</el-button>
+              </div>
+            </template>
+            <template #columnVisibilityPanel>
+              <div class="column-visibility-title">{{ t('resourceList.actions.columnVisibility') }}</div>
+              <el-checkbox-group v-model="visibleColumnKeys" class="column-visibility-checkboxes">
+                <el-checkbox
+                  v-for="item in columnVisibilityOptions"
+                  :key="item.key"
+                  :value="item.key"
+                >
+                  {{ item.label }}
+                </el-checkbox>
+              </el-checkbox-group>
+            </template>
+            <div class="table-drag-drop-zone">
+              <el-table
+                ref="tableRef"
+                border
+                stripe
+                :data="tableData"
+                :max-height="tableMaxHeight"
+                :header-cell-style="{ textAlign: 'center' }"
+                @selection-change="handleSelectionChange"
+                @sort-change="handleSortChange"
+              >
+                <el-table-column type="selection" width="39" />
+                <el-table-column type="index" width="50" />
+                <el-table-column
+                  v-if="isColumnVisible('subSysDictCode')"
+                  :label="t('resourceList.columns.subSys')"
+                  prop="subSysDictCode"
+                >
+                  <template #default="scope">
+                    {{ transDict('kuark:sys', 'sub_sys', scope.row.subSysDictCode) }}
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  v-if="isColumnVisible('resourceTypeDictCode')"
+                  :label="t('resourceList.columns.resourceType')"
+                  prop="resourceTypeDictCode"
+                >
+                  <template #default="scope">
+                    {{ transDict('kuark:sys', 'resource_type', scope.row.resourceTypeDictCode) }}
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  v-if="isColumnVisible('name')"
+                  :label="t('resourceList.columns.name')"
+                  prop="name"
+                  min-width="120"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('url')"
+                  :label="t('resourceList.columns.url')"
+                  prop="url"
+                  min-width="120"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('icon')"
+                  :label="t('resourceList.columns.icon')"
+                  prop="icon"
+                  width="100"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('seqNo')"
+                  :label="t('resourceList.columns.seqNo')"
+                  prop="seqNo"
+                  width="80"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('active')"
+                  :label="t('resourceList.columns.active')"
+                  prop="active"
+                  width="80"
+                >
+                  <template #default="scope">
+                    <el-switch
+                      v-model="scope.row.active"
+                      :active-value="true"
+                      :inactive-value="false"
+                      @change="updateActive(scope.row)"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  v-if="showOperationColumn"
+                  :label="t('resourceList.columns.operation')"
+                  align="center"
+                  fixed="right"
+                  width="140"
+                  class-name="operation-column"
+                >
+                  <template #default="scope">
+                    <el-tooltip :content="t('resourceList.actions.edit')" placement="top">
+                      <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
+                        <Edit />
+                      </el-icon>
+                    </el-tooltip>
+                    <el-tooltip :content="t('resourceList.actions.delete')" placement="top">
+                      <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
+                        <Delete />
+                      </el-icon>
+                    </el-tooltip>
+                    <el-tooltip :content="t('resourceList.actions.detail')" placement="top">
+                      <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
+                        <Tickets />
+                      </el-icon>
+                    </el-tooltip>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <template #pagination>
+              <el-pagination
+                :ref="(el: unknown) => { listLayoutRefs.paginationRef.value = (el as { $el?: HTMLElement } | HTMLElement | null) ?? null; }"
+                class="pagination-right"
+                :current-page="pagination.pageNo"
+                :page-size="pagination.pageSize"
+                :total="pagination.total"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+              />
+            </template>
+          </list-page-layout>
         </el-col>
       </el-row>
 
-      <resource-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd"/>
-      <resource-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid"/>
-      <resource-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid"/>
-
+      <resource-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
+      <resource-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
+      <resource-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
     </el-card>
-
   </div>
 </template>
 
-<script lang='ts'>
-import { defineComponent, reactive, toRefs, ref } from 'vue';
+<script lang="ts">
+import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
+import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
+import { i18n } from '../../../i18n';
 import ResourceAddEdit from './ResourceAddEdit.vue';
 import ResourceDetail from './ResourceDetail.vue';
+import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
-import {ElMessage} from "element-plus"
-import { Pair } from '../../../components/model/Pair'
-import { backendRequest } from '../../../utils/backendRequest'
+import { Pair } from '../../../components/model/Pair';
+import { backendRequest } from '../../../utils/backendRequest';
+
+function tr(key: string): string {
+  return i18n.global.t(key) as string;
+}
 
 class ListPage extends BaseListPage {
+  private tree: { value?: { remove: (obj: { id: string }) => void } };
 
-  private tree: any
-
-  constructor(props, context, tree) {
-    super(props, context)
-    this.tree = tree
-    this.loadDicts([
-      new Pair("kuark:sys", "sub_sys"),
-      new Pair("kuark:sys", "resource_type"),
-    ])
+  constructor(
+    props: Record<string, unknown>,
+    context: { emit: (event: string, ...args: unknown[]) => void },
+    tree: { value?: { remove: (obj: { id: string }) => void } },
+  ) {
+    super(props, context);
+    this.tree = tree;
+    this.convertThis();
+    this.loadDicts([new Pair('kuark:sys', 'sub_sys'), new Pair('kuark:sys', 'resource_type')]);
   }
 
-  protected initState(): any {
+  protected initState(): Record<string, unknown> {
     return {
-      resourceTreeProps: {
-        label: 'name'
-      },
+      resourceTreeProps: { label: 'name' },
       searchParams: {
-        parentId: null,
-        subSysDictCode: null,
-        resourceTypeDictCode: null,
-        name: null,
+        parentId: null as string | null,
+        subSysDictCode: null as string | null,
+        resourceTypeDictCode: null as string | null,
+        name: null as string | null,
         active: true,
-        level: null
+        level: null as number | null,
       },
-      resourceTypes: [],
-      searchSource: null,
-      rootNode: null,
-      rootResolve: null
-    }
+      searchSource: null as string | null,
+      rootNode: null as { childNodes?: unknown[] } | null,
+      rootResolve: null as ((data: unknown) => void) | null,
+    };
   }
 
-  protected getRootActionPath(): String {
-    return "sys/resource"
+  protected getRootActionPath(): string {
+    return 'sys/resource';
   }
 
-  protected createSearchParams() {
-    const params = super.createSearchParams()
-    params.parentId = this.state.searchSource == "button" ? null : this.state.searchParams.parentId
-    params.active = this.state.searchParams.active ? true : null
-    return params
+  protected createSearchParams(): Record<string, unknown> | null {
+    const params = super.createSearchParams();
+    if (!params) return null;
+    const sp = this.state.searchParams as Record<string, unknown>;
+    (params as Record<string, unknown>).parentId = this.state.searchSource === 'button' ? null : sp.parentId;
+    (params as Record<string, unknown>).active = sp.active === true ? true : null;
+    return params;
   }
 
   protected async doSearch(): Promise<void> {
-    this.state.searchSource = "button"
-    await super.doSearch()
+    (this.state as Record<string, unknown>).searchSource = 'button';
+    await super.doSearch();
   }
 
-  protected doAfterAdd(params: any) {
-    super.doAfterAdd(params)
-    this.state.rootNode.childNodes = []
-    this.doLoadTree(this.state.rootNode, this.state.rootResolve)
+  protected doAfterAdd(_params?: unknown): void {
+    super.doAfterAdd();
+    const root = this.state.rootNode as { childNodes?: unknown[]; level?: number; data?: unknown } | null;
+    const resolve = this.state.rootResolve as ((data: unknown) => void) | null;
+    if (root) root.childNodes = [];
+    if (root && resolve) this.doLoadTree(root, resolve);
   }
 
-  protected doAfterEdit(params: any) {
-    this.doAfterAdd(params)
+  protected doAfterEdit(): void {
+    this.doAfterAdd();
   }
 
-  protected doAfterDelete(ids: Array<any>) {
-    super.doAfterDelete(ids)
-    for (let id of ids) {
-      this.tree.value.remove({"id": id})
-    }
+  protected doAfterDelete(ids: string[]): void {
+    super.doAfterDelete(ids);
+    const t = this.tree?.value;
+    if (t?.remove) ids.forEach((id) => t.remove({ id }));
   }
 
-  public loadTree: (node, resolve) => void
+  public loadTree: (node: unknown, resolve: (data: unknown) => void) => void;
 
-  private async doLoadTree(node, resolve) {
+  private async doLoadTree(node: { level: number; data: unknown }, resolve: (data: unknown) => void): Promise<void> {
     if (node.level === 0) {
-      this.state.rootNode = node
-      this.state.rootResolve = resolve
+      this.state.rootNode = node;
+      this.state.rootResolve = resolve;
     }
-    this.setParamsForTree(node, true)
-    const params = this.createSearchParams()
-    // @ts-ignore
-    const result = await backendRequest({url: "sys/resource/loadTreeNodes", method: "post", params});
-    if (result.code == 200) {
-      resolve(result.data)
+    this.setParamsForTree(node, true);
+    const params = this.createSearchParams();
+    try {
+      const result = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params }) as { code: number; data?: unknown };
+      if (result.code === 200) resolve(result.data ?? []);
+      else ElMessage.error(tr('resourceList.messages.loadTreeFailed'));
+    } catch {
+      ElMessage.error(tr('resourceList.messages.loadTreeFailed'));
+    }
+  }
+
+  public expandTreeNode: (nodeData: unknown, node: { level: number }) => void;
+
+  private doExpandTreeNode(nodeData: unknown, node: { level: number }): void {
+    if (node.level === 0 || node.level === 1) return;
+    this.resetSearchFields();
+    this.setParamsForTree(node as { level: number; data: unknown }, true);
+    this.searchByTree();
+  }
+
+  public clickTreeNode: (nodeData: { id: string; name?: string }, node: { level: number; data: unknown; parent?: { data: unknown } }) => void;
+
+  private async doClickTreeNode(nodeData: { id: string }, node: { level: number; data: unknown; parent?: { data: unknown } }): Promise<void> {
+    if (node.level === 1 || node.level === 2) return;
+    this.resetSearchFields();
+    this.setParamsForTree(node as { level: number; data: unknown }, false);
+    const params = this.createSearchParams() as Record<string, unknown>;
+    if (!params) return;
+    params.id = nodeData.id;
+    params.resourceTypeDictCode = this.getResourceTypeByNode(node);
+    try {
+      const result = await backendRequest({ url: 'sys/resource/searchOnClick', method: 'post', params }) as { code: number; data?: { first: unknown[]; second: number } };
+      if (result.code === 200 && result.data) {
+        this.state.tableData = result.data.first;
+        (this.state.pagination as Record<string, number>).total = result.data.second;
+      } else ElMessage.error(tr('resourceList.messages.loadFailed'));
+    } catch {
+      ElMessage.error(tr('resourceList.messages.loadFailed'));
+    }
+  }
+
+  private setParamsForTree(node: { level: number; data: { id?: string; name?: string }; parent?: { data: { id?: string } } }, expand: boolean): void {
+    (this.state as Record<string, unknown>).searchSource = 'tree';
+    (this.state.searchParams as Record<string, unknown>).level = node.level;
+    if (node.level === 0) return;
+    const sp = this.state.searchParams as Record<string, unknown>;
+    if (node.level === 1) {
+      sp.resourceTypeDictCode = (node.data as { id?: string }).id ?? null;
+      sp.subSysDictCode = null;
+      sp.parentId = null;
+      sp.name = null;
+    } else if (node.level === 2) {
+      sp.resourceTypeDictCode = node.parent?.data?.id ?? null;
+      sp.subSysDictCode = (node.data as { id?: string }).id ?? null;
+      sp.parentId = null;
+      sp.name = null;
     } else {
-      ElMessage.error('资源树加载失败！')
+      sp.resourceTypeDictCode = this.getResourceTypeByNode(node as { level: number; parent?: { data: { id?: string } } });
+      sp.subSysDictCode = this.getSubSysByNode(node as { level: number; parent?: { data: { id?: string } } });
+      sp.parentId = (node.data as { id?: string }).id ?? null;
+      if (!expand) sp.name = (node.data as { name?: string }).name ?? null;
     }
   }
 
-  public expandTreeNode: (nodeData, node) => void
-
-  private doExpandTreeNode(nodeData, node) {
-    if (node.level == 0 || node.level == 1) return
-    this.resetSearchFields()
-    this.setParamsForTree(node, true)
-    this.searchByTree()
+  private getResourceTypeByNode(node: { level: number; parent?: unknown; data?: { id?: string } }): string | null {
+    let n: { level: number; parent?: { level: number; data?: { id?: string } } } = node as { level: number; parent?: { level: number; data?: { id?: string } } };
+    while (n.level !== 1 && n.parent) n = n.parent;
+    return (n as { data?: { id?: string } }).data?.id ?? null;
   }
 
-  public clickTreeNode: (nodeData, node) => void
+  private getSubSysByNode(node: { level: number; parent?: unknown; data?: { id?: string } }): string | null {
+    let n: { level: number; parent?: { level: number; data?: { id?: string } } } = node as { level: number; parent?: { level: number; data?: { id?: string } } };
+    while (n.level !== 2 && n.parent) n = n.parent;
+    return (n as { data?: { id?: string } }).data?.id ?? null;
+  }
 
-  private async doClickTreeNode(nodeData, node) {
-    if (node.level === 1 || node.level === 2) {
-      return
-    }
-    this.resetSearchFields()
-    this.setParamsForTree(node, false)
-    // const params = {
-    //   id: nodeData.id,
-    //   resourceTypeDictCode: this.getResourceTypeByNode(node),
-    // }
-    const params = this.createSearchParams()
-    params.id = nodeData.id
-    params.resourceTypeDictCode = this.getResourceTypeByNode(node)
-    // @ts-ignore
-    const result = await backendRequest({url: "sys/resource/searchOnClick", method: "post", params});
-    if (result.code == 200) {
-      this.state.tableData = result.data.first
-      this.state.pagination.total = result.data.second
-    } else {
-      ElMessage.error('数据加载失败！')
+  private async searchByTree(): Promise<void> {
+    const params = this.createSearchParams() as Record<string, unknown>;
+    if (!params) return;
+    params.pageNo = this.state.pagination?.pageNo ?? 1;
+    params.pageSize = this.state.pagination?.pageSize ?? 10;
+    const sort = this.state.sort as { orderProperty?: string; orderDirection?: string };
+    if (sort?.orderProperty) params.orders = [{ property: sort.orderProperty, direction: sort.orderDirection ?? 'ASC' }];
+    try {
+      const result = await backendRequest({ url: 'sys/resource/searchByTree', method: 'post', params }) as { code: number; data?: { first: unknown[]; second: number } };
+      if (result.code === 200 && result.data) {
+        this.state.tableData = result.data.first;
+        (this.state.pagination as Record<string, number>).total = result.data.second;
+      } else ElMessage.error(tr('resourceList.messages.loadFailed'));
+    } catch {
+      ElMessage.error(tr('resourceList.messages.loadFailed'));
     }
   }
 
-  private setParamsForTree(node, expand: Boolean) {
-    this.state.searchSource = "tree"
-    this.state.searchParams.level = node.level
-    if (node.level != 0) {
-      if (node.level == 1) {
-        this.state.searchParams.resourceTypeDictCode = node.data.id
-        this.state.searchParams.subSysDictCode = null
-        this.state.searchParams.parentId = null
-        this.state.searchParams.name = null
-      } else if (node.level == 2) {
-        this.state.searchParams.resourceTypeDictCode = node.parent.data.id
-        this.state.searchParams.subSysDictCode = node.data.id
-        this.state.searchParams.parentId = null
-        this.state.searchParams.name = null
-      } else {
-        this.state.searchParams.resourceTypeDictCode = this.getResourceTypeByNode(node)
-        this.state.searchParams.subSysDictCode = this.getSubSysByNode(node)
-        this.state.searchParams.parentId = node.data.id
-        if (!expand) {
-          this.state.searchParams.name = node.data.name
-        }
-      }
-    }
+  protected convertThis(): void {
+    super.convertThis();
+    this.loadTree = (node: unknown, resolve: (data: unknown) => void) => this.doLoadTree(node as { level: number; data: unknown }, resolve);
+    this.expandTreeNode = (nodeData: unknown, node: { level: number }) => this.doExpandTreeNode(nodeData, node);
+    this.clickTreeNode = (nodeData: { id: string; name?: string }, node: { level: number; data: unknown; parent?: { data: unknown } }) => this.doClickTreeNode(nodeData, node);
   }
-
-  private getResourceTypeByNode(node) {
-    while (node.level != 1) {
-      node = node.parent
-    }
-    return node.data.id
-  }
-
-  private getSubSysByNode(node) {
-    while (node.level != 2) {
-      node = node.parent
-    }
-    return node.data.id
-  }
-
-  private async searchByTree() {
-    const params = this.createSearchParams()
-    params["pageNo"] = this.state.pagination.pageNo
-    params["pageSize"] = this.state.pagination.pageSize
-    if (this.state.sort.orderProperty) {
-      params["orders"] = [{
-        property: this.state.sort.orderProperty,
-        direction: this.state.sort.orderDirection,
-      }]
-    }
-    // @ts-ignore
-    const result = await backendRequest({url: "sys/resource/searchByTree", method: "post", params})
-    if (result.code == 200) {
-      this.state.tableData = result.data.first
-      this.state.pagination.total = result.data.second
-    } else {
-      ElMessage.error('数据加载失败！')
-    }
-  }
-
-  protected convertThis() {
-    super.convertThis()
-    this.loadTree = (node, resolve) => {
-      this.doLoadTree(node, resolve)
-    }
-    this.expandTreeNode = (nodeData, node) => {
-      this.doExpandTreeNode(nodeData, node)
-    }
-    this.clickTreeNode = (nodeData, node) => {
-      this.doClickTreeNode(nodeData, node)
-    }
-  }
-
 }
 
+const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'resourceList.operationColumnPinned';
+const RESOURCE_LIST_STATE_STORAGE_KEY = 'resourceList.queryState';
+const COLUMN_VISIBILITY_STORAGE_KEY = 'resourceList.visibleColumns';
+const ALL_COLUMN_KEYS = ['subSysDictCode', 'resourceTypeDictCode', 'name', 'url', 'icon', 'seqNo', 'active'];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+
 export default defineComponent({
-  name: "~index",
-  components: {ResourceAddEdit, ResourceDetail},
-  setup(props, context) {
-    const tree = ref();
-    const listPage = reactive(new ListPage(props, context, tree));
-    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
+  name: 'ResourceList',
+  components: { ResourceAddEdit, ResourceDetail, ListPageLayout, Edit, Delete, Tickets },
+  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    const { t } = useI18n();
+    const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
+    const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
+    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, ALL_COLUMN_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    listPage.configureListStatePersistence(RESOURCE_LIST_STATE_STORAGE_KEY);
+    listPage.configureTableMaxHeight();
+    const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
+    const listLayoutRefs = { tableWrapRef, paginationRef };
+    const tableRef = ref<{ doLayout?: () => void } | null>(null);
+
+    const columnKeyToLabel: Record<string, () => string> = {
+      subSysDictCode: () => t('resourceList.columns.subSys'),
+      resourceTypeDictCode: () => t('resourceList.columns.resourceType'),
+      name: () => t('resourceList.columns.name'),
+      url: () => t('resourceList.columns.url'),
+      icon: () => t('resourceList.columns.icon'),
+      seqNo: () => t('resourceList.columns.seqNo'),
+      active: () => t('resourceList.columns.active'),
+    };
+    const columnVisibilityOptions = computed(() =>
+      ALL_COLUMN_KEYS.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
+    );
+    const visibleColumnKeys = computed<string[]>({
+      get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
+      set: (next) => listPage.applyVisibleColumns(next),
+    });
+    function isColumnVisible(key: string): boolean {
+      return listPage.isColumnVisible(key);
+    }
+
+    function onTableWrapMounted(): void {
+      nextTick(updateTableMaxHeight);
+    }
+
+    onMounted(() => {
+      listPage.restorePersistedListState();
+      nextTick(updateTableMaxHeight);
+    });
+    watch(
+      () => [
+        listPage.state.searchParams,
+        listPage.state.sort,
+        listPage.state.pagination,
+        listPage.state.tableData,
+        listPage.state.visibleColumnKeys,
+      ],
+      () => {
+        listPage.persistListState();
+        nextTick(updateTableMaxHeight);
+      },
+      { deep: true },
+    );
+
     return {
+      listPage,
+      OPERATION_COLUMN_PINNED_STORAGE_KEY,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
+      t,
       tree,
-      tableWrapRef,
-      paginationRef,
+      listLayoutRefs,
+      tableRef,
+      onTableWrapMounted,
+      visibleColumnKeys,
+      columnVisibilityOptions,
+      isColumnVisible,
     };
   },
-})
+});
 </script>
 
-<style lang='css' scoped>
-
+<style src="../../../styles/list-page-common.css" scoped></style>
+<style scoped>
+/* 卡片与行高度传递，使树与表格区域同高 */
+.resource-list-page .resource-list-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.resource-list-page .resource-list-card .el-card__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-left: 12px;
+}
+.resource-list-page .resource-list-row {
+  flex: 1;
+  min-height: 0;
+}
+.resource-list-page .resource-tree-col {
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+/* 树区：左边栏视觉（右边线 + 浅底）+ 可滚动 */
+.resource-list-page .resource-tree-wrap {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px 8px 0;
+  border-right: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
+}
+.resource-list-page .resource-table-col {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* 树节点行高与表格接近，风格统一 */
+.resource-list-page .resource-tree-wrap :deep(.el-tree-node__content) {
+  height: 32px;
+}
+.resource-list-page .list-page-toolbar .toolbar-name .search-name-input,
+.resource-list-page .list-page-toolbar .toolbar-subsys .search-select-input {
+  width: 100%;
+  min-width: 0;
+}
+.resource-list-page .list-page-toolbar .toolbar-subsys :deep(.el-input__wrapper) {
+  min-width: 0;
+}
+.table-drag-drop-zone {
+  flex: 1;
+  min-height: 0;
+}
+:deep(.pagination-right) {
+  margin-top: 8px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
 </style>

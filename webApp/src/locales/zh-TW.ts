@@ -187,15 +187,22 @@ export default {
     },
   },
   paramList: {
-    placeholders: { module: '所屬模組', paramName: '參數名稱', paramValue: '參數值' },
+    placeholders: { module: '原子服務', paramName: '參數名稱', paramValue: '參數值' },
     common: { yes: '是', no: '否', confirm: '確定', cancel: '取消' },
-    columns: { paramName: '參數名稱', paramValue: '參數值', defaultValue: '參數預設值', module: '所屬模組', seqNo: '順序', active: '啟用', operation: '操作' },
+    columns: { paramName: '參數名稱', paramValue: '參數值', defaultValue: '參數預設值', module: '原子服務', seqNo: '順序', remark: '備註', active: '啟用', operation: '操作' },
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
-  dictList: {
-    placeholders: { module: '所屬模組', dictType: '字典類型', dictName: '字典名稱', itemCode: '字典項編碼', itemName: '字典項名稱' },
-    common: { yes: '是', no: '否', confirm: '確定', cancel: '取消' },
-    columns: { dictType: '字典類型', dictName: '字典名稱', module: '所屬模組', itemCode: '字典項編碼', itemName: '字典項名稱', parentCode: '父項編碼', seqNo: '順序', active: '啟用', operation: '操作' },
+  resourceList: {
+    placeholders: { resourceType: '資源類型', subSys: '子系統', name: '資源名稱' },
+    columns: { subSys: '子系統', resourceType: '資源類型', name: '資源名稱', url: 'URL', icon: '圖標', seqNo: '順序', active: '啟用', operation: '操作' },
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
+    messages: { loadTreeFailed: '資源樹載入失敗！', loadFailed: '資料載入失敗！' },
+  },
+  dictList: {
+    placeholders: { module: '原子服務', dictType: '字典類型', dictName: '字典名稱', itemCode: '字典項編碼', itemName: '字典項名稱' },
+    common: { yes: '是', no: '否', confirm: '確定', cancel: '取消' },
+    columns: { dictType: '字典類型', dictName: '字典名稱', module: '原子服務', itemCode: '字典項編碼', itemName: '字典項名稱', parentCode: '父項編碼', seqNo: '順序', active: '啟用', operation: '操作' },
+    actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
+    messages: { loadTreeFailed: '字典樹載入失敗！', loadFailed: '資料載入失敗！', loadDictTypesFailed: '字典類型列表載入失敗！', deleteDictConfirm: '刪除字典類型時，將刪除所有字典項，依然進行刪除操作嗎？', deleteItemConfirm: '將級聯刪除所有孩子結點（如果有的話），依然進行刪除操作嗎？', batchDeleteConfirm: '刪除字典類型時，將刪除所有字典項；刪除字典項時，將級聯刪除所有孩子結點（如果有的話）。', batchDeleteItemPrefix: '將級聯刪除所有孩子結點（如果有的話），' },
   },
 };

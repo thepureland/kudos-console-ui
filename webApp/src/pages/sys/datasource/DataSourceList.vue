@@ -390,35 +390,7 @@ class ListPage extends TenantSupportListPage {
     }
   }
 
-  /** 请求失败或无数据时使用测试数据，便于前端联调与演示 */
-  protected async doSearch(): Promise<void> {
-    try {
-      await super.doSearch();
-      const state = this.state as Record<string, unknown>;
-      const data = state.tableData as unknown[];
-      if (!data?.length && (window as unknown as { __USE_MOCK_DATA_SOURCE?: boolean }).__USE_MOCK_DATA_SOURCE !== true) {
-        return;
-      }
-      if (!data?.length) {
-        state.tableData = MOCK_DATA_SOURCE_ROWS;
-        (state.pagination as Record<string, number>).total = MOCK_DATA_SOURCE_ROWS.length;
-      }
-    } catch {
-      const state = this.state as Record<string, unknown>;
-      state.tableData = MOCK_DATA_SOURCE_ROWS;
-      (state.pagination as Record<string, number>).total = MOCK_DATA_SOURCE_ROWS.length;
-    }
-  }
 }
-
-/** 测试数据：无后端或接口失败时展示，便于开发与演示（微服务列在租户列后，且有值） */
-const MOCK_DATA_SOURCE_ROWS: Record<string, unknown>[] = [
-  { id: '1', name: '主数据源', subSysDictCode: 'console', tenantName: '默认租户', microservice: 'ams-sys', url: 'jdbc:mysql://localhost:3306/console', username: 'root', active: true },
-  { id: '2', name: '从库数据源', subSysDictCode: 'console', tenantName: '默认租户', microservice: 'ams-sys', url: 'jdbc:mysql://localhost:3307/console_read', username: 'readonly', active: true },
-  { id: '3', name: '日志库', subSysDictCode: 'log', tenantName: null, microservice: 'ams-log', url: 'jdbc:mysql://localhost:3306/log', username: 'log', active: false },
-  { id: '4', name: '任务调度库', subSysDictCode: 'console', tenantName: '默认租户', microservice: 'ams-job', url: 'jdbc:mysql://localhost:3306/job', username: 'job', active: true },
-  { id: '5', name: '审计从库', subSysDictCode: 'log', tenantName: '日志租户', microservice: 'ams-log', url: 'jdbc:mysql://localhost:3307/log_read', username: 'readonly', active: true },
-];
 
 const NAME_INPUT_PADDING = 40;
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'dataSourceList.operationColumnPinned';

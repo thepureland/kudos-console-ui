@@ -137,7 +137,7 @@
         "writeOnBoot": true,
         "writeInTime": true,
         "ttl": 999999999,
-        "remark": "模块缓存(by code)",
+        "remark": "原子服务缓存(by code)",
         "active": true,
         "builtIn": true,
         "hash": false
@@ -865,7 +865,7 @@
         "writeOnBoot": true,
         "writeInTime": false,
         "ttl": 21600,
-        "remark": "模块设置缓存",
+        "remark": "原子服务设置缓存",
         "active": true
       },
       {

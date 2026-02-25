@@ -1,132 +1,277 @@
 <!--
- * 字典列表
+ * 字典列表：左侧树 + 右侧 ListPageLayout（工具栏、栏位可见性、表格、分页），与 CacheList/ResourceList 同构。
  *
  * @author: K
+ * @author: AI: Cursor
  * @since 1.0.0
  -->
-
-
 <template>
-  <div>
-    <el-breadcrumb separator="/">
-      <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
-      <el-breadcrumb-item>系统配置</el-breadcrumb-item>
-      <el-breadcrumb-item>字典列表</el-breadcrumb-item>
-    </el-breadcrumb>
-
-    <el-card>
-      <el-row :gutter="20" class="toolbar">
-        <el-col :span="2">
-          <el-tree ref="tree" :props="dictTreeProps" :load="loadTree" :expand-on-click-node="false" node-key="id"
-                   @node-expand="expandTreeNode"
-                   @node-click="(nodeData,node)=>clickTreeNode(nodeData,node)" accordion lazy/>
-        </el-col>
-        <el-col :span="22">
-          <el-row :gutter="20" class="toolbar">
-            <el-col :span="2">
-              <el-autocomplete v-model="searchParams.module" placeholder="所属模块" @change="search"
-                               @select="search" :fetch-suggestions="filterModule" clearable/>
-            </el-col>
-            <el-col :span="2">
-              <el-autocomplete v-model="searchParams.dictType" placeholder="字典类型" @change="search"
-                               @select="search" :fetch-suggestions="filterDictType" :trigger-on-focus="false"
-                               clearable/>
-            </el-col>
-            <el-col :span="2">
-              <el-input v-model="searchParams.dictName" placeholder="字典名称" @change="search" clearable/>
-            </el-col>
-            <el-col :span="2">
-              <el-input v-model="searchParams.itemCode" placeholder="字典项编码" @change="search" clearable/>
-            </el-col>
-            <el-col :span="2">
-              <el-input v-model="searchParams.itemName" placeholder="字典项名称" @change="search" clearable/>
-            </el-col>
-
-            <el-col :span="1">
-              <el-checkbox v-model="searchParams.active" label="仅启用" class="el-input" checked/>
-            </el-col>
-
-            <el-col :span="9">
-              <el-button type="primary" round @click="search">搜索</el-button>
-              <el-button type="primary" round @click="resetSearchFields">重置</el-button>
-              <el-button type="success" @click="openAddDialog">添加</el-button>
-              <el-button type="danger" @click="multiDelete">删除</el-button>
-            </el-col>
-          </el-row>
-
-          <div ref="tableWrapRef">
-          <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
-                    :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
-            <el-table-column type="selection" width="39"/>
-            <el-table-column type="index" width="50"/>
-            <el-table-column label="字典类型" prop="dictType" sortable="custom"/>
-            <el-table-column label="字典名称" prop="dictName" sortable="custom"/>
-            <el-table-column label="所属模块" prop="module" sortable="custom"/>
-            <el-table-column label="字典项编码" prop="itemCode" sortable="custom" v-if="!searchParams.isDict"/>
-            <el-table-column label="字典项名称" prop="itemName" sortable="custom" v-if="!searchParams.isDict"/>
-            <el-table-column label="父项编码" prop="parentCode" sortable="custom" v-if="!searchParams.isDict"/>
-            <el-table-column label="顺序" prop="seqNo" sortable="custom" v-if="!searchParams.isDict"/>
-            <el-table-column label="启用" v-if="!searchParams.isDict">
-              <template #default="scope">
-                <el-switch v-model="scope.row.active" :active-value=true :inactive-value=false
-                           @change="updateActive(scope.row)" v-if="scope.row.itemCode"/>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" align="center">
-              <template #default="scope">
-                <edit @click="handleEdit(scope.row)" class="operate-column-icon"/>
-                <delete @click="handleDelete(scope.row)" class="operate-column-icon"/>
-                <tickets @click="handleDetail(scope.row)" class="operate-column-icon"/>
-              </template>
-            </el-table-column>
-          </el-table>
+  <div class="dict-list-page list-page-common">
+    <el-card class="dict-list-card">
+      <el-row :gutter="12" class="dict-list-row">
+        <el-col :span="3" class="resource-tree-col">
+          <div class="resource-tree-wrap">
+            <el-tree
+              ref="tree"
+              :props="dictTreeProps"
+              :load="loadTree"
+              :expand-on-click-node="false"
+              node-key="id"
+              accordion
+              lazy
+              @node-expand="expandTreeNode"
+              @node-click="(nodeData, node) => clickTreeNode(nodeData, node)"
+            />
           </div>
-
-          <el-pagination ref="paginationRef" @size-change="handleSizeChange" @current-change="handleCurrentChange"
-                         :current-page="pagination.pageNo" :page-size="pagination.pageSize"
-                         layout="total, sizes, prev, pager, next, jumper" :total="pagination.total"/>
+        </el-col>
+        <el-col :span="21" class="resource-table-col">
+          <list-page-layout
+            :table-wrap-ref="listLayoutRefs.tableWrapRef"
+            :list-page="listPage"
+            :operation-column-storage-key="OPERATION_COLUMN_PINNED_STORAGE_KEY"
+            :column-panel-show-text="t('dictList.actions.showColumnPanel')"
+            :column-panel-hide-text="t('dictList.actions.hideColumnPanel')"
+            :operation-column-show-text="t('dictList.actions.showOperationColumn')"
+            :operation-column-hide-text="t('dictList.actions.hideOperationColumn')"
+            @table-wrap-mounted="onTableWrapMounted"
+          >
+            <template #toolbar>
+              <div class="toolbar-cell toolbar-subsys">
+                <el-autocomplete
+                  v-model="searchParams.module"
+                  :placeholder="t('dictList.placeholders.module')"
+                  :fetch-suggestions="filterAtomicService"
+                  clearable
+                  class="search-select-input"
+                  @change="search"
+                  @select="search"
+                />
+              </div>
+              <div class="toolbar-cell toolbar-subsys">
+                <el-autocomplete
+                  v-model="searchParams.dictType"
+                  :placeholder="t('dictList.placeholders.dictType')"
+                  :fetch-suggestions="filterDictType"
+                  :trigger-on-focus="false"
+                  clearable
+                  class="search-select-input"
+                  @change="search"
+                  @select="search"
+                />
+              </div>
+              <div class="toolbar-cell toolbar-name">
+                <el-input
+                  v-model="searchParams.dictName"
+                  :placeholder="t('dictList.placeholders.dictName')"
+                  clearable
+                  class="search-name-input"
+                  @keyup="(e) => e.key === 'Enter' && search()"
+                  @change="search"
+                />
+              </div>
+              <div class="toolbar-cell toolbar-name">
+                <el-input
+                  v-model="searchParams.itemCode"
+                  :placeholder="t('dictList.placeholders.itemCode')"
+                  clearable
+                  class="search-name-input"
+                  @keyup="(e) => e.key === 'Enter' && search()"
+                  @change="search"
+                />
+              </div>
+              <div class="toolbar-cell toolbar-name">
+                <el-input
+                  v-model="searchParams.itemName"
+                  :placeholder="t('dictList.placeholders.itemName')"
+                  clearable
+                  class="search-name-input"
+                  @keyup="(e) => e.key === 'Enter' && search()"
+                  @change="search"
+                />
+              </div>
+              <div class="toolbar-extra">
+                <el-checkbox v-model="searchParams.active" class="active-only-checkbox" @change="search">
+                  {{ t('dictList.actions.activeOnly') }}
+                </el-checkbox>
+              </div>
+              <div class="toolbar-buttons">
+                <el-button type="primary" round @click="search">{{ t('dictList.actions.search') }}</el-button>
+                <el-button type="primary" round @click="resetSearchFields">{{ t('dictList.actions.reset') }}</el-button>
+                <el-button type="success" @click="openAddDialog">{{ t('dictList.actions.add') }}</el-button>
+                <el-button type="danger" @click="multiDelete">{{ t('dictList.actions.delete') }}</el-button>
+              </div>
+            </template>
+            <template #columnVisibilityPanel>
+              <div class="column-visibility-title">{{ t('dictList.actions.columnVisibility') }}</div>
+              <el-checkbox-group v-model="visibleColumnKeys" class="column-visibility-checkboxes">
+                <el-checkbox
+                  v-for="item in columnVisibilityOptions"
+                  :key="item.key"
+                  :value="item.key"
+                >
+                  {{ item.label }}
+                </el-checkbox>
+              </el-checkbox-group>
+            </template>
+            <div class="table-drag-drop-zone">
+              <el-table
+                ref="tableRef"
+                border
+                stripe
+                :data="tableData"
+                :max-height="tableMaxHeight"
+                :header-cell-style="{ textAlign: 'center' }"
+                @selection-change="handleSelectionChange"
+                @sort-change="handleSortChange"
+              >
+                <el-table-column type="selection" width="39" />
+                <el-table-column type="index" width="50" />
+                <el-table-column
+                  v-if="isColumnVisible('dictType')"
+                  :label="t('dictList.columns.dictType')"
+                  prop="dictType"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('dictName')"
+                  :label="t('dictList.columns.dictName')"
+                  prop="dictName"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('module')"
+                  :label="t('dictList.columns.module')"
+                  prop="module"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('itemCode') && !searchParams.isDict"
+                  :label="t('dictList.columns.itemCode')"
+                  prop="itemCode"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('itemName') && !searchParams.isDict"
+                  :label="t('dictList.columns.itemName')"
+                  prop="itemName"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('parentCode') && !searchParams.isDict"
+                  :label="t('dictList.columns.parentCode')"
+                  prop="parentCode"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('seqNo') && !searchParams.isDict"
+                  :label="t('dictList.columns.seqNo')"
+                  prop="seqNo"
+                  sortable="custom"
+                />
+                <el-table-column
+                  v-if="isColumnVisible('active') && !searchParams.isDict"
+                  :label="t('dictList.columns.active')"
+                  width="80"
+                >
+                  <template #default="scope">
+                    <el-switch
+                      v-if="scope.row.itemCode"
+                      v-model="scope.row.active"
+                      :active-value="true"
+                      :inactive-value="false"
+                      @change="updateActive(scope.row)"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  v-if="showOperationColumn"
+                  :label="t('dictList.columns.operation')"
+                  align="center"
+                  fixed="right"
+                  width="140"
+                >
+                  <template #default="scope">
+                    <el-tooltip :content="t('dictList.actions.edit')" placement="top">
+                      <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
+                        <Edit />
+                      </el-icon>
+                    </el-tooltip>
+                    <el-tooltip :content="t('dictList.actions.delete')" placement="top">
+                      <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
+                        <Delete />
+                      </el-icon>
+                    </el-tooltip>
+                    <el-tooltip :content="t('dictList.actions.detail')" placement="top">
+                      <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
+                        <Tickets />
+                      </el-icon>
+                    </el-tooltip>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <template #pagination>
+              <el-pagination
+                :ref="(el: unknown) => { listLayoutRefs.paginationRef.value = el as HTMLElement | null; }"
+                class="pagination-right"
+                :current-page="pagination.pageNo"
+                :page-size="pagination.pageSize"
+                :total="pagination.total"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+              />
+            </template>
+          </list-page-layout>
         </el-col>
       </el-row>
 
-      <dict-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd"
-                     :module="searchParams.module" :dictType="searchParams.dictType"/>
-      <dict-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid"
-                     :isDict="isDict"/>
-      <dict-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid"/>
-      <dict-item-detail v-if="itemDetailDialogVisible" v-model="itemDetailDialogVisible" :rid="rid"/>
-
+      <dict-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" :module="searchParams.module" :dict-type="searchParams.dictType" />
+      <dict-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" :is-dict="isDict" />
+      <dict-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
+      <dict-item-detail v-if="itemDetailDialogVisible" v-model="itemDetailDialogVisible" :rid="rid" />
     </el-card>
   </div>
 </template>
 
-<script lang='ts'>
-import { defineComponent, reactive, ref, toRefs } from 'vue';
+<script lang="ts">
+import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick } from 'vue';
+import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
+import { i18n } from '../../../i18n';
 import DictAddEdit from './DictAddEdit.vue';
 import DictDetail from './DictDetail.vue';
 import DictItemDetail from './DictItemDetail.vue';
+import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
-import {ElMessage} from "element-plus"
-import { Pair } from '../../../components/model/Pair'
-import { backendRequest } from '../../../utils/backendRequest'
+import { Pair } from '../../../components/model/Pair';
+import { backendRequest } from '../../../utils/backendRequest';
+
+function tr(key: string): string {
+  return i18n.global.t(key) as string;
+}
 
 class ListPage extends BaseListPage {
+  private tree: { value?: { remove: (obj: { id: string }) => void } };
 
-  private tree: any
-
-  constructor(props, context, tree: any) {
-    super(props, context)
-    this.tree = tree
-
-    this.loadModules()
-    this.loadDictTypes()
+  constructor(
+    props: Record<string, unknown>,
+    context: { emit: (event: string, ...args: unknown[]) => void },
+    tree: { value?: { remove: (obj: { id: string }) => void } }
+  ) {
+    super(props, context);
+    this.tree = tree;
+    this.loadAtomicServices();
+    this.loadDictTypes();
+    this.convertThis();
   }
 
-  protected initState(): any {
+  protected initState(): Record<string, unknown> {
     return {
-      dictTreeProps: {
-        label: 'code'
-      },
+      ...super.initBaseState(),
+      dictTreeProps: { label: 'code' },
       searchParams: {
         parentId: null,
         level: null,
@@ -136,324 +281,419 @@ class ListPage extends BaseListPage {
         itemCode: null,
         itemName: null,
         active: true,
-        isDict: false
+        isDict: false,
       },
-      modules: [],
-      dictTypes: [],
-      dictItemCodes: [],
-      searchSource: null,
+      atomicServices: [] as Array<{ value: string }>,
+      dictTypes: [] as Array<{ value: string }>,
+      searchSource: null as string | null,
       isDict: false,
       rootNode: null,
       rootResolve: null,
-      itemDetailDialogVisible: false
-    }
+      itemDetailDialogVisible: false,
+    };
   }
 
-  protected getRootActionPath(): String {
-    return "sys/dict";
+  protected getRootActionPath(): string {
+    return 'sys/dict';
   }
 
-  protected getUpdateActiveUrl(): String {
-    return "sys/dictItem/updateActive";
+  protected getUpdateActiveUrl(): string {
+    return 'sys/dictItem/updateActive';
   }
 
-  protected createSearchParams() {
-    const params = super.createSearchParams()
-    params.active = this.state.searchParams.active ? true : null
+  protected createSearchParams(): Record<string, unknown> | null {
+    const params = super.createSearchParams() as Record<string, unknown> | null;
+    if (!params) return null;
+    const sp = this.state.searchParams as Record<string, unknown>;
+    params.active = sp.active === true ? true : null;
     if (params.dictType || params.dictName || params.itemCode || params.itemName) {
-      this.state.searchParams.isDict = false
+      (this.state as Record<string, unknown>).isDict = false;
     } else {
-      this.state.searchParams.isDict = true
+      (this.state as Record<string, unknown>).isDict = true;
     }
-    params.isDict = this.state.searchParams.isDict
-    params.parentId = null
-    return params
+    (params as Record<string, unknown>).isDict = (this.state as Record<string, unknown>).isDict;
+    params.parentId = null;
+    return params;
   }
 
-  protected createDeleteParams(row: any): any {
+  protected createDeleteParams(row: Record<string, unknown>): Record<string, unknown> {
     return {
-      id: row.itemId == null ? row.dictId : row.itemId,
-      isDict: row.itemId == null
-    }
+      id: this.getRowId(row),
+      isDict: (row as { itemId?: unknown }).itemId == null,
+    };
   }
 
-  protected createBatchDeleteParams(): any {
-    const params = {}
-    for (let row of this.state.selectedItems) {
-      params[this.getRowId(row)] = row.itemId == null
+  protected createBatchDeleteParams(): Record<string, boolean> {
+    const params: Record<string, boolean> = {};
+    for (const row of this.state.selectedItems as Array<Record<string, unknown>>) {
+      params[String(this.getRowId(row))] = (row as { itemId?: unknown }).itemId == null;
     }
-    return params
+    return params;
   }
 
   protected async doSearch(): Promise<void> {
-    this.state.searchSource = "button"
-    await super.doSearch()
+    (this.state as Record<string, unknown>).searchSource = 'button';
+    await super.doSearch();
   }
 
-  protected doAfterDelete(ids: Array<any>) {
-    super.doAfterDelete(ids)
-    for (let id of ids) {
-      this.tree.value.remove({"id": id})
+  protected doAfterDelete(ids: unknown[]): void {
+    super.doAfterDelete(ids);
+    const t = this.tree?.value;
+    if (t) {
+      for (const id of ids) {
+        t.remove({ id: String(id) });
+      }
     }
   }
 
-  protected doHandleSizeChange(newSize: number) {
-    this.state.pagination.pageSize = newSize
-    if (this.state.searchSource == "button") {
-      this.search()
+  protected doHandleSizeChange(newSize: number): void {
+    this.state.pagination.pageSize = newSize;
+    if ((this.state as Record<string, unknown>).searchSource === 'button') {
+      this.search();
     } else {
-      this.searchByTree()
+      this.searchByTree();
     }
   }
 
-  protected doHandleCurrentChange(newCurrent: number) {
+  protected doHandleCurrentChange(newCurrent: number): void {
     if (newCurrent) {
-      this.state.pagination.pageNo = newCurrent
-      if (this.state.searchSource == "button") {
-        this.search()
+      this.state.pagination.pageNo = newCurrent;
+      if ((this.state as Record<string, unknown>).searchSource === 'button') {
+        this.search();
       } else {
-        this.searchByTree()
+        this.searchByTree();
       }
     }
   }
 
-  protected getDeleteMessage(row: any): string {
-    if (row.itemCode == null) {
-      return '删除字典类型时，将删除所有字典项，依然进行删除操作吗？'
-    }
-    return '将级联删除所有孩子结点（如果有的话），依然进行删除操作吗？'
+  protected getDeleteMessage(row: Record<string, unknown>): string {
+    return (row as { itemCode?: unknown }).itemCode == null
+      ? tr('dictList.messages.deleteDictConfirm')
+      : tr('dictList.messages.deleteItemConfirm');
   }
 
-  protected getBatchDeleteMessage(rows: Array<any>): string {
-    const existDict = rows.findIndex((row) => row.itemCode == null) != -1
+  protected getBatchDeleteMessage(rows: Record<string, unknown>[]): string {
+    const existDict = rows.findIndex((row) => (row as { itemCode?: unknown }).itemCode == null) !== -1;
     if (existDict) {
-      return '删除字典类型时，将删除所有字典项；删除字典项时，将级联删除所有孩子结点（如果有的话）。' + super.getBatchDeleteMessage(rows)
+      return tr('dictList.messages.batchDeleteConfirm') + super.getBatchDeleteMessage(rows);
     }
-    return '将级联删除所有孩子结点（如果有的话），' + super.getBatchDeleteMessage(rows)
+    return tr('dictList.messages.batchDeleteItemPrefix') + super.getBatchDeleteMessage(rows);
   }
 
-  protected getRowId(row: any): String | Number {
-    return row.itemId == null ? row.dictId : row.itemId
+  protected getRowId(row: Record<string, unknown>): string | number {
+    return (row as { itemId?: unknown }).itemId == null ? (row as { dictId: string }).dictId : (row as { itemId: string }).itemId;
   }
 
-  protected doHandleEdit(row: any) {
+  protected doHandleEdit(row: Record<string, unknown>): void {
     super.doHandleEdit(row);
-    this.state.isDict = row.itemId == null
+    (this.state as Record<string, unknown>).isDict = (row as { itemId?: unknown }).itemId == null;
   }
 
-  protected doHandleDetail(row: any) {
-    if (row.itemId == null) {
-      this.state.detailDialogVisible = true
+  protected doHandleDetail(row: Record<string, unknown>): void {
+    if ((row as { itemId?: unknown }).itemId == null) {
+      (this.state as Record<string, unknown>).detailDialogVisible = true;
     } else {
-      this.state.itemDetailDialogVisible = true
+      (this.state as Record<string, unknown>).itemDetailDialogVisible = true;
     }
-    this.state.rid = this.getRowId(row)
+    (this.state as Record<string, unknown>).rid = this.getRowId(row);
   }
 
-  public filterModule: (queryString: string, cb) => void
+  public filterAtomicService: (queryString: string, cb: (list: Array<{ value: string }>) => void) => void;
 
-  private doFilterModule(queryString: string, cb) {
-    cb(queryString ? this.state.modules.filter(this.createFilter(queryString)) : this.state.modules)
+  private doFilterAtomicService(queryString: string, cb: (list: Array<{ value: string }>) => void): void {
+    const list = this.state.atomicServices as Array<{ value: string }>;
+    cb(queryString ? list.filter(this.createFilter(queryString)) : list);
   }
 
-  public filterDictType: (queryString: string, cb) => void
+  public filterDictType: (queryString: string, cb: (list: Array<{ value: string }>) => void) => void;
 
-  private doFilterDictType(queryString: string, cb) {
-    cb(queryString ? this.state.dictTypes.filter(this.createFilter(queryString)) : this.state.dictTypes)
+  private doFilterDictType(queryString: string, cb: (list: Array<{ value: string }>) => void): void {
+    const list = this.state.dictTypes as Array<{ value: string }>;
+    cb(queryString ? list.filter(this.createFilter(queryString)) : list);
   }
 
-  private setParamsForTree(node, expend: Boolean) {
-    this.state.searchSource = "tree"
-    this.state.searchParams.level = node.level
-    if (node.level != 0) {
+  private setParamsForTree(node: { level: number; data?: { code: string; id: string }; parent?: { data?: { code: string } } }, expand: boolean): void {
+    (this.state as Record<string, unknown>).searchSource = 'tree';
+    const sp = this.state.searchParams as Record<string, unknown>;
+    sp.level = node.level;
+    if (node.level !== 0) {
       if (node.level === 1) {
-        this.state.searchParams.module = node.data.code
-        this.state.searchParams.dictType = null
-        this.state.searchParams.itemCode = null
-        this.state.searchParams.isDict = true
+        sp.module = (node.data as { code: string }).code;
+        sp.dictType = null;
+        sp.itemCode = null;
+        sp.isDict = true;
       } else if (node.level === 2) {
-        this.state.searchParams.module = node.parent.data.code
-        this.state.searchParams.dictType = node.data.code
-        this.state.searchParams.itemCode = null
-        this.state.searchParams.isDict = !expend
+        sp.module = (node.parent!.data as { code: string }).code;
+        sp.dictType = (node.data as { code: string }).code;
+        sp.itemCode = null;
+        sp.isDict = !expand;
       } else {
-        this.state.searchParams.module = ListPage.getModuleByNode(node)
-        this.state.searchParams.dictType = ListPage.getDictTypeByNode(node)
-        if (!expend) {
-          this.state.searchParams.itemCode = node.data.code
+        sp.module = ListPage.getAtomicServiceByNode(node);
+        sp.dictType = ListPage.getDictTypeByNode(node);
+        if (!expand) {
+          sp.itemCode = (node.data as { code: string }).code;
         }
-        this.state.searchParams.isDict = false
+        sp.isDict = false;
       }
-      this.state.searchParams.parentId = node.level === 1 ? node.data.code : node.data.id
+      sp.parentId = node.level === 1 ? (node.data as { code: string }).code : (node.data as { id: string }).id;
     }
   }
 
-  private static getModuleByNode(node) {
-    while (node.level != 1) {
-      node = node.parent
+  private static getAtomicServiceByNode(node: { level: number; parent?: { level: number; data?: { code: string } } }): string {
+    let n = node;
+    while (n.level !== 1) {
+      n = n.parent!;
     }
-    return node.data.code
+    return (n as { data: { code: string } }).data.code;
   }
 
-  private static getDictTypeByNode(node) {
-    while (node.level != 2) {
-      node = node.parent
+  private static getDictTypeByNode(node: { level: number; parent?: { level: number; data?: { code: string } } }): string {
+    let n = node;
+    while (n.level !== 2) {
+      n = n.parent!;
     }
-    return node.data.code
+    return (n as { data: { code: string } }).data.code;
   }
 
-  public loadTree: (node, resolve) => void
+  public loadTree: (node: unknown, resolve: (data: unknown[]) => void) => void;
 
-  private async doLoadTree(node, resolve) {
+  private async doLoadTree(node: { level: number; data?: { code: string; id: string } }, resolve: (data: unknown[]) => void): Promise<void> {
     if (node.level === 0) {
-      this.state.rootNode = node
-      this.state.rootResolve = resolve
+      (this.state as Record<string, unknown>).rootNode = node;
+      (this.state as Record<string, unknown>).rootResolve = resolve;
     }
-    this.resetSearchFields()
-    this.setParamsForTree(node, true)
+    this.resetSearchFields();
+    this.setParamsForTree(node as Parameters<InstanceType<typeof ListPage>['setParamsForTree']>[0], true);
+    const sp = this.state.searchParams as Record<string, unknown>;
     const params = {
-      parentId: node.level === 0 ? null : (node.level === 1 ? node.data.code : node.data.id),
+      parentId: node.level === 0 ? null : node.level === 1 ? (node.data as { code: string }).code : (node.data as { id: string }).id,
       firstLevel: node.level === 1,
-      active: this.state.searchParams.active ? true : null
-    }
-    // @ts-ignore
-    const result = await backendRequest({url: "sys/dict/loadTreeNodes", method: "post", params});
-    if (result.code == 200) {
-      resolve(result.data)
-    } else {
-      ElMessage.error('字典树加载失败！')
+      active: sp.active === true ? true : null,
+    };
+    try {
+      const result = await backendRequest({ url: 'sys/dict/loadTreeNodes', method: 'post', params }) as { code: number; data?: unknown[] };
+      if (result.code === 200) {
+        resolve(result.data ?? []);
+      } else {
+        ElMessage.error(tr('dictList.messages.loadTreeFailed'));
+      }
+    } catch {
+      ElMessage.error(tr('dictList.messages.loadTreeFailed'));
     }
   }
 
-  public expandTreeNode: (nodeData, node) => void
+  public expandTreeNode: (nodeData: unknown, node: unknown) => void;
 
-  private doExpandTreeNode(nodeData, node) {
+  private doExpandTreeNode(nodeData: unknown, node: { data?: unknown }): void {
     if (node.data) {
-      this.resetSearchFields()
-      this.setParamsForTree(node, true)
-      this.searchByTree()
+      this.resetSearchFields();
+      this.setParamsForTree(node as Parameters<InstanceType<typeof ListPage>['setParamsForTree']>[0], true);
+      this.searchByTree();
     }
   }
 
-  public clickTreeNode: (nodeData, node) => void
+  public clickTreeNode: (nodeData: Record<string, unknown>, node: { level: number; data?: { id: string; code: string } }) => void;
 
-  private async doClickTreeNode(nodeData, node) {
-    if (node.level === 1) {
-      return
-    }
-    this.state.searchSource = "tree"
-    this.resetSearchFields()
-    this.setParamsForTree(node, false)
-    const params = {
-      id: nodeData.id,
-      isDict: node.level === 2
-    }
-    // @ts-ignore
-    const result = await backendRequest({url: "sys/dict/getDict", params});
-    if (result.code == 200) {
-      this.state.tableData = [result.data]
-      this.state.pagination.total = 1
-    } else {
-      ElMessage.error('数据加载失败！')
+  private async doClickTreeNode(nodeData: Record<string, unknown>, node: { level: number; data?: { id: string; code: string } }): Promise<void> {
+    if (node.level === 1) return;
+    (this.state as Record<string, unknown>).searchSource = 'tree';
+    this.resetSearchFields();
+    this.setParamsForTree(node as Parameters<InstanceType<typeof ListPage>['setParamsForTree']>[0], false);
+    const params = { id: nodeData.id, isDict: node.level === 2 };
+    try {
+      const result = await backendRequest({ url: 'sys/dict/getDict', params }) as { code: number; data?: unknown };
+      if (result.code === 200) {
+        this.state.tableData = result.data ? [result.data] : [];
+        this.state.pagination.total = 1;
+      } else {
+        ElMessage.error(tr('dictList.messages.loadFailed'));
+      }
+    } catch {
+      ElMessage.error(tr('dictList.messages.loadFailed'));
     }
   }
 
-  private createFilter(queryString) {
-    return (item) => {
-      return (item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0)
-    }
+  private createFilter(queryString: string): (item: { value: string }) => boolean {
+    return (item) => item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0;
   }
 
-  private async searchByTree() {
-    this.state.searchSource = "tree"
-    const params = {
-      parentId: this.state.searchParams.parentId,
-      firstLevel: this.state.searchParams.level == 1,
+  private async searchByTree(): Promise<void> {
+    (this.state as Record<string, unknown>).searchSource = 'tree';
+    const sp = this.state.searchParams as Record<string, unknown>;
+    const params: Record<string, unknown> = {
+      parentId: sp.parentId,
+      firstLevel: sp.level === 1,
       pageNo: this.state.pagination.pageNo,
       pageSize: this.state.pagination.pageSize,
-      active: this.state.searchParams.active ? true : null,
-      isDict: this.state.searchParams.isDict
-    }
+      active: sp.active === true ? true : null,
+      isDict: sp.isDict,
+    };
     if (this.state.sort.orderProperty) {
-      params["orders"] = [{
-        property: this.state.sort.orderProperty,
-        direction: this.state.sort.orderDirection,
-      }]
+      params.orders = [{ property: this.state.sort.orderProperty, direction: this.state.sort.orderDirection }];
     }
-    // @ts-ignore
-    const result = await backendRequest({url: "sys/dict/searchByTree", method: "post", params});
-    if (result.code == 200) {
-      this.state.tableData = result.data.first
-      this.state.pagination.total = result.data.second
-    } else {
-      ElMessage.error('数据加载失败！')
-    }
-  }
-
-  private loadModules() {
-    this.loadDicts([
-      new Pair("kuark:sys", "module")
-    ]).then(() => {
-      const items = this.getDictItems("kuark:sys", "module")
-      const moduleCodes = []
-      for (let item of items) {
-        moduleCodes.push({"value": item.first}) // el-autocomplete要求数据项一定要有value属性, 否则下拉列表出不来
-        this.state.modules = moduleCodes
+    try {
+      const result = await backendRequest({ url: 'sys/dict/searchByTree', method: 'post', params }) as { code: number; data?: { first: unknown[]; second: number } };
+      if (result.code === 200 && result.data) {
+        this.state.tableData = result.data.first;
+        this.state.pagination.total = result.data.second;
+      } else {
+        ElMessage.error(tr('dictList.messages.loadFailed'));
       }
-    })
-  }
-
-  private async loadDictTypes() {
-    // @ts-ignore
-    const result = await backendRequest({url: "sys/dict/loadDictTypes"})
-    if (result.code == 200) {
-      result.data.forEach((val) => {
-        this.state.dictTypes.push({"value": val}) // el-autocomplete要求数据项一定要有value属性, 否则下拉列表出不来
-      })
-    } else {
-      ElMessage.error('字典类型列表加载失败！')
+    } catch {
+      ElMessage.error(tr('dictList.messages.loadFailed'));
     }
   }
 
-  protected convertThis() {
-    super.convertThis()
-    this.filterModule = (queryString: string, cb) => {
-      this.doFilterModule(queryString, cb)
-    }
-    this.filterDictType = (queryString: string, cb) => {
-      this.doFilterDictType(queryString, cb)
-    }
-    this.loadTree = (node, resolve) => {
-      this.doLoadTree(node, resolve)
-    }
-    this.expandTreeNode = (nodeData, node) => {
-      this.doExpandTreeNode(nodeData, node)
-    }
-    this.clickTreeNode = (nodeData, node) => {
-      this.doClickTreeNode(nodeData, node)
+  private loadAtomicServices(): void {
+    this.loadDicts([new Pair('kuark:sys', 'module')]).then(() => {
+      const items = this.getDictItems('kuark:sys', 'module') as Array<{ first: string }>;
+      const list = items.map((item) => ({ value: item.first }));
+      (this.state as Record<string, unknown>).atomicServices = list;
+    });
+  }
+
+  private async loadDictTypes(): Promise<void> {
+    try {
+      const result = await backendRequest({ url: 'sys/dict/loadDictTypes' }) as { code: number; data?: string[] };
+      if (result.code === 200 && result.data) {
+        (this.state as Record<string, unknown>).dictTypes = result.data.map((val) => ({ value: val }));
+      } else {
+        ElMessage.error(tr('dictList.messages.loadDictTypesFailed'));
+      }
+    } catch {
+      ElMessage.error(tr('dictList.messages.loadDictTypesFailed'));
     }
   }
 
+  public override restorePersistedListState(): void {
+    super.restorePersistedListState();
+    const sp = this.state.searchParams as Record<string, unknown>;
+    if (sp) {
+      sp.active = true;
+    }
+  }
+
+  private convertThis(): void {
+    super.convertThis();
+    this.filterAtomicService = (q, cb) => this.doFilterAtomicService(q, cb);
+    this.filterDictType = (q, cb) => this.doFilterDictType(q, cb);
+    this.loadTree = (node, resolve) => this.doLoadTree(node as Parameters<InstanceType<typeof ListPage>['doLoadTree']>[0], resolve as (data: unknown[]) => void);
+    this.expandTreeNode = (nodeData, node) => this.doExpandTreeNode(nodeData, node);
+    this.clickTreeNode = (nodeData, node) => this.doClickTreeNode(nodeData as Record<string, unknown>, node);
+  }
 }
 
+const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'dictList.operationColumnPinned';
+const DICT_LIST_STATE_STORAGE_KEY = 'dictList.queryState';
+const COLUMN_VISIBILITY_STORAGE_KEY = 'dictList.visibleColumns';
+const ALL_COLUMN_KEYS = ['dictType', 'dictName', 'module', 'itemCode', 'itemName', 'parentCode', 'seqNo', 'active'];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+
 export default defineComponent({
-  name: "~index",
-  components: {DictAddEdit, DictDetail, DictItemDetail},
-  setup(props, context) {
-    const tree = ref();
-    const listPage = reactive(new ListPage(props, context, tree));
-    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
+  name: 'DictList',
+  components: { DictAddEdit, DictDetail, DictItemDetail, ListPageLayout, Edit, Delete, Tickets },
+  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    const { t } = useI18n();
+    const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
+    const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
+    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, ALL_COLUMN_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    listPage.configureListStatePersistence(DICT_LIST_STATE_STORAGE_KEY);
+    listPage.configureTableMaxHeight();
+    const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
+    const listLayoutRefs = { tableWrapRef, paginationRef };
+
+    const visibleColumnKeys = computed<string[]>({
+      get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
+      set: (next) => listPage.applyVisibleColumns(next),
+    });
+    const columnVisibilityOptions = computed(() =>
+      ALL_COLUMN_KEYS.map((key) => ({ key, label: t('dictList.columns.' + key) }))
+    );
+    function isColumnVisible(key: string): boolean {
+      return listPage.isColumnVisible(key);
+    }
+
+    function onTableWrapMounted(): void {
+      nextTick(updateTableMaxHeight);
+    }
+
+    onMounted(() => {
+      listPage.restorePersistedListState();
+    });
+
     return {
+      listPage,
+      OPERATION_COLUMN_PINNED_STORAGE_KEY,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
+      t,
       tree,
-      tableWrapRef,
-      paginationRef,
+      listLayoutRefs,
+      visibleColumnKeys,
+      columnVisibilityOptions,
+      isColumnVisible,
+      onTableWrapMounted,
     };
   },
-})
+});
 </script>
 
-<style lang='css' scoped>
-
+<style src="../../../styles/list-page-common.css" scoped></style>
+<style scoped>
+.dict-list-page .dict-list-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dict-list-page .dict-list-card .el-card__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-left: 12px;
+}
+.dict-list-page .dict-list-row {
+  flex: 1;
+  min-height: 0;
+}
+.dict-list-page .resource-tree-col {
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.dict-list-page .resource-tree-wrap {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px 8px 0;
+  border-right: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
+}
+.dict-list-page .resource-tree-wrap :deep(.el-tree-node__content) {
+  height: 32px;
+}
+.dict-list-page .resource-table-col {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dict-list-page .list-page-toolbar .toolbar-name .search-name-input,
+.dict-list-page .list-page-toolbar .toolbar-subsys .search-select-input {
+  width: 100%;
+  min-width: 0;
+}
+.dict-list-page .list-page-toolbar .toolbar-subsys :deep(.el-input__wrapper) {
+  min-width: 0;
+}
+.table-drag-drop-zone {
+  flex: 1;
+  min-height: 0;
+}
+:deep(.pagination-right) {
+  margin-top: 8px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
 </style>

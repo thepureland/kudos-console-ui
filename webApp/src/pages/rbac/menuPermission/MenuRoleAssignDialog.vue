@@ -8,7 +8,7 @@
 <template>
   <el-dialog title="设置菜单所属角色" v-model="visible" width="20%" center @close="close">
     <el-checkbox-group v-model="checkedRoles">
-      <el-checkbox v-for="item in roles" :label="item.id" :key="item.id" style="display:block;">
+      <el-checkbox v-for="item in roles" :value="item.id" :key="item.id" style="display:block;">
         {{ item.roleName }}
       </el-checkbox>
     </el-checkbox-group>

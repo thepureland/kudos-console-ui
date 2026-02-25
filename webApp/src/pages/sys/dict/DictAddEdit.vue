@@ -148,7 +148,7 @@ class AddEditPage extends BaseAddEditPage {
 
   private autoSelectParentWhenAdd(node, data) {
     if (!this.props.rid && this.defaultModel) {
-      // 自动选上默认的模块
+      // 自动选上默认的原子服务
       if (node.level === 0) {
         this.state.formModel.parent = [this.defaultModel]
       } else if (node.level === 1 && this.defaultDictType) {

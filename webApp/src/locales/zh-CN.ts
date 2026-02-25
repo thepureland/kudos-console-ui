@@ -78,7 +78,7 @@ export default {
     accountDesc: '用户与账号',
     role: '角色管理',
     roleDesc: '权限与角色',
-    tips: '提示：点击侧栏菜单可快速切换功能模块',
+    tips: '提示：点击侧栏菜单可快速切换功能区',
   },
   tags: {
     options: '标签选项',
@@ -187,15 +187,22 @@ export default {
     },
   },
   paramList: {
-    placeholders: { module: '所属模块', paramName: '参数名称', paramValue: '参数值' },
+    placeholders: { module: '原子服务', paramName: '参数名称', paramValue: '参数值' },
     common: { yes: '是', no: '否', confirm: '确定', cancel: '取消' },
-    columns: { paramName: '参数名称', paramValue: '参数值', defaultValue: '参数默认值', module: '所属模块', seqNo: '顺序', active: '启用', operation: '操作' },
+    columns: { paramName: '参数名称', paramValue: '参数值', defaultValue: '参数默认值', module: '原子服务', seqNo: '顺序', remark: '备注', active: '启用', operation: '操作' },
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
-  dictList: {
-    placeholders: { module: '所属模块', dictType: '字典类型', dictName: '字典名称', itemCode: '字典项编码', itemName: '字典项名称' },
-    common: { yes: '是', no: '否', confirm: '确定', cancel: '取消' },
-    columns: { dictType: '字典类型', dictName: '字典名称', module: '所属模块', itemCode: '字典项编码', itemName: '字典项名称', parentCode: '父项编码', seqNo: '顺序', active: '启用', operation: '操作' },
+  resourceList: {
+    placeholders: { resourceType: '资源类型', subSys: '子系统', name: '资源名称' },
+    columns: { subSys: '子系统', resourceType: '资源类型', name: '资源名称', url: 'URL', icon: '图标', seqNo: '顺序', active: '启用', operation: '操作' },
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
+    messages: { loadTreeFailed: '资源树加载失败！', loadFailed: '数据加载失败！' },
+  },
+  dictList: {
+    placeholders: { module: '原子服务', dictType: '字典类型', dictName: '字典名称', itemCode: '字典项编码', itemName: '字典项名称' },
+    common: { yes: '是', no: '否', confirm: '确定', cancel: '取消' },
+    columns: { dictType: '字典类型', dictName: '字典名称', module: '原子服务', itemCode: '字典项编码', itemName: '字典项名称', parentCode: '父项编码', seqNo: '顺序', active: '启用', operation: '操作' },
+    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
+    messages: { loadTreeFailed: '字典树加载失败！', loadFailed: '数据加载失败！', loadDictTypesFailed: '字典类型列表加载失败！', deleteDictConfirm: '删除字典类型时，将删除所有字典项，依然进行删除操作吗？', deleteItemConfirm: '将级联删除所有孩子结点（如果有的话），依然进行删除操作吗？', batchDeleteConfirm: '删除字典类型时，将删除所有字典项；删除字典项时，将级联删除所有孩子结点（如果有的话）。', batchDeleteItemPrefix: '将级联删除所有孩子结点（如果有的话），' },
   },
 };
