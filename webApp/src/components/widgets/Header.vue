@@ -212,6 +212,7 @@ const BREADCRUMB_MIDDLE: Record<string, { titleKey: string; path: string }> = {
   '/sys/cache': { titleKey: 'route.sysBasic', path: '/sys/basic' },
   '/sys/dict': { titleKey: 'route.sysBasic', path: '/sys/basic' },
   '/sys/param': { titleKey: 'route.sysBasic', path: '/sys/basic' },
+  '/sys/domain': { titleKey: 'route.sysBasic', path: '/sys/basic' },
 };
 type BreadcrumbItem = { titleKey: string; path: string };
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => {

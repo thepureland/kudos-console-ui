@@ -472,6 +472,117 @@ private fun buildResourceSearchResponse(path: String, requestJson: String): Stri
     return response.toString()
 }
 
+private data class DomainSearchParams(
+    val domain: String,
+    val subSysDictCode: String?,
+    val tenantId: String?,
+    val active: Boolean?,
+    val pageNo: Int,
+    val pageSize: Int,
+    val orderProperty: String?,
+    val orderDirection: String,
+)
+
+private val DOMAIN_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
+    "domain", "subSysDictCode", "tenantName", "active", "remark", "createTime",
+)
+
+private fun parseDomainSearchParams(params: JsonObject): DomainSearchParams {
+    val domain = parseOptionalStringParam(params, "domain")?.trim() ?: ""
+    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
+    val active = parseOptionalBooleanParam(params, "active")
+    val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
+    val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, MAX_PAGE_SIZE)
+    val sortPair = parseSortParamWithAllowed(params, DOMAIN_SEARCH_ALLOWED_SORT_PROPERTIES)
+    return DomainSearchParams(
+        domain = domain,
+        subSysDictCode = subSysDictCode,
+        tenantId = tenantId,
+        active = active,
+        pageNo = pageNo,
+        pageSize = pageSize,
+        orderProperty = sortPair.first,
+        orderDirection = sortPair.second,
+    )
+}
+
+private fun parseSortParamWithAllowed(params: JsonObject, allowed: Set<String>): Pair<String?, String> {
+    val element = params["orders"] ?: return null to "ASC"
+    if (element !is JsonArray) return null to "ASC"
+    val first = element.firstOrNull() ?: return null to "ASC"
+    if (first !is JsonObject) return null to "ASC"
+    val property = first["property"]
+    val direction = first["direction"]
+    if (property !is JsonPrimitive || !property.isString) return null to "ASC"
+    val propertyValue = property.contentOrNull ?: return null to "ASC"
+    if (propertyValue !in allowed) return null to "ASC"
+    val directionValue = if (direction is JsonPrimitive && direction.isString) {
+        (direction.contentOrNull ?: "ASC").uppercase()
+    } else "ASC"
+    return if (directionValue == "DESC") propertyValue to "DESC" else propertyValue to "ASC"
+}
+
+/** Mock 域名列表搜索：根据 domain/subSysDictCode/tenantId/active 筛选，排序分页。 */
+private fun buildDomainSearchResponse(requestJson: String): String {
+    val params = parseDomainSearchParams(parseJsonObjectOrEmpty(requestJson))
+    val mockRows = listOf(
+        buildJsonObject {
+            put("id", JsonPrimitive("domain_1"))
+            put("domain", JsonPrimitive("console.example.com"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("tenantId", JsonPrimitive("t1"))
+            put("tenantName", JsonPrimitive("租户1"))
+            put("active", JsonPrimitive(true))
+            put("remark", JsonPrimitive("控制台域名"))
+            put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("domain_2"))
+            put("domain", JsonPrimitive("api.example.com"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("tenantId", JsonNull)
+            put("tenantName", JsonPrimitive(""))
+            put("active", JsonPrimitive(true))
+            put("remark", JsonPrimitive("API 域名"))
+            put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("domain_3"))
+            put("domain", JsonPrimitive("service-a.example.com"))
+            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("tenantId", JsonPrimitive("t2"))
+            put("tenantName", JsonPrimitive("租户2"))
+            put("active", JsonPrimitive(false))
+            put("remark", JsonPrimitive("服务A域名"))
+            put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
+        },
+    )
+    var filtered = mockRows.filter { row ->
+        val rowDomain = primitiveString(row, "domain").orEmpty()
+        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowTenantId = primitiveString(row, "tenantId").orEmpty()
+        val rowActive = primitiveBoolean(row, "active")
+        (params.domain.isEmpty() || rowDomain.contains(params.domain, ignoreCase = true)) &&
+            (params.subSysDictCode == null || params.subSysDictCode == rowSubSys) &&
+            (params.tenantId == null || params.tenantId == rowTenantId) &&
+            (params.active == null || rowActive == params.active)
+    }
+    filtered = applySort(filtered, params.orderProperty, params.orderDirection)
+    val total = filtered.size
+    val fromIndex = ((params.pageNo - 1) * params.pageSize).coerceAtLeast(0)
+    val toIndex = min(fromIndex + params.pageSize, total)
+    val pageRows = if (fromIndex >= total) emptyList<JsonObject>() else filtered.subList(fromIndex, toIndex)
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", buildJsonObject {
+            put("first", JsonArray(pageRows))
+            put("second", JsonPrimitive(total))
+        })
+    }
+    return response.toString()
+}
+
 /** Mock 字典列表搜索：返回 first=行列表、second=总数。 */
 private fun buildDictSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
@@ -655,6 +766,11 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildDictLoadTreeNodesResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/domain/search", "/api/sys/domain/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildDomainSearchResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/dict/search", "/api/sys/dict/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDictSearchResponse(requestJson)
@@ -663,6 +779,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/sys/dict/searchByTree", "/api/sys/dict/searchByTree" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDictSearchByTreeResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/tenant/getAllActiveTenants", "/api/sys/tenant/getAllActiveTenants" -> {
+            val data = buildJsonObject {
+                put("console", buildJsonObject {
+                    put("t1", JsonPrimitive("租户1"))
+                })
+                put("service_a", buildJsonObject {
+                    put("t2", JsonPrimitive("租户2"))
+                })
+            }
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", data)
+            }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/dict/getDict", "/api/sys/dict/getDict" -> {

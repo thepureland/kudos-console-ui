@@ -26,6 +26,7 @@ export default {
     sysCache: '缓存管理',
     sysDict: '字典管理',
     sysParam: '参数配置',
+    sysDomain: '域名',
     sysSubsys: '子系统',
     sysMicroservice: '微服务',
     sysDatasource: '数据源',
@@ -47,6 +48,7 @@ export default {
     sysCache: '缓存管理',
     sysDict: '字典管理',
     sysParam: '参数配置',
+    sysDomain: '域名',
     sysSubsys: '子系统',
     sysMicroservice: '微服务',
     sysDatasource: '数据源',
@@ -204,5 +206,10 @@ export default {
     columns: { dictType: '字典类型', dictName: '字典名称', module: '原子服务', itemCode: '字典项编码', itemName: '字典项名称', parentCode: '父项编码', seqNo: '顺序', active: '启用', operation: '操作' },
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
     messages: { loadTreeFailed: '字典树加载失败！', loadFailed: '数据加载失败！', loadDictTypesFailed: '字典类型列表加载失败！', deleteDictConfirm: '删除字典类型时，将删除所有字典项，依然进行删除操作吗？', deleteItemConfirm: '将级联删除所有孩子结点（如果有的话），依然进行删除操作吗？', batchDeleteConfirm: '删除字典类型时，将删除所有字典项；删除字典项时，将级联删除所有孩子结点（如果有的话）。', batchDeleteItemPrefix: '将级联删除所有孩子结点（如果有的话），' },
+  },
+  domainList: {
+    placeholders: { domain: '域名', subSysTenant: '子系统/租户' },
+    columns: { domain: '域名', subSys: '子系统', tenant: '租户', active: '启用', remark: '备注', createTime: '创建时间', operation: '操作' },
+    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
 };

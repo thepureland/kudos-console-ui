@@ -26,6 +26,7 @@ export default {
     sysCache: '快取管理',
     sysDict: '字典管理',
     sysParam: '參數配置',
+    sysDomain: '域名',
     sysSubsys: '子系統',
     sysMicroservice: '微服務',
     sysDatasource: '資料源',
@@ -47,6 +48,7 @@ export default {
     sysCache: '快取管理',
     sysDict: '字典管理',
     sysParam: '參數配置',
+    sysDomain: '域名',
     sysSubsys: '子系統',
     sysMicroservice: '微服務',
     sysDatasource: '資料源',
@@ -204,5 +206,10 @@ export default {
     columns: { dictType: '字典類型', dictName: '字典名稱', module: '原子服務', itemCode: '字典項編碼', itemName: '字典項名稱', parentCode: '父項編碼', seqNo: '順序', active: '啟用', operation: '操作' },
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
     messages: { loadTreeFailed: '字典樹載入失敗！', loadFailed: '資料載入失敗！', loadDictTypesFailed: '字典類型列表載入失敗！', deleteDictConfirm: '刪除字典類型時，將刪除所有字典項，依然進行刪除操作嗎？', deleteItemConfirm: '將級聯刪除所有孩子結點（如果有的話），依然進行刪除操作嗎？', batchDeleteConfirm: '刪除字典類型時，將刪除所有字典項；刪除字典項時，將級聯刪除所有孩子結點（如果有的話）。', batchDeleteItemPrefix: '將級聯刪除所有孩子結點（如果有的話），' },
+  },
+  domainList: {
+    placeholders: { domain: '域名', subSysTenant: '子系統/租戶' },
+    columns: { domain: '域名', subSys: '子系統', tenant: '租戶', active: '啟用', remark: '備註', createTime: '建立時間', operation: '操作' },
+    actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
 };

@@ -176,6 +176,7 @@ function getFallbackMenus(): MenuItem[] {
             { index: '/sys/cache', title: '缓存管理', titleKey: 'menu.sysCache', icon: iconMap.Coin },
             { index: '/sys/dict', title: '字典管理', titleKey: 'menu.sysDict', icon: iconMap.Collection },
             { index: '/sys/param', title: '参数配置', titleKey: 'menu.sysParam', icon: iconMap.Document },
+            { index: '/sys/domain', title: '域名', titleKey: 'menu.sysDomain', icon: iconMap.Document },
           ],
         },
         { index: '/sys/subsys', title: '子系统', titleKey: 'menu.sysSubsys', icon: iconMap.Document },
