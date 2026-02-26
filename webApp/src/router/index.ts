@@ -8,6 +8,7 @@ import DictList from '../pages/sys/dict/DictList.vue';
 import ParamList from '../pages/sys/param/ParamList.vue';
 import ResourceList from '../pages/sys/resource/ResourceList.vue';
 import DomainList from '../pages/sys/domain/DomainList.vue';
+import TenantList from '../pages/sys/tenant/TenantList.vue';
 import AccountList from '../pages/user/account/AccountList.vue';
 import OrganizationList from '../pages/user/organization/OrganizationList.vue';
 import RoleList from '../pages/rbac/role/RoleList.vue';
@@ -27,6 +28,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'sys/dict', name: 'sys-dict', component: DictList, meta: { titleKey: 'route.sysDict', icon: 'Collection' } },
       { path: 'sys/param', name: 'sys-param', component: ParamList, meta: { titleKey: 'route.sysParam', icon: 'Document' } },
       { path: 'sys/domain', name: 'sys-domain', component: DomainList, meta: { titleKey: 'route.sysDomain', icon: 'Document' } },
+      { path: 'sys/tenant', name: 'sys-tenant', component: TenantList, meta: { titleKey: 'route.sysTenant', icon: 'Document' } },
       { path: 'sys/subsys', name: 'sys-subsys', component: Placeholder, meta: { titleKey: 'route.sysSubsys', icon: 'Document' } },
       { path: 'sys/microservice', name: 'sys-microservice', component: Placeholder, meta: { titleKey: 'route.sysMicroservice', icon: 'Setting' } },
       { path: 'sys/datasource', name: 'sys-datasource', component: DataSourceList, meta: { titleKey: 'route.sysDatasource', icon: 'Collection' } },

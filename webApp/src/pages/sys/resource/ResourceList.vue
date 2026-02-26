@@ -228,7 +228,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
 import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -362,25 +363,29 @@ class ListPage extends BaseListPage {
 
   private setParamsForTree(node: { level: number; data: { id?: string; name?: string }; parent?: { data: { id?: string } } }, expand: boolean): void {
     (this.state as Record<string, unknown>).searchSource = 'tree';
-    (this.state.searchParams as Record<string, unknown>).level = node.level;
-    if (node.level === 0) return;
     const sp = this.state.searchParams as Record<string, unknown>;
-    if (node.level === 1) {
-      sp.resourceTypeDictCode = (node.data as { id?: string }).id ?? null;
-      sp.subSysDictCode = null;
-      sp.parentId = null;
-      sp.name = null;
-    } else if (node.level === 2) {
-      sp.resourceTypeDictCode = node.parent?.data?.id ?? null;
-      sp.subSysDictCode = (node.data as { id?: string }).id ?? null;
-      sp.parentId = null;
-      sp.name = null;
-    } else {
-      sp.resourceTypeDictCode = this.getResourceTypeByNode(node as { level: number; parent?: { data: { id?: string } } });
-      sp.subSysDictCode = this.getSubSysByNode(node as { level: number; parent?: { data: { id?: string } } });
-      sp.parentId = (node.data as { id?: string }).id ?? null;
-      if (!expand) sp.name = (node.data as { name?: string }).name ?? null;
+    const next: Record<string, unknown> = { ...sp, level: node.level };
+    if (node.level === 0) {
+      (this.state as Record<string, unknown>).searchParams = next;
+      return;
     }
+    if (node.level === 1) {
+      next.resourceTypeDictCode = (node.data as { id?: string }).id ?? null;
+      next.subSysDictCode = null;
+      next.parentId = null;
+      next.name = null;
+    } else if (node.level === 2) {
+      next.resourceTypeDictCode = node.parent?.data?.id ?? null;
+      next.subSysDictCode = (node.data as { id?: string }).id ?? null;
+      next.parentId = null;
+      next.name = null;
+    } else {
+      next.resourceTypeDictCode = this.getResourceTypeByNode(node as { level: number; parent?: { data: { id?: string } } });
+      next.subSysDictCode = this.getSubSysByNode(node as { level: number; parent?: { data: { id?: string } } });
+      next.parentId = (node.data as { id?: string }).id ?? null;
+      next.name = !expand ? (node.data as { name?: string }).name ?? null : (sp.name as string | null) ?? null;
+    }
+    (this.state as Record<string, unknown>).searchParams = next;
   }
 
   private getResourceTypeByNode(node: { level: number; parent?: unknown; data?: { id?: string } }): string | null {
@@ -410,6 +415,39 @@ class ListPage extends BaseListPage {
       } else ElMessage.error(tr('resourceList.messages.loadFailed'));
     } catch {
       ElMessage.error(tr('resourceList.messages.loadFailed'));
+    }
+  }
+
+  /** 持久化时一并保存 searchSource，便于标签切换后恢复树/表格联动状态 */
+  public override persistListState(): void {
+    super.persistListState();
+    if (typeof window === 'undefined') return;
+    const key = 'resourceList.queryState';
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      parsed.searchSource = (this.state as Record<string, unknown>).searchSource ?? null;
+      window.localStorage.setItem(key, JSON.stringify(parsed));
+    } catch {
+      // ignore
+    }
+  }
+
+  /** 恢复时一并恢复 searchSource */
+  public override restorePersistedListState(): void {
+    super.restorePersistedListState();
+    if (typeof window === 'undefined') return;
+    const raw = window.localStorage.getItem('resourceList.queryState');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const searchSource = parsed.searchSource;
+      if (searchSource !== undefined && searchSource !== null) {
+        (this.state as Record<string, unknown>).searchSource = searchSource;
+      }
+    } catch {
+      // ignore
     }
   }
 
@@ -468,6 +506,13 @@ export default defineComponent({
     onMounted(() => {
       listPage.restorePersistedListState();
       nextTick(updateTableMaxHeight);
+    });
+    onBeforeRouteLeave((_to, _from, next) => {
+      listPage.persistListState();
+      next();
+    });
+    onBeforeUnmount(() => {
+      listPage.persistListState();
     });
     watch(
       () => [

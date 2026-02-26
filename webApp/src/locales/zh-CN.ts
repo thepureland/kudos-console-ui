@@ -27,6 +27,7 @@ export default {
     sysDict: '字典管理',
     sysParam: '参数配置',
     sysDomain: '域名',
+    sysTenant: '租户',
     sysSubsys: '子系统',
     sysMicroservice: '微服务',
     sysDatasource: '数据源',
@@ -49,6 +50,7 @@ export default {
     sysDict: '字典管理',
     sysParam: '参数配置',
     sysDomain: '域名',
+    sysTenant: '租户',
     sysSubsys: '子系统',
     sysMicroservice: '微服务',
     sysDatasource: '数据源',
@@ -211,5 +213,15 @@ export default {
     placeholders: { domain: '域名', subSysTenant: '子系统/租户' },
     columns: { domain: '域名', subSys: '子系统', tenant: '租户', active: '启用', remark: '备注', createTime: '创建时间', operation: '操作' },
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
+  },
+  tenantList: {
+    placeholders: { name: '租户名称', subSys: '子系统' },
+    columns: { name: '租户名称', subSys: '子系统', active: '启用', createTime: '创建时间', operation: '操作' },
+    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
+  },
+  accountList: {
+    placeholders: { username: '用户名', subSysTenant: '子系统/租户' },
+    columns: { username: '用户名', subSys: '子系统', userStatus: '用户状态', userType: '用户类型', lastLoginTime: '最后登录时间', createTime: '创建时间', operation: '操作' },
+    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
 };

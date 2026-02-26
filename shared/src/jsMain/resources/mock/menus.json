@@ -24,7 +24,8 @@
           { "path": "/sys/cache", "name": "menu.sysCache", "icon": "Coin", "children": null },
           { "path": "/sys/dict", "name": "menu.sysDict", "icon": "Collection", "children": null },
           { "path": "/sys/param", "name": "menu.sysParam", "icon": "Document", "children": null },
-          { "path": "/sys/domain", "name": "menu.sysDomain", "icon": "Document", "children": null }
+          { "path": "/sys/domain", "name": "menu.sysDomain", "icon": "Document", "children": null },
+          { "path": "/sys/tenant", "name": "menu.sysTenant", "icon": "Document", "children": null }
         ]
       },
       {

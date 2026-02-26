@@ -38,5 +38,10 @@ export async function backendRequest(options: BackendRequestOptions): Promise<an
     const data = typeof raw === "string" ? JSON.parse(raw) : raw
     return data ?? { code: 0, data: null }
   }
-  return ajax(options)
+  // 与 BackendApi 一致：相对 path 转为同源绝对 URL，避免相对路径解析到错误 path
+  const url =
+    typeof window !== "undefined" && options.url && !/^https?:\/\//i.test(options.url)
+      ? `${window.location.origin}${options.url.startsWith("/") ? options.url : `/${options.url}`}`
+      : options.url
+  return ajax({ ...options, url })
 }
