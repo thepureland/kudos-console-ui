@@ -821,6 +821,74 @@ private fun buildOrganizationSearchTreeResponse(requestJson: String): String {
     return response.toString()
 }
 
+/** Mock 子系统列表树查询 searchTree：根据 code/name/active 筛选，按 parentCode 构建树。 */
+private fun buildSubsysSearchTreeResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val codeFilter = parseOptionalStringParam(params, "code")?.trim() ?: ""
+    val nameFilter = parseOptionalStringParam(params, "name")?.trim() ?: ""
+    val activeOnly = parseOptionalBooleanParam(params, "active") == true
+    fun node(
+        id: String,
+        code: String,
+        name: String,
+        parentCode: String?,
+        subSystem: Boolean,
+        active: Boolean,
+        builtIn: Boolean,
+        remark: String
+    ) = buildJsonObject {
+        put("id", JsonPrimitive(id))
+        put("code", JsonPrimitive(code))
+        put("name", JsonPrimitive(name))
+        put("parentCode", if (parentCode != null) JsonPrimitive(parentCode) else JsonNull)
+        put("subSystem", JsonPrimitive(subSystem))
+        put("active", JsonPrimitive(active))
+        put("builtIn", JsonPrimitive(builtIn))
+        put("remark", JsonPrimitive(remark))
+    }
+    val flat = listOf(
+        node("sys_1", "console", "控制台", null, true, true, true, "主控制台"),
+        node("sys_2", "service_a", "服务A", "console", true, true, true, "业务服务A"),
+        node("sys_3", "service_b", "服务B", "console", true, false, true, "业务服务B"),
+        node("sys_4", "module_x", "模块X", "service_a", false, true, false, "子模块"),
+        node("sys_5", "module_y", "模块Y", "service_a", false, true, false, ""),
+    )
+    fun filterNode(obj: JsonObject): Boolean {
+        val rowCode = primitiveString(obj, "code").orEmpty()
+        val rowName = primitiveString(obj, "name").orEmpty()
+        val rowActive = primitiveBoolean(obj, "active")
+        if (codeFilter.isNotEmpty() && !rowCode.contains(codeFilter, ignoreCase = true)) return false
+        if (nameFilter.isNotEmpty() && !rowName.contains(nameFilter, ignoreCase = true)) return false
+        if (activeOnly && rowActive != true) return false
+        return true
+    }
+    val filtered = flat.filter { filterNode(it) }
+    val filteredCodes = filtered.map { primitiveString(it, "code")!! }.toSet()
+    fun addChildren(parentCode: String?): List<JsonObject> {
+        return filtered
+            .filter { obj ->
+                val p = primitiveString(obj, "parentCode").orEmpty()
+                (parentCode == null && (p.isEmpty() || p !in filteredCodes)) ||
+                    (parentCode != null && p == parentCode)
+            }
+            .map { obj ->
+                val c = primitiveString(obj, "code")!!
+                val children = addChildren(c)
+                if (children.isEmpty()) obj
+                else buildJsonObject {
+                    obj.forEach { (k, v) -> if (k != "children") put(k, v) }
+                    put("children", JsonArray(children))
+                }
+            }
+    }
+    val roots = addChildren(null)
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", JsonArray(roots))
+    }
+    return response.toString()
+}
+
 /** Mock 租户列表搜索：根据 name/subSysDictCode/active 筛选，排序分页。 */
 private fun buildTenantSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
@@ -1230,6 +1298,11 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/user/organization/searchTree", "user/organization/searchTree", "/api/user/organization/searchTree" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildOrganizationSearchTreeResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/subsys/searchTree", "sys/subsys/searchTree", "/api/sys/subsys/searchTree" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildSubsysSearchTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/dict/search", "/api/sys/dict/search" -> {

@@ -239,4 +239,10 @@ export default {
     columns: { roleCode: '角色編碼', roleName: '角色名稱', subSysDictCode: '子系統', remark: '備註', active: '啟用', createTime: '建立時間', operation: '操作' },
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', authorize: '授權', user: '用戶', assignUser: '關聯用戶', viewUser: '查看用戶', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
+  systemList: {
+    placeholders: { code: '編碼', name: '名稱' },
+    common: { yes: '是', no: '否' },
+    columns: { code: '編碼', name: '名稱', subSystem: '是否子系統', active: '啟用', builtIn: '內建', remark: '備註', operation: '操作' },
+    actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
+  },
 };

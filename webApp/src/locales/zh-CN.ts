@@ -239,4 +239,10 @@ export default {
     columns: { roleCode: '角色编码', roleName: '角色名称', subSysDictCode: '子系统', remark: '备注', active: '启用', createTime: '创建时间', operation: '操作' },
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', authorize: '授权', user: '用户', assignUser: '关联用户', viewUser: '查看用户', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
+  systemList: {
+    placeholders: { code: '编码', name: '名称' },
+    common: { yes: '是', no: '否' },
+    columns: { code: '编码', name: '名称', subSystem: '是否子系统', active: '启用', builtIn: '内置', remark: '备注', operation: '操作' },
+    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
+  },
 };
