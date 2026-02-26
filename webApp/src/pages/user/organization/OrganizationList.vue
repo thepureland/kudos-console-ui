@@ -244,7 +244,7 @@ const COLUMN_ORDER_STORAGE_KEY = 'organizationList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['abbrName', 'orgTypeDictCode', 'seqNo', 'active', 'createTime'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
 /** 列 key 到 i18n key 的映射（orgTypeDictCode -> orgType）；名称列固定左侧，不参与可见性配置 */
 const COLUMN_KEY_TO_I18N: Record<string, string> = {

@@ -965,6 +965,100 @@ private fun buildMicroserviceSearchTreeResponse(requestJson: String): String {
     return response.toString()
 }
 
+private val I18N_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
+    "key", "value", "locale", "i18nTypeDictCode", "atomicServiceCode", "active", "builtIn",
+)
+
+/** Mock 国际化列表搜索：根据 key/i18nTypeDictCode/atomicServiceCode/locale/active 筛选，排序分页。 */
+private fun buildI18nSearchResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val keyFilter = parseOptionalStringParam(params, "key")?.trim() ?: ""
+    val i18nTypeDictCode = parseOptionalStringParam(params, "i18nTypeDictCode")?.takeIf { it.isNotBlank() }
+    val atomicServiceCode = parseOptionalStringParam(params, "atomicServiceCode")?.takeIf { it.isNotBlank() }
+    val locale = parseOptionalStringParam(params, "locale")?.takeIf { it.isNotBlank() }
+    val active = parseOptionalBooleanParam(params, "active")
+    val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
+    val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, MAX_PAGE_SIZE)
+    val sortPair = parseSortParamWithAllowed(params, I18N_SEARCH_ALLOWED_SORT_PROPERTIES)
+    val mockRows = listOf(
+        buildJsonObject {
+            put("id", JsonPrimitive("i18n_1"))
+            put("key", JsonPrimitive("common.save"))
+            put("value", JsonPrimitive("保存"))
+            put("locale", JsonPrimitive("zh-CN"))
+            put("i18nTypeDictCode", JsonPrimitive("dict"))
+            put("atomicServiceCode", JsonPrimitive("console"))
+            put("active", JsonPrimitive(true))
+            put("builtIn", JsonPrimitive(true))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("i18n_2"))
+            put("key", JsonPrimitive("common.cancel"))
+            put("value", JsonPrimitive("取消"))
+            put("locale", JsonPrimitive("zh-CN"))
+            put("i18nTypeDictCode", JsonPrimitive("dict_item"))
+            put("atomicServiceCode", JsonPrimitive("console"))
+            put("active", JsonPrimitive(true))
+            put("builtIn", JsonPrimitive(true))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("i18n_3"))
+            put("key", JsonPrimitive("common.save"))
+            put("value", JsonPrimitive("Save"))
+            put("locale", JsonPrimitive("en-US"))
+            put("i18nTypeDictCode", JsonPrimitive("dict"))
+            put("atomicServiceCode", JsonPrimitive("console"))
+            put("active", JsonPrimitive(true))
+            put("builtIn", JsonPrimitive(true))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("i18n_4"))
+            put("key", JsonPrimitive("sys.i18n.title"))
+            put("value", JsonPrimitive("国际化管理"))
+            put("locale", JsonPrimitive("zh-CN"))
+            put("i18nTypeDictCode", JsonPrimitive("view"))
+            put("atomicServiceCode", JsonPrimitive("service_a"))
+            put("active", JsonPrimitive(false))
+            put("builtIn", JsonPrimitive(false))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("i18n_5"))
+            put("key", JsonPrimitive("sys.i18n.key"))
+            put("value", JsonPrimitive("键"))
+            put("locale", JsonPrimitive("zh-TW"))
+            put("i18nTypeDictCode", JsonPrimitive("dict_item"))
+            put("atomicServiceCode", JsonPrimitive("console"))
+            put("active", JsonPrimitive(true))
+            put("builtIn", JsonPrimitive(false))
+        },
+    )
+    var filtered = mockRows.filter { row ->
+        val rowKey = primitiveString(row, "key").orEmpty()
+        val rowType = primitiveString(row, "i18nTypeDictCode").orEmpty()
+        val rowAtomic = primitiveString(row, "atomicServiceCode").orEmpty()
+        val rowLocale = primitiveString(row, "locale").orEmpty()
+        val rowActive = primitiveBoolean(row, "active")
+        (keyFilter.isEmpty() || rowKey.contains(keyFilter, ignoreCase = true)) &&
+            (i18nTypeDictCode == null || rowType == i18nTypeDictCode) &&
+            (atomicServiceCode == null || rowAtomic == atomicServiceCode) &&
+            (locale == null || rowLocale == locale) &&
+            (active == null || rowActive == active)
+    }
+    filtered = applySort(filtered, sortPair.first, sortPair.second)
+    val total = filtered.size
+    val fromIndex = ((pageNo - 1) * pageSize).coerceAtLeast(0)
+    val toIndex = min(fromIndex + pageSize, total)
+    val pageRows = if (fromIndex >= total) emptyList<JsonObject>() else filtered.subList(fromIndex, toIndex)
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", buildJsonObject {
+            put("first", JsonArray(pageRows))
+            put("second", JsonPrimitive(total))
+        })
+    }
+    return response.toString()
+}
+
 /** Mock 租户列表搜索：根据 name/subSysDictCode/active 筛选，排序分页。 */
 private fun buildTenantSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
@@ -1223,6 +1317,16 @@ private val MOCK_DICT_ITEM_MAP = mapOf(
         "ADMIN" to "管理员",
         "USER" to "普通用户",
     ),
+    "kuark:sys---locale" to mapOf(
+        "zh-CN" to "zh-CN",
+        "zh-TW" to "zh-TW",
+        "en-US" to "en-US",
+    ),
+    "kuark:sys---i18n_type" to mapOf(
+        "dict" to "i18n_type.dict",
+        "dict_item" to "i18n_type.dict_item",
+        "view" to "i18n_type.view",
+    ),
 )
 
 /** 从请求 body 解析出 params 数组：支持直接数组或 { params: [...] } */
@@ -1348,6 +1452,11 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/sys/tenant/search", "/api/sys/tenant/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildTenantSearchResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/i18n/search", "/api/sys/i18n/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildI18nSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
         "/user/account/search", "/api/user/account/search" -> {

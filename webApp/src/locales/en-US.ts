@@ -253,4 +253,15 @@ export default {
     columns: { index: 'Row No.', code: 'Code', name: 'Name', atomicService: 'Atomic Service', context: 'Context', active: 'Active', builtIn: 'Built-in', remark: 'Remark', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', atomicServiceOnly: 'Atomic Service Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
+  i18nList: {
+    placeholders: { key: 'Key', i18nTypeDictCode: 'I18n Type', atomicServiceCode: 'Atomic Service', locale: 'Locale' },
+    common: { yes: 'Yes', no: 'No' },
+    columns: { index: 'Row No.', key: 'Key', value: 'Value', locale: 'Locale', i18nTypeDictCode: 'I18n Type', atomicServiceCode: 'Atomic Service', active: 'Active', builtIn: 'Built-in', operation: 'Operation' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+  },
+  i18n_type: {
+    dict: 'Dict Type',
+    dict_item: 'Dict Item',
+    view: 'View',
+  },
 };

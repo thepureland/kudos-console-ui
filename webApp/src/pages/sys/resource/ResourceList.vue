@@ -465,7 +465,7 @@ const COLUMN_VISIBILITY_STORAGE_KEY = 'resourceList.visibleColumns';
 const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['subSysDictCode', 'resourceTypeDictCode', 'name', 'url', 'icon', 'seqNo', 'active'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
 export default defineComponent({
   name: 'ResourceList',

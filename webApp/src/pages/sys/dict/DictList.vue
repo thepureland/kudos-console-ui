@@ -589,7 +589,7 @@ const COLUMN_VISIBILITY_STORAGE_KEY = 'dictList.visibleColumns';
 const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['dictType', 'dictName', 'module', 'itemCode', 'itemName', 'parentCode', 'seqNo', 'active'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
 export default defineComponent({
   name: 'DictList',
