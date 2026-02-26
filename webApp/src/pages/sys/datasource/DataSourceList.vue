@@ -400,7 +400,7 @@ const COLUMN_ORDER_STORAGE_KEY = 'dataSourceList.columnOrder.v2';
 const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['subSysDictCode', 'tenantName', 'microservice', 'url', 'username', 'active'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
 export default defineComponent({
   name: 'DataSourceList',

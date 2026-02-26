@@ -253,4 +253,15 @@ export default {
     columns: { index: '行序', code: '编码', name: '名称', atomicService: '原子服务', context: '上下文', active: '启用', builtIn: '内置', remark: '备注', operation: '操作' },
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', atomicServiceOnly: '仅原子服务', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
+  i18nList: {
+    placeholders: { key: '键', i18nTypeDictCode: '国际化类型', atomicServiceCode: '原子服务', locale: '语言' },
+    common: { yes: '是', no: '否' },
+    columns: { index: '行序', key: '键', value: '值', locale: '语言', i18nTypeDictCode: '国际化类型', atomicServiceCode: '原子服务', active: '启用', builtIn: '内置', operation: '操作' },
+    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
+  },
+  i18n_type: {
+    dict: '字典类型',
+    dict_item: '字典项',
+    view: '视图',
+  },
 };

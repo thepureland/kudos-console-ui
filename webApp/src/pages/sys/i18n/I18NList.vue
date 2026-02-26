@@ -1,58 +1,95 @@
 <!--
- * 域名列表：参照 CacheList，ListPageLayout + 工具栏/列可见性/操作列折角/未固定列可拖拽，mock 在 shared，国际化。
+ * 国际化列表：参照 CacheList/TenantList，ListPageLayout + 列可见性/操作列折角，前 4 列固定，可拖拽列，mock 在 shared，国际化。
  *
  * @author: K
  * @author: AI: Cursor
  * @since 1.0.0
  -->
 <template>
-  <div class="domain-list-page list-page-common">
+  <div class="i18n-list-page list-page-common">
     <list-page-layout
       :table-wrap-ref="listLayoutRefs.tableWrapRef"
       :list-page="listPage"
       :operation-column-storage-key="OPERATION_COLUMN_PINNED_STORAGE_KEY"
-      :column-panel-show-text="t('domainList.actions.showColumnPanel')"
-      :column-panel-hide-text="t('domainList.actions.hideColumnPanel')"
-      :operation-column-show-text="t('domainList.actions.showOperationColumn')"
-      :operation-column-hide-text="t('domainList.actions.hideOperationColumn')"
+      :column-panel-show-text="t('i18nList.actions.showColumnPanel')"
+      :column-panel-hide-text="t('i18nList.actions.hideColumnPanel')"
+      :operation-column-show-text="t('i18nList.actions.showOperationColumn')"
+      :operation-column-hide-text="t('i18nList.actions.hideOperationColumn')"
       @table-wrap-mounted="onTableWrapMounted"
     >
       <template #toolbar>
-        <div class="toolbar-cell toolbar-name">
+        <div class="toolbar-cell toolbar-key">
           <el-input
-            v-model="searchParams.domain"
-            :placeholder="t('domainList.placeholders.domain')"
+            v-model="searchParams.key"
+            :placeholder="t('i18nList.placeholders.key')"
             clearable
             class="search-name-input"
             @keyup="(e) => e.key === 'Enter' && search()"
             @change="search"
           />
         </div>
-        <div class="toolbar-cell toolbar-subsys">
-          <el-cascader
-            v-model="searchParams.subSysOrTenant"
-            :options="subSysOrTenants"
-            :props="cascaderProps"
-            :placeholder="t('domainList.placeholders.subSysTenant')"
+        <div class="toolbar-cell toolbar-i18n-type">
+          <el-select
+            v-model="searchParams.i18nTypeDictCode"
+            :placeholder="t('i18nList.placeholders.i18nTypeDictCode')"
             clearable
             class="search-select-input"
             @change="search"
-          />
+          >
+            <el-option
+              v-for="item in (listPage.state.i18nTypeDictOptions || [])"
+              :key="item.first"
+              :value="item.first"
+              :label="t(item.second)"
+            />
+          </el-select>
+        </div>
+        <div class="toolbar-cell toolbar-atomic">
+          <el-select
+            v-model="searchParams.atomicServiceCode"
+            :placeholder="t('i18nList.placeholders.atomicServiceCode')"
+            clearable
+            class="search-select-input"
+            @change="search"
+          >
+            <el-option
+              v-for="item in getDictItems('kuark:sys', 'sub_sys')"
+              :key="item.first"
+              :value="item.first"
+              :label="item.second"
+            />
+          </el-select>
+        </div>
+        <div class="toolbar-cell toolbar-locale">
+          <el-select
+            v-model="searchParams.locale"
+            :placeholder="t('i18nList.placeholders.locale')"
+            clearable
+            class="search-select-input"
+            @change="search"
+          >
+            <el-option
+              v-for="item in (listPage.state.localeOptions || [])"
+              :key="item.first"
+              :value="item.first"
+              :label="item.second"
+            />
+          </el-select>
         </div>
         <div class="toolbar-extra">
           <el-checkbox v-model="searchParams.active" class="active-only-checkbox" @change="search">
-            {{ t('domainList.actions.activeOnly') }}
+            {{ t('i18nList.actions.activeOnly') }}
           </el-checkbox>
         </div>
         <div class="toolbar-buttons">
-          <el-button type="primary" round @click="search">{{ t('domainList.actions.search') }}</el-button>
-          <el-button type="primary" round @click="resetSearchFields">{{ t('domainList.actions.reset') }}</el-button>
-          <el-button type="success" @click="openAddDialog">{{ t('domainList.actions.add') }}</el-button>
-          <el-button type="danger" @click="multiDelete">{{ t('domainList.actions.delete') }}</el-button>
+          <el-button type="primary" round @click="search">{{ t('i18nList.actions.search') }}</el-button>
+          <el-button type="primary" round @click="resetSearchFields">{{ t('i18nList.actions.reset') }}</el-button>
+          <el-button type="success" @click="openAddDialog">{{ t('i18nList.actions.add') }}</el-button>
+          <el-button type="danger" @click="multiDelete">{{ t('i18nList.actions.delete') }}</el-button>
         </div>
       </template>
       <template #columnVisibilityPanel>
-        <div class="column-visibility-title">{{ t('domainList.actions.columnVisibility') }}</div>
+        <div class="column-visibility-title">{{ t('i18nList.actions.columnVisibility') }}</div>
         <el-checkbox-group v-model="visibleColumnKeys" class="column-visibility-checkboxes">
           <el-checkbox
             v-for="item in columnVisibilityOptions"
@@ -74,6 +111,7 @@
           stripe
           :data="tableData"
           :max-height="tableMaxHeight"
+          :table-layout="tableLayout"
           :header-cell-style="{ textAlign: 'center' }"
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
@@ -81,53 +119,66 @@
           <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
           <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
-            :label="t('domainList.columns.domain')"
-            prop="domain"
+            :label="t('i18nList.columns.key')"
+            prop="key"
             sortable="custom"
             min-width="180"
             fixed="left"
-            class-name="col-fixed-domain"
+            class-name="col-fixed-key"
           />
+          <el-table-column
+            :label="t('i18nList.columns.value')"
+            prop="value"
+            min-width="200"
+            fixed="left"
+            class-name="col-fixed-value"
+          />
+          <el-table-column
+            :label="t('i18nList.columns.locale')"
+            prop="locale"
+            sortable="custom"
+            min-width="100"
+            fixed="left"
+            class-name="col-fixed-locale"
+          />
+          <el-table-column
+            :label="t('i18nList.columns.i18nTypeDictCode')"
+            prop="i18nTypeDictCode"
+            min-width="140"
+            fixed="left"
+            class-name="col-fixed-i18nType"
+          >
+            <template #default="scope">
+              {{ (() => {
+                const code = scope.row.i18nTypeDictCode;
+                if (!code) return '';
+                const opts = (listPage.state.i18nTypeDictOptions || []) as Array<{ first: string; second: string }>;
+                const item = opts.find(o => o.first === code);
+                return item ? t(item.second) : code;
+              })() }}
+            </template>
+          </el-table-column>
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
-              v-if="key === 'subSysDictCode' && isColumnVisible('subSysDictCode')"
-              prop="subSysDictCode"
+              v-if="key === 'atomicServiceCode' && isColumnVisible('atomicServiceCode')"
+              prop="atomicServiceCode"
               min-width="120"
               sortable="custom"
             >
               <template #header>
                 <div
                   class="column-header-draggable"
-                  data-column-key="subSysDictCode"
-                  :class="{ 'is-dragging': columnDragKey === 'subSysDictCode', 'is-drop-target': columnDropTargetKey === 'subSysDictCode' }"
+                  data-column-key="atomicServiceCode"
+                  :class="{ 'is-dragging': columnDragKey === 'atomicServiceCode', 'is-drop-target': columnDropTargetKey === 'atomicServiceCode' }"
                   draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'subSysDictCode')"
-                  @dragover="onHeaderDragOver($event, 'subSysDictCode')"
-                  @drop="onHeaderDrop($event, 'subSysDictCode')"
+                  @dragstart="onHeaderDragStart($event, 'atomicServiceCode')"
+                  @dragover="onHeaderDragOver($event, 'atomicServiceCode')"
+                  @drop="onHeaderDrop($event, 'atomicServiceCode')"
                   @dragend="onHeaderDragEnd"
-                >{{ t('domainList.columns.subSys') }}</div>
+                >{{ t('i18nList.columns.atomicServiceCode') }}</div>
               </template>
               <template #default="scope">
-                {{ transDict('kuark:sys', 'sub_sys', scope.row.subSysDictCode) }}
-              </template>
-            </el-table-column>
-            <el-table-column
-              v-else-if="key === 'tenantName' && isColumnVisible('tenantName')"
-              prop="tenantName"
-              min-width="120"
-              sortable="custom"
-            >
-              <template #header>
-                <div
-                  class="column-header-draggable"
-                  data-column-key="tenantName"
-                  :class="{ 'is-dragging': columnDragKey === 'tenantName', 'is-drop-target': columnDropTargetKey === 'tenantName' }"
-                  draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'tenantName')"
-                  @dragover="onHeaderDragOver($event, 'tenantName')"
-                  @drop="onHeaderDrop($event, 'tenantName')"
-                  @dragend="onHeaderDragEnd"
-                >{{ t('domainList.columns.tenant') }}</div>
+                {{ transDict('kuark:sys', 'sub_sys', scope.row.atomicServiceCode) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -146,7 +197,7 @@
                   @dragover="onHeaderDragOver($event, 'active')"
                   @drop="onHeaderDrop($event, 'active')"
                   @dragend="onHeaderDragEnd"
-                >{{ t('domainList.columns.active') }}</div>
+                >{{ t('i18nList.columns.active') }}</div>
               </template>
               <template #default="scope">
                 <el-switch
@@ -158,72 +209,54 @@
               </template>
             </el-table-column>
             <el-table-column
-              v-else-if="key === 'remark' && isColumnVisible('remark')"
-              prop="remark"
-              min-width="120"
+              v-else-if="key === 'builtIn' && isColumnVisible('builtIn')"
+              prop="builtIn"
+              width="80"
               sortable="custom"
             >
               <template #header>
                 <div
                   class="column-header-draggable"
-                  data-column-key="remark"
-                  :class="{ 'is-dragging': columnDragKey === 'remark', 'is-drop-target': columnDropTargetKey === 'remark' }"
+                  data-column-key="builtIn"
+                  :class="{ 'is-dragging': columnDragKey === 'builtIn', 'is-drop-target': columnDropTargetKey === 'builtIn' }"
                   draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'remark')"
-                  @dragover="onHeaderDragOver($event, 'remark')"
-                  @drop="onHeaderDrop($event, 'remark')"
+                  @dragstart="onHeaderDragStart($event, 'builtIn')"
+                  @dragover="onHeaderDragOver($event, 'builtIn')"
+                  @drop="onHeaderDrop($event, 'builtIn')"
                   @dragend="onHeaderDragEnd"
-                >{{ t('domainList.columns.remark') }}</div>
-              </template>
-            </el-table-column>
-            <el-table-column
-              v-else-if="key === 'createTime' && isColumnVisible('createTime')"
-              prop="createTime"
-              min-width="160"
-              sortable="custom"
-            >
-              <template #header>
-                <div
-                  class="column-header-draggable"
-                  data-column-key="createTime"
-                  :class="{ 'is-dragging': columnDragKey === 'createTime', 'is-drop-target': columnDropTargetKey === 'createTime' }"
-                  draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'createTime')"
-                  @dragover="onHeaderDragOver($event, 'createTime')"
-                  @drop="onHeaderDrop($event, 'createTime')"
-                  @dragend="onHeaderDragEnd"
-                >{{ t('domainList.columns.createTime') }}</div>
+                >{{ t('i18nList.columns.builtIn') }}</div>
               </template>
               <template #default="scope">
-                {{ formatDate(scope.row.createTime) }}
+                {{ formatBoolText(scope.row.builtIn) }}
               </template>
             </el-table-column>
           </template>
           <el-table-column
             v-if="showOperationColumn"
-            :label="t('domainList.columns.operation')"
+            :label="t('i18nList.columns.operation')"
             align="center"
             fixed="right"
-            width="140"
-            min-width="140"
+            width="180"
+            min-width="180"
             class-name="operation-column"
+            label-class-name="operation-column"
           >
             <template #header>
-              <div class="operation-column-hover-area">{{ t('domainList.columns.operation') }}</div>
+              <div class="operation-column-hover-area">{{ t('i18nList.columns.operation') }}</div>
             </template>
             <template #default="scope">
               <div class="operation-column-hover-area">
-                <el-tooltip :content="t('domainList.actions.edit')" placement="top">
+                <el-tooltip :content="t('i18nList.actions.edit')" placement="top">
                   <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
                     <Edit />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('domainList.actions.delete')" placement="top">
+                <el-tooltip :content="t('i18nList.actions.delete')" placement="top">
                   <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
                     <Delete />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('domainList.actions.detail')" placement="top">
+                <el-tooltip :content="t('i18nList.actions.detail')" placement="top">
                   <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
                     <Tickets />
                   </el-icon>
@@ -246,10 +279,6 @@
         />
       </template>
     </list-page-layout>
-
-    <domain-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
-    <domain-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
-    <domain-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 
@@ -257,80 +286,91 @@
 import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
 import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
-import DomainAddEdit from './DomainAddEdit.vue';
-import DomainDetail from './DomainDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
+import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
 import { Pair } from '../../../components/model/Pair';
 
-const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'domainList.operationColumnPinned';
-const DOMAIN_LIST_STATE_STORAGE_KEY = 'domainList.queryState';
-const COLUMN_VISIBILITY_STORAGE_KEY = 'domainList.visibleColumns';
-const COLUMN_ORDER_STORAGE_KEY = 'domainList.columnOrder';
+const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'i18nList.operationColumnPinned';
+const I18N_LIST_STATE_STORAGE_KEY = 'i18nList.queryState';
+const COLUMN_VISIBILITY_STORAGE_KEY = 'i18nList.visibleColumns';
+const COLUMN_ORDER_STORAGE_KEY = 'i18nList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSysDictCode', 'tenantName', 'active', 'remark', 'createTime'];
+const ALL_COLUMN_KEYS = ['atomicServiceCode', 'active', 'builtIn'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
-class ListPage extends TenantSupportListPage {
+class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
+    this.loadDicts([
+      new Pair('kuark:sys', 'sub_sys'),
+      new Pair('kuark:sys', 'locale'),
+      new Pair('kuark:sys', 'i18n_type'),
+    ]).then(() => {
+      (this.state as Record<string, unknown>).localeOptions = this.getDictItems('kuark:sys', 'locale') as Array<{ first: string; second: string }>;
+      (this.state as Record<string, unknown>).i18nTypeDictOptions = this.getDictItems('kuark:sys', 'i18n_type') as Array<{ first: string; second: string }>;
+    });
     this.convertThis();
   }
 
   protected initState(): Record<string, unknown> {
     return {
       searchParams: {
-        domain: null as string | null,
+        key: null as string | null,
+        i18nTypeDictCode: null as string | null,
+        atomicServiceCode: null as string | null,
+        locale: null as string | null,
         active: true,
-        subSysOrTenant: null as string[] | null,
       },
+      /** 语言(locale)下拉选项（响应式，loadDicts 完成后更新） */
+      localeOptions: [] as Array<{ first: string; second: string }>,
+      /** 国际化类型下拉选项（响应式，second 为 i18n key，需用 t() 显示） */
+      i18nTypeDictOptions: [] as Array<{ first: string; second: string }>,
     };
   }
 
   protected getRootActionPath(): string {
-    return 'sys/domain';
+    return 'sys/i18n';
   }
 
   protected createSearchParams(): Record<string, unknown> | null {
     const params = super.createSearchParams() as Record<string, unknown> | null;
     if (!params) return null;
     const sp = this.state.searchParams as Record<string, unknown>;
-    params.domain = sp.domain ?? null;
+    params.key = sp.key ?? null;
+    params.i18nTypeDictCode = sp.i18nTypeDictCode ?? null;
+    params.atomicServiceCode = sp.atomicServiceCode ?? null;
+    params.locale = sp.locale ?? null;
     params.active = sp.active === true ? true : null;
     return params;
-  }
-
-  protected doAfterAdd(params: Record<string, unknown>): void {
-    const sp = this.state.searchParams as Record<string, unknown>;
-    if (params.domain != null) sp.domain = params.domain;
-    super.doAfterAdd(params);
   }
 }
 
 export default defineComponent({
-  name: 'DomainList',
-  components: { DomainAddEdit, DomainDetail, ListPageLayout, Edit, Delete, Tickets },
+  name: 'I18NList',
+  components: { ListPageLayout, Edit, Delete, Tickets },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
-    listPage.configureListStatePersistence(DOMAIN_LIST_STATE_STORAGE_KEY);
+    listPage.configureListStatePersistence(I18N_LIST_STATE_STORAGE_KEY);
     listPage.configureTableMaxHeight();
     const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
     const listLayoutRefs = { tableWrapRef, paginationRef };
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
 
-    const FIXED_LEFT_TOTAL_WIDTH = 289;
+    const FIXED_LEFT_BASE = 39 + 180 + 200 + 100 + 140;
+    const FIXED_LEFT_WITH_INDEX = FIXED_LEFT_BASE + 50;
     function forceFixedLeftWidth() {
       nextTick(() => {
         tableRef.value?.doLayout?.();
         nextTick(() => {
           const wrapper = tableRef.value?.$el?.querySelector?.('.el-table__fixed-left') as HTMLElement | null;
           if (wrapper) {
-            wrapper.style.setProperty('width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-            wrapper.style.setProperty('max-width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
+            const w = listPage.isColumnVisible('index') ? FIXED_LEFT_WITH_INDEX : FIXED_LEFT_BASE;
+            wrapper.style.setProperty('width', `${w}px`, 'important');
+            wrapper.style.setProperty('max-width', `${w}px`, 'important');
           }
         });
       });
@@ -370,11 +410,18 @@ export default defineComponent({
       set: (next) => listPage.applyVisibleColumns(next),
     });
     const columnVisibilityOptions = computed(() => [
-      { key: INDEX_COLUMN_KEY, label: t('domainList.columns.index') },
-      ...orderedColumnKeys.value.map((key) => ({ key, label: t('domainList.columns.' + (key === 'subSysDictCode' ? 'subSys' : key === 'tenantName' ? 'tenant' : key)) })),
+      { key: INDEX_COLUMN_KEY, label: t('i18nList.columns.index') },
+      ...orderedColumnKeys.value.map((key) => ({
+        key,
+        label: t('i18nList.columns.' + key),
+      })),
     ]);
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
+    }
+
+    function formatBoolText(value: unknown): string {
+      return listPage.formatBoolean(value, t('i18nList.common.yes'), t('i18nList.common.no'));
     }
 
     const columnDragKey = ref<string | null>(null);
@@ -463,6 +510,7 @@ export default defineComponent({
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,
+      formatBoolText,
       listLayoutRefs,
       tableRef,
       visibleColumnKeys,
@@ -485,12 +533,22 @@ export default defineComponent({
 
 <style src="../../../styles/list-page-common.css" scoped></style>
 <style scoped>
-.domain-list-page .list-page-toolbar .toolbar-name .search-name-input,
-.domain-list-page .list-page-toolbar .toolbar-subsys .search-select-input {
+.i18n-list-page .list-page-toolbar .toolbar-cell.toolbar-key,
+.i18n-list-page .list-page-toolbar .toolbar-cell.toolbar-i18n-type,
+.i18n-list-page .list-page-toolbar .toolbar-cell.toolbar-atomic,
+.i18n-list-page .list-page-toolbar .toolbar-cell.toolbar-locale {
+  margin-right: 8px;
+}
+.i18n-list-page .list-page-toolbar .toolbar-key .search-name-input,
+.i18n-list-page .list-page-toolbar .toolbar-i18n-type .search-select-input,
+.i18n-list-page .list-page-toolbar .toolbar-locale .search-select-input,
+.i18n-list-page .list-page-toolbar .toolbar-atomic .search-select-input {
   width: 100%;
   min-width: 0;
 }
-.domain-list-page .list-page-toolbar .toolbar-subsys :deep(.el-input__wrapper) {
+.i18n-list-page .list-page-toolbar .toolbar-atomic :deep(.el-input__wrapper),
+.i18n-list-page .list-page-toolbar .toolbar-locale :deep(.el-input__wrapper),
+.i18n-list-page .list-page-toolbar .toolbar-i18n-type :deep(.el-input__wrapper) {
   min-width: 0;
 }
 .table-drag-drop-zone {
@@ -514,21 +572,35 @@ export default defineComponent({
   min-width: 50px !important;
   max-width: 50px !important;
 }
-:deep(.el-table th.col-fixed-domain),
-:deep(.el-table td.col-fixed-domain) {
+:deep(.el-table th.col-fixed-key),
+:deep(.el-table td.col-fixed-key) {
+  width: 180px !important;
+  min-width: 180px !important;
+  max-width: 180px !important;
+}
+:deep(.el-table th.col-fixed-value),
+:deep(.el-table td.col-fixed-value) {
   width: 200px !important;
   min-width: 200px !important;
   max-width: 200px !important;
 }
-:deep(.el-table__fixed-left) {
-  width: 289px !important;
-  max-width: 289px !important;
+:deep(.el-table th.col-fixed-locale),
+:deep(.el-table td.col-fixed-locale) {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
 }
-:deep(.el-table th.operation-column),
-:deep(.el-table td.operation-column) {
+:deep(.el-table th.col-fixed-i18nType),
+:deep(.el-table td.col-fixed-i18nType) {
   width: 140px !important;
   min-width: 140px !important;
   max-width: 140px !important;
+}
+:deep(.el-table th.operation-column),
+:deep(.el-table td.operation-column) {
+  width: 180px !important;
+  min-width: 180px !important;
+  max-width: 180px !important;
 }
 :deep(.column-header-draggable) {
   cursor: grab;

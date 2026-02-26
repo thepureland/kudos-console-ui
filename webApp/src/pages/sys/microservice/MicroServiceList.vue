@@ -260,7 +260,7 @@ const COLUMN_ORDER_STORAGE_KEY = 'microServiceList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['atomicService', 'context', 'active', 'builtIn', 'remark'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
 class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {

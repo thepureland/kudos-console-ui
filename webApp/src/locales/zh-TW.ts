@@ -253,4 +253,15 @@ export default {
     columns: { index: '行序', code: '編碼', name: '名稱', atomicService: '原子服務', context: '上下文', active: '啟用', builtIn: '內建', remark: '備註', operation: '操作' },
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', atomicServiceOnly: '僅原子服務', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
+  i18nList: {
+    placeholders: { key: '鍵', i18nTypeDictCode: '國際化類型', atomicServiceCode: '原子服務', locale: '語言' },
+    common: { yes: '是', no: '否' },
+    columns: { index: '行序', key: '鍵', value: '值', locale: '語言', i18nTypeDictCode: '國際化類型', atomicServiceCode: '原子服務', active: '啟用', builtIn: '內建', operation: '操作' },
+    actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
+  },
+  i18n_type: {
+    dict: '字典類型',
+    dict_item: '字典項',
+    view: '視圖',
+  },
 };

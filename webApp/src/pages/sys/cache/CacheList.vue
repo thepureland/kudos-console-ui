@@ -536,7 +536,7 @@ const ALL_COLUMN_KEYS = [
 ];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 /** 默认展示的列 key 列表（除固定列外） */
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
 export default defineComponent({
   name: 'CacheList',

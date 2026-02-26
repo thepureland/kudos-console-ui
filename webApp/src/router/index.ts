@@ -11,6 +11,7 @@ import DomainList from '../pages/sys/domain/DomainList.vue';
 import TenantList from '../pages/sys/tenant/TenantList.vue';
 import SystemList from '../pages/sys/system/SystemList.vue';
 import MicroServiceList from '../pages/sys/microservice/MicroServiceList.vue';
+import I18NList from '../pages/sys/i18n/I18NList.vue';
 import AccountList from '../pages/user/account/AccountList.vue';
 import OrganizationList from '../pages/user/organization/OrganizationList.vue';
 import RoleList from '../pages/rbac/role/RoleList.vue';
@@ -35,7 +36,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'sys/microservice', name: 'sys-microservice', component: MicroServiceList, meta: { titleKey: 'route.sysMicroservice', icon: 'Setting' } },
       { path: 'sys/datasource', name: 'sys-datasource', component: DataSourceList, meta: { titleKey: 'route.sysDatasource', icon: 'Collection' } },
       { path: 'sys/resource', name: 'sys-resource', component: ResourceList, meta: { titleKey: 'route.sysResource', icon: 'Document' } },
-      { path: 'sys/i18n', name: 'sys-i18n', component: Placeholder, meta: { titleKey: 'route.sysI18n', icon: 'Setting' } },
+      { path: 'sys/i18n', name: 'sys-i18n', component: I18NList, meta: { titleKey: 'route.sysI18n', icon: 'Setting' } },
       { path: 'user/account', name: 'user-account', component: AccountList, meta: { titleKey: 'route.userAccount', icon: 'UserFilled' } },
       { path: 'user/organization', name: 'user-organization', component: OrganizationList, meta: { titleKey: 'route.userOrganization', icon: 'OfficeBuilding' } },
       { path: 'rbac/role', name: 'rbac-role', component: RoleList, meta: { titleKey: 'route.rbacRole', icon: 'Key' } },

@@ -346,7 +346,7 @@ const COLUMN_VISIBILITY_STORAGE_KEY = 'paramList.visibleColumns';
 const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['paramValue', 'defaultValue', 'module', 'seqNo', 'remark', 'active'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
 
 export default defineComponent({
