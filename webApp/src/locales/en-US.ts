@@ -224,4 +224,14 @@ export default {
     columns: { username: 'Username', subSys: 'Subsystem', userStatus: 'User Status', userType: 'User Type', lastLoginTime: 'Last Login', createTime: 'Create Time', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
+  organizationList: {
+    placeholders: { subSysTenant: 'Subsystem / Tenant' },
+    columns: { name: 'Name', abbrName: 'Abbr.', orgType: 'Org Type', seqNo: 'Order', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Columns', hideColumnPanel: 'Hide Columns', columnVisibility: 'Columns' },
+  },
+  userGroupList: {
+    placeholders: { groupCode: 'Group Code', groupName: 'Group Name' },
+    columns: { groupCode: 'Group Code', groupName: 'Group Name', remark: 'Remark', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+  },
 };

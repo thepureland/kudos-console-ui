@@ -630,6 +630,123 @@ private fun buildOrganizationLoadTreeResponse(subSysDictCode: String?, tenantId:
     return response.toString()
 }
 
+private val USER_GROUP_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
+    "groupCode", "groupName", "active", "createTime",
+)
+
+/** Mock 用户组（组管理）列表搜索：根据 groupCode/groupName/active 筛选，排序分页。 */
+private fun buildUserGroupSearchResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val groupCode = parseOptionalStringParam(params, "groupCode")?.trim() ?: ""
+    val groupName = parseOptionalStringParam(params, "groupName")?.trim() ?: ""
+    val active = parseOptionalBooleanParam(params, "active")
+    val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
+    val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, MAX_PAGE_SIZE)
+    val sortPair = parseSortParamWithAllowed(params, USER_GROUP_SEARCH_ALLOWED_SORT_PROPERTIES)
+    val mockRows = listOf(
+        buildJsonObject {
+            put("id", JsonPrimitive("group_1"))
+            put("groupCode", JsonPrimitive("ADMIN_GROUP"))
+            put("groupName", JsonPrimitive("管理员组"))
+            put("remark", JsonPrimitive("系统管理员用户组"))
+            put("active", JsonPrimitive(true))
+            put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("group_2"))
+            put("groupCode", JsonPrimitive("DEV_GROUP"))
+            put("groupName", JsonPrimitive("开发组"))
+            put("remark", JsonPrimitive("开发团队"))
+            put("active", JsonPrimitive(true))
+            put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("group_3"))
+            put("groupCode", JsonPrimitive("GUEST_GROUP"))
+            put("groupName", JsonPrimitive("访客组"))
+            put("remark", JsonPrimitive("只读访客"))
+            put("active", JsonPrimitive(false))
+            put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
+        },
+    )
+    var filtered = mockRows.filter { row ->
+        val rowCode = primitiveString(row, "groupCode").orEmpty()
+        val rowName = primitiveString(row, "groupName").orEmpty()
+        val rowActive = primitiveBoolean(row, "active")
+        (groupCode.isEmpty() || rowCode.contains(groupCode, ignoreCase = true)) &&
+            (groupName.isEmpty() || rowName.contains(groupName, ignoreCase = true)) &&
+            (active == null || rowActive == active)
+    }
+    filtered = applySort(filtered, sortPair.first, sortPair.second)
+    val total = filtered.size
+    val fromIndex = ((pageNo - 1) * pageSize).coerceAtLeast(0)
+    val toIndex = min(fromIndex + pageSize, total)
+    val pageRows = if (fromIndex >= total) emptyList<JsonObject>() else filtered.subList(fromIndex, toIndex)
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", buildJsonObject {
+            put("first", JsonArray(pageRows))
+            put("second", JsonPrimitive(total))
+        })
+    }
+    return response.toString()
+}
+
+/** Mock 组织列表树查询 searchTree：根据 subSysDictCode/tenantId（所选租户）及 active 返回不同树。 */
+private fun buildOrganizationSearchTreeResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
+    val activeOnly = parseOptionalBooleanParam(params, "active") == true // true = 仅启用
+    if (subSysDictCode == null) {
+        val emptyResponse = buildJsonObject {
+            put("code", JsonPrimitive(200))
+            put("data", JsonArray(emptyList<JsonObject>()))
+        }
+        return emptyResponse.toString()
+    }
+    fun node(id: String, name: String, abbr: String, orgType: String, seq: Int, active: Boolean, createTime: String, children: List<JsonObject>) = buildJsonObject {
+        put("id", JsonPrimitive(id))
+        put("name", JsonPrimitive(name))
+        put("abbrName", JsonPrimitive(abbr))
+        put("orgTypeDictCode", JsonPrimitive(orgType))
+        put("seqNo", JsonPrimitive(seq))
+        put("active", JsonPrimitive(active))
+        put("createTime", JsonPrimitive(createTime))
+        put("children", JsonArray(children))
+    }
+    val prefix = "org_${subSysDictCode}_${tenantId ?: "all"}_"
+    val (rootName, rootAbbr) = when {
+        subSysDictCode == "console" && tenantId == "t1" -> "总部(租户1)" to "租户1"
+        subSysDictCode == "console" && (tenantId == null || tenantId.isEmpty()) -> "总部(console)" to "console"
+        subSysDictCode == "service_a" && tenantId == "t2" -> "总部(租户2)" to "租户2"
+        subSysDictCode == "service_a" && (tenantId == null || tenantId.isEmpty()) -> "总部(service_a)" to "service_a"
+        else -> "总部($subSysDictCode${if (tenantId != null) "-$tenantId" else ""})" to (tenantId ?: subSysDictCode)
+    }
+    val c1 = node("${prefix}2", "研发部", "研发", "dept", 1, true, "2024-01-02 10:00:00", emptyList())
+    val c2 = node("${prefix}3", "市场部", "市场", "dept", 2, true, "2024-01-03 10:00:00", emptyList())
+    val c3 = node("${prefix}4", "已停用部门", "停用", "dept", 3, false, "2024-01-04 10:00:00", emptyList())
+    val root = node("${prefix}1", rootName, rootAbbr, "company", 0, true, "2024-01-01 10:00:00", listOf(c1, c2, c3))
+    fun filterByActiveOnly(obj: JsonObject): JsonObject? {
+        if (activeOnly) {
+            val a = primitiveBoolean(obj, "active") ?: return null
+            if (!a) return null
+        }
+        val rawChildren = obj["children"]?.jsonArray?.mapNotNull { e -> (e as? JsonObject)?.let { filterByActiveOnly(it) } }.orEmpty()
+        return buildJsonObject {
+            obj.forEach { (k, v) -> if (k != "children") put(k, v) }
+            put("children", JsonArray(rawChildren))
+        }
+    }
+    val filteredRoot = filterByActiveOnly(root)
+    val roots = if (filteredRoot != null) listOf(filteredRoot) else emptyList<JsonObject>()
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", JsonArray(roots))
+    }
+    return response.toString()
+}
+
 /** Mock 租户列表搜索：根据 name/subSysDictCode/active 筛选，排序分页。 */
 private fun buildTenantSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
@@ -1020,10 +1137,20 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildAccountSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/rbac/group/search", "/api/rbac/group/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildUserGroupSearchResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/user/organization/loadTree", "/api/user/organization/loadTree" -> {
             val subSys = request.url.parameters["subSysDictCode"]
             val tenant = request.url.parameters["tenantId"]
             val body = buildOrganizationLoadTreeResponse(subSys, tenant)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/user/organization/searchTree", "user/organization/searchTree", "/api/user/organization/searchTree" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildOrganizationSearchTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/dict/search", "/api/sys/dict/search" -> {
