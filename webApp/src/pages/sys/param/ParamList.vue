@@ -95,7 +95,7 @@
           @sort-change="handleSortChange"
         >
           <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('paramList.columns.paramName')"
             prop="paramName"
@@ -343,8 +343,10 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'paramList.operationColumnPinned';
 const PARAM_LIST_STATE_STORAGE_KEY = 'paramList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'paramList.visibleColumns';
 /** 可配置可见性的列（顺序列、备注列等）；paramName 固定左侧不参与 */
+const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['paramValue', 'defaultValue', 'module', 'seqNo', 'remark', 'active'];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
 
 export default defineComponent({
@@ -360,7 +362,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
-    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, ALL_COLUMN_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     listPage.loadAtomicServices();
     listPage.configureListStatePersistence(PARAM_LIST_STATE_STORAGE_KEY);
     listPage.configureTableMaxHeight();
@@ -376,9 +378,10 @@ export default defineComponent({
       remark: () => t('paramList.columns.remark'),
       active: () => t('paramList.columns.active'),
     };
-    const columnVisibilityOptions = computed(() =>
-      ALL_COLUMN_KEYS.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
-    );
+    const columnVisibilityOptions = computed(() => [
+      { key: INDEX_COLUMN_KEY, label: t('paramList.columns.index') },
+      ...ALL_COLUMN_KEYS.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
+    ]);
     const visibleColumnKeys = computed<string[]>({
       get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),

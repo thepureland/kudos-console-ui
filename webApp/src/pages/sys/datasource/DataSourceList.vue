@@ -107,7 +107,7 @@
           @sort-change="handleSortChange"
         >
           <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column :label="t('dataSourceList.columns.name')" prop="name" min-width="120" fixed="left" class-name="col-fixed-name" />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
@@ -397,8 +397,10 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'dataSourceList.operationColumnPinne
 const DATA_SOURCE_LIST_STATE_STORAGE_KEY = 'dataSourceList.queryState.v2';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'dataSourceList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'dataSourceList.columnOrder.v2';
+const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['subSysDictCode', 'tenantName', 'microservice', 'url', 'username', 'active'];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
 
 export default defineComponent({
   name: 'DataSourceList',
@@ -414,7 +416,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
-    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, ALL_COLUMN_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     listPage.configureListStatePersistence(DATA_SOURCE_LIST_STATE_STORAGE_KEY);
     listPage.configureTableMaxHeight();
     const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
@@ -511,9 +513,10 @@ export default defineComponent({
       username: () => t('dataSourceList.columns.username'),
       active: () => t('dataSourceList.columns.active'),
     };
-    const columnVisibilityOptions = computed(() =>
-      orderedColumnKeys.value.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
-    );
+    const columnVisibilityOptions = computed(() => [
+      { key: INDEX_COLUMN_KEY, label: t('dataSourceList.columns.index') },
+      ...orderedColumnKeys.value.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
+    ]);
     const columnDragKey = ref<string | null>(null);
     const columnDropTargetKey = ref<string | null>(null);
     function onHeaderDragStart(e: DragEvent, key: string) {

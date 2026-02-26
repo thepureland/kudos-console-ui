@@ -125,7 +125,7 @@
                 @sort-change="handleSortChange"
               >
                 <el-table-column type="selection" width="39" />
-                <el-table-column type="index" width="50" />
+                <el-table-column v-if="isColumnVisible('index')" type="index" width="50" />
                 <el-table-column
                   v-if="isColumnVisible('dictType')"
                   :label="t('dictList.columns.dictType')"
@@ -586,8 +586,10 @@ class ListPage extends BaseListPage {
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'dictList.operationColumnPinned';
 const DICT_LIST_STATE_STORAGE_KEY = 'dictList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'dictList.visibleColumns';
+const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['dictType', 'dictName', 'module', 'itemCode', 'itemName', 'parentCode', 'seqNo', 'active'];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
 
 export default defineComponent({
   name: 'DictList',
@@ -596,7 +598,7 @@ export default defineComponent({
     const { t } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
-    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, ALL_COLUMN_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     listPage.configureListStatePersistence(DICT_LIST_STATE_STORAGE_KEY);
     listPage.configureTableMaxHeight();
     const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
@@ -606,9 +608,10 @@ export default defineComponent({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),
     });
-    const columnVisibilityOptions = computed(() =>
-      ALL_COLUMN_KEYS.map((key) => ({ key, label: t('dictList.columns.' + key) }))
-    );
+    const columnVisibilityOptions = computed(() => [
+      { key: INDEX_COLUMN_KEY, label: t('dictList.columns.index') },
+      ...ALL_COLUMN_KEYS.map((key) => ({ key, label: t('dictList.columns.' + key) })),
+    ]);
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
     }

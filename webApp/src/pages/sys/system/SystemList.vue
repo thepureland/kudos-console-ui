@@ -39,6 +39,9 @@
           />
         </div>
         <div class="toolbar-extra">
+          <el-checkbox v-model="searchParams.subSystem" class="subsystem-only-checkbox" @change="search">
+            {{ t('systemList.actions.subSystemOnly') }}
+          </el-checkbox>
           <el-checkbox v-model="searchParams.active" class="active-only-checkbox" @change="search">
             {{ t('systemList.actions.activeOnly') }}
           </el-checkbox>
@@ -80,7 +83,7 @@
           @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('systemList.columns.code')"
             prop="code"
@@ -236,8 +239,10 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'systemList.operationColumnPinned';
 const SYSTEM_LIST_STATE_STORAGE_KEY = 'systemList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'systemList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'systemList.columnOrder';
+const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['subSystem', 'active', 'builtIn', 'remark'];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
 
 class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
@@ -251,6 +256,7 @@ class ListPage extends BaseListPage {
         code: null as string | null,
         name: null as string | null,
         active: true,
+        subSystem: false,
       },
     };
   }
@@ -269,6 +275,7 @@ class ListPage extends BaseListPage {
     params.code = sp.code ?? null;
     params.name = sp.name ?? null;
     params.active = sp.active === true ? true : null;
+    params.subSystem = sp.subSystem === true ? true : null;
     return params;
   }
 
@@ -284,7 +291,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
-    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, ALL_COLUMN_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     listPage.configureListStatePersistence(SYSTEM_LIST_STATE_STORAGE_KEY);
     listPage.configureTableMaxHeight();
     const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
@@ -324,12 +331,13 @@ export default defineComponent({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),
     });
-    const columnVisibilityOptions = computed(() =>
-      orderedColumnKeys.value.map((key) => ({
+    const columnVisibilityOptions = computed(() => [
+      { key: INDEX_COLUMN_KEY, label: t('systemList.columns.index') },
+      ...orderedColumnKeys.value.map((key) => ({
         key,
         label: t('systemList.columns.' + key),
-      }))
-    );
+      })),
+    ]);
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
     }
