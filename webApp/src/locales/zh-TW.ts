@@ -224,4 +224,14 @@ export default {
     columns: { username: '用戶名', subSys: '子系統', userStatus: '用戶狀態', userType: '用戶類型', lastLoginTime: '最後登入時間', createTime: '建立時間', operation: '操作' },
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
+  organizationList: {
+    placeholders: { subSysTenant: '子系統/租戶' },
+    columns: { name: '名稱', abbrName: '簡稱', orgType: '組織類型', seqNo: '排序', active: '啟用', createTime: '建立時間', operation: '操作' },
+    actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '展開操作欄', hideOperationColumn: '收起操作欄', showColumnPanel: '顯示欄位', hideColumnPanel: '隱藏欄位', columnVisibility: '欄位顯示' },
+  },
+  userGroupList: {
+    placeholders: { groupCode: '組編碼', groupName: '組名稱' },
+    columns: { groupCode: '組編碼', groupName: '組名稱', remark: '備註', active: '啟用', createTime: '建立時間', operation: '操作' },
+    actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
+  },
 };

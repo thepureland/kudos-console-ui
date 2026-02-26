@@ -1,126 +1,504 @@
 <!--
- * 组管理
+ * 组管理：ListPageLayout + 组编码/组名称/仅启用、列可见性（竖排）、操作列折角、列拖拽排序，mock 在 shared，国际化。
  *
  * @author: K
+ * @author: AI: Cursor
  * @since 1.0.0
  -->
-
-
 <template>
-  <div>
-    <el-breadcrumb separator="/">
-      <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
-      <el-breadcrumb-item>权限管理</el-breadcrumb-item>
-      <el-breadcrumb-item>组管理</el-breadcrumb-item>
-    </el-breadcrumb>
-
-    <el-card>
-      <el-row :gutter="20" class="toolbar">
-        <el-col :span="2">
-          <el-input v-model="searchParams.groupCode" placeholder="组编码" @change="search" clearable/>
-        </el-col>
-        <el-col :span="2">
-          <el-input v-model="searchParams.groupName" placeholder="组名称" @change="search" clearable/>
-        </el-col>
-
-        <el-col :span="2">
-          <el-checkbox v-model="searchParams.active" label="仅启用" class="el-input" checked/>
-        </el-col>
-
-        <el-col :span="14">
-          <el-button type="primary" round @click="search">搜索</el-button>
-          <el-button type="primary" round @click="resetSearchFields">重置</el-button>
-          <el-button type="success" @click="openAddDialog">添加</el-button>
-          <el-button type="danger" @click="multiDelete">删除</el-button>
-        </el-col>
-      </el-row>
-
-      <div ref="tableWrapRef">
-      <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
-                :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
-        <el-table-column type="selection" width="39"/>
-        <el-table-column type="index" width="50"/>
-        <el-table-column label="组编码" prop="groupCode"/>
-        <el-table-column label="组名称" prop="groupName"/>
-        <el-table-column label="备注" prop="remark"/>
-        <el-table-column label="启用">
-          <template #default="scope">
-            <el-switch v-model="scope.row.active" :active-value=true :inactive-value=false
-                       @change="updateActive(scope.row)"/>
+  <div class="user-group-list-page list-page-common">
+    <list-page-layout
+      :table-wrap-ref="listLayoutRefs.tableWrapRef"
+      :list-page="listPage"
+      :operation-column-storage-key="OPERATION_COLUMN_PINNED_STORAGE_KEY"
+      :column-panel-show-text="t('userGroupList.actions.showColumnPanel')"
+      :column-panel-hide-text="t('userGroupList.actions.hideColumnPanel')"
+      :operation-column-show-text="t('userGroupList.actions.showOperationColumn')"
+      :operation-column-hide-text="t('userGroupList.actions.hideOperationColumn')"
+      @table-wrap-mounted="onTableWrapMounted"
+    >
+      <template #toolbar>
+        <div class="toolbar-cell toolbar-name">
+          <el-input
+            v-model="searchParams.groupCode"
+            :placeholder="t('userGroupList.placeholders.groupCode')"
+            clearable
+            class="search-name-input"
+            @keyup="(e) => e.key === 'Enter' && search()"
+            @change="search"
+          />
+        </div>
+        <div class="toolbar-cell toolbar-name">
+          <el-input
+            v-model="searchParams.groupName"
+            :placeholder="t('userGroupList.placeholders.groupName')"
+            clearable
+            class="search-name-input"
+            @keyup="(e) => e.key === 'Enter' && search()"
+            @change="search"
+          />
+        </div>
+        <div class="toolbar-extra">
+          <el-checkbox v-model="searchParams.active" class="active-only-checkbox" @change="search">
+            {{ t('userGroupList.actions.activeOnly') }}
+          </el-checkbox>
+        </div>
+        <div class="toolbar-buttons">
+          <el-button type="primary" round @click="search">{{ t('userGroupList.actions.search') }}</el-button>
+          <el-button type="primary" round @click="resetSearchFields">{{ t('userGroupList.actions.reset') }}</el-button>
+          <el-button type="success" @click="openAddDialog">{{ t('userGroupList.actions.add') }}</el-button>
+          <el-button type="danger" @click="multiDelete">{{ t('userGroupList.actions.delete') }}</el-button>
+        </div>
+      </template>
+      <template #columnVisibilityPanel>
+        <div class="column-visibility-title">{{ t('userGroupList.actions.columnVisibility') }}</div>
+        <el-checkbox-group v-model="visibleColumnKeys" class="column-visibility-checkboxes">
+          <el-checkbox
+            v-for="item in columnVisibilityOptions"
+            :key="item.key"
+            :value="item.key"
+          >
+            {{ item.label }}
+          </el-checkbox>
+        </el-checkbox-group>
+      </template>
+      <div
+        class="table-drag-drop-zone"
+        @dragover="onTableDragOver"
+        @drop="onTableDrop"
+      >
+        <el-table
+          ref="tableRef"
+          border
+          stripe
+          :data="tableData"
+          :max-height="tableMaxHeight"
+          :header-cell-style="{ textAlign: 'center' }"
+          @selection-change="handleSelectionChange"
+          @sort-change="handleSortChange"
+        >
+          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column
+            :label="t('userGroupList.columns.groupCode')"
+            prop="groupCode"
+            min-width="120"
+            sortable="custom"
+            fixed="left"
+            class-name="col-fixed-name"
+          />
+          <template v-for="key in orderedColumnKeys" :key="key">
+            <el-table-column
+              v-if="key === 'groupName' && isColumnVisible('groupName')"
+              prop="groupName"
+              min-width="120"
+              sortable="custom"
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="groupName"
+                  :class="{ 'is-dragging': columnDragKey === 'groupName', 'is-drop-target': columnDropTargetKey === 'groupName' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'groupName')"
+                  @dragover="onHeaderDragOver($event, 'groupName')"
+                  @drop="onHeaderDrop($event, 'groupName')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('userGroupList.columns.groupName') }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-else-if="key === 'remark' && isColumnVisible('remark')"
+              prop="remark"
+              min-width="140"
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="remark"
+                  :class="{ 'is-dragging': columnDragKey === 'remark', 'is-drop-target': columnDropTargetKey === 'remark' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'remark')"
+                  @dragover="onHeaderDragOver($event, 'remark')"
+                  @drop="onHeaderDrop($event, 'remark')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('userGroupList.columns.remark') }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-else-if="key === 'active' && isColumnVisible('active')"
+              prop="active"
+              width="80"
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="active"
+                  :class="{ 'is-dragging': columnDragKey === 'active', 'is-drop-target': columnDropTargetKey === 'active' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'active')"
+                  @dragover="onHeaderDragOver($event, 'active')"
+                  @drop="onHeaderDrop($event, 'active')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('userGroupList.columns.active') }}</div>
+              </template>
+              <template #default="scope">
+                <el-switch
+                  v-model="scope.row.active"
+                  :active-value="true"
+                  :inactive-value="false"
+                  @change="updateActive(scope.row)"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-else-if="key === 'createTime' && isColumnVisible('createTime')"
+              prop="createTime"
+              min-width="160"
+              sortable="custom"
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="createTime"
+                  :class="{ 'is-dragging': columnDragKey === 'createTime', 'is-drop-target': columnDropTargetKey === 'createTime' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'createTime')"
+                  @dragover="onHeaderDragOver($event, 'createTime')"
+                  @drop="onHeaderDrop($event, 'createTime')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('userGroupList.columns.createTime') }}</div>
+              </template>
+              <template #default="scope">
+                {{ formatDate(scope.row.createTime) }}
+              </template>
+            </el-table-column>
           </template>
-        </el-table-column>
-        <el-table-column label="创建时间">
-          <template #default="scope">
-            {{ formatDate(scope.row.createTime) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center">
-          <template #default="scope">
-            <edit @click="handleEdit(scope.row)" class="operate-column-icon"/>
-            <delete @click="handleDelete(scope.row)" class="operate-column-icon"/>
-            <tickets @click="handleDetail(scope.row)" class="operate-column-icon"/>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column
+            v-if="showOperationColumn"
+            :label="t('userGroupList.columns.operation')"
+            align="center"
+            fixed="right"
+            width="140"
+            class-name="operation-column"
+            label-class-name="operation-column"
+          >
+            <template #header>
+              <div class="operation-column-hover-area">{{ t('userGroupList.columns.operation') }}</div>
+            </template>
+            <template #default="scope">
+              <div class="operation-column-hover-area">
+                <el-tooltip :content="t('userGroupList.actions.edit')" placement="top">
+                  <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
+                    <Edit />
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip :content="t('userGroupList.actions.delete')" placement="top">
+                  <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
+                    <Delete />
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip :content="t('userGroupList.actions.detail')" placement="top">
+                  <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
+                    <Tickets />
+                  </el-icon>
+                </el-tooltip>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
+      <template #pagination>
+        <el-pagination
+          :ref="(el: unknown) => { listLayoutRefs.paginationRef.value = el as HTMLElement | null; }"
+          class="pagination-right"
+          :current-page="pagination.pageNo"
+          :page-size="pagination.pageSize"
+          :total="pagination.total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </template>
+    </list-page-layout>
 
-      <el-pagination ref="paginationRef" @size-change="handleSizeChange" @current-change="handleCurrentChange"
-                     :current-page="pagination.pageNo" :page-size="pagination.pageSize"
-                     layout="total, sizes, prev, pager, next, jumper" :total="pagination.total"/>
-
-    </el-card>
-
-    <user-group-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd"/>
-    <user-group-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid"/>
-    <user-group-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid"/>
-
+    <user-group-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
+    <user-group-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
+    <user-group-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 
-<script lang='ts'>
-import { defineComponent, reactive, toRefs } from 'vue';
+<script lang="ts">
+import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
+import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
 import UserGroupAddEdit from './UserGroupAddEdit.vue';
 import UserGroupDetail from './UserGroupDetail.vue';
+import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
 
-class ListPage extends BaseListPage {
+const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'userGroupList.operationColumnPinned';
+const USER_GROUP_LIST_STATE_STORAGE_KEY = 'userGroupList.queryState';
+const COLUMN_VISIBILITY_STORAGE_KEY = 'userGroupList.visibleColumns';
+const COLUMN_ORDER_STORAGE_KEY = 'userGroupList.columnOrder';
+const ALL_COLUMN_KEYS = ['groupName', 'remark', 'active', 'createTime'];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
-  constructor(props, context) {
-    super(props, context)
+class ListPage extends BaseListPage {
+  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    super(props, context);
+    this.convertThis();
   }
 
-  protected initState(): any {
+  protected initState(): Record<string, unknown> {
     return {
       searchParams: {
-        groupCode: null,
-        groupName: null,
+        groupCode: null as string | null,
+        groupName: null as string | null,
+        active: true,
       },
+    };
+  }
+
+  protected getRootActionPath(): string {
+    return 'rbac/group';
+  }
+
+  /** 仅当勾选「仅启用」时传 active=true；不勾选时传 null */
+  protected createSearchParams(): Record<string, unknown> | null {
+    const params = super.createSearchParams();
+    if (params && this.state.searchParams) {
+      const sp = this.state.searchParams as Record<string, unknown>;
+      (params as Record<string, unknown>).active = sp.active === true ? true : null;
     }
+    return params;
   }
-
-  protected getRootActionPath(): String {
-    return "rbac/group"
-  }
-
 }
 
 export default defineComponent({
-  name: "~index",
-  components: {UserGroupAddEdit, UserGroupDetail},
-  setup(props, context) {
-    const listPage = reactive(new ListPage(props, context));
-    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
+  name: 'UserGroupList',
+  components: { UserGroupAddEdit, UserGroupDetail, ListPageLayout, Edit, Delete, Tickets },
+  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    const { t } = useI18n();
+    const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
+    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, ALL_COLUMN_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    listPage.configureListStatePersistence(USER_GROUP_LIST_STATE_STORAGE_KEY);
+    listPage.configureTableMaxHeight();
+    const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
+    const listLayoutRefs = { tableWrapRef, paginationRef };
+    const tableRef = ref<{ doLayout?: () => void } | null>(null);
+
+    function loadColumnOrder(): string[] {
+      if (typeof window === 'undefined') return [...ALL_COLUMN_KEYS];
+      try {
+        const raw = window.localStorage.getItem(COLUMN_ORDER_STORAGE_KEY);
+        if (!raw) return [...ALL_COLUMN_KEYS];
+        const parsed = JSON.parse(raw) as unknown;
+        if (!Array.isArray(parsed)) return [...ALL_COLUMN_KEYS];
+        const set = new Set(ALL_COLUMN_KEYS);
+        const ordered = (parsed as string[]).filter((k) => set.has(k));
+        const missing = ALL_COLUMN_KEYS.filter((k) => !ordered.includes(k));
+        return ordered.length ? [...ordered, ...missing] : [...ALL_COLUMN_KEYS];
+      } catch {
+        return [...ALL_COLUMN_KEYS];
+      }
+    }
+    function saveColumnOrder(order: string[]) {
+      if (typeof window === 'undefined') return;
+      window.localStorage.setItem(COLUMN_ORDER_STORAGE_KEY, JSON.stringify(order));
+    }
+    const columnOrder = ref<string[]>(loadColumnOrder());
+    const orderedColumnKeys = computed(() => {
+      const order = columnOrder.value;
+      if (!order.length) return [...ALL_COLUMN_KEYS];
+      const set = new Set(ALL_COLUMN_KEYS);
+      const ordered = order.filter((k) => set.has(k));
+      const missing = ALL_COLUMN_KEYS.filter((k) => !ordered.includes(k));
+      return ordered.length ? [...ordered, ...missing] : [...ALL_COLUMN_KEYS];
+    });
+
+    const visibleColumnKeys = computed<string[]>({
+      get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
+      set: (next) => listPage.applyVisibleColumns(next),
+    });
+    const columnVisibilityOptions = computed(() =>
+      orderedColumnKeys.value.map((key) => ({
+        key,
+        label: t('userGroupList.columns.' + key),
+      }))
+    );
+    function isColumnVisible(key: string): boolean {
+      return listPage.isColumnVisible(key);
+    }
+    const showOperationColumn = computed(() => Boolean(listPage.state?.showOperationColumn));
+
+    const columnDragKey = ref<string | null>(null);
+    const columnDropTargetKey = ref<string | null>(null);
+    function onHeaderDragStart(e: DragEvent, key: string) {
+      columnDragKey.value = key;
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    }
+    function onHeaderDragOver(e: DragEvent, toKey: string) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      columnDropTargetKey.value = toKey;
+    }
+    function applyColumnDrop(toKey: string) {
+      const fromKey = columnDragKey.value;
+      columnDragKey.value = null;
+      columnDropTargetKey.value = null;
+      if (!fromKey || fromKey === toKey) return;
+      const order = [...orderedColumnKeys.value];
+      const fromIndex = order.indexOf(fromKey);
+      const toIndex = order.indexOf(toKey);
+      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
+      const [removed] = order.splice(fromIndex, 1);
+      order.splice(toIndex, 0, removed);
+      columnOrder.value = order;
+      saveColumnOrder(order);
+    }
+    function onHeaderDrop(e: DragEvent, toKey: string) {
+      e.preventDefault();
+      e.stopPropagation();
+      applyColumnDrop(toKey);
+    }
+    function onTableDragOver(e: DragEvent) {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      const keyEl = (e.target as HTMLElement)?.closest?.('[data-column-key]');
+      if (keyEl) columnDropTargetKey.value = keyEl.getAttribute('data-column-key');
+    }
+    function onTableDrop(e: DragEvent) {
+      e.preventDefault();
+      e.stopPropagation();
+      const keyEl = (e.target as HTMLElement)?.closest?.('[data-column-key]');
+      const toKey = keyEl?.getAttribute('data-column-key') ?? columnDropTargetKey.value;
+      if (toKey) applyColumnDrop(toKey);
+    }
+    function onHeaderDragEnd() {
+      columnDragKey.value = null;
+      columnDropTargetKey.value = null;
+    }
+
+    function onTableWrapMounted() {
+      nextTick(updateTableMaxHeight);
+    }
+
+    onMounted(() => {
+      listPage.restorePersistedListState();
+    });
+    watch(
+      () => [
+        listPage.state.searchParams,
+        listPage.state.sort,
+        listPage.state.pagination,
+        listPage.state.tableData,
+      ],
+      () => {
+        listPage.persistListState();
+        nextTick(updateTableMaxHeight);
+      },
+      { deep: true }
+    );
+
     return {
+      listPage,
+      OPERATION_COLUMN_PINNED_STORAGE_KEY,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
-      tableWrapRef,
-      paginationRef,
+      t,
+      listLayoutRefs,
+      tableRef,
+      visibleColumnKeys,
+      columnVisibilityOptions,
+      isColumnVisible,
+      orderedColumnKeys,
+      columnDragKey,
+      columnDropTargetKey,
+      onHeaderDragStart,
+      onHeaderDragOver,
+      onHeaderDrop,
+      onHeaderDragEnd,
+      onTableDragOver,
+      onTableDrop,
+      showOperationColumn,
+      onTableWrapMounted,
     };
   },
-})
+});
 </script>
 
-<style lang='css' scoped>
+<style lang="css" scoped>
+.user-group-list-page {
+  height: 100%;
+}
+.user-group-list-page .list-page-toolbar .toolbar-name {
+  margin-right: 8px;
+}
+.user-group-list-page .list-page-toolbar .toolbar-name .search-name-input {
+  min-width: 140px;
+}
+.user-group-list-page .list-page-toolbar .toolbar-extra {
+  margin-right: 8px;
+}
+.user-group-list-page :deep(.pagination-right) {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
 
+/* 列头排序图标与文字同一行，不独占一行 */
+.user-group-list-page :deep(.el-table thead th .cell) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.user-group-list-page :deep(.el-table thead th .el-table__column-sort),
+.user-group-list-page :deep(.el-table thead th .caret-wrapper) {
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+/* 列可见性配置：所有列选项单列竖排 */
+.user-group-list-page .column-visibility-checkboxes {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.user-group-list-page .column-visibility-checkboxes :deep(.el-checkbox) {
+  margin-right: 0;
+}
+
+/* 非固定列表头可拖拽排序 */
+.user-group-list-page :deep(.column-header-draggable) {
+  cursor: grab;
+  user-select: none;
+  width: 100%;
+  display: inline-block;
+  transition: background-color 0.15s, opacity 0.15s, box-shadow 0.15s;
+}
+.user-group-list-page :deep(.column-header-draggable:active) {
+  cursor: grabbing;
+}
+.user-group-list-page :deep(.column-header-draggable.is-dragging) {
+  opacity: 0.7;
+  background-color: var(--el-fill-color-light);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.user-group-list-page :deep(.column-header-draggable.is-drop-target) {
+  background-color: var(--el-color-primary-light-9);
+  box-shadow: inset 4px 0 0 var(--el-color-primary);
+}
+.user-group-list-page :deep(th .cell:has(.column-header-draggable)) {
+  font-size: 0;
+}
+.user-group-list-page :deep(th .cell:has(.column-header-draggable) .column-header-draggable) {
+  font-size: 14px;
+}
 </style>
