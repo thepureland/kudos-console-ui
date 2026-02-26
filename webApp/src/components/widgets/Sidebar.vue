@@ -177,6 +177,7 @@ function getFallbackMenus(): MenuItem[] {
             { index: '/sys/dict', title: '字典管理', titleKey: 'menu.sysDict', icon: iconMap.Collection },
             { index: '/sys/param', title: '参数配置', titleKey: 'menu.sysParam', icon: iconMap.Document },
             { index: '/sys/domain', title: '域名', titleKey: 'menu.sysDomain', icon: iconMap.Document },
+            { index: '/sys/tenant', title: '租户', titleKey: 'menu.sysTenant', icon: iconMap.Document },
           ],
         },
         { index: '/sys/subsys', title: '子系统', titleKey: 'menu.sysSubsys', icon: iconMap.Document },

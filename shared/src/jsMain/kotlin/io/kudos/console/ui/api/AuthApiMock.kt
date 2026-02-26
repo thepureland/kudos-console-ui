@@ -523,6 +523,168 @@ private fun parseSortParamWithAllowed(params: JsonObject, allowed: Set<String>):
     return if (directionValue == "DESC") propertyValue to "DESC" else propertyValue to "ASC"
 }
 
+private data class TenantSearchParams(
+    val name: String,
+    val subSysDictCode: String?,
+    val active: Boolean?,
+    val pageNo: Int,
+    val pageSize: Int,
+    val orderProperty: String?,
+    val orderDirection: String,
+)
+
+private val TENANT_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
+    "name", "subSysDictCode", "active", "createTime",
+)
+
+/** Mock 账号列表搜索：根据 username/subSysDictCode/tenantId/organizationId 筛选，排序分页。 */
+private fun buildAccountSearchResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val username = parseOptionalStringParam(params, "username")?.trim() ?: ""
+    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
+    val organizationId = primitiveString(params, "organizationId")?.takeIf { it.isNotBlank() }
+    val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
+    val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, MAX_PAGE_SIZE)
+    val sortPair = parseSortParamWithAllowed(params, setOf("username", "createTime", "lastLoginTime"))
+    val mockRows = listOf(
+        buildJsonObject {
+            put("id", JsonPrimitive("acc_1"))
+            put("username", JsonPrimitive("admin"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("organizationId", JsonPrimitive("org_1"))
+            put("userStatusDictCode", JsonPrimitive("NORMAL"))
+            put("userTypeDictCode", JsonPrimitive("ADMIN"))
+            put("lastLoginTime", JsonPrimitive("2024-02-01 09:00:00"))
+            put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("acc_2"))
+            put("username", JsonPrimitive("user1"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("organizationId", JsonPrimitive("org_2"))
+            put("userStatusDictCode", JsonPrimitive("NORMAL"))
+            put("userTypeDictCode", JsonPrimitive("USER"))
+            put("lastLoginTime", JsonNull)
+            put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("acc_3"))
+            put("username", JsonPrimitive("user2"))
+            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("organizationId", JsonPrimitive("org_3"))
+            put("userStatusDictCode", JsonPrimitive("LOCKED"))
+            put("userTypeDictCode", JsonPrimitive("USER"))
+            put("lastLoginTime", JsonPrimitive("2024-01-15 14:00:00"))
+            put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
+        },
+    )
+    var filtered = mockRows.filter { row ->
+        val rowUsername = primitiveString(row, "username").orEmpty()
+        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowOrgId = primitiveString(row, "organizationId").orEmpty()
+        (username.isEmpty() || rowUsername.contains(username, ignoreCase = true)) &&
+            (subSysDictCode == null || subSysDictCode == rowSubSys) &&
+            (tenantId == null || true) &&
+            (organizationId == null || organizationId == rowOrgId)
+    }
+    filtered = applySort(filtered, sortPair.first, sortPair.second)
+    val total = filtered.size
+    val fromIndex = ((pageNo - 1) * pageSize).coerceAtLeast(0)
+    val toIndex = min(fromIndex + pageSize, total)
+    val pageRows = if (fromIndex >= total) emptyList<JsonObject>() else filtered.subList(fromIndex, toIndex)
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", buildJsonObject {
+            put("first", JsonArray(pageRows))
+            put("second", JsonPrimitive(total))
+        })
+    }
+    return response.toString()
+}
+
+/** Mock 组织机构树：返回 id/name/children 结构。 */
+private fun buildOrganizationLoadTreeResponse(subSysDictCode: String?, tenantId: String?): String {
+    val nodes = listOf(
+        buildJsonObject {
+            put("id", JsonPrimitive("org_1"))
+            put("name", JsonPrimitive("总部"))
+            put("children", JsonArray(listOf(
+                buildJsonObject {
+                    put("id", JsonPrimitive("org_2"))
+                    put("name", JsonPrimitive("研发部"))
+                    put("children", JsonArray(emptyList()))
+                },
+                buildJsonObject {
+                    put("id", JsonPrimitive("org_3"))
+                    put("name", JsonPrimitive("市场部"))
+                    put("children", JsonArray(emptyList()))
+                },
+            )))
+        },
+    )
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", JsonArray(nodes))
+    }
+    return response.toString()
+}
+
+/** Mock 租户列表搜索：根据 name/subSysDictCode/active 筛选，排序分页。 */
+private fun buildTenantSearchResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val name = parseOptionalStringParam(params, "name")?.trim() ?: ""
+    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val active = parseOptionalBooleanParam(params, "active")
+    val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
+    val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, MAX_PAGE_SIZE)
+    val sortPair = parseSortParamWithAllowed(params, TENANT_SEARCH_ALLOWED_SORT_PROPERTIES)
+    val mockRows = listOf(
+        buildJsonObject {
+            put("id", JsonPrimitive("tenant_1"))
+            put("name", JsonPrimitive("默认租户"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("active", JsonPrimitive(true))
+            put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("tenant_2"))
+            put("name", JsonPrimitive("租户A"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("active", JsonPrimitive(true))
+            put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("tenant_3"))
+            put("name", JsonPrimitive("租户B"))
+            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("active", JsonPrimitive(false))
+            put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
+        },
+    )
+    var filtered = mockRows.filter { row ->
+        val rowName = primitiveString(row, "name").orEmpty()
+        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowActive = primitiveBoolean(row, "active")
+        (name.isEmpty() || rowName.contains(name, ignoreCase = true)) &&
+            (subSysDictCode == null || subSysDictCode == rowSubSys) &&
+            (active == null || rowActive == active)
+    }
+    filtered = applySort(filtered, sortPair.first, sortPair.second)
+    val total = filtered.size
+    val fromIndex = ((pageNo - 1) * pageSize).coerceAtLeast(0)
+    val toIndex = min(fromIndex + pageSize, total)
+    val pageRows = if (fromIndex >= total) emptyList<JsonObject>() else filtered.subList(fromIndex, toIndex)
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", buildJsonObject {
+            put("first", JsonArray(pageRows))
+            put("second", JsonPrimitive(total))
+        })
+    }
+    return response.toString()
+}
+
 /** Mock 域名列表搜索：根据 domain/subSysDictCode/tenantId/active 筛选，排序分页。 */
 private fun buildDomainSearchResponse(requestJson: String): String {
     val params = parseDomainSearchParams(parseJsonObjectOrEmpty(requestJson))
@@ -698,6 +860,78 @@ private fun buildResourceLoadTreeNodesResponse(requestJson: String): String {
     return response.toString()
 }
 
+/** 预置字典项 mock：module---dictType -> code->name。前端 batchGetDictItemMap 用 "[module, dictType]" 作 key。 */
+private val MOCK_DICT_ITEM_MAP = mapOf(
+    "kuark:sys---sub_sys" to mapOf(
+        "console" to "控制台",
+        "service_a" to "服务A",
+    ),
+    "kuark:sys---resource_type" to mapOf(
+        "menu" to "菜单",
+        "button" to "按钮",
+    ),
+    "kuark:sys---cache_strategy" to mapOf(
+        "LOCAL_REMOTE" to "LOCAL_REMOTE",
+        "SINGLE_LOCAL" to "SINGLE_LOCAL",
+        "REMOTE" to "REMOTE",
+    ),
+    "kuark:sys---module" to mapOf(
+        "kuark:sys" to "系统",
+        "kuark:user" to "用户",
+    ),
+    "kuark:user---user_status" to mapOf(
+        "NORMAL" to "正常",
+        "LOCKED" to "锁定",
+        "DISABLED" to "禁用",
+    ),
+    "kuark:user---user_type" to mapOf(
+        "ADMIN" to "管理员",
+        "USER" to "普通用户",
+    ),
+)
+
+/** 从请求 body 解析出 params 数组：支持直接数组或 { params: [...] } */
+private fun parseBatchGetDictItemParams(requestJson: String): List<Pair<String, String>> {
+    if (requestJson.isBlank()) return listOf(Pair("kuark:sys", "sub_sys"))
+    val element = runCatching { json.parseToJsonElement(requestJson) }.getOrNull() ?: return listOf(Pair("kuark:sys", "sub_sys"))
+    val arr = when (element) {
+        is JsonArray -> element
+        is JsonObject -> element["params"] as? JsonArray ?: return listOf(Pair("kuark:sys", "sub_sys"))
+        else -> return listOf(Pair("kuark:sys", "sub_sys"))
+    }
+    val list = mutableListOf<Pair<String, String>>()
+    for (e in arr) {
+        if (e !is JsonObject) continue
+        val module = primitiveString(e, "module").orEmpty()
+        val dictType = primitiveString(e, "dictType").orEmpty()
+        if (dictType.isNotEmpty()) list.add(Pair(module, dictType))
+    }
+    if (list.isEmpty()) list.add(Pair("kuark:sys", "sub_sys"))
+    return list
+}
+
+/** Mock 批量获取字典项：请求 body 为 [{ module, dictType }, ...] 或 { params: [...] }，返回 data: { "[module, dictType]": { "code": "name", ... }, ... } */
+private fun buildBatchGetDictItemMapResponse(requestJson: String): String {
+    val params = parseBatchGetDictItemParams(requestJson)
+    val dataObj = buildJsonObject {
+        for ((module, dictType) in params) {
+            val cacheKey = "$module---$dictType"
+            val items = MOCK_DICT_ITEM_MAP[cacheKey] ?: emptyMap()
+            val mapObj = buildJsonObject {
+                for ((code, name) in items) {
+                    put(code, JsonPrimitive(name))
+                }
+            }
+            put("[$module, $dictType]", mapObj)
+        }
+    }
+    val body = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", dataObj)
+    }.toString()
+    return body
+}
+
 // Responds using JSON fixtures loaded into MockJsonStore at build time.
 internal fun createMockEngine(): MockEngine = MockEngine { request ->
     val path = request.url.encodedPath
@@ -769,6 +1003,27 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/sys/domain/search", "/api/sys/domain/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDomainSearchResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/dictItem/batchGetDictItemMap", "/api/sys/dictItem/batchGetDictItemMap" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildBatchGetDictItemMapResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/tenant/search", "/api/sys/tenant/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildTenantSearchResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/user/account/search", "/api/user/account/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildAccountSearchResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/user/organization/loadTree", "/api/user/organization/loadTree" -> {
+            val subSys = request.url.parameters["subSysDictCode"]
+            val tenant = request.url.parameters["tenantId"]
+            val body = buildOrganizationLoadTreeResponse(subSys, tenant)
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/dict/search", "/api/sys/dict/search" -> {

@@ -27,6 +27,7 @@ export default {
     sysDict: '字典管理',
     sysParam: '參數配置',
     sysDomain: '域名',
+    sysTenant: '租戶',
     sysSubsys: '子系統',
     sysMicroservice: '微服務',
     sysDatasource: '資料源',
@@ -49,6 +50,7 @@ export default {
     sysDict: '字典管理',
     sysParam: '參數配置',
     sysDomain: '域名',
+    sysTenant: '租戶',
     sysSubsys: '子系統',
     sysMicroservice: '微服務',
     sysDatasource: '資料源',
@@ -211,5 +213,15 @@ export default {
     placeholders: { domain: '域名', subSysTenant: '子系統/租戶' },
     columns: { domain: '域名', subSys: '子系統', tenant: '租戶', active: '啟用', remark: '備註', createTime: '建立時間', operation: '操作' },
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
+  },
+  tenantList: {
+    placeholders: { name: '租戶名稱', subSys: '子系統' },
+    columns: { name: '租戶名稱', subSys: '子系統', active: '啟用', createTime: '建立時間', operation: '操作' },
+    actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
+  },
+  accountList: {
+    placeholders: { username: '用戶名', subSysTenant: '子系統/租戶' },
+    columns: { username: '用戶名', subSys: '子系統', userStatus: '用戶狀態', userType: '用戶類型', lastLoginTime: '最後登入時間', createTime: '建立時間', operation: '操作' },
+    actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
 };

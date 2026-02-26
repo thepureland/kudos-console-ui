@@ -27,6 +27,7 @@ export default {
     sysDict: 'Dictionary',
     sysParam: 'Parameters',
     sysDomain: 'Domain',
+    sysTenant: 'Tenant',
     sysSubsys: 'Subsystems',
     sysMicroservice: 'Microservices',
     sysDatasource: 'Data Sources',
@@ -49,6 +50,7 @@ export default {
     sysDict: 'Dictionary',
     sysParam: 'Parameters',
     sysDomain: 'Domain',
+    sysTenant: 'Tenant',
     sysSubsys: 'Subsystems',
     sysMicroservice: 'Microservices',
     sysDatasource: 'Data Sources',
@@ -211,5 +213,15 @@ export default {
     placeholders: { domain: 'Domain', subSysTenant: 'Subsystem/Tenant' },
     columns: { domain: 'Domain', subSys: 'Subsystem', tenant: 'Tenant', active: 'Active', remark: 'Remark', createTime: 'Create Time', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+  },
+  tenantList: {
+    placeholders: { name: 'Tenant Name', subSys: 'Subsystem' },
+    columns: { name: 'Tenant Name', subSys: 'Subsystem', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+  },
+  accountList: {
+    placeholders: { username: 'Username', subSysTenant: 'Subsystem / Tenant' },
+    columns: { username: 'Username', subSys: 'Subsystem', userStatus: 'User Status', userType: 'User Type', lastLoginTime: 'Last Login', createTime: 'Create Time', operation: 'Operation' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
 };

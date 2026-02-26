@@ -620,7 +620,6 @@ export default defineComponent({
     onMounted(() => {
       listPage.restorePersistedListState();
     });
-
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,

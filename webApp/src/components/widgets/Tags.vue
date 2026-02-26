@@ -221,6 +221,7 @@ const pathToIcon: Record<string, string> = {
   '/sys/dict': 'Collection',
   '/sys/param': 'Document',
   '/sys/domain': 'Document',
+  '/sys/tenant': 'Document',
   '/sys/subsys': 'Document',
   '/sys/microservice': 'Setting',
   '/sys/datasource': 'Collection',
@@ -232,11 +233,16 @@ const pathToIcon: Record<string, string> = {
   '/rbac/group': 'User',
 };
 
-/** 标签关闭时清理页面数据状态持久化（保留列可见性与操作列显隐相关 key） */
+/** 标签关闭时清理该页的列表查询态，使「关闭后重新打开」回到初始状态；切换标签不关闭故保留状态 */
 const PERSISTED_STATE_KEYS_BY_PATH: Record<string, string[]> = {
   '/sys/cache': ['cacheList.queryState'],
+  '/sys/dict': ['dictList.queryState'],
+  '/sys/param': ['paramList.queryState'],
   '/sys/domain': ['domainList.queryState'],
-  '/sys/datasource': ['dataSourceList.queryState'],
+  '/sys/tenant': ['tenantList.queryState'],
+  '/sys/datasource': ['dataSourceList.queryState.v2'],
+  '/sys/resource': ['resourceList.queryState'],
+  '/user/account': ['accountList.queryState'],
 };
 
 function clearPersistedStateByPath(path: string) {
