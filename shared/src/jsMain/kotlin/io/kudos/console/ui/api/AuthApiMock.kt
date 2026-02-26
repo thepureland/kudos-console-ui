@@ -630,6 +630,80 @@ private fun buildOrganizationLoadTreeResponse(subSysDictCode: String?, tenantId:
     return response.toString()
 }
 
+private val ROLE_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
+    "roleCode", "roleName", "subSysDictCode", "active", "createTime",
+)
+
+/** Mock 角色列表搜索：根据 subSysDictCode/tenantId/roleCode/roleName/active 筛选，排序分页。 */
+private fun buildRoleSearchResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
+    val roleCode = parseOptionalStringParam(params, "roleCode")?.trim() ?: ""
+    val roleName = parseOptionalStringParam(params, "roleName")?.trim() ?: ""
+    val active = parseOptionalBooleanParam(params, "active")
+    val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
+    val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, MAX_PAGE_SIZE)
+    val sortPair = parseSortParamWithAllowed(params, ROLE_SEARCH_ALLOWED_SORT_PROPERTIES)
+    val mockRows = listOf(
+        buildJsonObject {
+            put("id", JsonPrimitive("role_1"))
+            put("roleCode", JsonPrimitive("ADMIN"))
+            put("roleName", JsonPrimitive("管理员"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("tenantId", JsonNull)
+            put("remark", JsonPrimitive("系统管理员角色"))
+            put("active", JsonPrimitive(true))
+            put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("role_2"))
+            put("roleCode", JsonPrimitive("USER"))
+            put("roleName", JsonPrimitive("普通用户"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("tenantId", JsonPrimitive("t1"))
+            put("remark", JsonPrimitive("租户普通用户"))
+            put("active", JsonPrimitive(true))
+            put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("role_3"))
+            put("roleCode", JsonPrimitive("GUEST"))
+            put("roleName", JsonPrimitive("访客"))
+            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("tenantId", JsonNull)
+            put("remark", JsonPrimitive("只读访客"))
+            put("active", JsonPrimitive(false))
+            put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
+        },
+    )
+    var filtered = mockRows.filter { row ->
+        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowTenantId = primitiveString(row, "tenantId").orEmpty()
+        val rowCode = primitiveString(row, "roleCode").orEmpty()
+        val rowName = primitiveString(row, "roleName").orEmpty()
+        val rowActive = primitiveBoolean(row, "active")
+        (subSysDictCode == null || subSysDictCode == rowSubSys) &&
+            (tenantId == null || tenantId == rowTenantId) &&
+            (roleCode.isEmpty() || rowCode.contains(roleCode, ignoreCase = true)) &&
+            (roleName.isEmpty() || rowName.contains(roleName, ignoreCase = true)) &&
+            (active == null || rowActive == active)
+    }
+    filtered = applySort(filtered, sortPair.first, sortPair.second)
+    val total = filtered.size
+    val fromIndex = ((pageNo - 1) * pageSize).coerceAtLeast(0)
+    val toIndex = min(fromIndex + pageSize, total)
+    val pageRows = if (fromIndex >= total) emptyList<JsonObject>() else filtered.subList(fromIndex, toIndex)
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", buildJsonObject {
+            put("first", JsonArray(pageRows))
+            put("second", JsonPrimitive(total))
+        })
+    }
+    return response.toString()
+}
+
 private val USER_GROUP_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
     "groupCode", "groupName", "active", "createTime",
 )
@@ -1140,6 +1214,11 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/rbac/group/search", "/api/rbac/group/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildUserGroupSearchResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/rbac/role/search", "/api/rbac/role/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildRoleSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
         "/user/organization/loadTree", "/api/user/organization/loadTree" -> {

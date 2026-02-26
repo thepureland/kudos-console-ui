@@ -234,4 +234,9 @@ export default {
     columns: { groupCode: 'Group Code', groupName: 'Group Name', remark: 'Remark', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
+  roleList: {
+    placeholders: { subSysOrTenant: 'Subsystem/Tenant', roleCode: 'Role Code', roleName: 'Role Name' },
+    columns: { roleCode: 'Role Code', roleName: 'Role Name', subSysDictCode: 'Subsystem', remark: 'Remark', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', authorize: 'Authorize', user: 'User', assignUser: 'Assign User', viewUser: 'View User', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+  },
 };

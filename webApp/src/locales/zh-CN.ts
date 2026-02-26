@@ -234,4 +234,9 @@ export default {
     columns: { groupCode: '组编码', groupName: '组名称', remark: '备注', active: '启用', createTime: '创建时间', operation: '操作' },
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
+  roleList: {
+    placeholders: { subSysOrTenant: '子系统/租户', roleCode: '角色编码', roleName: '角色名称' },
+    columns: { roleCode: '角色编码', roleName: '角色名称', subSysDictCode: '子系统', remark: '备注', active: '启用', createTime: '创建时间', operation: '操作' },
+    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', authorize: '授权', user: '用户', assignUser: '关联用户', viewUser: '查看用户', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
+  },
 };
