@@ -1,58 +1,60 @@
 <!--
- * 域名列表：参照 CacheList，ListPageLayout + 工具栏/列可见性/操作列折角/未固定列可拖拽，mock 在 shared，国际化。
+ * 微服务列表：ListPageLayout + 编码(code)/名称(name)/仅启用、编码列树结构(parentCode)、列可见性、操作列折角、可拖拽排序列。
  *
  * @author: K
  * @author: AI: Cursor
  * @since 1.0.0
  -->
 <template>
-  <div class="domain-list-page list-page-common">
+  <div class="microservice-list-page list-page-common">
     <list-page-layout
       :table-wrap-ref="listLayoutRefs.tableWrapRef"
       :list-page="listPage"
       :operation-column-storage-key="OPERATION_COLUMN_PINNED_STORAGE_KEY"
-      :column-panel-show-text="t('domainList.actions.showColumnPanel')"
-      :column-panel-hide-text="t('domainList.actions.hideColumnPanel')"
-      :operation-column-show-text="t('domainList.actions.showOperationColumn')"
-      :operation-column-hide-text="t('domainList.actions.hideOperationColumn')"
+      :column-panel-show-text="t('microServiceList.actions.showColumnPanel')"
+      :column-panel-hide-text="t('microServiceList.actions.hideColumnPanel')"
+      :operation-column-show-text="t('microServiceList.actions.showOperationColumn')"
+      :operation-column-hide-text="t('microServiceList.actions.hideOperationColumn')"
       @table-wrap-mounted="onTableWrapMounted"
     >
       <template #toolbar>
         <div class="toolbar-cell toolbar-name">
           <el-input
-            v-model="searchParams.domain"
-            :placeholder="t('domainList.placeholders.domain')"
+            v-model="searchParams.code"
+            :placeholder="t('microServiceList.placeholders.code')"
             clearable
             class="search-name-input"
-            @keyup="(e) => e.key === 'Enter' && search()"
+            @keyup="(e) => (e as KeyboardEvent).key === 'Enter' && search()"
             @change="search"
           />
         </div>
-        <div class="toolbar-cell toolbar-subsys">
-          <el-cascader
-            v-model="searchParams.subSysOrTenant"
-            :options="subSysOrTenants"
-            :props="cascaderProps"
-            :placeholder="t('domainList.placeholders.subSysTenant')"
+        <div class="toolbar-cell toolbar-name">
+          <el-input
+            v-model="searchParams.name"
+            :placeholder="t('microServiceList.placeholders.name')"
             clearable
-            class="search-select-input"
+            class="search-name-input"
+            @keyup="(e) => (e as KeyboardEvent).key === 'Enter' && search()"
             @change="search"
           />
         </div>
         <div class="toolbar-extra">
+          <el-checkbox v-model="searchParams.atomicService" class="atomic-service-only-checkbox" @change="search">
+            {{ t('microServiceList.actions.atomicServiceOnly') }}
+          </el-checkbox>
           <el-checkbox v-model="searchParams.active" class="active-only-checkbox" @change="search">
-            {{ t('domainList.actions.activeOnly') }}
+            {{ t('microServiceList.actions.activeOnly') }}
           </el-checkbox>
         </div>
         <div class="toolbar-buttons">
-          <el-button type="primary" round @click="search">{{ t('domainList.actions.search') }}</el-button>
-          <el-button type="primary" round @click="resetSearchFields">{{ t('domainList.actions.reset') }}</el-button>
-          <el-button type="success" @click="openAddDialog">{{ t('domainList.actions.add') }}</el-button>
-          <el-button type="danger" @click="multiDelete">{{ t('domainList.actions.delete') }}</el-button>
+          <el-button type="primary" round @click="search">{{ t('microServiceList.actions.search') }}</el-button>
+          <el-button type="primary" round @click="resetSearchFields">{{ t('microServiceList.actions.reset') }}</el-button>
+          <el-button type="success" @click="openAddDialog">{{ t('microServiceList.actions.add') }}</el-button>
+          <el-button type="danger" @click="multiDelete">{{ t('microServiceList.actions.delete') }}</el-button>
         </div>
       </template>
       <template #columnVisibilityPanel>
-        <div class="column-visibility-title">{{ t('domainList.actions.columnVisibility') }}</div>
+        <div class="column-visibility-title">{{ t('microServiceList.actions.columnVisibility') }}</div>
         <el-checkbox-group v-model="visibleColumnKeys" class="column-visibility-checkboxes">
           <el-checkbox
             v-for="item in columnVisibilityOptions"
@@ -74,67 +76,72 @@
           stripe
           :data="tableData"
           :max-height="tableMaxHeight"
+          default-expand-all
+          row-key="id"
+          :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
           :header-cell-style="{ textAlign: 'center' }"
           @selection-change="handleSelectionChange"
-          @sort-change="handleSortChange"
         >
           <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
           <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
-            :label="t('domainList.columns.domain')"
-            prop="domain"
-            sortable="custom"
-            min-width="180"
+            :label="t('microServiceList.columns.code')"
+            prop="code"
+            min-width="140"
             fixed="left"
-            class-name="col-fixed-domain"
+            class-name="col-fixed-code"
+          />
+          <el-table-column
+            :label="t('microServiceList.columns.name')"
+            prop="name"
+            min-width="120"
+            fixed="left"
+            class-name="col-fixed-name"
           />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
-              v-if="key === 'subSysDictCode' && isColumnVisible('subSysDictCode')"
-              prop="subSysDictCode"
-              min-width="120"
-              sortable="custom"
+              v-if="key === 'atomicService' && isColumnVisible('atomicService')"
+              prop="atomicService"
+              width="110"
             >
               <template #header>
                 <div
                   class="column-header-draggable"
-                  data-column-key="subSysDictCode"
-                  :class="{ 'is-dragging': columnDragKey === 'subSysDictCode', 'is-drop-target': columnDropTargetKey === 'subSysDictCode' }"
+                  data-column-key="atomicService"
+                  :class="{ 'is-dragging': columnDragKey === 'atomicService', 'is-drop-target': columnDropTargetKey === 'atomicService' }"
                   draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'subSysDictCode')"
-                  @dragover="onHeaderDragOver($event, 'subSysDictCode')"
-                  @drop="onHeaderDrop($event, 'subSysDictCode')"
+                  @dragstart="onHeaderDragStart($event, 'atomicService')"
+                  @dragover="onHeaderDragOver($event, 'atomicService')"
+                  @drop="onHeaderDrop($event, 'atomicService')"
                   @dragend="onHeaderDragEnd"
-                >{{ t('domainList.columns.subSys') }}</div>
+                >{{ t('microServiceList.columns.atomicService') }}</div>
               </template>
               <template #default="scope">
-                {{ transDict('kuark:sys', 'sub_sys', scope.row.subSysDictCode) }}
+                {{ scope.row.atomicService ? t('microServiceList.common.yes') : t('microServiceList.common.no') }}
               </template>
             </el-table-column>
             <el-table-column
-              v-else-if="key === 'tenantName' && isColumnVisible('tenantName')"
-              prop="tenantName"
+              v-else-if="key === 'context' && isColumnVisible('context')"
+              prop="context"
               min-width="120"
-              sortable="custom"
             >
               <template #header>
                 <div
                   class="column-header-draggable"
-                  data-column-key="tenantName"
-                  :class="{ 'is-dragging': columnDragKey === 'tenantName', 'is-drop-target': columnDropTargetKey === 'tenantName' }"
+                  data-column-key="context"
+                  :class="{ 'is-dragging': columnDragKey === 'context', 'is-drop-target': columnDropTargetKey === 'context' }"
                   draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'tenantName')"
-                  @dragover="onHeaderDragOver($event, 'tenantName')"
-                  @drop="onHeaderDrop($event, 'tenantName')"
+                  @dragstart="onHeaderDragStart($event, 'context')"
+                  @dragover="onHeaderDragOver($event, 'context')"
+                  @drop="onHeaderDrop($event, 'context')"
                   @dragend="onHeaderDragEnd"
-                >{{ t('domainList.columns.tenant') }}</div>
+                >{{ t('microServiceList.columns.context') }}</div>
               </template>
             </el-table-column>
             <el-table-column
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
               width="80"
-              sortable="custom"
             >
               <template #header>
                 <div
@@ -146,7 +153,7 @@
                   @dragover="onHeaderDragOver($event, 'active')"
                   @drop="onHeaderDrop($event, 'active')"
                   @dragend="onHeaderDragEnd"
-                >{{ t('domainList.columns.active') }}</div>
+                >{{ t('microServiceList.columns.active') }}</div>
               </template>
               <template #default="scope">
                 <el-switch
@@ -158,10 +165,30 @@
               </template>
             </el-table-column>
             <el-table-column
+              v-else-if="key === 'builtIn' && isColumnVisible('builtIn')"
+              prop="builtIn"
+              width="80"
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="builtIn"
+                  :class="{ 'is-dragging': columnDragKey === 'builtIn', 'is-drop-target': columnDropTargetKey === 'builtIn' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'builtIn')"
+                  @dragover="onHeaderDragOver($event, 'builtIn')"
+                  @drop="onHeaderDrop($event, 'builtIn')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('microServiceList.columns.builtIn') }}</div>
+              </template>
+              <template #default="scope">
+                {{ scope.row.builtIn ? t('microServiceList.common.yes') : t('microServiceList.common.no') }}
+              </template>
+            </el-table-column>
+            <el-table-column
               v-else-if="key === 'remark' && isColumnVisible('remark')"
               prop="remark"
-              min-width="120"
-              sortable="custom"
+              min-width="140"
             >
               <template #header>
                 <div
@@ -173,57 +200,35 @@
                   @dragover="onHeaderDragOver($event, 'remark')"
                   @drop="onHeaderDrop($event, 'remark')"
                   @dragend="onHeaderDragEnd"
-                >{{ t('domainList.columns.remark') }}</div>
-              </template>
-            </el-table-column>
-            <el-table-column
-              v-else-if="key === 'createTime' && isColumnVisible('createTime')"
-              prop="createTime"
-              min-width="160"
-              sortable="custom"
-            >
-              <template #header>
-                <div
-                  class="column-header-draggable"
-                  data-column-key="createTime"
-                  :class="{ 'is-dragging': columnDragKey === 'createTime', 'is-drop-target': columnDropTargetKey === 'createTime' }"
-                  draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'createTime')"
-                  @dragover="onHeaderDragOver($event, 'createTime')"
-                  @drop="onHeaderDrop($event, 'createTime')"
-                  @dragend="onHeaderDragEnd"
-                >{{ t('domainList.columns.createTime') }}</div>
-              </template>
-              <template #default="scope">
-                {{ formatDate(scope.row.createTime) }}
+                >{{ t('microServiceList.columns.remark') }}</div>
               </template>
             </el-table-column>
           </template>
           <el-table-column
             v-if="showOperationColumn"
-            :label="t('domainList.columns.operation')"
+            :label="t('microServiceList.columns.operation')"
             align="center"
+            width="120"
             fixed="right"
-            width="140"
-            min-width="140"
             class-name="operation-column"
+            label-class-name="operation-column"
           >
             <template #header>
-              <div class="operation-column-hover-area">{{ t('domainList.columns.operation') }}</div>
+              <div class="operation-column-hover-area">{{ t('microServiceList.columns.operation') }}</div>
             </template>
             <template #default="scope">
               <div class="operation-column-hover-area">
-                <el-tooltip :content="t('domainList.actions.edit')" placement="top">
+                <el-tooltip :content="t('microServiceList.actions.edit')" placement="top">
                   <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
                     <Edit />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('domainList.actions.delete')" placement="top">
+                <el-tooltip :content="t('microServiceList.actions.delete')" placement="top">
                   <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
                     <Delete />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('domainList.actions.detail')" placement="top">
+                <el-tooltip :content="t('microServiceList.actions.detail')" placement="top">
                   <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
                     <Tickets />
                   </el-icon>
@@ -234,22 +239,9 @@
         </el-table>
       </div>
       <template #pagination>
-        <el-pagination
-          :ref="(el: unknown) => { listLayoutRefs.paginationRef.value = el as HTMLElement | null; }"
-          class="pagination-right"
-          :current-page="pagination.pageNo"
-          :page-size="pagination.pageSize"
-          :total="pagination.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+        <!-- 树列表无分页 -->
       </template>
     </list-page-layout>
-
-    <domain-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
-    <domain-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
-    <domain-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 
@@ -257,23 +249,20 @@
 import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
 import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
-import DomainAddEdit from './DomainAddEdit.vue';
-import DomainDetail from './DomainDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
+import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
-import { Pair } from '../../../components/model/Pair';
 
-const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'domainList.operationColumnPinned';
-const DOMAIN_LIST_STATE_STORAGE_KEY = 'domainList.queryState';
-const COLUMN_VISIBILITY_STORAGE_KEY = 'domainList.visibleColumns';
-const COLUMN_ORDER_STORAGE_KEY = 'domainList.columnOrder';
+const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'microServiceList.operationColumnPinned';
+const MICROSERVICE_LIST_STATE_STORAGE_KEY = 'microServiceList.queryState';
+const COLUMN_VISIBILITY_STORAGE_KEY = 'microServiceList.visibleColumns';
+const COLUMN_ORDER_STORAGE_KEY = 'microServiceList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSysDictCode', 'tenantName', 'active', 'remark', 'createTime'];
+const ALL_COLUMN_KEYS = ['atomicService', 'context', 'active', 'builtIn', 'remark'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
 
-class ListPage extends TenantSupportListPage {
+class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.convertThis();
@@ -282,59 +271,50 @@ class ListPage extends TenantSupportListPage {
   protected initState(): Record<string, unknown> {
     return {
       searchParams: {
-        domain: null as string | null,
+        code: null as string | null,
+        name: null as string | null,
         active: true,
-        subSysOrTenant: null as string[] | null,
+        atomicService: false,
       },
     };
   }
 
   protected getRootActionPath(): string {
-    return 'sys/domain';
+    return 'sys/microservice';
   }
 
-  protected createSearchParams(): Record<string, unknown> | null {
-    const params = super.createSearchParams() as Record<string, unknown> | null;
-    if (!params) return null;
+  protected getSearchUrl(): string {
+    return this.getRootActionPath() + '/searchTree';
+  }
+
+  protected createSearchParams(): Record<string, unknown> {
+    const params = super.createSearchParams() as Record<string, unknown>;
     const sp = this.state.searchParams as Record<string, unknown>;
-    params.domain = sp.domain ?? null;
+    params.code = sp.code ?? null;
+    params.name = sp.name ?? null;
     params.active = sp.active === true ? true : null;
+    params.atomicService = sp.atomicService === true ? true : null;
     return params;
   }
 
-  protected doAfterAdd(params: Record<string, unknown>): void {
-    const sp = this.state.searchParams as Record<string, unknown>;
-    if (params.domain != null) sp.domain = params.domain;
-    super.doAfterAdd(params);
+  /** 树接口直接返回 data 数组，无 first/second */
+  protected postSearchSuccessfully(data: unknown): void {
+    this.state.tableData = Array.isArray(data) ? data : [];
   }
 }
 
 export default defineComponent({
-  name: 'DomainList',
-  components: { DomainAddEdit, DomainDetail, ListPageLayout, Edit, Delete, Tickets },
+  name: 'MicroServiceList',
+  components: { ListPageLayout, Edit, Delete, Tickets },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
-    listPage.configureListStatePersistence(DOMAIN_LIST_STATE_STORAGE_KEY);
+    listPage.configureListStatePersistence(MICROSERVICE_LIST_STATE_STORAGE_KEY);
     listPage.configureTableMaxHeight();
     const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
     const listLayoutRefs = { tableWrapRef, paginationRef };
-    const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
-
-    const FIXED_LEFT_TOTAL_WIDTH = 289;
-    function forceFixedLeftWidth() {
-      nextTick(() => {
-        tableRef.value?.doLayout?.();
-        nextTick(() => {
-          const wrapper = tableRef.value?.$el?.querySelector?.('.el-table__fixed-left') as HTMLElement | null;
-          if (wrapper) {
-            wrapper.style.setProperty('width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-            wrapper.style.setProperty('max-width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-          }
-        });
-      });
-    }
+    const tableRef = ref<{ doLayout?: () => void } | null>(null);
 
     function loadColumnOrder(): string[] {
       if (typeof window === 'undefined') return [...ALL_COLUMN_KEYS];
@@ -370,12 +350,16 @@ export default defineComponent({
       set: (next) => listPage.applyVisibleColumns(next),
     });
     const columnVisibilityOptions = computed(() => [
-      { key: INDEX_COLUMN_KEY, label: t('domainList.columns.index') },
-      ...orderedColumnKeys.value.map((key) => ({ key, label: t('domainList.columns.' + (key === 'subSysDictCode' ? 'subSys' : key === 'tenantName' ? 'tenant' : key)) })),
+      { key: INDEX_COLUMN_KEY, label: t('microServiceList.columns.index') },
+      ...orderedColumnKeys.value.map((key) => ({
+        key,
+        label: t('microServiceList.columns.' + key),
+      })),
     ]);
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
     }
+    const showOperationColumn = computed(() => Boolean(listPage.state?.showOperationColumn));
 
     const columnDragKey = ref<string | null>(null);
     const columnDropTargetKey = ref<string | null>(null);
@@ -402,7 +386,6 @@ export default defineComponent({
       order.splice(toIndex, 0, removed);
       columnOrder.value = order;
       saveColumnOrder(order);
-      nextTick(forceFixedLeftWidth);
     }
     function onHeaderDrop(e: DragEvent, toKey: string) {
       e.preventDefault();
@@ -435,26 +418,12 @@ export default defineComponent({
       listPage.restorePersistedListState();
     });
     watch(
-      () => [
-        listPage.state.searchParams,
-        listPage.state.sort,
-        listPage.state.pagination,
-        listPage.state.tableData,
-      ],
+      () => [listPage.state.searchParams, listPage.state.tableData],
       () => {
         listPage.persistListState();
         nextTick(updateTableMaxHeight);
       },
-      { deep: true },
-    );
-    watch(
-      () => listPage.state.visibleColumnKeys,
-      () => nextTick(forceFixedLeftWidth),
-      { deep: true },
-    );
-    watch(
-      () => listPage.state.showOperationColumn,
-      () => nextTick(forceFixedLeftWidth),
+      { deep: true }
     );
 
     return {
@@ -468,7 +437,6 @@ export default defineComponent({
       visibleColumnKeys,
       columnVisibilityOptions,
       isColumnVisible,
-      onTableWrapMounted,
       orderedColumnKeys,
       columnDragKey,
       columnDropTargetKey,
@@ -478,86 +446,60 @@ export default defineComponent({
       onHeaderDragEnd,
       onTableDragOver,
       onTableDrop,
+      showOperationColumn,
+      onTableWrapMounted,
     };
   },
 });
 </script>
 
-<style src="../../../styles/list-page-common.css" scoped></style>
-<style scoped>
-.domain-list-page .list-page-toolbar .toolbar-name .search-name-input,
-.domain-list-page .list-page-toolbar .toolbar-subsys .search-select-input {
-  width: 100%;
-  min-width: 0;
+<style lang="css" scoped>
+.microservice-list-page {
+  height: 100%;
 }
-.domain-list-page .list-page-toolbar .toolbar-subsys :deep(.el-input__wrapper) {
-  min-width: 0;
+.microservice-list-page .list-page-toolbar .toolbar-name {
+  margin-right: 8px;
 }
-.table-drag-drop-zone {
-  flex: 1;
-  min-height: 0;
+.microservice-list-page .list-page-toolbar .toolbar-name .search-name-input {
+  min-width: 140px;
 }
-:deep(.pagination-right) {
-  margin-top: 8px;
-  justify-content: flex-end;
-  flex-shrink: 0;
+.microservice-list-page .list-page-toolbar .toolbar-extra {
+  margin-right: 8px;
 }
-:deep(.el-table th.col-fixed-selection),
-:deep(.el-table td.col-fixed-selection) {
-  width: 39px !important;
-  min-width: 39px !important;
-  max-width: 39px !important;
+
+.microservice-list-page .column-visibility-checkboxes {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 6px;
 }
-:deep(.el-table th.col-fixed-index),
-:deep(.el-table td.col-fixed-index) {
-  width: 50px !important;
-  min-width: 50px !important;
-  max-width: 50px !important;
+.microservice-list-page .column-visibility-checkboxes :deep(.el-checkbox) {
+  margin-right: 0;
 }
-:deep(.el-table th.col-fixed-domain),
-:deep(.el-table td.col-fixed-domain) {
-  width: 200px !important;
-  min-width: 200px !important;
-  max-width: 200px !important;
-}
-:deep(.el-table__fixed-left) {
-  width: 289px !important;
-  max-width: 289px !important;
-}
-:deep(.el-table th.operation-column),
-:deep(.el-table td.operation-column) {
-  width: 140px !important;
-  min-width: 140px !important;
-  max-width: 140px !important;
-}
-:deep(.column-header-draggable) {
+
+.microservice-list-page :deep(.column-header-draggable) {
   cursor: grab;
   user-select: none;
   width: 100%;
   display: inline-block;
   transition: background-color 0.15s, opacity 0.15s, box-shadow 0.15s;
 }
-:deep(.column-header-draggable:active) {
+.microservice-list-page :deep(.column-header-draggable:active) {
   cursor: grabbing;
 }
-:deep(.column-header-draggable.is-dragging) {
+.microservice-list-page :deep(.column-header-draggable.is-dragging) {
   opacity: 0.7;
   background-color: var(--el-fill-color-light);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
-:deep(.column-header-draggable.is-drop-target) {
+.microservice-list-page :deep(.column-header-draggable.is-drop-target) {
   background-color: var(--el-color-primary-light-9);
   box-shadow: inset 4px 0 0 var(--el-color-primary);
 }
-:deep(th .cell:has(.column-header-draggable)) {
+.microservice-list-page :deep(th .cell:has(.column-header-draggable)) {
   font-size: 0;
 }
-:deep(th .cell:has(.column-header-draggable) .column-header-draggable) {
+.microservice-list-page :deep(th .cell:has(.column-header-draggable) .column-header-draggable) {
   font-size: 14px;
-}
-:deep(th .cell:has(.column-header-draggable) .el-table__column-filter-trigger),
-:deep(th .cell:has(.column-header-draggable) .el-table__sort-icon),
-:deep(th .cell:has(.column-header-draggable) .caret-wrapper) {
-  display: none !important;
 }
 </style>

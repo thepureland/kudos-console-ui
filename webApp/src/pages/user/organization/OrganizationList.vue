@@ -71,7 +71,7 @@
           @sort-change="handleSortChange"
         >
           <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('organizationList.columns.name')"
             prop="name"
@@ -241,8 +241,10 @@ import { Pair } from '../../../components/model/Pair';
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'organizationList.operationColumnPinned';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'organizationList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'organizationList.columnOrder';
+const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['abbrName', 'orgTypeDictCode', 'seqNo', 'active', 'createTime'];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
 
 /** 列 key 到 i18n key 的映射（orgTypeDictCode -> orgType）；名称列固定左侧，不参与可见性配置 */
 const COLUMN_KEY_TO_I18N: Record<string, string> = {
@@ -311,7 +313,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
-    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, ALL_COLUMN_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     listPage.configureTableMaxHeight();
     const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
     const listLayoutRefs = { tableWrapRef, paginationRef };
@@ -350,12 +352,13 @@ export default defineComponent({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),
     });
-    const columnVisibilityOptions = computed(() =>
-      orderedColumnKeys.value.map((key) => ({
+    const columnVisibilityOptions = computed(() => [
+      { key: INDEX_COLUMN_KEY, label: t('organizationList.columns.index') },
+      ...orderedColumnKeys.value.map((key) => ({
         key,
         label: t('organizationList.columns.' + (COLUMN_KEY_TO_I18N[key] ?? key)),
-      }))
-    );
+      })),
+    ]);
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
     }

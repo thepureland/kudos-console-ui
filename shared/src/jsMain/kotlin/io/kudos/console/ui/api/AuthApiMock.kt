@@ -821,12 +821,13 @@ private fun buildOrganizationSearchTreeResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** Mock 子系统列表树查询 searchTree：根据 code/name/active 筛选，按 parentCode 构建树。 */
+/** Mock 子系统列表树查询 searchTree：根据 code/name/active/subSystem 筛选，按 parentCode 构建树。 */
 private fun buildSubsysSearchTreeResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val codeFilter = parseOptionalStringParam(params, "code")?.trim() ?: ""
     val nameFilter = parseOptionalStringParam(params, "name")?.trim() ?: ""
     val activeOnly = parseOptionalBooleanParam(params, "active") == true
+    val subSystemOnly = parseOptionalBooleanParam(params, "subSystem") == true
     fun node(
         id: String,
         code: String,
@@ -857,9 +858,84 @@ private fun buildSubsysSearchTreeResponse(requestJson: String): String {
         val rowCode = primitiveString(obj, "code").orEmpty()
         val rowName = primitiveString(obj, "name").orEmpty()
         val rowActive = primitiveBoolean(obj, "active")
+        val rowSubSystem = primitiveBoolean(obj, "subSystem")
         if (codeFilter.isNotEmpty() && !rowCode.contains(codeFilter, ignoreCase = true)) return false
         if (nameFilter.isNotEmpty() && !rowName.contains(nameFilter, ignoreCase = true)) return false
         if (activeOnly && rowActive != true) return false
+        if (subSystemOnly && rowSubSystem != true) return false
+        return true
+    }
+    val filtered = flat.filter { filterNode(it) }
+    val filteredCodes = filtered.map { primitiveString(it, "code")!! }.toSet()
+    fun addChildren(parentCode: String?): List<JsonObject> {
+        return filtered
+            .filter { obj ->
+                val p = primitiveString(obj, "parentCode").orEmpty()
+                (parentCode == null && (p.isEmpty() || p !in filteredCodes)) ||
+                    (parentCode != null && p == parentCode)
+            }
+            .map { obj ->
+                val c = primitiveString(obj, "code")!!
+                val children = addChildren(c)
+                if (children.isEmpty()) obj
+                else buildJsonObject {
+                    obj.forEach { (k, v) -> if (k != "children") put(k, v) }
+                    put("children", JsonArray(children))
+                }
+            }
+    }
+    val roots = addChildren(null)
+    val response = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", JsonArray(roots))
+    }
+    return response.toString()
+}
+
+/** Mock 微服务列表树查询 searchTree：根据 code/name/active/atomicService 筛选，按 parentCode 构建树。 */
+private fun buildMicroserviceSearchTreeResponse(requestJson: String): String {
+    val params = parseJsonObjectOrEmpty(requestJson)
+    val codeFilter = parseOptionalStringParam(params, "code")?.trim() ?: ""
+    val nameFilter = parseOptionalStringParam(params, "name")?.trim() ?: ""
+    val activeOnly = parseOptionalBooleanParam(params, "active") == true
+    val atomicServiceOnly = parseOptionalBooleanParam(params, "atomicService") == true
+    fun node(
+        id: String,
+        code: String,
+        name: String,
+        parentCode: String?,
+        atomicService: Boolean,
+        context: String,
+        active: Boolean,
+        builtIn: Boolean,
+        remark: String
+    ) = buildJsonObject {
+        put("id", JsonPrimitive(id))
+        put("code", JsonPrimitive(code))
+        put("name", JsonPrimitive(name))
+        put("parentCode", if (parentCode != null) JsonPrimitive(parentCode) else JsonNull)
+        put("atomicService", JsonPrimitive(atomicService))
+        put("context", JsonPrimitive(context))
+        put("active", JsonPrimitive(active))
+        put("builtIn", JsonPrimitive(builtIn))
+        put("remark", JsonPrimitive(remark))
+    }
+    val flat = listOf(
+        node("ms_1", "gateway", "网关", null, true, "/gateway", true, true, "统一网关"),
+        node("ms_2", "user-service", "用户服务", "gateway", true, "/user", true, false, "用户中心"),
+        node("ms_3", "order-service", "订单服务", "gateway", true, "/order", true, false, "订单中心"),
+        node("ms_4", "order-worker", "订单Worker", "order-service", false, "/order/worker", true, false, ""),
+        node("ms_5", "legacy-api", "遗留API", "gateway", false, "/legacy", false, true, "遗留系统"),
+    )
+    fun filterNode(obj: JsonObject): Boolean {
+        val rowCode = primitiveString(obj, "code").orEmpty()
+        val rowName = primitiveString(obj, "name").orEmpty()
+        val rowActive = primitiveBoolean(obj, "active")
+        val rowAtomicService = primitiveBoolean(obj, "atomicService")
+        if (codeFilter.isNotEmpty() && !rowCode.contains(codeFilter, ignoreCase = true)) return false
+        if (nameFilter.isNotEmpty() && !rowName.contains(nameFilter, ignoreCase = true)) return false
+        if (activeOnly && rowActive != true) return false
+        if (atomicServiceOnly && rowAtomicService != true) return false
         return true
     }
     val filtered = flat.filter { filterNode(it) }
@@ -1303,6 +1379,11 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/sys/subsys/searchTree", "sys/subsys/searchTree", "/api/sys/subsys/searchTree" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildSubsysSearchTreeResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/microservice/searchTree", "sys/microservice/searchTree", "/api/sys/microservice/searchTree" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildMicroserviceSearchTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/dict/search", "/api/sys/dict/search" -> {

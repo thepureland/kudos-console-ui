@@ -78,7 +78,7 @@
           @sort-change="handleSortChange"
         >
           <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('userGroupList.columns.groupCode')"
             prop="groupCode"
@@ -242,8 +242,10 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'userGroupList.operationColumnPinned
 const USER_GROUP_LIST_STATE_STORAGE_KEY = 'userGroupList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'userGroupList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'userGroupList.columnOrder';
+const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = ['groupName', 'remark', 'active', 'createTime'];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
 
 class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
@@ -282,7 +284,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
-    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, ALL_COLUMN_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     listPage.configureListStatePersistence(USER_GROUP_LIST_STATE_STORAGE_KEY);
     listPage.configureTableMaxHeight();
     const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
@@ -322,12 +324,13 @@ export default defineComponent({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),
     });
-    const columnVisibilityOptions = computed(() =>
-      orderedColumnKeys.value.map((key) => ({
+    const columnVisibilityOptions = computed(() => [
+      { key: INDEX_COLUMN_KEY, label: t('userGroupList.columns.index') },
+      ...orderedColumnKeys.value.map((key) => ({
         key,
         label: t('userGroupList.columns.' + key),
-      }))
-    );
+      })),
+    ]);
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
     }

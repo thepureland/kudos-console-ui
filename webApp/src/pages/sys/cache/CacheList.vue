@@ -97,7 +97,7 @@
           @filter-change="handleTableFilterChange"
         >
         <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-        <el-table-column type="index" width="50" fixed="left" class-name="col-fixed-index" />
+        <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
         <el-table-column :label="t('cacheList.columns.name')" prop="name" sortable="custom" width="350" fixed="left" class-name="col-fixed-name" />
         <template v-for="key in orderedColumnKeys" :key="key">
           <el-table-column
@@ -524,6 +524,7 @@ const COLUMN_VISIBILITY_STORAGE_KEY = 'cacheList.visibleColumns';
 /** 栏位顺序持久化的 localStorage key */
 const COLUMN_ORDER_STORAGE_KEY = 'cacheList.columnOrder';
 /** 可参与排序的列 key（与栏位可见性一致） */
+const INDEX_COLUMN_KEY = 'index';
 const ALL_COLUMN_KEYS = [
   'atomicServiceCode',
   'strategyDictCode',
@@ -533,8 +534,9 @@ const ALL_COLUMN_KEYS = [
   'ttl',
   'remark',
 ];
+const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 /** 默认展示的列 key 列表（除固定列外） */
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const DEFAULT_VISIBLE_COLUMN_KEYS = [...COLUMN_VISIBILITY_KEYS];
 
 export default defineComponent({
   name: 'CacheList',
@@ -549,7 +551,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
-    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, ALL_COLUMN_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     listPage.configureListStatePersistence(CACHE_LIST_STATE_STORAGE_KEY);
     listPage.configureTableMaxHeight();
     const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
@@ -656,9 +658,10 @@ export default defineComponent({
       remark: () => t('cacheList.columns.remark'),
     };
     /** 栏位可见性面板中的可选项（按当前顺序），支持拖拽排序 */
-    const columnVisibilityOptions = computed(() =>
-      orderedColumnKeys.value.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
-    );
+    const columnVisibilityOptions = computed(() => [
+      { key: INDEX_COLUMN_KEY, label: t('cacheList.columns.index') },
+      ...orderedColumnKeys.value.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
+    ]);
     /** 表头拖拽排序：当前被拖拽的列 key */
     const columnDragKey = ref<string | null>(null);
     /** 当前悬停到的可放置表头（用于高亮「松手即放到这里」） */
