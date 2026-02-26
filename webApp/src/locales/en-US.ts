@@ -239,4 +239,10 @@ export default {
     columns: { roleCode: 'Role Code', roleName: 'Role Name', subSysDictCode: 'Subsystem', remark: 'Remark', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', authorize: 'Authorize', user: 'User', assignUser: 'Assign User', viewUser: 'View User', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
+  systemList: {
+    placeholders: { code: 'Code', name: 'Name' },
+    common: { yes: 'Yes', no: 'No' },
+    columns: { code: 'Code', name: 'Name', subSystem: 'Subsystem', active: 'Active', builtIn: 'Built-in', remark: 'Remark', operation: 'Operation' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+  },
 };
