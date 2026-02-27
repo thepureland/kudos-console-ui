@@ -1,5 +1,5 @@
 <!--
- * 组织列表：ListPageLayout + 子系统/租户、仅启用、列可见性（竖排）、操作列折角。
+ * 组织列表：支持按子系统与租户、仅启用筛选，表格支持列可见性、操作列折角，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -261,7 +261,6 @@ class ListPage extends TenantSupportListPage {
     this.convertThis();
     this.loadDicts([
       new Pair('kuark:user', 'organization_type'),
-      new Pair('kuark:sys', 'sub_sys'),
     ]);
   }
 
@@ -447,6 +446,9 @@ export default defineComponent({
 <style lang="css" scoped>
 .organization-list-page {
   height: 100%;
+}
+.organization-list-page :deep(.list-page-card) {
+  margin-top: 3px; /* 卡片上外边距 */
 }
 .organization-list-page .list-page-toolbar .toolbar-cascader {
   margin-right: 8px;

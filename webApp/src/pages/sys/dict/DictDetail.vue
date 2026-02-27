@@ -17,7 +17,7 @@
       <el-col :span="3">字典名：</el-col>
       <el-col :span="9">{{detail.dictName}}</el-col>
       <el-col :span="3">原子服务：</el-col>
-      <el-col :span="9">{{transDict("kuark:sys", "module", detail.module)}}</el-col>
+      <el-col :span="9">{{ transAtomicService(detail.module) }}</el-col>
     </el-row>
     <el-row :gutter="10">
       <el-col :span="3">创建时间：</el-col>

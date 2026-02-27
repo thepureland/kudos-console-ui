@@ -14,7 +14,7 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         this.initVars()
-        this.loadTenants()
+        this.loadAtomicServices().then(() => this.loadTenants())
     }
 
     protected initVars() {
@@ -65,11 +65,11 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         const result = await backendRequest({url: "sys/tenant/getAllActiveTenants", method: "post"})
         if (result.code == 200) {
             const options = []
-            const subSyses = this.getDictItems("kuark:sys", "sub_sys")
+            const subSyses = this.getAtomicServices()
             for (let subSys of subSyses) {
-                const subSysOption = {value: subSys.first, label: subSys.second}
+                const subSysOption = {value: subSys.code, label: subSys.name}
                 options.push(subSysOption)
-                const tenants = result.data[subSys.first]
+                const tenants = result.data[subSys.code]
                 if (tenants) {
                     const tenantOptions = []
                     subSysOption["children"] = tenantOptions

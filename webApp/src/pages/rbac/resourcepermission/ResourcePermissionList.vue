@@ -1,5 +1,5 @@
 <!--
- * 资源列表
+ * 资源权限列表：支持按子系统/租户、资源类型、资源名称筛选，展示资源权限表格。
  *
  * @author: K
  * @since 1.0.0
@@ -84,7 +84,6 @@ class ListPage extends TenantSupportListPage {
     super(props, context)
     this.tree = tree
     this.loadDicts([
-      new Pair("kuark:sys", "sub_sys"),
       new Pair("kuark:sys", "resource_type"),
     ])
   }

@@ -1,5 +1,5 @@
 <!--
- * 微服务列表：ListPageLayout + 编码(code)/名称(name)/仅启用、编码列树结构(parentCode)、列可见性、操作列折角、可拖拽排序列。
+ * 微服务列表：支持按编码、名称、仅启用、仅原子服务筛选，表格为树形结构（按 parentCode），支持列可见性、操作列折角、可拖拽排序列，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -456,6 +456,9 @@ export default defineComponent({
 <style lang="css" scoped>
 .microservice-list-page {
   height: 100%;
+}
+.microservice-list-page :deep(.list-page-card) {
+  margin-top: 3px; /* 卡片上外边距 */
 }
 .microservice-list-page .list-page-toolbar .toolbar-name {
   margin-right: 8px;

@@ -254,11 +254,10 @@ function tagIcon(item: TagItem): unknown {
   const name = item.icon ?? pathToIcon[item.path];
   return name ? tagIconMap[name] ?? Setting : Setting;
 }
-/** 路由进入/更新时往 store 追加标签，最多 12 个 */
+/** 路由进入/更新时往 store 追加标签；超出栏宽时由「更多」下拉展示，不自动关闭最早标签 */
 function setTags(r: RouteLocationNormalizedLoaded) {
   const isExist = tagsList.value.some((item) => item.path === r.fullPath);
   if (!isExist) {
-    if (tagsList.value.length >= 12) store.commit('delTagsItem', { index: 0 });
     store.commit('setTagsItem', {
       name: r.name,
       titleKey: r.meta?.titleKey as string | undefined,
@@ -306,6 +305,9 @@ function handleTags(command: string) {
   command === 'other' ? closeOther() : closeAll();
 }
 function goToTag(cmd: { item: TagItem; visibleIndex: number }) {
+  if (cmd.visibleIndex > 0) {
+    store.commit('reorderTags', { fromIndex: cmd.visibleIndex, toIndex: 0 });
+  }
   router.push(cmd.item.path);
 }
 function goToPath(path: string) {
@@ -380,7 +382,7 @@ function onDragEnd() {
   display: flex;
   align-items: center;
   background: var(--theme-bg-tags);
-  padding-left: 12px; /* 与左侧菜单栏留一点间距 */
+  padding-left: 7px; /* 与左侧菜单栏留一点间距 */
   padding-right: 52px; /* 为右侧选项图标区留空 */
   box-shadow: var(--theme-shadow-tags);
   isolation: isolate;

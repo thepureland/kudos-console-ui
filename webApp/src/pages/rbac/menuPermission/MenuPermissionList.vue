@@ -1,5 +1,5 @@
 <!--
- * 菜单权限列表
+ * 菜单权限列表：支持按子系统/租户筛选，展示菜单权限表格。
  *
  * @author: K
  * @since 1.0.0
@@ -14,7 +14,7 @@
       <el-breadcrumb-item>菜单权限列表</el-breadcrumb-item>
     </el-breadcrumb>
 
-    <el-card>
+    <el-card class="menu-list-card">
       <el-row :gutter="20" class="toolbar">
         <el-col :span="2">
           <el-cascader :options="subSysOrTenants" v-model="searchParams.subSysOrTenant"
@@ -99,5 +99,7 @@ export default defineComponent({
 </script>
 
 <style lang='css' scoped>
-
+.menu-list-card :deep(.el-card__body) {
+  padding: 5px;
+}
 </style>

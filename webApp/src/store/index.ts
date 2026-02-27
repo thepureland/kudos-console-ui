@@ -95,7 +95,7 @@ const store = createStore<RootState>({
     setTagsItem(state, item: TagItem) {
       const exists = state.tagsList.some((tag) => tag.path === item.path);
       if (!exists) {
-        state.tagsList.push(item);
+        state.tagsList.unshift(item);
         saveTagsList(state.tagsList);
       }
     },

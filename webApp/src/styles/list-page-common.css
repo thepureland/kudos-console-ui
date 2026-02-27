@@ -12,6 +12,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box;
+  padding-top: 3px; /* 卡片上外边距 */
 }
 
 /* 工具栏容器由 ListPageLayout 提供 .list-page-toolbar，此处为工具栏内公共结构样式 */
@@ -22,10 +24,10 @@
 }
 .list-page-common .list-page-toolbar .toolbar-name,
 .list-page-common .list-page-toolbar .toolbar-subsys {
-  margin-right: 8px;
+  margin-right: 4px;
 }
 .list-page-common .list-page-toolbar .toolbar-extra {
-  margin-right: 8px;
+  margin-right: 4px;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -56,7 +58,7 @@
 }
 .list-page-common .list-page-toolbar .toolbar-cascader,
 .list-page-common .list-page-toolbar .toolbar-microservice {
-  margin-right: 4px;
+  margin-right: 2px;
 }
 .list-page-common .list-page-toolbar .toolbar-cascader :deep(.el-input__wrapper),
 .list-page-common .list-page-toolbar .toolbar-microservice :deep(.el-input__wrapper) {

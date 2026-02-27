@@ -160,10 +160,11 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: 8px 5px 5px 5px; /* 上内边距 8px（5+3），其余 5px；子系统列表页单独覆盖 */
 }
 
 .list-page-toolbar {
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -175,7 +176,7 @@ export default defineComponent({
 
 .list-page-table-wrap {
   position: relative;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .list-page-column-panel {

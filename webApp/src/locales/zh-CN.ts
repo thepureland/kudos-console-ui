@@ -97,6 +97,7 @@ export default {
     placeholders: {
       name: '缓存名称',
       atomicService: '原子服务',
+      strategy: '缓存策略',
     },
     common: {
       yes: '是',
@@ -263,5 +264,10 @@ export default {
     dict: '字典类型',
     dict_item: '字典项',
     view: '视图',
+  },
+  cache_strategy: {
+    SINGLE_LOCAL: '单机本地',
+    REMOTE: '远程',
+    LOCAL_REMOTE: '本地+远程',
   },
 };

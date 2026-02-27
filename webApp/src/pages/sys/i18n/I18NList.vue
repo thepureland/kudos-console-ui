@@ -1,5 +1,5 @@
 <!--
- * 国际化列表：参照 CacheList/TenantList，ListPageLayout + 列可见性/操作列折角，前 4 列固定，可拖拽列，mock 在 shared，国际化。
+ * 国际化列表：支持按键、国际化类型、原子服务、语言、仅启用筛选，表格前 4 列（键/值/语言/国际化类型）固定，其余列可拖拽排序，支持列可见性与操作列折角，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -53,10 +53,10 @@
             @change="search"
           >
             <el-option
-              v-for="item in getDictItems('kuark:sys', 'sub_sys')"
-              :key="item.first"
-              :value="item.first"
-              :label="item.second"
+              v-for="item in getAtomicServices()"
+              :key="item.code"
+              :value="item.code"
+              :label="item.name"
             />
           </el-select>
         </div>
@@ -178,7 +178,7 @@
                 >{{ t('i18nList.columns.atomicServiceCode') }}</div>
               </template>
               <template #default="scope">
-                {{ transDict('kuark:sys', 'sub_sys', scope.row.atomicServiceCode) }}
+                {{ transAtomicService(scope.row.atomicServiceCode) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -303,8 +303,8 @@ const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
+    this.loadAtomicServices();
     this.loadDicts([
-      new Pair('kuark:sys', 'sub_sys'),
       new Pair('kuark:sys', 'locale'),
       new Pair('kuark:sys', 'i18n_type'),
     ]).then(() => {

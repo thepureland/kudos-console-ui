@@ -1,5 +1,5 @@
 <!--
- * 子系统列表：ListPageLayout + 编码(code)/名称(name)/仅启用、编码列树结构(parentCode)、列可见性、操作列折角、可拖拽排序列。
+ * 子系统列表：支持按编码、名称、仅启用、仅子系统筛选，表格为树形结构（按 parentCode），支持列可见性、操作列折角、可拖拽排序列，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -438,6 +438,9 @@ export default defineComponent({
 <style lang="css" scoped>
 .system-list-page {
   height: 100%;
+}
+.system-list-page :deep(.list-page-card .el-card__body) {
+  padding-top: 8px; /* 与全局一致 */
 }
 .system-list-page .list-page-toolbar .toolbar-name {
   margin-right: 8px;

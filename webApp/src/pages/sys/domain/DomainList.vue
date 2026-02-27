@@ -1,5 +1,5 @@
 <!--
- * 域名列表：参照 CacheList，ListPageLayout + 工具栏/列可见性/操作列折角/未固定列可拖拽，mock 在 shared，国际化。
+ * 域名列表：支持按域名、子系统、租户、仅启用筛选，表格支持列可见性、操作列折角、未固定列可拖拽排序，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -108,7 +108,7 @@
                 >{{ t('domainList.columns.subSys') }}</div>
               </template>
               <template #default="scope">
-                {{ transDict('kuark:sys', 'sub_sys', scope.row.subSysDictCode) }}
+                {{ transAtomicService(scope.row.subSysDictCode) }}
               </template>
             </el-table-column>
             <el-table-column

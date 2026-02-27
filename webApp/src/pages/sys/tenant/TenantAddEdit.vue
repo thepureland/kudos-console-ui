@@ -6,8 +6,8 @@
       </el-form-item>
       <el-form-item label="子系统" prop="subSysDictCode" class="is-required">
         <el-select v-model="formModel.subSysDictCode" placeholder="请选择子系统" clearable>
-          <el-option v-for="item in getDictItems('kuark:sys', 'sub_sys')"
-                     :key="item.first" :value="item.first" :label="item.second"/>
+          <el-option v-for="item in getAtomicServices()"
+                     :key="item.code" :value="item.code" :label="item.name"/>
         </el-select>
       </el-form-item>
       <el-form-item label="备注" prop="remark">
@@ -31,6 +31,7 @@ class AddEditPage extends BaseAddEditPage {
 
   constructor(props, context) {
     super(props, context)
+    this.loadAtomicServices()
   }
 
   protected initState(): any {

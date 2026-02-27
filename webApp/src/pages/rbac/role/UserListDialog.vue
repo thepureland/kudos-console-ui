@@ -15,7 +15,7 @@
       <el-table-column label="用户名" prop="username"/>
       <el-table-column label="子系统" prop="subSysDictCode">
         <template #default="scope">
-          {{ transDict("kuark:sys", "sub_sys", scope.row.subSysDictCode) }}
+          {{ transAtomicService(scope.row.subSysDictCode) }}
         </template>
       </el-table-column>
       <el-table-column label="用户状态" prop="userStatusDictCode">

@@ -15,7 +15,7 @@
     </el-row>
     <el-row :gutter="10">
       <el-col :span="4">子系统：</el-col>
-      <el-col :span="8">{{ transDict('kuark:sys', 'sub_sys', detail?.subSysDictCode) }}</el-col>
+      <el-col :span="8">{{ transAtomicService(detail?.subSysDictCode) }}</el-col>
       <el-col :span="4">缓存策略：</el-col>
       <el-col :span="8">{{ transDict('kuark:sys', 'cache_strategy', detail?.strategyDictCode) }}</el-col>
     </el-row>

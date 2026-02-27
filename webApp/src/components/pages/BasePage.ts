@@ -18,14 +18,20 @@ export abstract class BasePage {
     protected props: Record<string, any>
     protected context: { emit: (event: string, ...args: any[]) => void }
 
+    /** 原子服务列表（非字典）：{ code, name }[]，由 loadAtomicServices 拉取 */
+    public atomicServiceList: Array<{ code: string; name: string }> = []
+
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         this.props = props
         this.context = context
-        const win = window as unknown as { __kudosDictCache?: Map<string, Record<string, string>> }
+        const win = window as unknown as { __kudosDictCache?: Map<string, Record<string, string>>; __kudosAtomicServices?: Array<{ code: string; name: string }> }
         if (!win.__kudosDictCache) {
             win.__kudosDictCache = new Map()
         }
         this.dictCache = win.__kudosDictCache
+        if (win.__kudosAtomicServices) {
+            this.atomicServiceList = win.__kudosAtomicServices
+        }
         this.state = reactive(this.initBaseState())
         const initState = this.initState()
         if (initState) {
@@ -123,6 +129,34 @@ export abstract class BasePage {
             }
         }
         return pairs
+    }
+
+    /** 加载原子服务列表（非字典，专用接口），结果缓存在 window.__kudosAtomicServices */
+    protected async loadAtomicServices(): Promise<void> {
+        const win = window as unknown as { __kudosAtomicServices?: Array<{ code: string; name: string }> }
+        if (win.__kudosAtomicServices && win.__kudosAtomicServices.length > 0) {
+            this.atomicServiceList = win.__kudosAtomicServices
+            return
+        }
+        const result = await backendRequest({ url: 'sys/atomicServices' }) as { code: number; data?: Array<{ code: string; name: string }> }
+        if (result.code === 200 && result.data) {
+            win.__kudosAtomicServices = result.data
+            this.atomicServiceList = result.data
+        } else {
+            ElMessage.error('原子服务列表加载失败')
+        }
+    }
+
+    /** 获取原子服务列表，用于下拉等（需先调用 loadAtomicServices） */
+    public getAtomicServices = (): Array<{ code: string; name: string }> => {
+        return this.atomicServiceList
+    }
+
+    /** 根据 code 显示原子服务名称（非字典） */
+    public transAtomicService = (code: string | null | undefined): string => {
+        if (!code) return ''
+        const item = this.atomicServiceList.find((x) => x.code === code)
+        return item ? item.name : code
     }
 
     public formatBool = (value: boolean) => {

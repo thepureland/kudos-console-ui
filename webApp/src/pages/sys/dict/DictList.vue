@@ -1,5 +1,5 @@
 <!--
- * 字典列表：左侧树 + 右侧 ListPageLayout（工具栏、栏位可见性、表格、分页），与 CacheList/ResourceList 同构。
+ * 字典列表：左侧字典类型树、右侧表格，支持工具栏筛选、栏位可见性、分页，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -8,7 +8,7 @@
 <template>
   <div class="dict-list-page list-page-common">
     <el-card class="dict-list-card">
-      <el-row :gutter="12" class="dict-list-row">
+      <el-row :gutter="6" class="dict-list-row">
         <el-col :span="3" class="resource-tree-col">
           <div class="resource-tree-wrap">
             <el-tree
@@ -36,18 +36,24 @@
             @table-wrap-mounted="onTableWrapMounted"
           >
             <template #toolbar>
-              <div class="toolbar-cell toolbar-subsys">
-                <el-autocomplete
+              <div class="toolbar-cell toolbar-subsys toolbar-module-large">
+                <el-select
                   v-model="searchParams.module"
                   :placeholder="t('dictList.placeholders.module')"
-                  :fetch-suggestions="filterAtomicService"
                   clearable
+                  filterable
                   class="search-select-input"
                   @change="search"
-                  @select="search"
-                />
+                >
+                  <el-option
+                    v-for="item in getAtomicServices()"
+                    :key="item.code"
+                    :value="item.code"
+                    :label="item.name"
+                  />
+                </el-select>
               </div>
-              <div class="toolbar-cell toolbar-subsys">
+              <div class="toolbar-cell toolbar-subsys toolbar-dict-type">
                 <el-autocomplete
                   v-model="searchParams.dictType"
                   :placeholder="t('dictList.placeholders.dictType')"
@@ -143,7 +149,11 @@
                   :label="t('dictList.columns.module')"
                   prop="module"
                   sortable="custom"
-                />
+                >
+                  <template #default="scope">
+                    {{ transAtomicService(scope.row.module) }}
+                  </template>
+                </el-table-column>
                 <el-table-column
                   v-if="isColumnVisible('itemCode') && !searchParams.isDict"
                   :label="t('dictList.columns.itemCode')"
@@ -283,7 +293,6 @@ class ListPage extends BaseListPage {
         active: true,
         isDict: false,
       },
-      atomicServices: [] as Array<{ value: string }>,
       dictTypes: [] as Array<{ value: string }>,
       searchSource: null as string | null,
       isDict: false,
@@ -398,13 +407,6 @@ class ListPage extends BaseListPage {
     (this.state as Record<string, unknown>).rid = this.getRowId(row);
   }
 
-  public filterAtomicService: (queryString: string, cb: (list: Array<{ value: string }>) => void) => void;
-
-  private doFilterAtomicService(queryString: string, cb: (list: Array<{ value: string }>) => void): void {
-    const list = this.state.atomicServices as Array<{ value: string }>;
-    cb(queryString ? list.filter(this.createFilter(queryString)) : list);
-  }
-
   public filterDictType: (queryString: string, cb: (list: Array<{ value: string }>) => void) => void;
 
   private doFilterDictType(queryString: string, cb: (list: Array<{ value: string }>) => void): void {
@@ -462,7 +464,6 @@ class ListPage extends BaseListPage {
       (this.state as Record<string, unknown>).rootNode = node;
       (this.state as Record<string, unknown>).rootResolve = resolve;
     }
-    this.resetSearchFields();
     this.setParamsForTree(node as Parameters<InstanceType<typeof ListPage>['setParamsForTree']>[0], true);
     const sp = this.state.searchParams as Record<string, unknown>;
     const params = {
@@ -486,7 +487,6 @@ class ListPage extends BaseListPage {
 
   private doExpandTreeNode(nodeData: unknown, node: { data?: unknown }): void {
     if (node.data) {
-      this.resetSearchFields();
       this.setParamsForTree(node as Parameters<InstanceType<typeof ListPage>['setParamsForTree']>[0], true);
       this.searchByTree();
     }
@@ -497,7 +497,6 @@ class ListPage extends BaseListPage {
   private async doClickTreeNode(nodeData: Record<string, unknown>, node: { level: number; data?: { id: string; code: string } }): Promise<void> {
     if (node.level === 1) return;
     (this.state as Record<string, unknown>).searchSource = 'tree';
-    this.resetSearchFields();
     this.setParamsForTree(node as Parameters<InstanceType<typeof ListPage>['setParamsForTree']>[0], false);
     const params = { id: nodeData.id, isDict: node.level === 2 };
     try {
@@ -544,14 +543,6 @@ class ListPage extends BaseListPage {
     }
   }
 
-  private loadAtomicServices(): void {
-    this.loadDicts([new Pair('kuark:sys', 'module')]).then(() => {
-      const items = this.getDictItems('kuark:sys', 'module') as Array<{ first: string }>;
-      const list = items.map((item) => ({ value: item.first }));
-      (this.state as Record<string, unknown>).atomicServices = list;
-    });
-  }
-
   private async loadDictTypes(): Promise<void> {
     try {
       const result = await backendRequest({ url: 'sys/dict/loadDictTypes' }) as { code: number; data?: string[] };
@@ -575,7 +566,6 @@ class ListPage extends BaseListPage {
 
   private convertThis(): void {
     super.convertThis();
-    this.filterAtomicService = (q, cb) => this.doFilterAtomicService(q, cb);
     this.filterDictType = (q, cb) => this.doFilterDictType(q, cb);
     this.loadTree = (node, resolve) => this.doLoadTree(node as Parameters<InstanceType<typeof ListPage>['doLoadTree']>[0], resolve as (data: unknown[]) => void);
     this.expandTreeNode = (nodeData, node) => this.doExpandTreeNode(nodeData, node);
@@ -642,18 +632,22 @@ export default defineComponent({
 
 <style src="../../../styles/list-page-common.css" scoped></style>
 <style scoped>
+.dict-list-page {
+  box-sizing: border-box;
+}
 .dict-list-page .dict-list-card {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  margin-top: 3px; /* 卡片上外边距 */
 }
-.dict-list-page .dict-list-card .el-card__body {
+.dict-list-page .dict-list-card :deep(.el-card__body) {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding-left: 12px;
+  padding: 8px 5px 5px 5px; /* 上内边距 8px（5+3） */
 }
 .dict-list-page .dict-list-row {
   flex: 1;
@@ -669,7 +663,7 @@ export default defineComponent({
   height: 100%;
   min-height: 0;
   overflow: auto;
-  padding: 8px 12px 8px 0;
+  padding: 8px 6px 8px 0;
   border-right: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-lighter);
 }
@@ -688,6 +682,28 @@ export default defineComponent({
 }
 .dict-list-page .list-page-toolbar .toolbar-subsys :deep(.el-input__wrapper) {
   min-width: 0;
+}
+.dict-list-page .list-page-toolbar .toolbar-cell {
+  flex: 1 1 auto;
+  min-width: 120px;
+  max-width: 200px;
+}
+.dict-list-page .list-page-toolbar .toolbar-module-large {
+  flex: 1.5 1 auto;
+  min-width: 150px;
+  max-width: 280px;
+}
+.dict-list-page .list-page-toolbar .toolbar-dict-type {
+  flex: 0.8 1 auto;
+  min-width: 100px;
+  max-width: 160px;
+}
+.dict-list-page .list-page-toolbar .toolbar-buttons {
+  gap: 4px;
+  min-width: 0;
+}
+.dict-list-page .list-page-toolbar .toolbar-buttons .el-button {
+  margin-left: 0;
 }
 .table-drag-drop-zone {
   flex: 1;

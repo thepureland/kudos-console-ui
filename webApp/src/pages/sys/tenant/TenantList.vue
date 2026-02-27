@@ -1,5 +1,5 @@
 <!--
- * 租户列表：参照 CacheList/DomainList，ListPageLayout + 列可见性/操作列折角/未固定列可拖拽，mock 在 shared，国际化。
+ * 租户列表：支持按租户名称、子系统、仅启用筛选，表格支持列可见性、操作列折角、未固定列可拖拽排序，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -38,9 +38,9 @@
           >
             <el-option
               v-for="item in (listPage.state.subSysDictOptions || [])"
-              :key="item.first"
-              :value="item.first"
-              :label="item.second"
+              :key="item.code"
+              :value="item.code"
+              :label="item.name"
             />
           </el-select>
         </div>
@@ -113,7 +113,7 @@
                 >{{ t('tenantList.columns.subSys') }}</div>
               </template>
               <template #default="scope">
-                {{ transDict('kuark:sys', 'sub_sys', scope.row.subSysDictCode) }}
+                {{ transAtomicService(scope.row.subSysDictCode) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -243,8 +243,8 @@ const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
-    this.loadDicts([new Pair('kuark:sys', 'sub_sys')]).then(() => {
-      (this.state as Record<string, unknown>).subSysDictOptions = this.getDictItems('kuark:sys', 'sub_sys') as Array<{ first: string; second: string }>;
+    this.loadAtomicServices().then(() => {
+      (this.state as Record<string, unknown>).subSysDictOptions = this.getAtomicServices();
     });
     this.convertThis();
   }
@@ -257,7 +257,7 @@ class ListPage extends BaseListPage {
         active: true,
       },
       /** 子系统下拉选项（响应式，loadDicts 完成后更新以便下拉能刷新） */
-      subSysDictOptions: [] as Array<{ first: string; second: string }>,
+      subSysDictOptions: [] as Array<{ code: string; name: string }>,
     };
   }
 

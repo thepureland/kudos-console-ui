@@ -8,7 +8,7 @@
         "subSysDictCode": "console",
         "tenantId": "default",
         "tenantName": "默认租户",
-        "microservice": "ams-sys",
+        "microservice": "sys",
         "url": "jdbc:mysql://localhost:3306/console",
         "username": "root",
         "active": true
@@ -19,7 +19,7 @@
         "subSysDictCode": "console",
         "tenantId": "default",
         "tenantName": "默认租户",
-        "microservice": "ams-sys",
+        "microservice": "sys",
         "url": "jdbc:mysql://localhost:3307/console_read",
         "username": "readonly",
         "active": true
@@ -30,7 +30,7 @@
         "subSysDictCode": "console",
         "tenantId": "tenant_2",
         "tenantName": "租户二",
-        "microservice": "ams-sys",
+        "microservice": "sys",
         "url": "jdbc:mysql://localhost:3306/console_t2",
         "username": "root",
         "active": true

@@ -1,6 +1,5 @@
 <!--
- * 参数列表
- * 参照 CacheList：ListPageLayout、公共工具栏布局、分页、i18n。
+ * 参数列表：支持按模块、参数名、参数值、仅启用筛选，表格支持分页，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -30,10 +29,10 @@
             @change="search"
           >
             <el-option
-              v-for="item in atomicServices"
-              :key="item.value"
-              :label="item.value"
-              :value="item.value"
+              v-for="item in getAtomicServices()"
+              :key="item.code"
+              :value="item.code"
+              :label="item.name"
             />
           </el-select>
         </div>
@@ -109,14 +108,12 @@
             :label="t('paramList.columns.paramValue')"
             prop="paramValue"
             min-width="140"
-            sortable="custom"
           />
           <el-table-column
             v-if="isColumnVisible('defaultValue')"
             :label="t('paramList.columns.defaultValue')"
             prop="defaultValue"
             min-width="120"
-            sortable="custom"
           />
           <el-table-column
             v-if="isColumnVisible('module')"
@@ -124,7 +121,11 @@
             prop="module"
             min-width="100"
             sortable="custom"
-          />
+          >
+            <template #default="scope">
+              {{ transAtomicService(scope.row.module) }}
+            </template>
+          </el-table-column>
           <el-table-column
             v-if="isColumnVisible('seqNo')"
             :label="t('paramList.columns.seqNo')"
@@ -225,7 +226,7 @@ class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.convertThis();
-    this.loadDicts([new Pair('kuark:sys', 'module')]);
+    this.loadAtomicServices();
   }
 
   protected initState(): Record<string, unknown> {
@@ -236,7 +237,6 @@ class ListPage extends BaseListPage {
         paramValue: null as string | null,
         active: true,
       },
-      atomicServices: [] as Array<{ value: string }>,
     };
   }
 
@@ -253,91 +253,7 @@ class ListPage extends BaseListPage {
     }
     return params;
   }
-
-  /** 加载原子服务字典后填充 atomicServices 供下拉列表使用；开发/mock 时用本地 mock 选项。 */
-  public async loadAtomicServices(): Promise<void> {
-    const dev = typeof import.meta !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
-    const useMock = (window as unknown as { __USE_MOCK_PARAM?: boolean }).__USE_MOCK_PARAM === true || dev;
-    if (useMock) {
-      this.state.atomicServices = MOCK_ATOMIC_SERVICES;
-      return;
-    }
-    try {
-      await this.loadDicts([new Pair('kuark:sys', 'module')]);
-      const items = this.getDictItems('kuark:sys', 'module') as Array<{ first: string; second: string }>;
-      this.state.atomicServices = items?.length ? items.map((item) => ({ value: item.first })) : MOCK_ATOMIC_SERVICES;
-    } catch {
-      this.state.atomicServices = MOCK_ATOMIC_SERVICES;
-    }
-  }
-
-  /** 开发/mock 时按搜索条件过滤本地数据并分页，模拟远程搜索；否则走远程接口。 */
-  protected async doSearch(): Promise<void> {
-    const dev = typeof import.meta !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
-    const useMock =
-      (window as unknown as { __USE_MOCK_PARAM?: boolean }).__USE_MOCK_PARAM === true || dev;
-    if (useMock) {
-      const state = this.state as Record<string, unknown>;
-      const sp = (state.searchParams || {}) as Record<string, unknown>;
-      const filtered = this.filterMockRowsBySearchParams(MOCK_PARAM_ROWS, sp);
-      const total = filtered.length;
-      const pagination = state.pagination as { pageNo: number; pageSize: number };
-      const pageNo = Math.max(1, pagination?.pageNo ?? 1);
-      const pageSize = Math.max(1, pagination?.pageSize ?? 10);
-      const start = (pageNo - 1) * pageSize;
-      state.tableData = filtered.slice(start, start + pageSize);
-      (state.pagination as Record<string, number>).total = total;
-      return;
-    }
-    try {
-      await super.doSearch();
-    } catch {
-      const state = this.state as Record<string, unknown>;
-      const sp = (state.searchParams || {}) as Record<string, unknown>;
-      const filtered = this.filterMockRowsBySearchParams(MOCK_PARAM_ROWS, sp);
-      const total = filtered.length;
-      const pagination = state.pagination as { pageNo: number; pageSize: number };
-      const pageNo = Math.max(1, pagination?.pageNo ?? 1);
-      const pageSize = Math.max(1, pagination?.pageSize ?? 10);
-      const start = (pageNo - 1) * pageSize;
-      state.tableData = filtered.slice(start, start + pageSize);
-      (state.pagination as Record<string, number>).total = total;
-    }
-  }
-
-  /** Mock 时按搜索条件过滤：原子服务、参数名、参数值、仅启用。 */
-  private filterMockRowsBySearchParams(
-    rows: Record<string, unknown>[],
-    sp: Record<string, unknown>,
-  ): Record<string, unknown>[] {
-    return rows.filter((row) => {
-      const module = sp.module != null && sp.module !== '' ? String(sp.module).trim() : null;
-      if (module && String(row.module || '').trim() !== module) return false;
-      const paramName = sp.paramName != null && sp.paramName !== '' ? String(sp.paramName).trim().toLowerCase() : null;
-      if (paramName && !String(row.paramName || '').toLowerCase().includes(paramName)) return false;
-      const paramValue = sp.paramValue != null && sp.paramValue !== '' ? String(sp.paramValue).trim().toLowerCase() : null;
-      if (paramValue && !String(row.paramValue || '').toLowerCase().includes(paramValue)) return false;
-      if (sp.active === true && row.active !== true) return false;
-      return true;
-    });
-  }
 }
-
-/** 原子服务下拉 mock 选项（与 MOCK_PARAM_ROWS 中的 module 字段一致） */
-const MOCK_ATOMIC_SERVICES: Array<{ value: string }> = [
-  { value: 'kuark:sys' },
-  { value: 'kuark:log' },
-  { value: 'kuark:job' },
-];
-
-/** 测试数据：无后端或接口失败时展示，便于开发与演示 */
-const MOCK_PARAM_ROWS: Record<string, unknown>[] = [
-  { id: '1', paramName: 'sys.name', paramValue: 'Kudos 控制台', defaultValue: 'Kudos', module: 'kuark:sys', seqNo: 1, remark: '系统显示名称', active: true },
-  { id: '2', paramName: 'sys.pageSize', paramValue: '20', defaultValue: '10', module: 'kuark:sys', seqNo: 2, remark: '默认分页大小', active: true },
-  { id: '3', paramName: 'sys.cache.ttl', paramValue: '3600', defaultValue: '1800', module: 'kuark:sys', seqNo: 3, remark: '缓存过期时间(秒)', active: true },
-  { id: '4', paramName: 'log.level', paramValue: 'INFO', defaultValue: 'WARN', module: 'kuark:log', seqNo: 1, remark: '日志级别', active: true },
-  { id: '5', paramName: 'job.enabled', paramValue: 'true', defaultValue: 'false', module: 'kuark:job', seqNo: 1, remark: '是否启用任务调度', active: false },
-];
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'paramList.operationColumnPinned';
 const PARAM_LIST_STATE_STORAGE_KEY = 'paramList.queryState';
@@ -363,7 +279,6 @@ export default defineComponent({
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
-    listPage.loadAtomicServices();
     listPage.configureListStatePersistence(PARAM_LIST_STATE_STORAGE_KEY);
     listPage.configureTableMaxHeight();
     const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);

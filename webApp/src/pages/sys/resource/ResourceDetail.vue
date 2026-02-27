@@ -33,7 +33,7 @@
     </el-row>
     <el-row :gutter="10">
       <el-col :span="3">子系统：</el-col>
-      <el-col :span="9">{{transDict("kuark:sys", "sub_sys", detail.subSysDictCode)}}</el-col>
+      <el-col :span="9">{{ transAtomicService(detail.subSysDictCode) }}</el-col>
       <el-col :span="3">所有者ID：</el-col>
       <el-col :span="9">{{detail.ownerId}}</el-col>
     </el-row>
@@ -70,8 +70,8 @@ class DetailPage extends BaseDetailPage {
   }
 
   protected async preLoad(): Promise<void> {
+    await this.loadAtomicServices();
     await this.loadDicts([
-        new Pair("kuark:sys", "sub_sys"),
       new Pair("kuark:sys", "resource_type"),
     ])
   }

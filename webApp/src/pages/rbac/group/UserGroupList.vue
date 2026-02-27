@@ -1,5 +1,5 @@
 <!--
- * 组管理：ListPageLayout + 组编码/组名称/仅启用、列可见性（竖排）、操作列折角、列拖拽排序，mock 在 shared，国际化。
+ * 用户组列表：支持按组编码、组名称、仅启用筛选，表格支持列可见性、操作列折角、列拖拽排序，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -436,6 +436,9 @@ export default defineComponent({
 <style lang="css" scoped>
 .user-group-list-page {
   height: 100%;
+}
+.user-group-list-page :deep(.list-page-card) {
+  margin-top: 3px; /* 卡片上外边距 */
 }
 .user-group-list-page .list-page-toolbar .toolbar-name {
   margin-right: 8px;

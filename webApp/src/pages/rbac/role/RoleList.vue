@@ -1,5 +1,5 @@
 <!--
- * 角色管理：ListPageLayout + 子系统/租户、角色编码/名称、仅启用、列可见性（竖排）、操作列折角、列拖拽排序，mock 在 shared，国际化。
+ * 角色列表：支持按子系统/租户、角色编码、角色名称、仅启用筛选，表格支持列可见性、操作列折角、列拖拽排序，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -137,7 +137,7 @@
                 >{{ t('roleList.columns.subSysDictCode') }}</div>
               </template>
               <template #default="scope">
-                {{ transDict('kuark:sys', 'sub_sys', scope.row.subSysDictCode) }}
+                {{ transAtomicService(scope.row.subSysDictCode) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -552,6 +552,9 @@ export default defineComponent({
 <style lang="css" scoped>
 .role-list-page {
   height: 100%;
+}
+.role-list-page :deep(.list-page-card) {
+  margin-top: 3px; /* 卡片上外边距 */
 }
 .role-list-page .list-page-toolbar .toolbar-cascader,
 .role-list-page .list-page-toolbar .toolbar-name {

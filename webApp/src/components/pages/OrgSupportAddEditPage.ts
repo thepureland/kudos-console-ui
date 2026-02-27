@@ -68,11 +68,9 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
 
     protected async doLoadTreeNodes(node: any, resolve: (data: any[]) => void) {
         if (node.level === 0) {
-            const dictItems = this.getDictItems("kuark:sys", "sub_sys")
-            const subSyses = []
-            for (let item of dictItems) {
-                subSyses.push({id: item.first, name: item.second})
-            }
+            if (this.getAtomicServices().length === 0) await this.loadAtomicServices()
+            const items = this.getAtomicServices()
+            const subSyses = items.map((item) => ({ id: item.code, name: item.name }))
             resolve(subSyses)
         } else {
             const params = {

@@ -1,5 +1,5 @@
 <!--
- * 缓存列表
+ * 缓存列表：支持按缓存名称、原子服务、缓存策略、仅启用等筛选，表格支持列可见性、操作列折角、列拖拽排序，含缓存管理操作（重载/踢除等），多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -41,17 +41,34 @@
               v-model="searchParams.atomicServiceCode"
               :placeholder="subSysPlaceholder"
               clearable
+              filterable
               class="search-select-input"
               @change="() => { updateSubSysSelectWidth(); search(); }"
             >
               <el-option
-                v-for="item in getDictItems('kuark:sys', 'sub_sys')"
-                :key="item.first"
-                :value="item.first"
-                :label="item.second"
+                v-for="item in getAtomicServices()"
+                :key="item.code"
+                :value="item.code"
+                :label="item.name"
               />
             </el-select>
           </div>
+        </div>
+        <div class="toolbar-cell toolbar-strategy">
+          <el-select
+            v-model="searchParams.strategyDictCode"
+            :placeholder="t('cacheList.placeholders.strategy')"
+            clearable
+            class="search-select-input"
+            @change="search"
+          >
+            <el-option
+              v-for="item in (listPage.state.strategyDictOptions || [])"
+              :key="item.first"
+              :value="item.first"
+              :label="t(item.second)"
+            />
+          </el-select>
         </div>
         <div class="toolbar-extra">
           <el-checkbox v-model="searchParams.active" class="active-only-checkbox" @change="search">
@@ -119,7 +136,7 @@
               >{{ t('cacheList.columns.subSystem') }}</div>
             </template>
             <template #default="scope">
-              {{ transDict('kuark:sys', 'sub_sys', scope.row.atomicServiceCode) }}
+              {{ transAtomicService(scope.row.atomicServiceCode) }}
             </template>
           </el-table-column>
           <el-table-column
@@ -143,7 +160,13 @@
               >{{ t('cacheList.columns.strategy') }}</div>
             </template>
             <template #default="scope">
-              {{ transDict('kuark:sys', 'cache_strategy', scope.row.strategyDictCode) }}
+              {{ (() => {
+                const code = scope.row.strategyDictCode;
+                if (!code) return '';
+                const opts = (listPage.state.strategyDictOptions || []) as Array<{ first: string; second: string }>;
+                const item = opts.find(o => o.first === code);
+                return item ? t(item.second) : code;
+              })() }}
             </template>
           </el-table-column>
           <el-table-column
@@ -373,10 +396,12 @@ class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.convertThis();
+    this.loadAtomicServices();
     this.loadDicts([
-      new Pair('kuark:sys', 'sub_sys'),
       new Pair('kuark:sys', 'cache_strategy'),
-    ]);
+    ]).then(() => {
+      (this.state as Record<string, unknown>).strategyDictOptions = this.getDictItems('kuark:sys', 'cache_strategy') as Array<{ first: string; second: string }>;
+    });
   }
 
   /** 初始化页面状态：搜索条件、key 弹窗可见性、当前操作与当前行 */
@@ -394,6 +419,8 @@ class ListPage extends BaseListPage {
       cacheKey: null as string | null,
       cacheOperation: null as string | null,
       currentRow: null as Record<string, unknown> | null,
+      /** 缓存策略下拉选项（second 为 i18n key，表格/筛选用 t() 显示） */
+      strategyDictOptions: [] as Array<{ first: string; second: string }>,
     };
   }
 
@@ -630,20 +657,20 @@ export default defineComponent({
       const params = listPage.state.searchParams as { atomicServiceCode?: string } | undefined;
       const code = params?.atomicServiceCode;
       if (!code) return subSysPlaceholder.value;
-      const items = listPage.getDictItems('kuark:sys', 'sub_sys') as Array<{ first: string; second: string }>;
-      const found = items.find((p) => p.first === code);
-      return found ? found.second : subSysPlaceholder.value;
+      const items = listPage.getAtomicServices();
+      const found = items.find((p) => p.code === code);
+      return found ? found.name : subSysPlaceholder.value;
     });
-    /** 策略列表头筛选选项，优先用字典，无则用默认三项 */
+    /** 策略列表头筛选选项：字典项 value 为 i18n key，用 t() 显示 */
     const strategyFilters = computed(() => {
-      const items = listPage.getDictItems('kuark:sys', 'cache_strategy') as Array<{ first: string; second: string }>;
+      const items = (listPage.state.strategyDictOptions || []) as Array<{ first: string; second: string }>;
       if (items.length > 0) {
-        return items.map((item) => ({ text: item.first, value: item.first }));
+        return items.map((item) => ({ text: t(item.second), value: item.first }));
       }
       return [
-        { text: 'LOCAL_REMOTE', value: 'LOCAL_REMOTE' },
-        { text: 'SINGLE_LOCAL', value: 'SINGLE_LOCAL' },
-        { text: 'REMOTE', value: 'REMOTE' },
+        { text: t('cache_strategy.SINGLE_LOCAL'), value: 'SINGLE_LOCAL' },
+        { text: t('cache_strategy.REMOTE'), value: 'REMOTE' },
+        { text: t('cache_strategy.LOCAL_REMOTE'), value: 'LOCAL_REMOTE' },
       ];
     });
     /** 布尔列（启用/写盘等）表头筛选：是/否 */
@@ -830,6 +857,16 @@ export default defineComponent({
 
 <style src="../../../styles/list-page-common.css" scoped></style>
 <style scoped>
+.cache-list-page .list-page-toolbar .toolbar-cell.toolbar-strategy {
+  margin-right: 8px;
+}
+.cache-list-page .list-page-toolbar .toolbar-strategy .search-select-input {
+  width: 100%;
+  min-width: 0;
+}
+.cache-list-page .list-page-toolbar .toolbar-strategy :deep(.el-input__wrapper) {
+  min-width: 0;
+}
 /* 穿透 Element 表格/分页内部类，需保留在组件内使用 :deep */
 :deep(.el-table .cell) {
   white-space: nowrap;

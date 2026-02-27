@@ -1,5 +1,5 @@
 <!--
- * 资源列表：左侧树 + 右侧 ListPageLayout（工具栏、表格、分页），mock 在 shared，国际化。
+ * 资源列表：左侧资源树、右侧表格，支持工具栏筛选、栏位可见性、分页，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -8,7 +8,7 @@
 <template>
   <div class="resource-list-page list-page-common">
     <el-card class="resource-list-card">
-      <el-row :gutter="12" class="resource-list-row">
+      <el-row :gutter="6" class="resource-list-row">
         <el-col :span="3" class="resource-tree-col">
           <div class="resource-tree-wrap">
             <el-tree
@@ -61,10 +61,10 @@
                   @change="search"
                 >
                   <el-option
-                    v-for="item in getDictItems('kuark:sys', 'sub_sys')"
-                    :key="item.first"
-                    :value="item.first"
-                    :label="item.second"
+                    v-for="item in getAtomicServices()"
+                    :key="item.code"
+                    :value="item.code"
+                    :label="item.name"
                   />
                 </el-select>
               </div>
@@ -121,7 +121,7 @@
                   prop="subSysDictCode"
                 >
                   <template #default="scope">
-                    {{ transDict('kuark:sys', 'sub_sys', scope.row.subSysDictCode) }}
+                    {{ transAtomicService(scope.row.subSysDictCode) }}
                   </template>
                 </el-table-column>
                 <el-table-column
@@ -257,7 +257,8 @@ class ListPage extends BaseListPage {
     super(props, context);
     this.tree = tree;
     this.convertThis();
-    this.loadDicts([new Pair('kuark:sys', 'sub_sys'), new Pair('kuark:sys', 'resource_type')]);
+    this.loadAtomicServices();
+    this.loadDicts([new Pair('kuark:sys', 'resource_type')]);
   }
 
   protected initState(): Record<string, unknown> {
@@ -558,13 +559,14 @@ export default defineComponent({
   min-height: 0;
   display: flex;
   flex-direction: column;
+  margin-top: 3px; /* 卡片上外边距 */
 }
-.resource-list-page .resource-list-card .el-card__body {
+.resource-list-page .resource-list-card :deep(.el-card__body) {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding-left: 12px;
+  padding: 8px 5px 5px 5px; /* 上内边距 8px（5+3） */
 }
 .resource-list-page .resource-list-row {
   flex: 1;
@@ -581,7 +583,7 @@ export default defineComponent({
   height: 100%;
   min-height: 0;
   overflow: auto;
-  padding: 8px 12px 8px 0;
+  padding: 8px 6px 8px 0;
   border-right: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-lighter);
 }

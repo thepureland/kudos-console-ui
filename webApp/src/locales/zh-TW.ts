@@ -97,6 +97,7 @@ export default {
     placeholders: {
       name: '快取名稱',
       atomicService: '原子服務',
+      strategy: '快取策略',
     },
     common: {
       yes: '是',
@@ -263,5 +264,10 @@ export default {
     dict: '字典類型',
     dict_item: '字典項',
     view: '視圖',
+  },
+  cache_strategy: {
+    SINGLE_LOCAL: '單機本地',
+    REMOTE: '遠程',
+    LOCAL_REMOTE: '本地+遠程',
   },
 };

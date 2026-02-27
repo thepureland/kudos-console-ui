@@ -206,7 +206,7 @@ onUnmounted(() => {
   position: relative;
   z-index: 0;
   flex: 1;
-  padding: 8px 12px;
+  padding: 4px 6px;
   overflow: auto;
   min-height: 0;
 }

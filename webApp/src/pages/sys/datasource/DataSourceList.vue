@@ -1,6 +1,5 @@
 <!--
- * 数据源列表
- * 依照 CacheList 实现：ListPageLayout、栏位可见性、表头拖拽列顺序、操作列折角、分页、国际化与测试数据。
+ * 数据源列表：支持按名称、子系统/租户、微服务、仅启用筛选，表格支持栏位可见性、表头拖拽列顺序、操作列折角、分页，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -128,7 +127,7 @@
                 >{{ t('dataSourceList.columns.subSys') }}</div>
               </template>
               <template #default="scope">
-                {{ transDict('kuark:sys', 'sub_sys', scope.row.subSysDictCode) }}
+                {{ transAtomicService(scope.row.subSysDictCode) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -497,7 +496,7 @@ export default defineComponent({
       { value: 'ams-log', label: '日志服务' },
       { value: 'ams-job', label: '任务服务' },
     ]);
-    /** 表格微服务列展示：兼容多种后端字段与 mock 的 microservice，优先显示选项 label */
+    /** 表格微服务列展示：兼容多种后端字段与 microservice 展示，优先显示选项 label */
     function getMicroserviceDisplayText(row: Record<string, unknown>): string {
       const raw = row.microservice ?? row.microserviceCode ?? row.microServiceCode;
       const code = typeof raw === 'string' ? raw : (raw && typeof raw === 'object' && 'code' in raw ? (raw as { code: string }).code : null);

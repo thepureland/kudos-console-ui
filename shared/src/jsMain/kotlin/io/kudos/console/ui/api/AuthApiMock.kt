@@ -348,15 +348,62 @@ private fun parseSortParamForParam(params: JsonObject): Pair<String?, String> {
     return if (directionValue == "DESC") propertyValue to "DESC" else propertyValue to "ASC"
 }
 
-private fun buildParamSearchResponse(path: String, requestJson: String): String {
-    val fixture = MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
-    val fixtureObj = parseJsonObjectOrEmpty(fixture)
-    val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
-    val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
-    val paramsObj = parseJsonObjectOrEmpty(requestJson)
-    val params = parseParamSearchParams(paramsObj)
-
-    var filtered = allRows.filter { row ->
+/** 参数列表内联数据，按 module/paramName/paramValue/active 筛选、排序、分页后返回。 */
+private fun buildParamSearchResponse(requestJson: String): String {
+    val params = parseParamSearchParams(parseJsonObjectOrEmpty(requestJson))
+    val mockRows = listOf(
+        buildJsonObject {
+            put("id", JsonPrimitive("1"))
+            put("paramName", JsonPrimitive("sys.name"))
+            put("paramValue", JsonPrimitive("Kudos 控制台"))
+            put("defaultValue", JsonPrimitive("Kudos"))
+            put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
+            put("seqNo", JsonPrimitive(1))
+            put("remark", JsonPrimitive("系统显示名称"))
+            put("active", JsonPrimitive(true))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("2"))
+            put("paramName", JsonPrimitive("sys.pageSize"))
+            put("paramValue", JsonPrimitive("20"))
+            put("defaultValue", JsonPrimitive("10"))
+            put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
+            put("seqNo", JsonPrimitive(2))
+            put("remark", JsonPrimitive("默认分页大小"))
+            put("active", JsonPrimitive(true))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("3"))
+            put("paramName", JsonPrimitive("sys.cache.ttl"))
+            put("paramValue", JsonPrimitive("3600"))
+            put("defaultValue", JsonPrimitive("1800"))
+            put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
+            put("seqNo", JsonPrimitive(3))
+            put("remark", JsonPrimitive("缓存过期时间(秒)"))
+            put("active", JsonPrimitive(true))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("4"))
+            put("paramName", JsonPrimitive("log.level"))
+            put("paramValue", JsonPrimitive("INFO"))
+            put("defaultValue", JsonPrimitive("WARN"))
+            put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.getOrElse(2) { "auth" }))
+            put("seqNo", JsonPrimitive(1))
+            put("remark", JsonPrimitive("日志级别"))
+            put("active", JsonPrimitive(true))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("5"))
+            put("paramName", JsonPrimitive("job.enabled"))
+            put("paramValue", JsonPrimitive("true"))
+            put("defaultValue", JsonPrimitive("false"))
+            put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.getOrElse(3) { "msg" }))
+            put("seqNo", JsonPrimitive(1))
+            put("remark", JsonPrimitive("是否启用任务调度"))
+            put("active", JsonPrimitive(false))
+        },
+    )
+    var filtered = mockRows.filter { row ->
         val rowModule = primitiveString(row, "module").orEmpty()
         val rowParamName = primitiveString(row, "paramName").orEmpty()
         val rowParamValue = primitiveString(row, "paramValue").orEmpty()
@@ -366,14 +413,11 @@ private fun buildParamSearchResponse(path: String, requestJson: String): String 
             (params.paramValue.isEmpty() || rowParamValue.contains(params.paramValue, ignoreCase = true)) &&
             (params.active == null || rowActive == params.active)
     }
-
     filtered = applySort(filtered, params.orderProperty, params.orderDirection)
-
     val total = filtered.size
     val fromIndex = ((params.pageNo - 1) * params.pageSize).coerceAtLeast(0)
     val toIndex = min(fromIndex + params.pageSize, total)
-    val pageRows = if (fromIndex >= total) emptyList() else filtered.subList(fromIndex, toIndex)
-
+    val pageRows = if (fromIndex >= total) emptyList<JsonObject>() else filtered.subList(fromIndex, toIndex)
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
@@ -790,11 +834,11 @@ private fun buildOrganizationSearchTreeResponse(requestJson: String): String {
         put("children", JsonArray(children))
     }
     val prefix = "org_${subSysDictCode}_${tenantId ?: "all"}_"
+    val display = ATOMIC_SERVICE_DISPLAY[subSysDictCode] ?: subSysDictCode
     val (rootName, rootAbbr) = when {
-        subSysDictCode == "console" && tenantId == "t1" -> "总部(租户1)" to "租户1"
-        subSysDictCode == "console" && (tenantId == null || tenantId.isEmpty()) -> "总部(console)" to "console"
-        subSysDictCode == "service_a" && tenantId == "t2" -> "总部(租户2)" to "租户2"
-        subSysDictCode == "service_a" && (tenantId == null || tenantId.isEmpty()) -> "总部(service_a)" to "service_a"
+        subSysDictCode in ATOMIC_SERVICE_CODES_ORDERED && tenantId == "t1" -> "总部(租户1)" to "租户1"
+        subSysDictCode in ATOMIC_SERVICE_CODES_ORDERED && tenantId == "t2" -> "总部(租户2)" to "租户2"
+        subSysDictCode in ATOMIC_SERVICE_CODES_ORDERED && (tenantId == null || tenantId.isEmpty()) -> "总部($display)" to display
         else -> "总部($subSysDictCode${if (tenantId != null) "-$tenantId" else ""})" to (tenantId ?: subSysDictCode)
     }
     val c1 = node("${prefix}2", "研发部", "研发", "dept", 1, true, "2024-01-02 10:00:00", emptyList())
@@ -848,8 +892,8 @@ private fun buildSubsysSearchTreeResponse(requestJson: String): String {
         put("remark", JsonPrimitive(remark))
     }
     val flat = listOf(
-        node("sys_1", "console", "控制台", null, true, true, true, "主控制台"),
-        node("sys_2", "service_a", "服务A", "console", true, true, true, "业务服务A"),
+        node("sys_1", "service_a", "服务A", null, true, true, true, "业务服务A"),
+        node("sys_2", "console", "服务B", null, true, true, true, "主控制台"),
         node("sys_3", "service_b", "服务B", "console", true, false, true, "业务服务B"),
         node("sys_4", "module_x", "模块X", "service_a", false, true, false, "子模块"),
         node("sys_5", "module_y", "模块Y", "service_a", false, true, false, ""),
@@ -1184,7 +1228,7 @@ private fun buildDictSearchResponse(requestJson: String): String {
             put("dictId", JsonPrimitive("dict_1"))
             put("dictType", JsonPrimitive("dict_type"))
             put("dictName", JsonPrimitive("字典类型"))
-            put("module", JsonPrimitive("module"))
+            put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
             put("itemId", JsonNull)
             put("itemCode", JsonNull)
             put("itemName", JsonNull)
@@ -1196,7 +1240,7 @@ private fun buildDictSearchResponse(requestJson: String): String {
             put("dictId", JsonPrimitive("dict_2"))
             put("dictType", JsonPrimitive("user_status"))
             put("dictName", JsonPrimitive("用户状态"))
-            put("module", JsonPrimitive("module"))
+            put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.getOrElse(1) { "user" }))
             put("itemId", JsonNull)
             put("itemCode", JsonNull)
             put("itemName", JsonNull)
@@ -1229,13 +1273,9 @@ private fun buildDictLoadTreeNodesResponse(requestJson: String): String {
     val firstLevel = primitiveBoolean(params, "firstLevel") == true
 
     val nodes: List<JsonObject> = when {
-        parentId == null -> listOf(
-            buildJsonObject { put("id", JsonPrimitive("module")); put("code", JsonPrimitive("module")) },
-            buildJsonObject { put("id", JsonPrimitive("sub_sys")); put("code", JsonPrimitive("sub_sys")) },
-            buildJsonObject { put("id", JsonPrimitive("resource_type")); put("code", JsonPrimitive("resource_type")) },
-            buildJsonObject { put("id", JsonPrimitive("cache_strategy")); put("code", JsonPrimitive("cache_strategy")) },
-            buildJsonObject { put("id", JsonPrimitive("dict_type")); put("code", JsonPrimitive("dict_type")) },
-        )
+        parentId == null -> ATOMIC_SERVICE_CODES_ORDERED.map { code ->
+            buildJsonObject { put("id", JsonPrimitive(code)); put("code", JsonPrimitive(code)) }
+        }
         firstLevel -> listOf(
             buildJsonObject { put("id", JsonPrimitive("dict_${parentId}_1")); put("code", JsonPrimitive("dict_${parentId}_1")) },
             buildJsonObject { put("id", JsonPrimitive("dict_${parentId}_2")); put("code", JsonPrimitive("dict_${parentId}_2")) },
@@ -1265,10 +1305,13 @@ private fun buildResourceLoadTreeNodesResponse(requestJson: String): String {
             buildJsonObject { put("id", JsonPrimitive("menu")); put("name", JsonPrimitive("菜单")) },
             buildJsonObject { put("id", JsonPrimitive("button")); put("name", JsonPrimitive("按钮")) },
         )
-        level == 1 || (resourceTypeDictCode != null && subSysDictCode == null) -> listOf(
-            buildJsonObject { put("id", JsonPrimitive("console")); put("name", JsonPrimitive("控制台")) },
-            buildJsonObject { put("id", JsonPrimitive("service_a")); put("name", JsonPrimitive("服务A")) },
-        )
+        level == 1 || (resourceTypeDictCode != null && subSysDictCode == null) ->
+            ATOMIC_SERVICE_CODES_ORDERED.map { code ->
+                buildJsonObject {
+                    put("id", JsonPrimitive(code))
+                    put("name", JsonPrimitive(ATOMIC_SERVICE_DISPLAY[code]!!))
+                }
+            }
         else -> {
             val fixture = MockJsonStore.byPath["/sys/resource/search"] ?: return "{\"code\":200,\"data\":[]}"
             val fixtureObj = parseJsonObjectOrEmpty(fixture)
@@ -1289,24 +1332,47 @@ private fun buildResourceLoadTreeNodesResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 预置字典项 mock：module---dictType -> code->name。前端 batchGetDictItemMap 用 "[module, dictType]" 作 key。 */
+/** 原子服务（sub_sys）统一数据源：顺序与展示名，所有需要原子服务测试数据的 mock 均由此生成。 */
+private val ATOMIC_SERVICE_CODES_ORDERED = listOf("sys", "user", "auth", "msg", "service_a", "console")
+private val ATOMIC_SERVICE_DISPLAY = mapOf(
+    "sys" to "sys",
+    "user" to "user",
+    "auth" to "auth",
+    "msg" to "msg",
+    "service_a" to "服务A",
+    "console" to "服务B",
+)
+
+/** 原子服务列表 API 返回：非字典，专用接口。 */
+private fun buildAtomicServicesResponse(): String {
+    val data = ATOMIC_SERVICE_CODES_ORDERED.map { code ->
+        buildJsonObject {
+            put("code", JsonPrimitive(code))
+            put("name", JsonPrimitive(ATOMIC_SERVICE_DISPLAY[code]!!))
+        }
+    }
+    return buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", JsonArray(data))
+    }.toString()
+}
+
+/** 预置字典项 mock：module---dictType -> code->name。前端 batchGetDictItemMap 用 "[module, dictType]" 作 key。原子服务不是字典，不在此处。 */
 private val MOCK_DICT_ITEM_MAP = mapOf(
-    "kuark:sys---sub_sys" to mapOf(
-        "console" to "控制台",
-        "service_a" to "服务A",
-    ),
     "kuark:sys---resource_type" to mapOf(
         "menu" to "菜单",
         "button" to "按钮",
     ),
     "kuark:sys---cache_strategy" to mapOf(
-        "LOCAL_REMOTE" to "LOCAL_REMOTE",
-        "SINGLE_LOCAL" to "SINGLE_LOCAL",
-        "REMOTE" to "REMOTE",
+        "SINGLE_LOCAL" to "cache_strategy.SINGLE_LOCAL",
+        "REMOTE" to "cache_strategy.REMOTE",
+        "LOCAL_REMOTE" to "cache_strategy.LOCAL_REMOTE",
     ),
     "kuark:sys---module" to mapOf(
         "kuark:sys" to "系统",
         "kuark:user" to "用户",
+        "kuark:log" to "日志",
+        "kuark:job" to "任务",
     ),
     "kuark:user---user_status" to mapOf(
         "NORMAL" to "正常",
@@ -1331,12 +1397,12 @@ private val MOCK_DICT_ITEM_MAP = mapOf(
 
 /** 从请求 body 解析出 params 数组：支持直接数组或 { params: [...] } */
 private fun parseBatchGetDictItemParams(requestJson: String): List<Pair<String, String>> {
-    if (requestJson.isBlank()) return listOf(Pair("kuark:sys", "sub_sys"))
-    val element = runCatching { json.parseToJsonElement(requestJson) }.getOrNull() ?: return listOf(Pair("kuark:sys", "sub_sys"))
+    if (requestJson.isBlank()) return emptyList()
+    val element = runCatching { json.parseToJsonElement(requestJson) }.getOrNull() ?: return emptyList()
     val arr = when (element) {
         is JsonArray -> element
-        is JsonObject -> element["params"] as? JsonArray ?: return listOf(Pair("kuark:sys", "sub_sys"))
-        else -> return listOf(Pair("kuark:sys", "sub_sys"))
+        is JsonObject -> element["params"] as? JsonArray ?: return emptyList()
+        else -> return emptyList()
     }
     val list = mutableListOf<Pair<String, String>>()
     for (e in arr) {
@@ -1345,7 +1411,6 @@ private fun parseBatchGetDictItemParams(requestJson: String): List<Pair<String, 
         val dictType = primitiveString(e, "dictType").orEmpty()
         if (dictType.isNotEmpty()) list.add(Pair(module, dictType))
     }
-    if (list.isEmpty()) list.add(Pair("kuark:sys", "sub_sys"))
     return list
 }
 
@@ -1400,7 +1465,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         }
         "/sys/param/search", "/api/sys/param/search" -> {
             val requestJson = requestBodyText(request.body)
-            val body = buildParamSearchResponse(path, requestJson)
+            val body = buildParamSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/resource/search", "/api/sys/resource/search" -> {
@@ -1418,11 +1483,14 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildResourceSearchResponse("/sys/resource/search", requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/atomicServices", "/api/sys/atomicServices" -> {
+            val body = buildAtomicServicesResponse()
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/dict/loadDictTypes", "/api/sys/dict/loadDictTypes" -> {
             val data = JsonArray(
                 listOf(
                     JsonPrimitive("module"),
-                    JsonPrimitive("sub_sys"),
                     JsonPrimitive("resource_type"),
                     JsonPrimitive("cache_strategy"),
                     JsonPrimitive("dict_type"),
@@ -1507,12 +1575,11 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         }
         "/sys/tenant/getAllActiveTenants", "/api/sys/tenant/getAllActiveTenants" -> {
             val data = buildJsonObject {
-                put("console", buildJsonObject {
-                    put("t1", JsonPrimitive("租户1"))
-                })
-                put("service_a", buildJsonObject {
-                    put("t2", JsonPrimitive("租户2"))
-                })
+                ATOMIC_SERVICE_CODES_ORDERED.forEachIndexed { index, code ->
+                    put(code, buildJsonObject {
+                        put("t${index + 1}", JsonPrimitive("租户${index + 1}"))
+                    })
+                }
             }
             val body = buildJsonObject {
                 put("code", JsonPrimitive(200))
@@ -1527,7 +1594,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
                 put("dictId", JsonPrimitive("dict_$id"))
                 put("dictType", JsonPrimitive("dict_type"))
                 put("dictName", JsonPrimitive(if (isDict) "字典类型" else "字典项"))
-                put("module", JsonPrimitive("module"))
+                put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
                 put("itemId", if (isDict) JsonNull else JsonPrimitive("item_$id"))
                 put("itemCode", if (isDict) JsonNull else JsonPrimitive("item_$id"))
                 put("itemName", if (isDict) JsonNull else JsonPrimitive("项名称"))

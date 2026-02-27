@@ -97,6 +97,7 @@ export default {
     placeholders: {
       name: 'Cache Name',
       atomicService: 'Atomic Service',
+      strategy: 'Cache Strategy',
     },
     common: {
       yes: 'Yes',
@@ -263,5 +264,10 @@ export default {
     dict: 'Dict Type',
     dict_item: 'Dict Item',
     view: 'View',
+  },
+  cache_strategy: {
+    SINGLE_LOCAL: 'Single Local',
+    REMOTE: 'Remote',
+    LOCAL_REMOTE: 'Local + Remote',
   },
 };

@@ -1,5 +1,5 @@
 <!--
- * 账号列表：左侧组织机构树 + 右侧 ListPageLayout（子系统/租户级联、用户名、列可见性、操作列），mock 在 shared，国际化。
+ * 账号列表：左侧组织机构树、右侧表格，支持按子系统/租户、用户名筛选，表格支持列可见性、操作列折角，多语言。
  *
  * @author K
  * @author AI: Cursor
@@ -8,7 +8,7 @@
 <template>
   <div class="account-list-page list-page-common">
     <el-card class="account-list-card">
-      <el-row :gutter="12" class="account-list-row">
+      <el-row :gutter="6" class="account-list-row">
         <el-col :span="3" class="account-tree-col">
           <div class="account-tree-wrap">
             <el-scrollbar>
@@ -121,7 +121,7 @@
                       >{{ t('accountList.columns.subSys') }}</div>
                     </template>
                     <template #default="scope">
-                      {{ transDict('kuark:sys', 'sub_sys', scope.row.subSysDictCode) }}
+                      {{ transAtomicService(scope.row.subSysDictCode) }}
                     </template>
                   </el-table-column>
                   <el-table-column
@@ -296,7 +296,6 @@ class ListPage extends TenantSupportListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.loadDicts([
-      new Pair('kuark:sys', 'sub_sys'),
       new Pair('kuark:user', 'user_status'),
       new Pair('kuark:user', 'user_type'),
     ]);
@@ -570,9 +569,11 @@ export default defineComponent({
 }
 .account-list-card {
   height: 100%;
+  margin-top: 3px; /* 卡片上外边距 */
 }
 .account-list-card :deep(.el-card__body) {
   height: 100%;
+  padding: 8px 5px 5px 5px; /* 上内边距 8px（5+3） */
 }
 .account-list-row {
   height: 100%;
@@ -585,7 +586,7 @@ export default defineComponent({
   min-height: 200px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
-  padding: 8px;
+  padding: 4px;
   background: var(--el-fill-color-lighter);
 }
 .account-tree-wrap .el-scrollbar {
