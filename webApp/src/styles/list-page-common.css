@@ -16,6 +16,8 @@
   padding-top: 3px; /* 卡片上外边距 */
 }
 
+/* 区域样式（搜索栏 / 表格区）由 ListPageLayout 统一提供，所有使用该布局的列表页自动生效 */
+
 /* 工具栏容器由 ListPageLayout 提供 .list-page-toolbar，此处为工具栏内公共结构样式 */
 .list-page-common .list-page-toolbar .toolbar-cell {
   flex: 1 1 0;
@@ -39,7 +41,28 @@
   gap: 8px;
   min-width: 420px;
   flex-shrink: 0;
+  margin-left: 12px;
 }
+.list-page-common .list-page-toolbar .toolbar-buttons .el-button {
+  padding: 5px 8px;
+}
+.list-page-common .list-page-toolbar .toolbar-buttons .el-button .el-icon {
+  margin-right: 6px;
+}
+
+/* 表格上方工具栏（由 ListPageLayout 提供容器，列表页填 #tableToolbar slot） */
+.list-page-common .list-page-table-toolbar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.list-page-common .list-page-table-toolbar-wrap .el-button {
+  padding: 5px 8px;
+}
+.list-page-common .list-page-table-toolbar-wrap .el-button .el-icon {
+  margin-right: 6px;
+}
+
 .list-page-common .list-page-toolbar .toolbar-name .search-name-input-wrap,
 .list-page-common .list-page-toolbar .toolbar-subsys .search-select-wrap {
   display: block;
@@ -124,3 +147,4 @@
   width: 100%;
   height: 100%;
 }
+

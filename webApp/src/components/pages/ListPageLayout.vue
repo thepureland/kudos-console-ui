@@ -13,37 +13,48 @@
         <slot name="toolbar" />
       </div>
       <div
-        :ref="(el) => assignTableWrapRef(el)"
         class="list-page-table-wrap"
         @mousemove="operationColumn.handleTableWrapMouseMove"
         @mouseleave="operationColumn.handleTableWrapMouseLeave"
       >
-        <operation-column-fold-toggle
-          :visible="columnVisibilityPanelVisible"
-          :show-text="columnPanelShowText"
-          :hide-text="columnPanelHideText"
-          position="left"
-          @toggle-pin="toggleColumnVisibilityPanel"
-        />
-        <div
-          v-if="columnVisibilityPanelVisible"
-          ref="columnVisibilityPanelRef"
-          class="list-page-column-panel"
-        >
-          <slot name="columnVisibilityPanel" />
+        <div v-if="$slots.tableToolbar" class="list-page-table-toolbar-wrap">
+          <slot name="tableToolbar" />
         </div>
-        <operation-column-fold-toggle
-          :visible="showOperationColumn"
-          :show-text="operationColumnShowText"
-          :hide-text="operationColumnHideText"
-          position="right"
-          @fold-mouseenter="operationColumn.handleFoldMouseEnter"
-          @fold-mouseleave="() => {}"
-          @toggle-pin="operationColumn.toggleOperationColumnPin"
-        />
-        <slot />
+        <div
+          :ref="(el) => assignTableWrapRef(el)"
+          class="list-page-table-area"
+        >
+          <operation-column-fold-toggle
+            :visible="columnVisibilityPanelVisible"
+            :show-text="columnPanelShowText"
+            :hide-text="columnPanelHideText"
+            position="left"
+            @toggle-pin="toggleColumnVisibilityPanel"
+          />
+          <div
+            v-if="columnVisibilityPanelVisible"
+            ref="columnVisibilityPanelRef"
+            class="list-page-column-panel"
+          >
+            <slot name="columnVisibilityPanel" />
+          </div>
+          <operation-column-fold-toggle
+            :visible="showOperationColumn"
+            :show-text="operationColumnShowText"
+            :hide-text="operationColumnHideText"
+            position="right"
+            @fold-mouseenter="operationColumn.handleFoldMouseEnter"
+            @fold-mouseleave="() => {}"
+            @toggle-pin="operationColumn.toggleOperationColumnPin"
+          />
+          <div class="list-page-table-slot">
+            <slot />
+          </div>
+        </div>
+        <div class="list-page-pagination-wrap">
+          <slot name="pagination" />
+        </div>
       </div>
-      <slot name="pagination" />
     </el-card>
   </div>
 </template>
@@ -160,23 +171,84 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 8px 5px 5px 5px; /* 上内边距 8px（5+3），其余 5px；子系统列表页单独覆盖 */
+  padding: 5px 7px 7px 7px;
 }
 
+/* 区域一：搜索栏 */
 .list-page-toolbar {
-  margin-bottom: 6px;
-  flex-shrink: 0;
+  margin-bottom: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
   width: 100%;
-  min-width: 0;
   overflow-x: auto;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  padding: 7px 8px;
 }
 
+/* 区域二：表格区（表格工具栏 + 表格 + 分页） */
 .list-page-table-wrap {
+  margin-top: 0;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  padding: 7px 8px;
+}
+
+.list-page-table-toolbar-wrap {
+  flex-shrink: 0;
+  margin-bottom: 5px;
+}
+
+.list-page-pagination-wrap {
+  flex-shrink: 0;
+}
+/* 分页栏：跳转输入框、每页条数选择框高度略减 */
+.list-page-pagination-wrap :deep(.el-pagination .el-input__wrapper) {
+  min-height: 22px !important;
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
+}
+.list-page-pagination-wrap :deep(.el-pagination .el-input__inner) {
+  height: 20px !important;
+  line-height: 20px !important;
+}
+/* 每页条数 el-select 触发器 */
+.list-page-pagination-wrap :deep(.el-pagination .el-select .el-input__wrapper),
+.list-page-pagination-wrap :deep(.el-pagination .el-select .el-select__wrapper) {
+  min-height: 22px !important;
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
+}
+.list-page-pagination-wrap :deep(.el-pagination .el-select .el-input__inner),
+.list-page-pagination-wrap :deep(.el-pagination .el-select .el-select__placeholder) {
+  height: 20px !important;
+  line-height: 20px !important;
+}
+
+.list-page-table-area {
   position: relative;
-  margin-top: 4px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-page-table-slot {
+  flex: 0 0 auto;
 }
 
 .list-page-column-panel {

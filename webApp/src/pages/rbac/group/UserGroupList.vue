@@ -44,11 +44,25 @@
           </el-checkbox>
         </div>
         <div class="toolbar-buttons">
-          <el-button type="primary" round @click="search">{{ t('userGroupList.actions.search') }}</el-button>
-          <el-button type="primary" round @click="resetSearchFields">{{ t('userGroupList.actions.reset') }}</el-button>
-          <el-button type="success" @click="openAddDialog">{{ t('userGroupList.actions.add') }}</el-button>
-          <el-button type="danger" @click="multiDelete">{{ t('userGroupList.actions.delete') }}</el-button>
+          <el-button type="primary" round @click="search">
+            <el-icon><Search /></el-icon>
+            {{ t('userGroupList.actions.search') }}
+          </el-button>
+          <el-button type="primary" round @click="resetSearchFields">
+            <el-icon><RefreshLeft /></el-icon>
+            {{ t('userGroupList.actions.reset') }}
+          </el-button>
         </div>
+      </template>
+      <template #tableToolbar>
+        <el-button type="success" @click="openAddDialog">
+          <el-icon><Plus /></el-icon>
+          {{ t('userGroupList.actions.add') }}
+        </el-button>
+        <el-button type="danger" @click="multiDelete">
+          <el-icon><Delete /></el-icon>
+          {{ t('userGroupList.actions.delete') }}
+        </el-button>
       </template>
       <template #columnVisibilityPanel>
         <div class="column-visibility-title">{{ t('userGroupList.actions.columnVisibility') }}</div>
@@ -230,7 +244,7 @@
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
-import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
+import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import UserGroupAddEdit from './UserGroupAddEdit.vue';
 import UserGroupDetail from './UserGroupDetail.vue';
@@ -280,7 +294,7 @@ class ListPage extends BaseListPage {
 
 export default defineComponent({
   name: 'UserGroupList',
-  components: { UserGroupAddEdit, UserGroupDetail, ListPageLayout, Edit, Delete, Tickets },
+  components: { UserGroupAddEdit, UserGroupDetail, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
@@ -433,6 +447,7 @@ export default defineComponent({
 });
 </script>
 
+<style src="../../../styles/list-page-common.css" scoped></style>
 <style lang="css" scoped>
 .user-group-list-page {
   height: 100%;

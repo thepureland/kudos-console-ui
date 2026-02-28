@@ -68,11 +68,25 @@
           </el-checkbox>
         </div>
         <div class="toolbar-buttons">
-          <el-button type="primary" round @click="search">{{ t('dataSourceList.actions.search') }}</el-button>
-          <el-button type="primary" round @click="resetSearchFields">{{ t('dataSourceList.actions.reset') }}</el-button>
-          <el-button type="success" @click="openAddDialog">{{ t('dataSourceList.actions.add') }}</el-button>
-          <el-button type="danger" @click="multiDelete">{{ t('dataSourceList.actions.delete') }}</el-button>
+          <el-button type="primary" round @click="search">
+            <el-icon><Search /></el-icon>
+            {{ t('dataSourceList.actions.search') }}
+          </el-button>
+          <el-button type="primary" round @click="resetSearchFields">
+            <el-icon><RefreshLeft /></el-icon>
+            {{ t('dataSourceList.actions.reset') }}
+          </el-button>
         </div>
+      </template>
+      <template #tableToolbar>
+        <el-button type="success" @click="openAddDialog">
+          <el-icon><Plus /></el-icon>
+          {{ t('dataSourceList.actions.add') }}
+        </el-button>
+        <el-button type="danger" @click="multiDelete">
+          <el-icon><Delete /></el-icon>
+          {{ t('dataSourceList.actions.delete') }}
+        </el-button>
       </template>
       <!-- 栏位可见性面板：勾选控制各列显示/隐藏（列顺序在表头拖拽调整） -->
       <template #columnVisibilityPanel>
@@ -307,7 +321,7 @@
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Edit, Delete, Tickets, Lock } from '@element-plus/icons-vue';
+import { Delete, Edit, Lock, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import DataSourceAddEdit from './DataSourceAddEdit.vue';
 import DataSourceDetail from './DataSourceDetail.vue';
@@ -411,6 +425,9 @@ export default defineComponent({
     Delete,
     Tickets,
     Lock,
+    Search,
+    RefreshLeft,
+    Plus,
   },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();

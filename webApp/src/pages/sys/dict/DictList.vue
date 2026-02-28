@@ -101,11 +101,25 @@
                 </el-checkbox>
               </div>
               <div class="toolbar-buttons">
-                <el-button type="primary" round @click="search">{{ t('dictList.actions.search') }}</el-button>
-                <el-button type="primary" round @click="resetSearchFields">{{ t('dictList.actions.reset') }}</el-button>
-                <el-button type="success" @click="openAddDialog">{{ t('dictList.actions.add') }}</el-button>
-                <el-button type="danger" @click="multiDelete">{{ t('dictList.actions.delete') }}</el-button>
+                <el-button type="primary" round @click="search">
+                  <el-icon><Search /></el-icon>
+                  {{ t('dictList.actions.search') }}
+                </el-button>
+                <el-button type="primary" round @click="resetSearchFields">
+                  <el-icon><RefreshLeft /></el-icon>
+                  {{ t('dictList.actions.reset') }}
+                </el-button>
               </div>
+            </template>
+            <template #tableToolbar>
+              <el-button type="success" @click="openAddDialog">
+                <el-icon><Plus /></el-icon>
+                {{ t('dictList.actions.add') }}
+              </el-button>
+              <el-button type="danger" @click="multiDelete">
+                <el-icon><Delete /></el-icon>
+                {{ t('dictList.actions.delete') }}
+              </el-button>
             </template>
             <template #columnVisibilityPanel>
               <div class="column-visibility-title">{{ t('dictList.actions.columnVisibility') }}</div>
@@ -246,7 +260,7 @@
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick } from 'vue';
-import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
+import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { i18n } from '../../../i18n';
@@ -583,7 +597,7 @@ const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
 export default defineComponent({
   name: 'DictList',
-  components: { DictAddEdit, DictDetail, DictItemDetail, ListPageLayout, Edit, Delete, Tickets },
+  components: { DictAddEdit, DictDetail, DictItemDetail, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);

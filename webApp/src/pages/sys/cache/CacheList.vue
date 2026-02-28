@@ -18,7 +18,7 @@
       :operation-column-hide-text="t('cacheList.actions.hideOperationColumn')"
       @table-wrap-mounted="onTableWrapMounted"
     >
-      <!-- 工具栏：布局由 ListPageLayout + list-page-common 提供，此处仅填 slot 内容 -->
+      <!-- 搜索栏：名称/原子服务/策略/仅启用 + 搜索、重置 -->
       <template #toolbar>
         <div class="toolbar-cell toolbar-name">
           <div class="search-name-input-wrap">
@@ -76,10 +76,14 @@
           </el-checkbox>
         </div>
         <div class="toolbar-buttons">
-          <el-button type="primary" round @click="search">{{ t('cacheList.actions.search') }}</el-button>
-          <el-button type="primary" round @click="resetSearchFields">{{ t('cacheList.actions.reset') }}</el-button>
-          <el-button type="success" @click="openAddDialog">{{ t('cacheList.actions.add') }}</el-button>
-          <el-button type="danger" @click="multiDelete">{{ t('cacheList.actions.delete') }}</el-button>
+          <el-button type="primary" round @click="search">
+            <el-icon><Search /></el-icon>
+            {{ t('cacheList.actions.search') }}
+          </el-button>
+          <el-button type="primary" round @click="resetSearchFields">
+            <el-icon><RefreshLeft /></el-icon>
+            {{ t('cacheList.actions.reset') }}
+          </el-button>
         </div>
       </template>
       <!-- 栏位可见性面板：勾选控制各列显示/隐藏（列顺序在表头拖拽调整） -->
@@ -95,13 +99,24 @@
           </el-checkbox>
         </el-checkbox-group>
       </template>
+      <!-- 表格上方工具栏：新增、删除（布局由 ListPageLayout + list-page-common 提供） -->
+      <template #tableToolbar>
+        <el-button type="success" @click="openAddDialog">
+          <el-icon><Plus /></el-icon>
+          {{ t('cacheList.actions.add') }}
+        </el-button>
+        <el-button type="danger" @click="multiDelete">
+          <el-icon><Delete /></el-icon>
+          {{ t('cacheList.actions.delete') }}
+        </el-button>
+      </template>
       <!-- 缓存列表表格：选择/序号/名称/子系统/策略/启用/写盘/写入时机/TTL/备注 + 操作列（编辑/删除/详情/管理下拉） -->
       <div
         class="table-drag-drop-zone"
         @dragover="onTableDragOver"
         @drop="onTableDrop"
       >
-      <el-table
+        <el-table
           ref="tableRef"
           border
           stripe
@@ -113,11 +128,11 @@
           @sort-change="handleSortChange"
           @filter-change="handleTableFilterChange"
         >
-        <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-        <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
-        <el-table-column :label="t('cacheList.columns.name')" prop="name" sortable="custom" width="350" fixed="left" class-name="col-fixed-name" />
-        <template v-for="key in orderedColumnKeys" :key="key">
-          <el-table-column
+          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column :label="t('cacheList.columns.name')" prop="name" sortable="custom" width="350" fixed="left" class-name="col-fixed-name" />
+          <template v-for="key in orderedColumnKeys" :key="key">
+            <el-table-column
             v-if="key === 'atomicServiceCode' && isColumnVisible('atomicServiceCode')"
             prop="atomicServiceCode"
             min-width="120"
@@ -369,7 +384,7 @@
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
+import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import CacheAddEdit from './CacheAddEdit.vue';
 import CacheDetail from './CacheDetail.vue';
@@ -574,6 +589,9 @@ export default defineComponent({
     Edit,
     Delete,
     Tickets,
+    Search,
+    RefreshLeft,
+    Plus,
   },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
@@ -958,5 +976,10 @@ export default defineComponent({
 :deep(th .cell:has(.column-header-draggable) .caret-wrapper),
 :deep(th .cell:has(.column-header-draggable) .el-table__sort-icon) {
   display: none !important;
+}
+/* 表头列名统一颜色，不区分是否带筛选 */
+:deep(.el-table th .cell),
+:deep(.el-table th .column-header-draggable) {
+  color: var(--el-table-header-text-color, var(--el-text-color-regular, #606266)) !important;
 }
 </style>

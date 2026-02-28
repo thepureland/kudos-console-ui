@@ -62,11 +62,25 @@
           </el-checkbox>
         </div>
         <div class="toolbar-buttons">
-          <el-button type="primary" round @click="search">{{ t('paramList.actions.search') }}</el-button>
-          <el-button type="primary" round @click="resetSearchFields">{{ t('paramList.actions.reset') }}</el-button>
-          <el-button type="success" @click="openAddDialog">{{ t('paramList.actions.add') }}</el-button>
-          <el-button type="danger" @click="multiDelete">{{ t('paramList.actions.delete') }}</el-button>
+          <el-button type="primary" round @click="search">
+            <el-icon><Search /></el-icon>
+            {{ t('paramList.actions.search') }}
+          </el-button>
+          <el-button type="primary" round @click="resetSearchFields">
+            <el-icon><RefreshLeft /></el-icon>
+            {{ t('paramList.actions.reset') }}
+          </el-button>
         </div>
+      </template>
+      <template #tableToolbar>
+        <el-button type="success" @click="openAddDialog">
+          <el-icon><Plus /></el-icon>
+          {{ t('paramList.actions.add') }}
+        </el-button>
+        <el-button type="danger" @click="multiDelete">
+          <el-icon><Delete /></el-icon>
+          {{ t('paramList.actions.delete') }}
+        </el-button>
       </template>
       <!-- 栏位可见性面板：含顺序列、备注列等可勾选 -->
       <template #columnVisibilityPanel>
@@ -213,7 +227,7 @@
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
+import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import ParamAddEdit from './ParamAddEdit.vue';
 import ParamDetail from './ParamDetail.vue';
@@ -274,6 +288,9 @@ export default defineComponent({
     Edit,
     Delete,
     Tickets,
+    Search,
+    RefreshLeft,
+    Plus,
   },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();

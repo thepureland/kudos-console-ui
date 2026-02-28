@@ -84,11 +84,25 @@
                 </el-checkbox>
               </div>
               <div class="toolbar-buttons">
-                <el-button type="primary" round @click="search">{{ t('resourceList.actions.search') }}</el-button>
-                <el-button type="primary" round @click="resetSearchFields">{{ t('resourceList.actions.reset') }}</el-button>
-                <el-button type="success" @click="openAddDialog">{{ t('resourceList.actions.add') }}</el-button>
-                <el-button type="danger" @click="multiDelete">{{ t('resourceList.actions.delete') }}</el-button>
+                <el-button type="primary" round @click="search">
+                  <el-icon><Search /></el-icon>
+                  {{ t('resourceList.actions.search') }}
+                </el-button>
+                <el-button type="primary" round @click="resetSearchFields">
+                  <el-icon><RefreshLeft /></el-icon>
+                  {{ t('resourceList.actions.reset') }}
+                </el-button>
               </div>
+            </template>
+            <template #tableToolbar>
+              <el-button type="success" @click="openAddDialog">
+                <el-icon><Plus /></el-icon>
+                {{ t('resourceList.actions.add') }}
+              </el-button>
+              <el-button type="danger" @click="multiDelete">
+                <el-icon><Delete /></el-icon>
+                {{ t('resourceList.actions.delete') }}
+              </el-button>
             </template>
             <template #columnVisibilityPanel>
               <div class="column-visibility-title">{{ t('resourceList.actions.columnVisibility') }}</div>
@@ -230,7 +244,7 @@
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
-import { Edit, Delete, Tickets } from '@element-plus/icons-vue';
+import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { i18n } from '../../../i18n';
@@ -470,7 +484,7 @@ const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
 export default defineComponent({
   name: 'ResourceList',
-  components: { ResourceAddEdit, ResourceDetail, ListPageLayout, Edit, Delete, Tickets },
+  components: { ResourceAddEdit, ResourceDetail, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
