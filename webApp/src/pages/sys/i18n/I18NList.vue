@@ -292,6 +292,7 @@
         />
       </template>
     </list-page-layout>
+    <I18NDetail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 
@@ -303,6 +304,7 @@ import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
 import { Pair } from '../../../components/model/Pair';
+import I18NDetail from './I18NDetail.vue';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'i18nList.operationColumnPinned';
 const I18N_LIST_STATE_STORAGE_KEY = 'i18nList.queryState';
@@ -362,7 +364,7 @@ class ListPage extends BaseListPage {
 
 export default defineComponent({
   name: 'I18NList',
-  components: { ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { ListPageLayout, I18NDetail, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };

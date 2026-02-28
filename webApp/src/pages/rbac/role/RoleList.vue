@@ -294,7 +294,7 @@
 
     <role-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
     <role-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
-    <role-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
+    <RoleDetail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
     <menu-authorization v-if="menuAuthorizationDialogVisible" v-model="menuAuthorizationDialogVisible" :rid="rid" />
     <user-assignment-dialog
       v-if="userAssignmentDialogVisible"

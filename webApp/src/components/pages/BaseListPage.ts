@@ -469,10 +469,10 @@ export abstract class BaseListPage extends BasePage {
 
     public handleDetail: (row: any) => void
 
-    /** 打开详情弹窗。 */
+    /** 打开详情弹窗。先设置 rid 再打开，保证详情组件拿到当前行 id。 */
     protected doHandleDetail(row: any) {
-        this.state.detailDialogVisible = true
         this.state.rid = this.getRowId(row)
+        this.state.detailDialogVisible = true
     }
 
     public updateActive: (row: any) => void

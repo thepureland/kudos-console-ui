@@ -1,9 +1,9 @@
-<!-- 租户详情 -->
+<!-- 子系统详情 -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
-    title-key="tenantDetail.title"
-    empty-key="tenantDetail.empty"
+    title-key="systemDetail.title"
+    empty-key="systemDetail.empty"
     width="65%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
@@ -21,38 +21,38 @@ import {
   type SectionConfig,
   useSectionedDetail,
 } from '../../../components/pages/sectionedDetail';
-import { backendRequest } from '../../../utils/backendRequest';
-import { ElMessage } from 'element-plus';
 
 /** 分组：从第几行开始显示分组标题（其他信息放最后） */
 const SECTION_MAP: SectionConfig[] = [
-  { start: 0, titleKey: 'tenantDetail.sections.basicInfo' },
-  { start: 2, titleKey: 'tenantDetail.sections.audit' },
-  { start: 4, titleKey: 'tenantDetail.sections.otherInfo' },
+  { start: 0, titleKey: 'systemDetail.sections.basicInfo' },
+  { start: 2, titleKey: 'systemDetail.sections.audit' },
+  { start: 4, titleKey: 'systemDetail.sections.otherInfo' },
 ];
 
 const ROW_FIELDS: FieldConfig[][] = [
   [
-    { labelKey: 'tenantDetail.fields.id', key: 'id' },
-    { labelKey: 'tenantDetail.fields.name', key: 'name' },
+    { labelKey: 'systemDetail.fields.id', key: 'id' },
+    { labelKey: 'systemDetail.fields.code', key: 'code' },
   ],
   [
-    { labelKey: 'tenantDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+    { labelKey: 'systemDetail.fields.name', key: 'name' },
+    { labelKey: 'systemDetail.fields.parentCode', key: 'parentCode' },
   ],
   [
-    { labelKey: 'tenantDetail.fields.createTime', key: 'createTime', type: 'date' },
-    { labelKey: 'tenantDetail.fields.updateTime', key: 'updateTime', type: 'date' },
+    { labelKey: 'systemDetail.fields.createTime', key: 'createTime', type: 'date' },
+    { labelKey: 'systemDetail.fields.updateTime', key: 'updateTime', type: 'date' },
   ],
   [
-    { labelKey: 'tenantDetail.fields.createUser', key: 'createUser' },
-    { labelKey: 'tenantDetail.fields.updateUser', key: 'updateUser' },
+    { labelKey: 'systemDetail.fields.createUser', key: 'createUser' },
+    { labelKey: 'systemDetail.fields.updateUser', key: 'updateUser' },
   ],
   [
-    { labelKey: 'tenantDetail.fields.active', key: 'active', type: 'boolean' },
-    { labelKey: 'tenantDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
+    { labelKey: 'systemDetail.fields.active', key: 'active', type: 'boolean' },
+    { labelKey: 'systemDetail.fields.subSystem', key: 'subSystem', type: 'boolean' },
   ],
   [
-    { labelKey: 'tenantDetail.fields.remark', key: 'remark', valueSpan: 3 },
+    { labelKey: 'systemDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
+    { labelKey: 'systemDetail.fields.remark', key: 'remark', valueSpan: 2 },
   ],
 ];
 
@@ -65,41 +65,19 @@ class DetailPage extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'sys/tenant';
+    return 'sys/subsys';
   }
 
-  /** 用 search 接口按 id 取一条，与列表同源 */
-  protected getDetailLoadUrl(): string {
-    return 'sys/tenant/search';
-  }
-
-  protected createDetailLoadParams(): Record<string, unknown> {
-    return { id: String(this.state.rid || this.props.rid || ''), pageNo: 1, pageSize: 1 };
-  }
-
-  protected async preLoad(): Promise<void> {
-    await this.loadAtomicServices();
-  }
-
-  protected async loadData(): Promise<void> {
-    const params = this.createDetailLoadParams();
-    const result = await backendRequest({ url: this.getDetailLoadUrl(), method: 'post', params });
-    if (result.code == 200 && result.data) {
-      const list = result.data.first;
-      const row = Array.isArray(list) && list.length > 0 ? list[0] : null;
-      this.postLoadDataSuccessfully(row);
-    } else {
-      ElMessage.error('数据加载失败！');
-    }
+  protected createDetailLoadParams(): { id: string } {
+    return { id: String(this.state.rid || this.props.rid || '') };
   }
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
+      if (data.createTime == null) data.createTime = null;
       if (data.updateTime == null) data.updateTime = null;
       if (data.createUser == null) data.createUser = '';
       if (data.updateUser == null) data.updateUser = '';
-      if (data.builtIn == null) data.builtIn = false;
-      if (data.remark == null) data.remark = '';
       this.state.detail = data;
     } else {
       this.state.detail = null;
@@ -111,7 +89,7 @@ class DetailPage extends BaseDetailPage {
 }
 
 export default defineComponent({
-  name: 'TenantDetail',
+  name: 'SystemDetail',
   components: { SectionedDetailDialog },
   props: {
     modelValue: {
@@ -133,8 +111,8 @@ export default defineComponent({
     };
 
     const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
-      emptyKey: 'tenantDetail.empty',
-      yesNoKey: 'tenantList.common',
+      emptyKey: 'systemDetail.empty',
+      yesNoKey: 'systemList.common',
     });
 
     watch(

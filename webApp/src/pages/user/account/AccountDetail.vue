@@ -1,138 +1,168 @@
-<!--
- * 账号详情
- *
- * @author: K
- * @since 1.0.0
- -->
-
+<!-- 账号详情 -->
 <template>
-  <el-dialog title="账号信息详情" v-model="visible" width="45%" center @close="close">
-    <el-row :gutter="10">
-      <el-col :span="3">账号ID：</el-col>
-      <el-col :span="9">{{detail.id}}</el-col>
-      <el-col :span="3">用户名：</el-col>
-      <el-col :span="9">{{detail.username}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">用户状态：</el-col>
-      <el-col :span="9">{{transDict("kuark:user", "user_status", detail.userStatusDictCode)}}</el-col>
-      <el-col :span="3">用户状态原因：</el-col>
-      <el-col :span="9">{{detail.userStatusReason}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">用户类型：</el-col>
-      <el-col :span="9">{{transDict("kuark:user", "user_type", detail.userTypeDictCode)}}</el-col>
-      <el-col :span="3">是否内置：</el-col>
-      <el-col :span="9">{{detail.builtIn ? '是' : '否'}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">账号锁定时间起：</el-col>
-      <el-col :span="9">{{formatDate(detail.lockTimeStart)}}</el-col>
-      <el-col :span="3">账号锁定时间止：</el-col>
-      <el-col :span="9">{{formatDate(detail.lockTimeEnd)}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">最后一次登入时间：</el-col>
-      <el-col :span="9">{{formatDate(detail.lastLoginTime)}}</el-col>
-      <el-col :span="3">最后一次登出时间：</el-col>
-      <el-col :span="9">{{formatDate(detail.lastLogoutTime)}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">最后一次登入ip：</el-col>
-      <el-col :span="9">{{detail.lastLoginIp}}</el-col>
-      <el-col :span="3">最后一次登入终端：</el-col>
-      <el-col :span="9">{{transDict("kuark:user", "user_terminal", detail.lastLoginTerminalDictCode)}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">总在线时长(小时)：</el-col>
-      <el-col :span="9">{{detail.totalOnlineTime}}</el-col>
-      <el-col :span="3">动态验证码的密钥：</el-col>
-      <el-col :span="9">{{detail.dynamicAuthKey}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">注册ip：</el-col>
-      <el-col :span="9">{{detail.registerIp}}</el-col>
-      <el-col :span="3">注册url：</el-col>
-      <el-col :span="9">{{detail.registerUrl}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">子系统：</el-col>
-      <el-col :span="9">{{ transAtomicService(detail.subSysDictCode) }}</el-col>
-      <el-col :span="3">备注：</el-col>
-      <el-col :span="9">{{detail.remark}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">租户ID：</el-col>
-      <el-col :span="9">{{detail.tenantId}}</el-col>
-      <el-col :span="3">租户名称：</el-col>
-      <el-col :span="9">{{detail.tenantName}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">创建时间：</el-col>
-      <el-col :span="9">{{formatDate(detail.createTime)}}</el-col>
-      <el-col :span="3">最近更新时间：</el-col>
-      <el-col :span="9">{{formatDate(detail.updateTime)}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">创建用户：</el-col>
-      <el-col :span="9">{{detail.createUser}}</el-col>
-      <el-col :span="3">最近更新用户：</el-col>
-      <el-col :span="9">{{detail.updateUser}}</el-col>
-    </el-row>
-  </el-dialog>
+  <SectionedDetailDialog
+    :model-value="visible"
+    title-key="accountDetail.title"
+    empty-key="accountDetail.empty"
+    width="65%"
+    :rows-with-sections="rowsWithSections"
+    :detail="detail"
+    :format-field-value="formatFieldValue"
+    @update:model-value="(v) => { if (v === false) close(); }"
+  />
 </template>
 
-<script lang='ts'>
-import {defineComponent, reactive, toRefs} from "vue"
-import { BaseDetailPage } from '../../../components/pages/BaseDetailPage'
-import { Pair } from '../../../components/model/Pair'
+<script lang="ts">
+import { defineComponent, reactive, toRefs, watch, computed } from 'vue';
+import { BaseDetailPage } from '../../../components/pages/BaseDetailPage';
+import SectionedDetailDialog from '../../../components/pages/SectionedDetailDialog.vue';
+import {
+  type FieldConfig,
+  type SectionConfig,
+  useSectionedDetail,
+} from '../../../components/pages/sectionedDetail';
+import { Pair } from '../../../components/model/Pair';
+
+/** 与 CacheDetail 一致：每行最多 2 个字段，每行一条 detail-row 底部分隔线 */
+const SECTION_MAP: SectionConfig[] = [
+  { start: 0, titleKey: 'accountDetail.sections.basicInfo' },
+  { start: 3, titleKey: 'accountDetail.sections.lockInfo' },
+  { start: 4, titleKey: 'accountDetail.sections.loginInfo' },
+  { start: 7, titleKey: 'accountDetail.sections.registerInfo' },
+  { start: 8, titleKey: 'accountDetail.sections.audit' },
+  { start: 10, titleKey: 'accountDetail.sections.otherInfo' },
+];
+
+const ROW_FIELDS: FieldConfig[][] = [
+  [
+    { labelKey: 'accountDetail.fields.id', key: 'id' },
+    { labelKey: 'accountDetail.fields.username', key: 'username' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.userStatusDictCode', key: 'userStatusDictCode', type: 'dict', dictModule: 'kuark:user', dictCode: 'user_status' },
+    { labelKey: 'accountDetail.fields.userStatusReason', key: 'userStatusReason' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.userTypeDictCode', key: 'userTypeDictCode', type: 'dict', dictModule: 'kuark:user', dictCode: 'user_type' },
+    { labelKey: 'accountDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.lockTimeStart', key: 'lockTimeStart', type: 'date' },
+    { labelKey: 'accountDetail.fields.lockTimeEnd', key: 'lockTimeEnd', type: 'date' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.lastLoginTime', key: 'lastLoginTime', type: 'date' },
+    { labelKey: 'accountDetail.fields.lastLogoutTime', key: 'lastLogoutTime', type: 'date' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.lastLoginIp', key: 'lastLoginIp' },
+    { labelKey: 'accountDetail.fields.lastLoginTerminalDictCode', key: 'lastLoginTerminalDictCode', type: 'dict', dictModule: 'kuark:user', dictCode: 'user_terminal' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.totalOnlineTime', key: 'totalOnlineTime' },
+    { labelKey: 'accountDetail.fields.dynamicAuthKey', key: 'dynamicAuthKey' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.registerIp', key: 'registerIp' },
+    { labelKey: 'accountDetail.fields.registerUrl', key: 'registerUrl' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.createTime', key: 'createTime', type: 'date' },
+    { labelKey: 'accountDetail.fields.updateTime', key: 'updateTime', type: 'date' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.createUser', key: 'createUser' },
+    { labelKey: 'accountDetail.fields.updateUser', key: 'updateUser' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+    { labelKey: 'accountDetail.fields.tenantId', key: 'tenantId' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.tenantName', key: 'tenantName' },
+    { labelKey: 'accountDetail.fields.remark', key: 'remark' },
+  ],
+];
 
 class DetailPage extends BaseDetailPage {
-
-  constructor(props, context) {
-    super(props, context)
+  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    super(props, context);
+    if (props.rid) {
+      this.state.rid = props.rid as string;
+    }
   }
 
-  protected async preLoad() {
+  protected getRootActionPath(): string {
+    return 'user/account';
+  }
+
+  protected createDetailLoadParams(): { id: string } {
+    return { id: String(this.state.rid || this.props.rid || '') };
+  }
+
+  protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
     await this.loadDicts([
-      new Pair("kuark:sys", "sys"),
-      new Pair("kuark:user", "user_status"),
-      new Pair("kuark:user", "user_type"),
-      new Pair("kuark:user", "user_terminal")
-    ])
+      new Pair('kuark:sys', 'sys'),
+      new Pair('kuark:user', 'user_status'),
+      new Pair('kuark:user', 'user_type'),
+      new Pair('kuark:user', 'user_terminal'),
+    ]);
   }
-
-  protected getRootActionPath(): String {
-    return "user/account"
-  }
-
 }
 
 export default defineComponent({
-  name: "~AccountDetail",
+  name: 'AccountDetail',
+  components: { SectionedDetailDialog },
   props: {
-    modelValue: Boolean,
-    rid: String
+    modelValue: {
+      type: Boolean,
+      default: false,
+    },
+    rid: {
+      type: String,
+      default: '',
+    },
   },
   emits: ['update:modelValue'],
-  setup(props, context) {
-    const page = reactive(new DetailPage(props, context))
+  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    const page = reactive(new DetailPage(props, context)) as DetailPage & {
+      state: { detail: Record<string, unknown> | null };
+      transAtomicService: (code: string) => string;
+      transDict: (module: string, code: string, value: string) => string;
+      formatDate: (value: unknown) => string;
+    };
+
+    const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
+      emptyKey: 'accountDetail.empty',
+      yesNoKey: 'accountList.common',
+    });
+
+    watch(
+      () => props.rid,
+      (newRid, oldRid) => {
+        const id = newRid ? String(newRid) : '';
+        page.state.rid = id;
+        if (oldRid !== undefined && id && id !== String(oldRid)) {
+          page.state.detail = null;
+          page.loadData();
+        }
+      }
+    );
+
+    const visible = computed(() => props.modelValue as boolean);
+    function close() {
+      context.emit('update:modelValue', false);
+    }
+
     return {
       ...toRefs(page),
-      ...toRefs(page.state)
-    }
-  }
-})
+      ...toRefs(page.state),
+      rowsWithSections,
+      formatFieldValue,
+      visible,
+      close,
+    };
+  },
+});
 </script>
-
-<style lang='css' scoped>
-.el-row {
-  margin-bottom: 20px;
-}
-
-.el-col-3 {
-  text-align: right;
-  font-weight: bold;
-}
-</style>

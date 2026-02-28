@@ -1,9 +1,9 @@
-<!-- 组详情 -->
+<!-- 国际化详情 -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
-    title-key="userGroupDetail.title"
-    empty-key="userGroupDetail.empty"
+    title-key="i18nDetail.title"
+    empty-key="i18nDetail.empty"
     width="65%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
@@ -22,37 +22,37 @@ import {
   useSectionedDetail,
 } from '../../../components/pages/sectionedDetail';
 
-/** 与 CacheDetail 一致：每行最多 2 个字段；其他信息放最后，备注接在内置后面。 */
 const SECTION_MAP: SectionConfig[] = [
-  { start: 0, titleKey: 'userGroupDetail.sections.basicInfo' },
-  { start: 2, titleKey: 'userGroupDetail.sections.audit' },
-  { start: 4, titleKey: 'userGroupDetail.sections.otherInfo' },
+  { start: 0, titleKey: 'i18nDetail.sections.basicInfo' },
+  { start: 2, titleKey: 'i18nDetail.sections.audit' },
+  { start: 4, titleKey: 'i18nDetail.sections.otherInfo' },
 ];
 
 const ROW_FIELDS: FieldConfig[][] = [
   [
-    { labelKey: 'userGroupDetail.fields.id', key: 'id' },
-    { labelKey: 'userGroupDetail.fields.groupCode', key: 'groupCode' },
+    { labelKey: 'i18nDetail.fields.id', key: 'id' },
+    { labelKey: 'i18nDetail.fields.key', key: 'key' },
+    { labelKey: 'i18nDetail.fields.value', key: 'value' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.groupName', key: 'groupName' },
-    { labelKey: 'userGroupDetail.fields.active', key: 'active', type: 'boolean' },
+    { labelKey: 'i18nDetail.fields.locale', key: 'locale' },
+    { labelKey: 'i18nDetail.fields.i18nTypeDictCode', key: 'i18nTypeDictCode', type: 'dict', dictModule: 'kuark:sys', dictCode: 'i18n_type' },
+    { labelKey: 'i18nDetail.fields.atomicServiceCode', key: 'atomicServiceCode', type: 'atomicService' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.createTime', key: 'createTime', type: 'date' },
-    { labelKey: 'userGroupDetail.fields.updateTime', key: 'updateTime', type: 'date' },
+    { labelKey: 'i18nDetail.fields.createTime', key: 'createTime', type: 'date' },
+    { labelKey: 'i18nDetail.fields.updateTime', key: 'updateTime', type: 'date' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.createUser', key: 'createUser' },
-    { labelKey: 'userGroupDetail.fields.updateUser', key: 'updateUser' },
+    { labelKey: 'i18nDetail.fields.createUser', key: 'createUser' },
+    { labelKey: 'i18nDetail.fields.updateUser', key: 'updateUser' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
-    { labelKey: 'userGroupDetail.fields.ownerId', key: 'ownerId' },
+    { labelKey: 'i18nDetail.fields.active', key: 'active', type: 'boolean' },
+    { labelKey: 'i18nDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
-    { labelKey: 'userGroupDetail.fields.remark', key: 'remark' },
+    { labelKey: 'i18nDetail.fields.remark', key: 'remark', valueSpan: 3 },
   ],
 ];
 
@@ -65,20 +65,16 @@ class DetailPage extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/group';
+    return 'sys/i18n';
   }
 
   protected createDetailLoadParams(): { id: string } {
     return { id: String(this.state.rid || this.props.rid || '') };
   }
-
-  protected async preLoad(): Promise<void> {
-    await this.loadAtomicServices();
-  }
 }
 
 export default defineComponent({
-  name: 'UserGroupDetail',
+  name: 'I18NDetail',
   components: { SectionedDetailDialog },
   props: {
     modelValue: {
@@ -95,12 +91,13 @@ export default defineComponent({
     const page = reactive(new DetailPage(props, context)) as DetailPage & {
       state: { detail: Record<string, unknown> | null };
       transAtomicService: (code: string) => string;
+      transDict: (module: string, code: string, value: string) => string;
       formatDate: (value: unknown) => string;
     };
 
     const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
-      emptyKey: 'userGroupDetail.empty',
-      yesNoKey: 'userGroupList.common',
+      emptyKey: 'i18nDetail.empty',
+      yesNoKey: 'i18nList.common',
     });
 
     watch(

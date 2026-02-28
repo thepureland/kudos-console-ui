@@ -99,6 +99,33 @@ class DetailPage extends BaseDetailPage {
     return "sys/dict"
   }
 
+  /** 字典详情用 getDict 接口（与 mock/后端一致），参数 id + isDict=true */
+  protected getDetailLoadUrl(): string {
+    return "sys/dict/getDict"
+  }
+
+  protected createDetailLoadParams(): Record<string, unknown> {
+    return { id: this.props.rid, isDict: true }
+  }
+
+  protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
+    if (data) {
+      if (data.id == null && data.dictId != null) data.id = data.dictId
+      if (data.createTime == null) data.createTime = null
+      if (data.updateTime == null) data.updateTime = null
+      if (data.createUser == null) data.createUser = ''
+      if (data.updateUser == null) data.updateUser = ''
+      if (data.builtIn == null) data.builtIn = false
+      if (data.remark == null) data.remark = ''
+      this.state.detail = data
+    } else {
+      this.state.detail = null
+    }
+    if (this.showAfterLoadData()) {
+      this.render()
+    }
+  }
+
   protected async loadOthers(): Promise<void> {
     const params = {
       dictId: this.props.rid

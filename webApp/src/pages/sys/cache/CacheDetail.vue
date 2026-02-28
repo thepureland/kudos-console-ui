@@ -1,73 +1,90 @@
 <!-- 缓存详情 -->
 <template>
-  <el-dialog
-    v-model="visible"
-    title="缓存信息详情"
-    width="40%"
-    center
-    @close="close"
-  >
-    <el-row :gutter="10">
-      <el-col :span="4">缓存ID：</el-col>
-      <el-col :span="8">{{ detail?.id }}</el-col>
-      <el-col :span="4">缓存名称：</el-col>
-      <el-col :span="8">{{ detail?.name }}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">子系统：</el-col>
-      <el-col :span="8">{{ transAtomicService(detail?.subSysDictCode) }}</el-col>
-      <el-col :span="4">缓存策略：</el-col>
-      <el-col :span="8">{{ transDict('kuark:sys', 'cache_strategy', detail?.strategyDictCode) }}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">是否启动时写缓存：</el-col>
-      <el-col :span="8">{{ detail?.writeOnBoot ? '是' : '否' }}</el-col>
-      <el-col :span="4">是否及时回写缓存：</el-col>
-      <el-col :span="8">{{ detail?.writeInTime ? '是' : '否' }}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">是否内置：</el-col>
-      <el-col :span="8">{{ detail?.builtIn ? '是' : '否' }}</el-col>
-      <el-col :span="4">是否启用：</el-col>
-      <el-col :span="8">{{ detail?.active ? '是' : '否' }}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">TTL(秒)：</el-col>
-      <el-col :span="8">{{ detail?.ttl }}</el-col>
-      <el-col :span="4">备注：</el-col>
-      <el-col :span="8">{{ detail?.remark }}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">创建时间：</el-col>
-      <el-col :span="8">{{ formatDate(detail?.createTime) }}</el-col>
-      <el-col :span="4">最近更新时间：</el-col>
-      <el-col :span="8">{{ formatDate(detail?.updateTime) }}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">创建用户：</el-col>
-      <el-col :span="8">{{ detail?.createUser }}</el-col>
-      <el-col :span="4">最近更新用户：</el-col>
-      <el-col :span="8">{{ detail?.updateUser }}</el-col>
-    </el-row>
-  </el-dialog>
+  <SectionedDetailDialog
+    :model-value="visible"
+    title-key="cacheDetail.title"
+    empty-key="cacheDetail.empty"
+    width="65%"
+    :rows-with-sections="rowsWithSections"
+    :detail="detail"
+    :format-field-value="formatFieldValue"
+    @update:model-value="(v) => { if (v === false) close(); }"
+  />
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs } from 'vue';
+import { defineComponent, reactive, toRefs, watch } from 'vue';
 import { BaseDetailPage } from '../../../components/pages/BaseDetailPage';
+import SectionedDetailDialog from '../../../components/pages/SectionedDetailDialog.vue';
+import {
+  type FieldConfig,
+  type SectionConfig,
+  useSectionedDetail,
+} from '../../../components/pages/sectionedDetail';
+
+/** 分组：从第几行开始显示分组标题（其他信息放最后） */
+const SECTION_MAP: SectionConfig[] = [
+  { start: 0, titleKey: 'cacheDetail.sections.basicInfo' },
+  { start: 2, titleKey: 'cacheDetail.sections.config' },
+  { start: 5, titleKey: 'cacheDetail.sections.audit' },
+  { start: 7, titleKey: 'cacheDetail.sections.otherInfo' },
+];
+
+const ROW_FIELDS: FieldConfig[][] = [
+  [
+    { labelKey: 'cacheDetail.fields.id', key: 'id' },
+    { labelKey: 'cacheDetail.fields.name', key: 'name' },
+  ],
+  [
+    { labelKey: 'cacheDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+    { labelKey: 'cacheDetail.fields.strategyDictCode', key: 'strategyDictCode', type: 'dict', dictModule: 'kuark:sys', dictCode: 'cache_strategy' },
+  ],
+  [
+    { labelKey: 'cacheDetail.fields.active', key: 'active', type: 'boolean' },
+    { labelKey: 'cacheDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
+  ],
+  [
+    { labelKey: 'cacheDetail.fields.writeOnBoot', key: 'writeOnBoot', type: 'boolean' },
+    { labelKey: 'cacheDetail.fields.writeInTime', key: 'writeInTime', type: 'boolean' },
+  ],
+  [
+    { labelKey: 'cacheDetail.fields.ttl', key: 'ttl' },
+  ],
+  [
+    { labelKey: 'cacheDetail.fields.createTime', key: 'createTime', type: 'date' },
+    { labelKey: 'cacheDetail.fields.updateTime', key: 'updateTime', type: 'date' },
+  ],
+  [
+    { labelKey: 'cacheDetail.fields.createUser', key: 'createUser' },
+    { labelKey: 'cacheDetail.fields.updateUser', key: 'updateUser' },
+  ],
+  [
+    { labelKey: 'cacheDetail.fields.remark', key: 'remark', valueSpan: 3 },
+  ],
+];
 
 class DetailPage extends BaseDetailPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
+    // 明确用列表传入的 id 作为请求参数，避免异步时 props 时序问题
+    if (props.rid) {
+      this.state.rid = props.rid as string;
+    }
   }
 
   protected getRootActionPath(): string {
     return 'sys/cache';
   }
+
+  /** 始终用 state.rid（已与 props.rid 同步）请求详情，保证与列表点击行一致 */
+  protected createDetailLoadParams(): { id: string } {
+    return { id: String(this.state.rid || this.props.rid || '') };
+  }
 }
 
 export default defineComponent({
   name: 'CacheDetail',
+  components: { SectionedDetailDialog },
   props: {
     modelValue: {
       type: Boolean,
@@ -80,22 +97,37 @@ export default defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    const page = reactive(new DetailPage(props, context)) as DetailPage & { state: Record<string, unknown> };
+    const page = reactive(new DetailPage(props, context)) as DetailPage & {
+      state: { detail: Record<string, unknown> | null };
+      transAtomicService: (code: string) => string;
+      transDict: (module: string, code: string, value: string) => string;
+      formatDate: (value: unknown) => string;
+    };
+
+    const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
+      emptyKey: 'cacheDetail.empty',
+      yesNoKey: 'cacheList.common',
+    });
+
+    // 列表传入的 rid（当前行 id）变化时，同步并重新拉取该 id 的详情
+    watch(
+      () => props.rid,
+      (newRid, oldRid) => {
+        const id = newRid ? String(newRid) : '';
+        page.state.rid = id;
+        if (oldRid !== undefined && id && id !== String(oldRid)) {
+          page.state.detail = null;
+          page.loadData();
+        }
+      }
+    );
+
     return {
       ...toRefs(page),
       ...toRefs(page.state),
+      rowsWithSections,
+      formatFieldValue,
     };
   },
 });
 </script>
-
-<style scoped>
-.el-row {
-  margin-bottom: 20px;
-}
-
-.el-col-4 {
-  text-align: right;
-  font-weight: bold;
-}
-</style>
