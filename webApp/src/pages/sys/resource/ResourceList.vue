@@ -127,8 +127,8 @@
                 @selection-change="handleSelectionChange"
                 @sort-change="handleSortChange"
               >
-                <el-table-column type="selection" width="39" />
-                <el-table-column v-if="isColumnVisible('index')" type="index" width="50" />
+                <el-table-column type="selection" min-width="39" />
+                <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" />
                 <el-table-column
                   v-if="isColumnVisible('subSysDictCode')"
                   :label="t('resourceList.columns.subSys')"
@@ -165,21 +165,21 @@
                   v-if="isColumnVisible('icon')"
                   :label="t('resourceList.columns.icon')"
                   prop="icon"
-                  width="100"
+                  min-width="100"
                   sortable="custom"
                 />
                 <el-table-column
                   v-if="isColumnVisible('seqNo')"
                   :label="t('resourceList.columns.seqNo')"
                   prop="seqNo"
-                  width="80"
+                  min-width="80"
                   sortable="custom"
                 />
                 <el-table-column
                   v-if="isColumnVisible('active')"
                   :label="t('resourceList.columns.active')"
                   prop="active"
-                  width="80"
+                  min-width="80"
                 >
                   <template #default="scope">
                     <el-switch
@@ -195,7 +195,7 @@
                   :label="t('resourceList.columns.operation')"
                   align="center"
                   fixed="right"
-                  width="140"
+                  min-width="140"
                   class-name="operation-column"
                 >
                   <template #default="scope">

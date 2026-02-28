@@ -31,7 +31,7 @@
       <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                 :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange" default-expand-all
                 row-key="id">
-        <el-table-column type="index" width="50"/>
+        <el-table-column type="index" min-width="50"/>
         <el-table-column label="名称" prop="name"/>
         <el-table-column label="URL" prop="url"/>
         <el-table-column label="关联的角色" prop="roleNames"/>

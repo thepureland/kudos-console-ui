@@ -91,8 +91,8 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('userGroupList.columns.groupCode')"
             prop="groupCode"
@@ -142,7 +142,7 @@
             <el-table-column
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
-              width="80"
+              min-width="80"
             >
               <template #header>
                 <div
@@ -193,7 +193,7 @@
             :label="t('userGroupList.columns.operation')"
             align="center"
             fixed="right"
-            width="140"
+            min-width="140"
             class-name="operation-column"
             label-class-name="operation-column"
           >

@@ -36,7 +36,7 @@
     </el-row>
 
     <el-container style="height: 100%; border: 1px solid #eee">
-      <el-aside width="200px" style="background-color: rgb(238, 241, 246)">
+      <el-aside min-width="200px" style="background-color: rgb(238, 241, 246)">
         <el-scrollbar>
           <el-tree ref="tree" :props="resourceTreeProps" :data="menus"
                    :expand-on-click-node="false" node-key="id"
@@ -48,7 +48,7 @@
         <div ref="tableWrapRef">
         <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                   :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
-          <el-table-column type="index" width="50"/>
+          <el-table-column type="index" min-width="50"/>
           <el-table-column label="资源名称" prop="name" sortable="custom"/>
           <el-table-column label="URL" prop="url" sortable="custom"/>
           <el-table-column label="关联的角色" prop="roleNames"/>

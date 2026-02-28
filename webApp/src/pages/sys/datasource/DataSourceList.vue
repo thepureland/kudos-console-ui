@@ -119,8 +119,8 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column :label="t('dataSourceList.columns.name')" prop="name" min-width="120" fixed="left" class-name="col-fixed-name" />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
@@ -222,7 +222,7 @@
             <el-table-column
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
-              width="80"
+              min-width="80"
             >
               <template #header>
                 <div
@@ -251,7 +251,6 @@
           :label="t('dataSourceList.columns.operation')"
           align="center"
           fixed="right"
-          width="180"
           min-width="180"
           class-name="operation-column"
           label-class-name="operation-column"
@@ -302,7 +301,7 @@
     </list-page-layout>
 
     <!-- 重置密码弹窗 -->
-    <el-dialog v-model="passwordDialogVisible" :title="t('dataSourceList.dialog.passwordTitle')" width="20%">
+    <el-dialog v-model="passwordDialogVisible" :title="t('dataSourceList.dialog.passwordTitle')" min-width="20%">
       <el-input v-model="newPassword" type="password" :placeholder="t('dataSourceList.placeholders.newPassword')" show-password />
       <template #footer>
         <span class="dialog-footer">

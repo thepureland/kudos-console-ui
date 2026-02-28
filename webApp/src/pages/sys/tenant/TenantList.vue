@@ -97,8 +97,8 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('tenantList.columns.name')"
             prop="name"
@@ -133,7 +133,7 @@
             <el-table-column
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
-              width="80"
+              min-width="80"
               sortable="custom"
             >
               <template #header>
@@ -185,7 +185,6 @@
             :label="t('tenantList.columns.operation')"
             align="center"
             fixed="right"
-            width="140"
             min-width="140"
             class-name="operation-column"
           >

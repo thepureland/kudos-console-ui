@@ -107,8 +107,8 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('paramList.columns.paramName')"
             prop="paramName"
@@ -144,7 +144,7 @@
             v-if="isColumnVisible('seqNo')"
             :label="t('paramList.columns.seqNo')"
             prop="seqNo"
-            width="80"
+            min-width="80"
             sortable="custom"
           />
           <el-table-column
@@ -158,7 +158,7 @@
             v-if="isColumnVisible('active')"
             :label="t('paramList.columns.active')"
             prop="active"
-            width="80"
+            min-width="80"
           >
             <template #default="scope">
               <el-switch
@@ -174,7 +174,6 @@
             :label="t('paramList.columns.operation')"
             align="center"
             fixed="right"
-            width="140"
             min-width="140"
             class-name="operation-column"
             label-class-name="operation-column"

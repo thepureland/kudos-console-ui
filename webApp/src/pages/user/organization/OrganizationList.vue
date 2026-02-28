@@ -84,8 +84,8 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('organizationList.columns.name')"
             prop="name"
@@ -136,7 +136,7 @@
             <el-table-column
               v-else-if="key === 'seqNo' && isColumnVisible('seqNo')"
               prop="seqNo"
-              width="80"
+              min-width="80"
             >
               <template #header>
                 <div
@@ -153,7 +153,7 @@
             </el-table-column>
             <el-table-column
               v-else-if="key === 'active' && isColumnVisible('active')"
-              width="80"
+              min-width="80"
             >
               <template #header>
                 <div
@@ -201,7 +201,7 @@
             v-if="showOperationColumn"
             :label="t('organizationList.columns.operation')"
             align="center"
-            width="120"
+            min-width="120"
             class-name="operation-column"
             label-class-name="operation-column"
           >

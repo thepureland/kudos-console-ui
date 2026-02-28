@@ -130,8 +130,8 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('i18nList.columns.key')"
             prop="key"
@@ -198,7 +198,7 @@
             <el-table-column
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
-              width="80"
+              min-width="80"
               sortable="custom"
             >
               <template #header>
@@ -225,7 +225,7 @@
             <el-table-column
               v-else-if="key === 'builtIn' && isColumnVisible('builtIn')"
               prop="builtIn"
-              width="80"
+              min-width="80"
               sortable="custom"
             >
               <template #header>
@@ -249,10 +249,9 @@
             v-if="showOperationColumn"
             :label="t('i18nList.columns.operation')"
             align="center"
-            fixed="right"
-            width="180"
-            min-width="180"
-            class-name="operation-column"
+              fixed="right"
+              min-width="180"
+              class-name="operation-column"
             label-class-name="operation-column"
           >
             <template #header>

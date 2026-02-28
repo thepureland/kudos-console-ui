@@ -144,8 +144,8 @@
                 @selection-change="handleSelectionChange"
                 @sort-change="handleSortChange"
               >
-                <el-table-column type="selection" width="39" />
-                <el-table-column v-if="isColumnVisible('index')" type="index" width="50" />
+                <el-table-column type="selection" min-width="39" />
+                <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" />
                 <el-table-column
                   v-if="isColumnVisible('dictType')"
                   :label="t('dictList.columns.dictType')"
@@ -195,7 +195,7 @@
                 <el-table-column
                   v-if="isColumnVisible('active') && !searchParams.isDict"
                   :label="t('dictList.columns.active')"
-                  width="80"
+                  min-width="80"
                 >
                   <template #default="scope">
                     <el-switch
@@ -212,7 +212,7 @@
                   :label="t('dictList.columns.operation')"
                   align="center"
                   fixed="right"
-                  width="140"
+                  min-width="140"
                 >
                   <template #default="scope">
                     <el-tooltip :content="t('dictList.actions.edit')" placement="top">

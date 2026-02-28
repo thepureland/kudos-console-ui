@@ -105,8 +105,8 @@
                 @selection-change="handleSelectionChange"
                 @sort-change="handleSortChange"
               >
-                <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-                <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
+                <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+                <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
                 <el-table-column
                   :label="t('accountList.columns.username')"
                   prop="username"
@@ -231,10 +231,9 @@
                   v-if="showOperationColumn"
                   :label="t('accountList.columns.operation')"
                   align="center"
-                  fixed="right"
-                  width="140"
-                  min-width="140"
-                  class-name="operation-column"
+                    fixed="right"
+                    min-width="140"
+                    class-name="operation-column"
                 >
                   <template #header>
                     <div class="operation-column-hover-area">{{ t('accountList.columns.operation') }}</div>

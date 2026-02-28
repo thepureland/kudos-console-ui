@@ -128,9 +128,9 @@
           @sort-change="handleSortChange"
           @filter-change="handleTableFilterChange"
         >
-          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
-          <el-table-column v-if="isColumnVisible('index')" type="index" width="50" fixed="left" class-name="col-fixed-index" />
-          <el-table-column :label="t('cacheList.columns.name')" prop="name" sortable="custom" width="350" fixed="left" class-name="col-fixed-name" />
+          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
+          <el-table-column :label="t('cacheList.columns.name')" prop="name" sortable="custom" min-width="350" fixed="left" class-name="col-fixed-name" />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
             v-if="key === 'atomicServiceCode' && isColumnVisible('atomicServiceCode')"
@@ -187,7 +187,7 @@
           <el-table-column
             v-else-if="key === 'active' && isColumnVisible('active')"
             prop="active"
-            width="80"
+            min-width="80"
             column-key="active"
             :filter-multiple="false"
             :filters="boolFilters"
@@ -305,7 +305,6 @@
           :label="t('cacheList.columns.operation')"
           align="center"
           fixed="right"
-          width="180"
           min-width="180"
           class-name="operation-column"
           label-class-name="operation-column"
@@ -364,7 +363,7 @@
     </list-page-layout>
 
     <!-- 缓存操作 key 输入弹窗：重载/驱逐/检查存在/查看 value 等需输入 key 时使用 -->
-    <el-dialog v-model="keyDialogVisible" :title="t('cacheList.dialog.keyTitle')" width="20%">
+    <el-dialog v-model="keyDialogVisible" :title="t('cacheList.dialog.keyTitle')" min-width="20%">
         <el-input v-model="cacheKey" />
         <template #footer>
           <span class="dialog-footer">

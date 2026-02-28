@@ -18,6 +18,11 @@
 
 /* 区域样式（搜索栏 / 表格区）由 ListPageLayout 统一提供，所有使用该布局的列表页自动生效 */
 
+/* 列表页表格：列宽根据单元格内容与列名长度自适应 */
+.list-page-common :deep(.list-page-table-wrap .el-table) {
+  table-layout: auto;
+}
+
 /* 工具栏容器由 ListPageLayout 提供 .list-page-toolbar，此处为工具栏内公共结构样式 */
 .list-page-common .list-page-toolbar .toolbar-cell {
   flex: 1 1 0;
@@ -44,7 +49,7 @@
   margin-left: 12px;
 }
 .list-page-common .list-page-toolbar .toolbar-buttons .el-button {
-  padding: 5px 8px;
+  padding: 5px 10px 5px 8px;
 }
 .list-page-common .list-page-toolbar .toolbar-buttons .el-button .el-icon {
   margin-right: 6px;
