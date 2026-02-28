@@ -3,15 +3,24 @@
   <div class="home">
     <v-header />
     <v-sidebar />
-    <!-- 侧栏与内容区之间的可拖拽分界线，仅展开时显示；left 比 sidebarWidth 少 3px 使竖线视觉上贴边 -->
+    <!-- 侧栏与内容区之间的分界线：按钮切换折叠/展开（展开时 <，折叠时 >），仅展开时可拖拽调整宽度 -->
     <div
-      v-show="!collapse"
       class="resizer"
+      :class="{ 'resizer--collapsed': collapse }"
       role="separator"
-      aria-label="拖拽调整侧栏宽度"
-      :style="{ left: (sidebarWidth - 3) + 'px' }"
+      :aria-label="collapse ? '展开侧栏' : '折叠侧栏，拖拽可调整宽度'"
+      :style="resizerStyle"
       @mousedown="onResizerMouseDown"
-    />
+    >
+      <button
+        type="button"
+        class="resizer-toggle-btn"
+        :aria-label="collapse ? '展开侧栏' : '折叠侧栏'"
+        @click.stop="toggleCollapse"
+      >
+        {{ collapse ? '>' : '<' }}
+      </button>
+    </div>
     <div
       class="content-box"
       :class="{ 'content-collapse': collapse, 'content-box--resizing': isResizing }"
@@ -62,9 +71,16 @@ const collapse = computed(() => store.state.collapse);
 /** 侧栏展开时的宽度（px），来自 store，用于 content-box 的 left 与 resizer 的 left */
 const sidebarWidth = computed(() => store.state.sidebarWidth);
 
-/** content-box 的 left：折叠时 64px（与 el-menu 折叠宽度一致），展开时为 sidebarWidth */
+/** 折叠时侧栏宽度（与 Sidebar.vue 的 SIDEBAR_COLLAPSED_WIDTH 一致） */
+const SIDEBAR_COLLAPSED_WIDTH = 43;
+/** content-box 的 left：折叠时与侧栏宽度一致，展开时为 sidebarWidth */
 const contentBoxStyle = computed(() => ({
-  left: collapse.value ? '64px' : `${sidebarWidth.value}px`,
+  left: collapse.value ? `${SIDEBAR_COLLAPSED_WIDTH}px` : `${sidebarWidth.value}px`,
+}));
+
+/** 分界线位置：折叠时贴侧栏右缘，展开时贴 sidebarWidth-3 */
+const resizerStyle = computed(() => ({
+  left: collapse.value ? `${SIDEBAR_COLLAPSED_WIDTH - 3}px` : `${sidebarWidth.value - 3}px`,
 }));
 
 /** 是否正在拖拽分界线；拖拽时去掉 content-box 的 left 过渡，使边界跟手 */
@@ -72,10 +88,9 @@ const isResizing = ref(false);
 let resizeStartX = 0;
 let resizeStartWidth = 0;
 
-/** 分界线 mousedown：只响应左键，记录起始位置与当前宽度，挂 document 的 mousemove/mouseup */
+/** 分界线 mousedown：只响应左键；折叠时不进入拖拽逻辑（不显示拖拽光标），仅展开时可拖拽调宽 */
 function onResizerMouseDown(e: MouseEvent) {
-  if (e.button !== 0) return;
-  isResizing.value = true;
+  if (e.button !== 0 || collapse.value) return;
   resizeStartX = e.clientX;
   resizeStartWidth = store.state.sidebarWidth;
   document.body.style.userSelect = 'none';
@@ -84,19 +99,27 @@ function onResizerMouseDown(e: MouseEvent) {
   document.addEventListener('mouseup', onResizeEnd);
 }
 
-/** 拖拽中：根据水平位移更新 store.sidebarWidth（store 内会钳制到 200～480） */
+/** 拖拽中：位移超过 5px 则视为拖拽（仅展开时生效），根据水平位移更新 store.sidebarWidth */
 function onResizeMove(e: MouseEvent) {
-  const delta = e.clientX - resizeStartX;
-  store.commit('setSidebarWidth', resizeStartWidth + delta);
+  if (Math.abs(e.clientX - resizeStartX) > 5 && !collapse.value) {
+    isResizing.value = true;
+    const delta = e.clientX - resizeStartX;
+    store.commit('setSidebarWidth', resizeStartWidth + delta);
+  }
 }
 
-/** 拖拽结束：移除监听并恢复 body 的 user-select、cursor */
+/** 拖拽结束：移除监听并恢复 body 样式（折叠/展开仅由分隔线按钮触发） */
 function onResizeEnd() {
   isResizing.value = false;
   document.body.style.userSelect = '';
   document.body.style.cursor = '';
   document.removeEventListener('mousemove', onResizeMove);
   document.removeEventListener('mouseup', onResizeEnd);
+}
+
+/** 分隔线按钮：切换侧栏折叠/展开 */
+function toggleCollapse() {
+  store.commit('handleCollapse', !collapse.value);
 }
 
 /** 路由切换中时显示骨架屏，避免白屏 */
@@ -143,7 +166,7 @@ onUnmounted(() => {
   z-index: 100;
 }
 
-/* 主内容区容器：left 由 contentBoxStyle 动态设置（折叠 64px，展开为 sidebarWidth） */
+/* 主内容区容器：left 由 contentBoxStyle 动态设置（折叠 43px，展开为 sidebarWidth） */
 .content-box {
   position: absolute;
   top: 56px;
@@ -166,39 +189,84 @@ onUnmounted(() => {
   transition: none;
 }
 
-/* 可拖拽分界线：6px 宽、透明背景，竖线用 ::after 画在中间，hover/active 时高亮 */
+/* 分界线：窄条可拖拽调宽，中间竖线 + 折叠/展开按钮（展开时 <，折叠时 >） */
 .resizer {
   position: absolute;
   top: 56px;
   bottom: 0;
   z-index: 10;
-  width: 6px;
+  width: 10px;
   cursor: col-resize;
   background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .resizer:hover,
 .resizer:active {
   background: var(--el-color-primary);
-  opacity: 0.25;
+  opacity: 0.12;
 }
 
-/* 中间 2px 竖线，默认用边框色，hover 时用主题色 */
+/* 折叠后不显示可拖拽提示：默认光标、不显示竖线 */
+.resizer--collapsed {
+  cursor: default;
+}
+.resizer--collapsed:hover,
+.resizer--collapsed:active {
+  background: transparent;
+  opacity: 1;
+}
+.resizer--collapsed::after {
+  display: none;
+}
+
+/* 中间 2px 竖线（在 10px 宽条中居中），仅展开时显示 */
 .resizer::after {
   content: '';
   position: absolute;
-  left: 2px;
+  left: 4px;
   top: 0;
   bottom: 0;
   width: 2px;
   background: var(--theme-border);
   border-radius: 1px;
+  pointer-events: none;
 }
 
-.resizer:hover::after,
-.resizer:active::after {
+.resizer:not(.resizer--collapsed):hover::after,
+.resizer:not(.resizer--collapsed):active::after {
   background: var(--el-color-primary);
   opacity: 0.8;
+}
+
+/* 分隔线上的折叠/展开按钮：细长条贴分隔线，展开显示 <，折叠显示 > */
+.resizer-toggle-btn {
+  position: relative;
+  z-index: 1;
+  width: 10px;
+  min-height: 24px;
+  padding: 4px 0;
+  margin: 0;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--theme-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.resizer-toggle-btn:hover {
+  background: var(--theme-border);
+  color: var(--el-color-primary);
 }
 
 /* 子页面渲染区域，可滚动 */

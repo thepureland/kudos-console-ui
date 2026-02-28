@@ -7,13 +7,25 @@
 <template>
   <!-- 左侧导航：el-menu 多级 + 折叠 + router，宽度由 store.sidebarWidth 控制（可拖拽分界线调整） -->
   <div class="sidebar" :class="sidebarTimeClass" :style="sidebarStyle">
+    <!-- 折叠时首页、消息中心用自定义两行，保证图标水平居中（不受 el-menu-item 默认样式影响） -->
+    <div v-if="collapse" class="sidebar-collapse-top">
+      <router-link
+        v-for="item in collapseTopItems"
+        :key="item.index"
+        :to="item.index"
+        class="sidebar-collapse-row"
+        :class="{ 'is-active': onRoutes === item.index }"
+      >
+        <el-icon><component :is="item.icon" /></el-icon>
+      </router-link>
+    </div>
     <el-menu
       class="sidebar-el-menu"
       :default-active="onRoutes"
       :collapse="collapse"
       router
     >
-      <template v-for="item in menuData" :key="item.index">
+      <template v-for="item in menuDataDisplay" :key="item.index">
         <template v-if="item.children">
           <el-sub-menu :index="item.index">
             <template #title>
@@ -100,9 +112,10 @@ const collapse = computed(() => store.state.collapse);
 const sidebarWidth = computed(() => store.state.sidebarWidth);
 const onRoutes = computed(() => route.path);
 
-/** 侧栏根节点宽度：折叠时 64px（与 el-menu 折叠一致），展开时为 store.sidebarWidth；菜单区用 width:100% 填满 */
+/** 侧栏根节点宽度：折叠时 43px（64 的三分之二），展开时为 store.sidebarWidth；菜单区用 width:100% 填满 */
+const SIDEBAR_COLLAPSED_WIDTH = 43;
 const sidebarStyle = computed(() => ({
-  width: collapse.value ? '64px' : `${sidebarWidth.value}px`,
+  width: collapse.value ? `${SIDEBAR_COLLAPSED_WIDTH}px` : `${sidebarWidth.value}px`,
 }));
 
 /** 根据时段给 sidebar 加 class，用于 ::after 叠加层（与 Header/Welcome 一致） */
@@ -151,6 +164,18 @@ function mapMenusFromShared(items: Array<{ path: string; name: string; icon?: st
 
 // ---------- 菜单数据加载 ----------
 const menuData = ref<MenuItem[]>([]);
+
+/** 折叠时仅展示的顶部两项（首页、消息中心），用于自定义居中图标行，顺序固定 */
+const collapseTopItems = computed(() => {
+  const list = menuData.value;
+  const home = list.find((i) => i.index === '/home');
+  const tabs = list.find((i) => i.index === '/tabs');
+  return [home, tabs].filter(Boolean) as MenuItem[];
+});
+/** 折叠时 el-menu 只渲染子菜单（不渲染首页/消息中心，避免其 el-menu-item 无法居中） */
+const menuDataDisplay = computed(() =>
+  collapse.value ? menuData.value.filter((i) => i.children) : menuData.value
+);
 
 function isLocalhost(): boolean {
   const h = typeof window !== 'undefined' ? window.location?.hostname : '';
@@ -249,6 +274,7 @@ onMounted(() => loadMenuData());
   z-index: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  border-right: none !important; /* 避免与分隔线并排出现两条线 */
   /* Firefox 滚动条更明显 */
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.08);
@@ -282,6 +308,10 @@ onMounted(() => loadMenuData());
 .sidebar-el-menu {
   position: relative;
   z-index: 0;
+  border-right: none !important; /* 避免与分隔线并排出现两条线 */
+}
+.sidebar-el-menu :deep(.el-menu) {
+  border-right: none !important;
 }
 
 /* 侧栏滚动条更明显 */
@@ -303,11 +333,76 @@ onMounted(() => loadMenuData());
   background: rgba(255, 255, 255, 0.5);
 }
 
+/* 折叠时顶部两行（首页、消息中心）：自管布局，图标水平居中，背景与侧栏一致 */
+.sidebar-collapse-top {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--theme-sidebar-bg) !important;
+}
+.sidebar-collapse-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 56px;
+  min-height: 56px;
+  padding: 0;
+  background-color: transparent;
+  color: var(--theme-sidebar-text);
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  box-sizing: border-box;
+}
+.sidebar-collapse-row:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--theme-header-text) !important;
+}
+.sidebar-collapse-row.is-active {
+  background-color: var(--theme-sidebar-active-bg) !important;
+  color: var(--theme-sidebar-active-text) !important;
+}
+.sidebar-collapse-row .el-icon {
+  font-size: 18px;
+}
+
 .sidebar-el-menu {
   transition: width 0.25s ease;
   background-color: var(--theme-sidebar-bg) !important;
   height: auto !important;
   min-height: 100%;
+}
+
+/* 折叠时菜单宽度填满侧栏容器（容器为 SIDEBAR_COLLAPSED_WIDTH 43px，覆盖 el-menu 默认 64px） */
+.sidebar-el-menu.el-menu--collapse {
+  width: 100% !important;
+}
+
+/* 折叠时子菜单标题（系统管理等三项）水平居中 */
+.sidebar-el-menu.el-menu--collapse :deep(.el-sub-menu__title) {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+.sidebar-el-menu.el-menu--collapse :deep(.el-sub-menu__title .el-sub-menu__title-wrap) {
+  flex: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* 折叠时根菜单 ul 及根级 li 去掉左右内边距 */
+.sidebar-el-menu.el-menu--collapse :deep(.el-menu),
+.sidebar-el-menu.el-menu--collapse :deep(ul),
+.sidebar-el-menu.el-menu--collapse :deep(ul > li) {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* 让菜单列表随内容增高，避免底部项被裁切；由 .sidebar 负责纵向滚动 */
@@ -360,15 +455,27 @@ onMounted(() => loadMenuData());
   width: 100%;
 }
 
-/* 菜单项文案过长时换行显示，避免被裁切（覆盖 Element Plus 默认 overflow/ellipsis） */
+/* 菜单项文案过长时换行显示，避免被裁切（覆盖 Element Plus 默认 overflow/ellipsis）；内边距为原值的三分之二，保留层级缩进 */
 .sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title),
 .sidebar-el-menu:not(.el-menu--collapse) :deep(.el-menu-item) {
   overflow: visible !important;
   height: auto !important;
-  min-height: 48px;
-  padding-top: 12px;
-  padding-bottom: 12px;
+  min-height: 32px; /* 48 减三分之一 */
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  padding-left: 13px !important;
+  padding-right: 13px !important;
   line-height: 1.4;
+}
+/* 二级菜单：在根级基础上增加缩进 */
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu .el-menu .el-menu-item),
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu .el-menu .el-sub-menu__title) {
+  padding-left: 26px !important;
+}
+/* 三级菜单：再增加一级缩进 */
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu .el-sub-menu .el-menu .el-menu-item),
+.sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu .el-sub-menu .el-menu .el-sub-menu__title) {
+  padding-left: 39px !important;
 }
 .sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title) {
   flex-wrap: wrap;

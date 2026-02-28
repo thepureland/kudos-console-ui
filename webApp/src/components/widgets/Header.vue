@@ -1,19 +1,16 @@
 <template>
   <div class="header" :class="headerTimeClass">
-    <!-- 左侧：折叠按钮 + Logo + 面包屑；右侧：全屏 / 主题 / 语言 / 消息 / 用户下拉 -->
+    <!-- 左侧：Logo + 面包屑；右侧：全屏 / 主题 / 语言 / 消息 / 用户下拉；侧栏折叠在 sidebar 与内容区分界线处切换 -->
     <div class="header-left">
-      <button
-        type="button"
-        class="collapse-btn"
-        :class="{ 'is-hover-lift': collapseBtnHover }"
-        aria-label="折叠侧栏"
-        @click="collapseChange"
-        @mouseenter="collapseBtnHover = true"
-        @mouseleave="collapseBtnHover = false"
-      >
-        <el-icon><Fold v-if="!collapse" /><Expand v-else /></el-icon>
-      </button>
-      <router-link to="/home" class="logo">{{ t('header.appName') }}</router-link>
+      <router-link to="/home" class="logo">
+        <span class="logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.15" />
+            <path d="M11 9h2v5.5l4.5-5.5h2.2L14.2 16l5.5 7h-2.2l-4.2-5.5V23h-2V9z" fill="currentColor" />
+          </svg>
+        </span>
+        <span class="logo-text">{{ t('header.appName') }}</span>
+      </router-link>
       <nav class="breadcrumb" aria-label="面包屑">
         <template v-for="(item, i) in breadcrumbItems" :key="`${item.path}__${item.titleKey}__${i}`">
           <span v-if="i > 0" class="breadcrumb-sep">/</span>
@@ -156,7 +153,7 @@ import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
-import { Bell, CaretBottom, Expand, Fold, FullScreen } from '@element-plus/icons-vue';
+import { Bell, CaretBottom, FullScreen } from '@element-plus/icons-vue';
 import { AuthApiFactory } from 'shared';
 import { localeOptions, setLocale, type LocaleId } from '../../i18n';
 
@@ -164,10 +161,10 @@ const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const store = useStore();
+/** 仅用于窄屏时自动折叠侧栏 */
 const collapse = computed(() => store.state.collapse);
 
 // ---------- 图标悬停上移（JS 控制 .is-hover-lift，下拉项在“悬停或展开”时保持上移避免闪烁） ----------
-const collapseBtnHover = ref(false);
 const fullscreenBtnHover = ref(false);
 const messagesLinkHover = ref(false);
 const themeTriggerHover = ref(false);
@@ -419,29 +416,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   min-width: 250px;
-}
-
-.collapse-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 56px;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--theme-header-text-muted);
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s, transform 0.2s ease;
-}
-
-.collapse-btn:hover {
-  color: var(--theme-header-text);
-  background: rgba(255, 255, 255, 0.06);
+  padding-left: 12px;
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   font-size: 18px;
   font-weight: 600;
@@ -449,6 +430,17 @@ onUnmounted(() => {
   color: var(--theme-header-text);
   text-decoration: none;
   cursor: pointer;
+}
+.logo-icon {
+  display: flex;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+}
+.logo-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 .logo:hover {
   color: var(--theme-header-text);
@@ -521,7 +513,6 @@ a.icon-btn {
 }
 
 /* 悬停上移：由 JS 切换 .is-hover-lift，统一在此处写 transform */
-.header :deep(.collapse-btn.is-hover-lift),
 .header :deep(.icon-btn.is-hover-lift),
 .header :deep(.user-area.is-hover-lift) {
   transform: translateY(-2px) !important;
@@ -719,7 +710,6 @@ html.dark .theme-option-swatch {
 </style>
 <style>
 /* 非 scoped 兜底：确保 .is-hover-lift 的 transform 不被其它样式覆盖 */
-.header .collapse-btn.is-hover-lift,
 .header .icon-btn.is-hover-lift,
 .header .user-area.is-hover-lift {
   transform: translateY(-2px) !important;
