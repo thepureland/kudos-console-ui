@@ -1,122 +1,147 @@
-<!--
- * 数据源详情
- *
- * @author: K
- * @since 1.0.0
- -->
-
+<!-- 数据源详情 -->
 <template>
-  <el-dialog title="数据源信息详情" v-model="visible" width="37%" center @close="close">
-    <el-row :gutter="10">
-      <el-col :span="4">数据源ID：</el-col>
-      <el-col :span="8">{{detail.id}}</el-col>
-      <el-col :span="4">名称：</el-col>
-      <el-col :span="8">{{detail.name}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">URL：</el-col>
-      <el-col :span="8">{{detail.url}}</el-col>
-      <el-col :span="4">子系统：</el-col>
-      <el-col :span="8">{{ transAtomicService(detail.subSysDictCode) }}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">用户名：</el-col>
-      <el-col :span="8">{{detail.username}}</el-col>
-      <el-col :span="4">密码：</el-col>
-      <el-col :span="8">{{detail.password}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">租户ID：</el-col>
-      <el-col :span="8">{{detail.tenantId}}</el-col>
-      <el-col :span="4">租户名称：</el-col>
-      <el-col :span="8">{{detail.tenantName}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">初始连接数：</el-col>
-      <el-col :span="8">{{detail.initialSize}}</el-col>
-      <el-col :span="4">最大连接数：</el-col>
-      <el-col :span="8">{{detail.maxActive}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">最大空闲连接数：</el-col>
-      <el-col :span="8">{{detail.maxIdle}}</el-col>
-      <el-col :span="4">最小空闲连接数：</el-col>
-      <el-col :span="8">{{detail.minIdle}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">出借最长期限(毫秒)：</el-col>
-      <el-col :span="8">{{detail.maxWait}}</el-col>
-      <el-col :span="4">连接寿命(毫秒)：</el-col>
-      <el-col :span="8">{{detail.maxAge}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">创建时间：</el-col>
-      <el-col :span="8">{{formatDate(detail.createTime)}}</el-col>
-      <el-col :span="4">最近更新时间：</el-col>
-      <el-col :span="8">{{formatDate(detail.updateTime)}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">创建用户：</el-col>
-      <el-col :span="8">{{detail.createUser}}</el-col>
-      <el-col :span="4">最近更新用户：</el-col>
-      <el-col :span="8">{{detail.updateUser}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">是否内置：</el-col>
-      <el-col :span="8">{{detail.builtIn ? '是' : '否'}}</el-col>
-      <el-col :span="4">是否启用：</el-col>
-      <el-col :span="8">{{detail.active ? '是' : '否'}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="4">备注：</el-col>
-      <el-col :span="20">{{detail.remark}}</el-col>
-    </el-row>
-  </el-dialog>
+  <SectionedDetailDialog
+    :model-value="visible"
+    title-key="dataSourceDetail.title"
+    empty-key="dataSourceDetail.empty"
+    width="65%"
+    :rows-with-sections="rowsWithSections"
+    :detail="detail"
+    :format-field-value="formatFieldValue"
+    @update:model-value="(v) => { if (v === false) close(); }"
+  />
 </template>
 
-<script lang='ts'>
-import {defineComponent, reactive, toRefs} from "vue"
-import { BaseDetailPage } from '../../../components/pages/BaseDetailPage'
+<script lang="ts">
+import { defineComponent, reactive, toRefs, watch } from 'vue';
+import { BaseDetailPage } from '../../../components/pages/BaseDetailPage';
+import SectionedDetailDialog from '../../../components/pages/SectionedDetailDialog.vue';
+import {
+  type FieldConfig,
+  type SectionConfig,
+  useSectionedDetail,
+} from '../../../components/pages/sectionedDetail';
+
+/** 分组：从第几行开始显示分组标题（其他信息放最后） */
+const SECTION_MAP: SectionConfig[] = [
+  { start: 0, titleKey: 'dataSourceDetail.sections.basicInfo' },
+  { start: 4, titleKey: 'dataSourceDetail.sections.config' },
+  { start: 7, titleKey: 'dataSourceDetail.sections.audit' },
+  { start: 9, titleKey: 'dataSourceDetail.sections.otherInfo' },
+];
+
+const ROW_FIELDS: FieldConfig[][] = [
+  [
+    { labelKey: 'dataSourceDetail.fields.id', key: 'id' },
+    { labelKey: 'dataSourceDetail.fields.name', key: 'name' },
+  ],
+  [
+    { labelKey: 'dataSourceDetail.fields.url', key: 'url' },
+    { labelKey: 'dataSourceDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+  ],
+  [
+    { labelKey: 'dataSourceDetail.fields.username', key: 'username' },
+    { labelKey: 'dataSourceDetail.fields.password', key: 'password' },
+  ],
+  [
+    { labelKey: 'dataSourceDetail.fields.tenantId', key: 'tenantId' },
+    { labelKey: 'dataSourceDetail.fields.tenantName', key: 'tenantName' },
+  ],
+  [
+    { labelKey: 'dataSourceDetail.fields.initialSize', key: 'initialSize' },
+    { labelKey: 'dataSourceDetail.fields.maxActive', key: 'maxActive' },
+  ],
+  [
+    { labelKey: 'dataSourceDetail.fields.maxIdle', key: 'maxIdle' },
+    { labelKey: 'dataSourceDetail.fields.minIdle', key: 'minIdle' },
+  ],
+  [
+    { labelKey: 'dataSourceDetail.fields.maxWait', key: 'maxWait' },
+    { labelKey: 'dataSourceDetail.fields.maxAge', key: 'maxAge' },
+  ],
+  [
+    { labelKey: 'dataSourceDetail.fields.createTime', key: 'createTime', type: 'date' },
+    { labelKey: 'dataSourceDetail.fields.updateTime', key: 'updateTime', type: 'date' },
+  ],
+  [
+    { labelKey: 'dataSourceDetail.fields.createUser', key: 'createUser' },
+    { labelKey: 'dataSourceDetail.fields.updateUser', key: 'updateUser' },
+  ],
+  [
+    { labelKey: 'dataSourceDetail.fields.active', key: 'active', type: 'boolean' },
+    { labelKey: 'dataSourceDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
+  ],
+  [
+    { labelKey: 'dataSourceDetail.fields.remark', key: 'remark', valueSpan: 3 },
+  ],
+];
 
 class DetailPage extends BaseDetailPage {
-
-  constructor(props, context) {
-    super(props, context)
+  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    super(props, context);
+    if (props.rid) {
+      this.state.rid = props.rid as string;
+    }
   }
 
   protected async preLoad(): Promise<void> {
-    await this.loadAtomicServices()
+    await this.loadAtomicServices();
   }
 
-  protected getRootActionPath(): String {
-    return "sys/dataSource"
+  protected getRootActionPath(): string {
+    return 'sys/dataSource';
   }
 
+  protected createDetailLoadParams(): { id: string } {
+    return { id: String(this.state.rid || this.props.rid || '') };
+  }
 }
 
 export default defineComponent({
-  name: "~DataSourceDetail",
+  name: 'DataSourceDetail',
+  components: { SectionedDetailDialog },
   props: {
-    modelValue: Boolean,
-    rid: String
+    modelValue: {
+      type: Boolean,
+      default: false,
+    },
+    rid: {
+      type: String,
+      default: '',
+    },
   },
   emits: ['update:modelValue'],
-  setup(props, context) {
-    const page = reactive(new DetailPage(props, context))
+  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    const page = reactive(new DetailPage(props, context)) as DetailPage & {
+      state: { detail: Record<string, unknown> | null };
+      transAtomicService: (code: string) => string;
+      transDict: (module: string, code: string, value: string) => string;
+      formatDate: (value: unknown) => string;
+    };
+
+    const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
+      emptyKey: 'dataSourceDetail.empty',
+      yesNoKey: 'dataSourceList.common',
+    });
+
+    watch(
+      () => props.rid,
+      (newRid, oldRid) => {
+        const id = newRid ? String(newRid) : '';
+        page.state.rid = id;
+        if (oldRid !== undefined && id && id !== String(oldRid)) {
+          page.state.detail = null;
+          page.loadData();
+        }
+      }
+    );
+
     return {
       ...toRefs(page),
-      ...toRefs(page.state)
-    }
-  }
-})
+      ...toRefs(page.state),
+      rowsWithSections,
+      formatFieldValue,
+    };
+  },
+});
 </script>
-
-<style lang='css' scoped>
-.el-row {
-  margin-bottom: 20px;
-}
-.el-col-4 {
-  text-align: right;
-  font-weight: bold;
-}
-</style>

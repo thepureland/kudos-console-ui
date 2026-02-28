@@ -279,7 +279,7 @@
 
     <account-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
     <account-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
-    <account-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
+    <AccountDetail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 

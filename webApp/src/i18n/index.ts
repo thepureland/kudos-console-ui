@@ -19,6 +19,37 @@ const defaultLocale: LocaleId =
   (typeof localStorage !== 'undefined' ? localStorage.getItem(LOCALE_KEY) : null) as LocaleId | null ||
   'zh-CN';
 
+/** 各语言日期时间显示格式（用于 formatDate / d('datetime')） */
+const datetimeFormats: Record<LocaleId, Intl.DateTimeFormatOptions> = {
+  'zh-CN': {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  },
+  'zh-TW': {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  },
+  'en-US': {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  },
+};
+
 export const i18n = createI18n({
   legacy: false,
   locale: defaultLocale,
@@ -27,6 +58,11 @@ export const i18n = createI18n({
     'zh-CN': zhCN,
     'zh-TW': zhTW,
     'en-US': enUS,
+  },
+  datetimeFormats: {
+    'zh-CN': { datetime: datetimeFormats['zh-CN'] },
+    'zh-TW': { datetime: datetimeFormats['zh-TW'] },
+    'en-US': { datetime: datetimeFormats['en-US'] },
   },
 });
 

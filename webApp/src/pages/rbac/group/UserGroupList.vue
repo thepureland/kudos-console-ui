@@ -238,7 +238,7 @@
 
     <user-group-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
     <user-group-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
-    <user-group-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
+    <UserGroupDetail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 

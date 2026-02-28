@@ -1,99 +1,166 @@
-<!--
- * 参数详情
- *
- * @author: K
- * @since 1.0.0
- -->
-
+<!-- 参数详情 -->
 <template>
-  <el-dialog title="参数信息详情" v-model="visible" width="44%" center @close="close">
-    <el-row :gutter="10">
-      <el-col :span="3">参数ID：</el-col>
-      <el-col :span="9">{{detail.id}}</el-col>
-      <el-col :span="3">参数名：</el-col>
-      <el-col :span="9">{{detail.paramName}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">参数值：</el-col>
-      <el-col :span="9">{{detail.paramValue}}</el-col>
-      <el-col :span="3">默认参数值：</el-col>
-      <el-col :span="9">{{detail.defaultValue}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">排序：</el-col>
-      <el-col :span="9">{{detail.seqNo}}</el-col>
-      <el-col :span="3">原子服务：</el-col>
-      <el-col :span="9">{{ transAtomicService(detail.module) }}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">创建时间：</el-col>
-      <el-col :span="9">{{formatDate(detail.createTime)}}</el-col>
-      <el-col :span="3">最近更新时间：</el-col>
-      <el-col :span="9">{{formatDate(detail.updateTime)}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">创建用户：</el-col>
-      <el-col :span="9">{{detail.createUser}}</el-col>
-      <el-col :span="3">最近更新用户：</el-col>
-      <el-col :span="9">{{detail.updateUser}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">是否内置：</el-col>
-      <el-col :span="9">{{detail.builtIn ? '是' : '否'}}</el-col>
-      <el-col :span="3">是否启用：</el-col>
-      <el-col :span="9">{{detail.active ? '是' : '否'}}</el-col>
-    </el-row>
-    <el-row :gutter="10">
-      <el-col :span="3">备注：</el-col>
-      <el-col :span="21">{{detail.remark}}</el-col>
-    </el-row>
-  </el-dialog>
+  <SectionedDetailDialog
+    :model-value="visible"
+    title-key="paramDetail.title"
+    empty-key="paramDetail.empty"
+    width="65%"
+    :rows-with-sections="rowsWithSections"
+    :detail="detail"
+    :format-field-value="formatFieldValue"
+    @update:model-value="(v) => { if (v === false) close(); }"
+  />
 </template>
 
-<script lang='ts'>
-import {defineComponent, reactive, toRefs} from "vue"
-import { BaseDetailPage } from '../../../components/pages/BaseDetailPage'
+<script lang="ts">
+import { defineComponent, reactive, toRefs, watch } from 'vue';
+import { BaseDetailPage } from '../../../components/pages/BaseDetailPage';
+import SectionedDetailDialog from '../../../components/pages/SectionedDetailDialog.vue';
+import {
+  type FieldConfig,
+  type SectionConfig,
+  useSectionedDetail,
+} from '../../../components/pages/sectionedDetail';
+import { backendRequest } from '../../../utils/backendRequest';
+import { ElMessage } from 'element-plus';
+
+/** 分组：从第几行开始显示分组标题（其他信息放最后） */
+const SECTION_MAP: SectionConfig[] = [
+  { start: 0, titleKey: 'paramDetail.sections.basicInfo' },
+  { start: 3, titleKey: 'paramDetail.sections.audit' },
+  { start: 5, titleKey: 'paramDetail.sections.otherInfo' },
+];
+
+const ROW_FIELDS: FieldConfig[][] = [
+  [
+    { labelKey: 'paramDetail.fields.id', key: 'id' },
+    { labelKey: 'paramDetail.fields.paramName', key: 'paramName' },
+  ],
+  [
+    { labelKey: 'paramDetail.fields.paramValue', key: 'paramValue' },
+    { labelKey: 'paramDetail.fields.defaultValue', key: 'defaultValue' },
+  ],
+  [
+    { labelKey: 'paramDetail.fields.seqNo', key: 'seqNo' },
+    { labelKey: 'paramDetail.fields.module', key: 'module', type: 'atomicService' },
+  ],
+  [
+    { labelKey: 'paramDetail.fields.createTime', key: 'createTime', type: 'date' },
+    { labelKey: 'paramDetail.fields.updateTime', key: 'updateTime', type: 'date' },
+  ],
+  [
+    { labelKey: 'paramDetail.fields.createUser', key: 'createUser' },
+    { labelKey: 'paramDetail.fields.updateUser', key: 'updateUser' },
+  ],
+  [
+    { labelKey: 'paramDetail.fields.active', key: 'active', type: 'boolean' },
+    { labelKey: 'paramDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
+  ],
+  [
+    { labelKey: 'paramDetail.fields.remark', key: 'remark', valueSpan: 3 },
+  ],
+];
 
 class DetailPage extends BaseDetailPage {
-
-  constructor(props, context) {
-    super(props, context)
+  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    super(props, context);
+    if (props.rid) {
+      this.state.rid = props.rid as string;
+    }
   }
 
   protected async preLoad(): Promise<void> {
-    await this.loadAtomicServices()
+    await this.loadAtomicServices();
   }
 
-  protected getRootActionPath(): String {
-    return "sys/param"
+  protected getRootActionPath(): string {
+    return 'sys/param';
   }
 
+  /** 用 search 接口按 id 取一条，与列表同源 */
+  protected getDetailLoadUrl(): string {
+    return 'sys/param/search';
+  }
+
+  protected createDetailLoadParams(): Record<string, unknown> {
+    return { id: String(this.state.rid || this.props.rid || ''), pageNo: 1, pageSize: 1 };
+  }
+
+  protected async loadData(): Promise<void> {
+    const params = this.createDetailLoadParams();
+    const result = await backendRequest({ url: this.getDetailLoadUrl(), method: 'post', params });
+    if (result.code == 200 && result.data) {
+      const list = result.data.first;
+      const row = Array.isArray(list) && list.length > 0 ? list[0] : null;
+      this.postLoadDataSuccessfully(row);
+    } else {
+      ElMessage.error('数据加载失败！');
+    }
+  }
+
+  protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
+    if (data) {
+      if (data.createTime == null) data.createTime = null;
+      if (data.updateTime == null) data.updateTime = null;
+      if (data.createUser == null) data.createUser = '';
+      if (data.updateUser == null) data.updateUser = '';
+      if (data.builtIn == null) data.builtIn = false;
+      if (data.remark == null) data.remark = '';
+      this.state.detail = data;
+    } else {
+      this.state.detail = null;
+    }
+    if (this.showAfterLoadData()) {
+      this.render();
+    }
+  }
 }
 
 export default defineComponent({
-  name: "~ParamDetail",
+  name: 'ParamDetail',
+  components: { SectionedDetailDialog },
   props: {
-    modelValue: Boolean,
-    rid: String
+    modelValue: {
+      type: Boolean,
+      default: false,
+    },
+    rid: {
+      type: String,
+      default: '',
+    },
   },
   emits: ['update:modelValue'],
-  setup(props, context) {
-    const page = reactive(new DetailPage(props, context))
+  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    const page = reactive(new DetailPage(props, context)) as DetailPage & {
+      state: { detail: Record<string, unknown> | null };
+      transAtomicService: (code: string) => string;
+      transDict: (module: string, code: string, value: string) => string;
+      formatDate: (value: unknown) => string;
+    };
+
+    const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
+      emptyKey: 'paramDetail.empty',
+      yesNoKey: 'paramList.common',
+    });
+
+    watch(
+      () => props.rid,
+      (newRid, oldRid) => {
+        const id = newRid ? String(newRid) : '';
+        page.state.rid = id;
+        if (oldRid !== undefined && id && id !== String(oldRid)) {
+          page.state.detail = null;
+          page.loadData();
+        }
+      }
+    );
+
     return {
       ...toRefs(page),
-      ...toRefs(page.state)
-    }
-  }
-})
+      ...toRefs(page.state),
+      rowsWithSections,
+      formatFieldValue,
+    };
+  },
+});
 </script>
-
-<style lang='css' scoped>
-.el-row {
-  margin-bottom: 20px;
-}
-
-.el-col-3 {
-  text-align: right;
-  font-weight: bold;
-}
-</style>

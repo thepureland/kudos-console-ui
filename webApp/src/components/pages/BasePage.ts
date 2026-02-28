@@ -2,6 +2,7 @@ import { reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Pair } from "../model/Pair";
 import { backendRequest } from "../../utils/backendRequest";
+import { i18n } from "../../i18n";
 
 /**
  * 列表页面处理抽象父类
@@ -163,19 +164,11 @@ export abstract class BasePage {
         return value ? "是" : "否"
     }
 
-    public formatDate = (date: unknown, formatStr = 'YYYY-MM-DD HH:mm:ss') => {
+    /** 按当前语言格式显示日期时间（使用 vue-i18n datetimeFormats.datetime） */
+    public formatDate = (date: unknown) => {
         const parsed = this.toDate(date)
         if (!parsed) return ''
-        const pad2 = (value: number) => value.toString().padStart(2, '0')
-        const tokens: Record<string, string> = {
-            YYYY: parsed.getFullYear().toString(),
-            MM: pad2(parsed.getMonth() + 1),
-            DD: pad2(parsed.getDate()),
-            HH: pad2(parsed.getHours()),
-            mm: pad2(parsed.getMinutes()),
-            ss: pad2(parsed.getSeconds())
-        }
-        return formatStr.replace(/YYYY|MM|DD|HH|mm|ss/g, (token) => tokens[token] || token)
+        return i18n.global.d(parsed, 'datetime')
     }
 
     public sleep = (delay: number) => {
