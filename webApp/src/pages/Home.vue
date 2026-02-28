@@ -43,9 +43,11 @@
           class="content-inner"
           :class="{ 'content-inner--visible': !contentLoading }"
         >
-          <router-view v-slot="{ Component }">
+          <router-view v-slot="{ Component, route }">
             <transition name="move" mode="out-in">
-              <component v-if="Component" :is="Component" />
+              <keep-alive :max="30">
+                <component v-if="Component" :is="Component" :key="route.fullPath" />
+              </keep-alive>
             </transition>
           </router-view>
         </div>

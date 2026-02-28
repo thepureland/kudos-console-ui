@@ -350,6 +350,12 @@ class ListPage extends BaseListPage {
 
   private doExpandTreeNode(nodeData: unknown, node: { level: number }): void {
     if (node.level === 0 || node.level === 1) return;
+    // 若当前是工具栏搜索结果，仅展开树、不刷新表格，并保持 searchSource 为 button，避免搜索结果在切换标签时丢失
+    if ((this.state as Record<string, unknown>).searchSource === 'button') {
+      this.setParamsForTree(node as { level: number; data: unknown }, true);
+      (this.state as Record<string, unknown>).searchSource = 'button';
+      return;
+    }
     this.resetSearchFields();
     this.setParamsForTree(node as { level: number; data: unknown }, true);
     this.searchByTree();
@@ -359,6 +365,12 @@ class ListPage extends BaseListPage {
 
   private async doClickTreeNode(nodeData: { id: string }, node: { level: number; data: unknown; parent?: { data: unknown } }): Promise<void> {
     if (node.level === 1 || node.level === 2) return;
+    // 若当前是工具栏搜索结果，仅更新树选中状态、不刷新表格，并保持 searchSource 为 button，避免搜索结果在切换标签时丢失
+    if ((this.state as Record<string, unknown>).searchSource === 'button') {
+      this.setParamsForTree(node as { level: number; data: unknown }, false);
+      (this.state as Record<string, unknown>).searchSource = 'button';
+      return;
+    }
     this.resetSearchFields();
     this.setParamsForTree(node as { level: number; data: unknown }, false);
     const params = this.createSearchParams() as Record<string, unknown>;
@@ -377,7 +389,10 @@ class ListPage extends BaseListPage {
   }
 
   private setParamsForTree(node: { level: number; data: { id?: string; name?: string }; parent?: { data: { id?: string } } }, expand: boolean): void {
-    (this.state as Record<string, unknown>).searchSource = 'tree';
+    // 保留工具栏搜索结果场景：若当前是 button 搜索，不改为 tree，避免切换/恢复后表格被清空
+    if ((this.state as Record<string, unknown>).searchSource !== 'button') {
+      (this.state as Record<string, unknown>).searchSource = 'tree';
+    }
     const sp = this.state.searchParams as Record<string, unknown>;
     const next: Record<string, unknown> = { ...sp, level: node.level };
     if (node.level === 0) {
