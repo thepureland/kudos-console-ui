@@ -238,6 +238,33 @@ export default {
       requiredStrategy: '請選擇快取策略',
     },
   },
+  paramAddEdit: {
+    titleAdd: '新增參數資訊',
+    titleEdit: '編輯參數資訊',
+    sections: { basicInfo: '基本資訊', other: '其他' },
+    labels: {
+      module: '原子服務',
+      paramName: '參數名稱',
+      paramValue: '參數值',
+      defaultValue: '參數預設值',
+      seqNo: '序號',
+      remark: '備註',
+    },
+    placeholders: {
+      module: '請選擇原子服務',
+      paramName: '請輸入參數名稱',
+      paramValue: '請輸入參數值',
+      defaultValue: '請輸入參數預設值',
+      remark: '選填',
+    },
+    buttons: { cancel: '取 消', confirm: '確 定' },
+    closeConfirm: { message: '有未儲存的修改，確定要關閉嗎？', title: '提示' },
+    messages: { loadFailed: '資料載入失敗！' },
+    validation: {
+      requiredModule: '請選擇原子服務',
+      requiredParamName: '請輸入參數名稱',
+    },
+  },
   paramDetail: {
     title: '參數資訊詳情',
     sections: {

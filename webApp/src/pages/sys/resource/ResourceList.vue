@@ -127,12 +127,13 @@
                 @selection-change="handleSelectionChange"
                 @sort-change="handleSortChange"
               >
-                <el-table-column type="selection" min-width="39" />
+                <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
                 <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" />
                 <el-table-column
                   v-if="isColumnVisible('subSysDictCode')"
                   :label="t('resourceList.columns.subSys')"
                   prop="subSysDictCode"
+                  :min-width="columnWidths['subSysDictCode'] ?? 100"
                 >
                   <template #default="scope">
                     {{ transAtomicService(scope.row.subSysDictCode) }}
@@ -142,6 +143,7 @@
                   v-if="isColumnVisible('resourceTypeDictCode')"
                   :label="t('resourceList.columns.resourceType')"
                   prop="resourceTypeDictCode"
+                  :min-width="columnWidths['resourceTypeDictCode'] ?? 100"
                 >
                   <template #default="scope">
                     {{ transDict('kuark:sys', 'resource_type', scope.row.resourceTypeDictCode) }}
@@ -151,35 +153,35 @@
                   v-if="isColumnVisible('name')"
                   :label="t('resourceList.columns.name')"
                   prop="name"
-                  min-width="120"
+                  :min-width="columnWidths['name'] ?? 120"
                   sortable="custom"
                 />
                 <el-table-column
                   v-if="isColumnVisible('url')"
                   :label="t('resourceList.columns.url')"
                   prop="url"
-                  min-width="120"
+                  :min-width="columnWidths['url'] ?? 120"
                   sortable="custom"
                 />
                 <el-table-column
                   v-if="isColumnVisible('icon')"
                   :label="t('resourceList.columns.icon')"
                   prop="icon"
-                  min-width="100"
+                  :min-width="columnWidths['icon'] ?? 100"
                   sortable="custom"
                 />
                 <el-table-column
                   v-if="isColumnVisible('seqNo')"
                   :label="t('resourceList.columns.seqNo')"
                   prop="seqNo"
-                  min-width="80"
+                  :min-width="columnWidths['seqNo'] ?? 80"
                   sortable="custom"
                 />
                 <el-table-column
                   v-if="isColumnVisible('active')"
                   :label="t('resourceList.columns.active')"
                   prop="active"
-                  min-width="80"
+                  :min-width="columnWidths['active'] ?? 80"
                 >
                   <template #default="scope">
                     <el-switch
@@ -242,7 +244,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, onBeforeUnmount } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
@@ -252,7 +254,8 @@ import ResourceAddEdit from './ResourceAddEdit.vue';
 import ResourceDetail from './ResourceDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
-import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
+import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest } from '../../../utils/backendRequest';
 
@@ -505,10 +508,9 @@ export default defineComponent({
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
-    listPage.configureListStatePersistence(RESOURCE_LIST_STATE_STORAGE_KEY);
-    listPage.configureTableMaxHeight();
-    const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
-    const listLayoutRefs = { tableWrapRef, paginationRef };
+    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
+      stateStorageKey: RESOURCE_LIST_STATE_STORAGE_KEY,
+    });
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
 
     const columnKeyToLabel: Record<string, () => string> = {
@@ -524,6 +526,41 @@ export default defineComponent({
       { key: INDEX_COLUMN_KEY, label: t('resourceList.columns.index') },
       ...ALL_COLUMN_KEYS.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
     ]);
+    const RESERVED_WIDTH_LEFT = 39 + 50;
+    const RESERVED_WIDTH_RIGHT = 140;
+    const autoWidthColumns = computed(() =>
+      ALL_COLUMN_KEYS.map((key) => ({
+        key,
+        getLabel: () => columnKeyToLabel[key]?.() ?? key,
+        sortable: key === 'name' || key === 'url' || key === 'icon' || key === 'seqNo',
+        getCellText:
+          key === 'subSysDictCode'
+            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
+            : key === 'resourceTypeDictCode'
+              ? (row: Record<string, unknown>) => listPage.transDict('kuark:sys', 'resource_type', row.resourceTypeDictCode)
+              : key === 'name'
+                ? (row: Record<string, unknown>) => String(row.name ?? '')
+                : key === 'url'
+                  ? (row: Record<string, unknown>) => String(row.url ?? '')
+                  : key === 'icon'
+                    ? (row: Record<string, unknown>) => String(row.icon ?? '')
+                    : key === 'seqNo'
+                      ? (row: Record<string, unknown>) => String(row.seqNo ?? '')
+                      : () => '',
+      }))
+    );
+    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
+    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
+      containerRef: listLayoutRefs.tableWrapRef,
+      columns: autoWidthColumns,
+      tableData: tableDataRef,
+      reservedWidthLeft: RESERVED_WIDTH_LEFT,
+      reservedWidthRight: RESERVED_WIDTH_RIGHT,
+    });
+    function onTableWrapMounted() {
+      layoutOnTableWrapMounted();
+      nextTick(runColumnAutoWidth);
+    }
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),
@@ -532,14 +569,6 @@ export default defineComponent({
       return listPage.isColumnVisible(key);
     }
 
-    function onTableWrapMounted(): void {
-      nextTick(updateTableMaxHeight);
-    }
-
-    onMounted(() => {
-      listPage.restorePersistedListState();
-      nextTick(updateTableMaxHeight);
-    });
     onBeforeRouteLeave((_to, _from, next) => {
       listPage.persistListState();
       next();
@@ -547,20 +576,6 @@ export default defineComponent({
     onBeforeUnmount(() => {
       listPage.persistListState();
     });
-    watch(
-      () => [
-        listPage.state.searchParams,
-        listPage.state.sort,
-        listPage.state.pagination,
-        listPage.state.tableData,
-        listPage.state.visibleColumnKeys,
-      ],
-      () => {
-        listPage.persistListState();
-        nextTick(updateTableMaxHeight);
-      },
-      { deep: true },
-    );
 
     return {
       listPage,
@@ -571,6 +586,7 @@ export default defineComponent({
       tree,
       listLayoutRefs,
       tableRef,
+      columnWidths,
       onTableWrapMounted,
       visibleColumnKeys,
       columnVisibilityOptions,

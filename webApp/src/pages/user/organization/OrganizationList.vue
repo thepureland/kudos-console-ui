@@ -84,7 +84,7 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
           <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('organizationList.columns.name')"
@@ -97,7 +97,7 @@
             <el-table-column
               v-if="key === 'abbrName' && isColumnVisible('abbrName')"
               prop="abbrName"
-              min-width="100"
+              :min-width="columnWidths['abbrName'] ?? 100"
             >
               <template #header>
                 <div
@@ -115,7 +115,7 @@
             <el-table-column
               v-else-if="key === 'orgTypeDictCode' && isColumnVisible('orgTypeDictCode')"
               prop="orgTypeDictCode"
-              min-width="100"
+              :min-width="columnWidths['orgTypeDictCode'] ?? 100"
             >
               <template #header>
                 <div
@@ -136,7 +136,7 @@
             <el-table-column
               v-else-if="key === 'seqNo' && isColumnVisible('seqNo')"
               prop="seqNo"
-              min-width="80"
+              :min-width="columnWidths['seqNo'] ?? 80"
             >
               <template #header>
                 <div
@@ -153,7 +153,7 @@
             </el-table-column>
             <el-table-column
               v-else-if="key === 'active' && isColumnVisible('active')"
-              min-width="80"
+              :min-width="columnWidths['active'] ?? 80"
             >
               <template #header>
                 <div
@@ -178,7 +178,7 @@
             </el-table-column>
             <el-table-column
               v-else-if="key === 'createTime' && isColumnVisible('createTime')"
-              min-width="160"
+              :min-width="columnWidths['createTime'] ?? 160"
             >
               <template #header>
                 <div
@@ -249,10 +249,13 @@ import OrganizationAddEdit from './OrganizationAddEdit.vue';
 import OrganizationDetail from './OrganizationDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
-import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
+import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
+import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { Pair } from '../../../components/model/Pair';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'organizationList.operationColumnPinned';
+const ORGANIZATION_LIST_STATE_STORAGE_KEY = 'organizationList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'organizationList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'organizationList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
@@ -327,39 +330,53 @@ export default defineComponent({
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
-    listPage.configureTableMaxHeight();
-    const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
-    const listLayoutRefs = { tableWrapRef, paginationRef };
-    const tableRef = ref<{ doLayout?: () => void } | null>(null);
-
-    function loadColumnOrder(): string[] {
-      if (typeof window === 'undefined') return [...ALL_COLUMN_KEYS];
-      try {
-        const raw = window.localStorage.getItem(COLUMN_ORDER_STORAGE_KEY);
-        if (!raw) return [...ALL_COLUMN_KEYS];
-        const parsed = JSON.parse(raw) as unknown;
-        if (!Array.isArray(parsed)) return [...ALL_COLUMN_KEYS];
-        const set = new Set(ALL_COLUMN_KEYS);
-        const ordered = (parsed as string[]).filter((k) => set.has(k));
-        const missing = ALL_COLUMN_KEYS.filter((k) => !ordered.includes(k));
-        return ordered.length ? [...ordered, ...missing] : [...ALL_COLUMN_KEYS];
-      } catch {
-        return [...ALL_COLUMN_KEYS];
-      }
-    }
-    function saveColumnOrder(order: string[]) {
-      if (typeof window === 'undefined') return;
-      window.localStorage.setItem(COLUMN_ORDER_STORAGE_KEY, JSON.stringify(order));
-    }
-    const columnOrder = ref<string[]>(loadColumnOrder());
-    const orderedColumnKeys = computed(() => {
-      const order = columnOrder.value;
-      if (!order.length) return [...ALL_COLUMN_KEYS];
-      const set = new Set(ALL_COLUMN_KEYS);
-      const ordered = order.filter((k) => set.has(k));
-      const missing = ALL_COLUMN_KEYS.filter((k) => !ordered.includes(k));
-      return ordered.length ? [...ordered, ...missing] : [...ALL_COLUMN_KEYS];
+    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
+      stateStorageKey: ORGANIZATION_LIST_STATE_STORAGE_KEY,
     });
+    const tableRef = ref<{ doLayout?: () => void } | null>(null);
+    const {
+      orderedColumnKeys,
+      columnDragKey,
+      columnDropTargetKey,
+      onHeaderDragStart,
+      onHeaderDragOver,
+      onHeaderDrop,
+      onHeaderDragEnd,
+      onTableDragOver,
+      onTableDrop,
+    } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS);
+
+    const RESERVED_WIDTH_LEFT = 39 + 50 + 120;
+    const RESERVED_WIDTH_RIGHT = 120;
+    const autoWidthColumns = computed(() =>
+      orderedColumnKeys.value.map((key) => ({
+        key,
+        getLabel: () => t('organizationList.columns.' + (COLUMN_KEY_TO_I18N[key] ?? key)),
+        sortable: false,
+        getCellText:
+          key === 'abbrName'
+            ? (row: Record<string, unknown>) => String(row.abbrName ?? '')
+            : key === 'orgTypeDictCode'
+              ? (row: Record<string, unknown>) => listPage.transDict('kuark:user', 'organization_type', row.orgTypeDictCode)
+              : key === 'seqNo'
+                ? (row: Record<string, unknown>) => String(row.seqNo ?? '')
+                : key === 'createTime'
+                  ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
+                  : () => '',
+      }))
+    );
+    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
+    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
+      containerRef: listLayoutRefs.tableWrapRef,
+      columns: autoWidthColumns,
+      tableData: tableDataRef,
+      reservedWidthLeft: RESERVED_WIDTH_LEFT,
+      reservedWidthRight: RESERVED_WIDTH_RIGHT,
+    });
+    function onTableWrapMounted() {
+      layoutOnTableWrapMounted();
+      nextTick(runColumnAutoWidth);
+    }
 
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
@@ -377,59 +394,6 @@ export default defineComponent({
     }
     const showOperationColumn = computed(() => Boolean(listPage.state?.showOperationColumn));
 
-    const columnDragKey = ref<string | null>(null);
-    const columnDropTargetKey = ref<string | null>(null);
-    function onHeaderDragStart(e: DragEvent, key: string) {
-      columnDragKey.value = key;
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-    }
-    function onHeaderDragOver(e: DragEvent, toKey: string) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      columnDropTargetKey.value = toKey;
-    }
-    function applyColumnDrop(toKey: string) {
-      const fromKey = columnDragKey.value;
-      columnDragKey.value = null;
-      columnDropTargetKey.value = null;
-      if (!fromKey || fromKey === toKey) return;
-      const order = [...orderedColumnKeys.value];
-      const fromIndex = order.indexOf(fromKey);
-      const toIndex = order.indexOf(toKey);
-      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
-      const [removed] = order.splice(fromIndex, 1);
-      order.splice(toIndex, 0, removed);
-      columnOrder.value = order;
-      saveColumnOrder(order);
-    }
-    function onHeaderDrop(e: DragEvent, toKey: string) {
-      e.preventDefault();
-      e.stopPropagation();
-      applyColumnDrop(toKey);
-    }
-    function onTableDragOver(e: DragEvent) {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      const keyEl = (e.target as HTMLElement)?.closest?.('[data-column-key]');
-      if (keyEl) columnDropTargetKey.value = keyEl.getAttribute('data-column-key');
-    }
-    function onTableDrop(e: DragEvent) {
-      e.preventDefault();
-      e.stopPropagation();
-      const keyEl = (e.target as HTMLElement)?.closest?.('[data-column-key]');
-      const toKey = keyEl?.getAttribute('data-column-key') ?? columnDropTargetKey.value;
-      if (toKey) applyColumnDrop(toKey);
-    }
-    function onHeaderDragEnd() {
-      columnDragKey.value = null;
-      columnDropTargetKey.value = null;
-    }
-
-    function onTableWrapMounted() {
-      nextTick(updateTableMaxHeight);
-    }
-
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,
@@ -441,6 +405,7 @@ export default defineComponent({
       visibleColumnKeys,
       columnVisibilityOptions,
       isColumnVisible,
+      columnWidths,
       orderedColumnKeys,
       columnDragKey,
       columnDropTargetKey,

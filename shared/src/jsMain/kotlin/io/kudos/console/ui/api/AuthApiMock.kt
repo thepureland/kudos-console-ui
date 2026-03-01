@@ -2011,6 +2011,24 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildParamGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/param/getValidationRule", "/api/sys/param/getValidationRule" -> {
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonObject(emptyMap()))
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/param/saveOrUpdate", "/api/sys/param/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "param_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/resource/search", "/api/sys/resource/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildResourceSearchResponse(path, requestJson)

@@ -32,9 +32,9 @@
                 :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange" default-expand-all
                 row-key="id">
         <el-table-column type="index" min-width="50"/>
-        <el-table-column label="名称" prop="name"/>
-        <el-table-column label="URL" prop="url"/>
-        <el-table-column label="关联的角色" prop="roleNames"/>
+        <el-table-column label="名称" prop="name" :min-width="columnWidths['name'] ?? 120"/>
+        <el-table-column label="URL" prop="url" :min-width="columnWidths['url'] ?? 120"/>
+        <el-table-column label="关联的角色" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140"/>
 
         <el-table-column label="操作" align="center">
           <template #default="scope">
@@ -53,9 +53,10 @@
 </template>
 
 <script lang='ts'>
-import { defineComponent, reactive, toRefs } from 'vue';
+import { defineComponent, reactive, toRefs, computed, nextTick, onMounted, watch } from 'vue';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
-import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
+import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import MenuRoleAssignDialog from './MenuRoleAssignDialog.vue';
 
 
@@ -86,13 +87,33 @@ export default defineComponent({
   name: "~index",
   components: {MenuRoleAssignDialog},
   setup(props, context) {
-    const listPage = reactive(new ListPage(props, context));
-    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
+    const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
+    const { listLayoutRefs } = useListPageLayout(listPage, {
+      stateStorageKey: 'menuPermissionList.queryState',
+    });
+    const autoWidthColumns = computed(() => [
+      { key: 'name', getLabel: () => '名称', getCellText: (row: Record<string, unknown>) => String(row.name ?? '') },
+      { key: 'url', getLabel: () => 'URL', getCellText: (row: Record<string, unknown>) => String(row.url ?? '') },
+      { key: 'roleNames', getLabel: () => '关联的角色', getCellText: (row: Record<string, unknown>) => String(row.roleNames ?? '') },
+    ]);
+    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
+    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
+      containerRef: listLayoutRefs.tableWrapRef,
+      columns: autoWidthColumns,
+      tableData: tableDataRef,
+      reservedWidthLeft: 50,
+      reservedWidthRight: 100,
+    });
+    function runAutoWidth() {
+      nextTick(runColumnAutoWidth);
+    }
+    onMounted(runAutoWidth);
+    watch(tableDataRef, runAutoWidth);
     return {
       ...toRefs(listPage.state),
       ...toRefs(listPage),
-      tableWrapRef,
-      paginationRef,
+      ...listLayoutRefs,
+      columnWidths,
     };
   },
 })

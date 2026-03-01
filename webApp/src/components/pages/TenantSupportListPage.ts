@@ -11,12 +11,14 @@ import { backendRequest } from "../../utils/backendRequest"
  */
 export abstract class TenantSupportListPage extends BaseListPage {
 
+    /** @internal 初始化租户相关 state 并加载原子服务与租户级联数据 */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         this.initTenantVars()
         this.loadAtomicServices().then(() => this.loadTenants())
     }
 
+    /** 初始化 searchParams.subSysOrTenant、cascaderProps 等租户筛选相关 state */
     private initTenantVars() {
         let searchParams = this.state.searchParams
         if (!searchParams) {
@@ -35,6 +37,7 @@ export abstract class TenantSupportListPage extends BaseListPage {
         }
     }
 
+    /** 级联是否严格模式（选父不选子），子类可重写 */
     protected isCheckStrictly(): boolean {
         return true
     }
@@ -44,6 +47,7 @@ export abstract class TenantSupportListPage extends BaseListPage {
         return false
     }
 
+    /** 在父类 createSearchParams 基础上注入 subSysDictCode、tenantId（来自 parseSubSysOrTenant） */
     protected createSearchParams() {
         const pair = this.parseSubSysOrTenant()
         if (pair == null) {
@@ -58,6 +62,7 @@ export abstract class TenantSupportListPage extends BaseListPage {
         }
     }
 
+    /** 从 searchParams.subSysOrTenant 解析出 (subSysDictCode, tenantId)；必选时未选会提示并返回 null */
     protected parseSubSysOrTenant(): Pair | null {
         const subSysOrTenant = this.state.searchParams.subSysOrTenant
         if (this.isRequireSubSysOrTenantForSearch() && (subSysOrTenant == null || subSysOrTenant.length == 0)) {
@@ -76,6 +81,7 @@ export abstract class TenantSupportListPage extends BaseListPage {
         return pair
     }
 
+    /** 新增成功后回填 searchParams.subSysOrTenant 再执行父类 doAfterAdd */
     protected doAfterAdd(params: any) {
         const subSysDictCode = params.subSysDictCode
         const tenantId = params.tenantId
@@ -88,6 +94,7 @@ export abstract class TenantSupportListPage extends BaseListPage {
         super.doAfterAdd(params)
     }
 
+    /** 拉取所有活跃租户并按原子服务分组，写入 state.subSysOrTenants 供级联使用 */
     private async loadTenants() {
         const result = await backendRequest({url: "sys/tenant/getAllActiveTenants", method: "post"})
         if (result.code == 200) {

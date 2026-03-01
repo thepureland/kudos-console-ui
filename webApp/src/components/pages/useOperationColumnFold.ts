@@ -33,6 +33,7 @@ export function useOperationColumnFold(
   const operationColumnPinned = ref(false);
   const operationColumnHideTimer = ref<number | null>(null);
 
+  /** 同步 listPage.state.showOperationColumn */
   function setOperationColumnVisible(visible: boolean) {
     (listPage.state as { showOperationColumn: boolean }).showOperationColumn = visible;
   }
@@ -44,6 +45,7 @@ export function useOperationColumnFold(
     }
   }
 
+  /** 在 hideDelayMs 后若未固定则隐藏操作列 */
   function scheduleHideOperationColumn() {
     clearOperationColumnHideTimer();
     operationColumnHideTimer.value = window.setTimeout(() => {
@@ -54,6 +56,7 @@ export function useOperationColumnFold(
     }, hideDelayMs);
   }
 
+  /** 将操作列是否固定写入 localStorage */
   function persistOperationColumnPinned() {
     window.localStorage.setItem(storageKey, JSON.stringify(operationColumnPinned.value));
   }
@@ -65,6 +68,7 @@ export function useOperationColumnFold(
     }
   }
 
+  /** 在表格容器上移动时，若在操作列或右侧触达带内则取消隐藏，否则延迟隐藏 */
   function handleTableWrapMouseMove(event: MouseEvent) {
     if (operationColumnPinned.value) return;
     if (!(listPage.state as { showOperationColumn: boolean }).showOperationColumn) return;
@@ -87,12 +91,14 @@ export function useOperationColumnFold(
     }
   }
 
+  /** 鼠标离开表格容器时，若未固定则延迟隐藏操作列 */
   function handleTableWrapMouseLeave() {
     if (!operationColumnPinned.value) {
       scheduleHideOperationColumn();
     }
   }
 
+  /** 切换操作列固定状态并持久化，固定时立即显示、取消时立即隐藏 */
   function toggleOperationColumnPin() {
     if (operationColumnPinned.value) {
       operationColumnPinned.value = false;

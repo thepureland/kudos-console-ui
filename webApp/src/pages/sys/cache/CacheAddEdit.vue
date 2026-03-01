@@ -158,13 +158,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, computed, watch, nextTick } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { defineComponent } from 'vue';
 import { WarningFilled } from '@element-plus/icons-vue';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
 import { Pair } from '../../../components/model/Pair';
-import { i18n } from '../../../i18n';
-import { useAddEditDialogCloseGuard } from '../../../components/pages/useAddEditDialogCloseGuard';
+import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import '../../../styles/add-edit-dialog-common.css';
 
 interface FormModel {
@@ -266,40 +264,8 @@ export default defineComponent({
   },
   emits: ['update:modelValue', 'response'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    const { t } = useI18n();
-    const pageInstance = new AddEditPage(props, context);
-    /** 必须在 reactive 之前取出 Ref，否则 reactive 代理后可能被当作普通值，导致模板 ref="form" 收到非 Ref 而报警告 */
-    const formRef = pageInstance.form;
-    const visibleRef = pageInstance.visible;
-    const page = reactive(pageInstance) as AddEditPage & { state: Record<string, unknown> };
-    const isEdit = computed(() => !!props.rid);
-    const dialogTitle = computed(() => (isEdit.value ? t('cacheAddEdit.titleEdit') : t('cacheAddEdit.titleAdd')));
-
-    /** 列表传入的 rid 变化时同步 */
-    watch(
-      () => props.rid,
-      (newRid) => {
-        page.currentRid = newRid ? String(newRid) : '';
-      },
-      { immediate: true }
-    );
-
-    /** 编辑弹窗显示时，用当前 props.rid 拉取数据 */
-    watch(
-      () => page.visible?.value,
-      (visible) => {
-        if (!visible) return;
-        const rid = props.rid ? String(props.rid) : '';
-        if (!rid) return;
-        page.currentRid = rid;
-        nextTick(() => page.reloadRowData());
-      },
-      { flush: 'post' }
-    );
-
-    const { handleBeforeClose, handleCloseRequest, registerOnEditFormLoaded } = useAddEditDialogCloseGuard({
-      page,
-      getIsEdit: () => !!props.rid,
+    return useAddEditDialogSetup(props, context, {
+      createPage: (p, c) => new AddEditPage(p, c),
       i18nKeyPrefix: 'cacheAddEdit',
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;
@@ -312,27 +278,6 @@ export default defineComponent({
         return false;
       },
     });
-    registerOnEditFormLoaded();
-
-    /** 直接调用 page 的 doSubmit，避免 reactive 后 submit 未正确暴露导致点击无反应 */
-    function handleSubmit(): void {
-      (page as unknown as { doSubmit: () => void }).doSubmit();
-    }
-
-    const { form: _formRef, visible: _visibleRef, ...restPageRefs } = toRefs(page);
-    return {
-      ...restPageRefs,
-      ...toRefs(page.state),
-      form: formRef,
-      visible: visibleRef,
-      props,
-      isEdit,
-      dialogTitle,
-      t,
-      handleBeforeClose,
-      handleCloseRequest,
-      handleSubmit,
-    };
   },
 });
 </script>

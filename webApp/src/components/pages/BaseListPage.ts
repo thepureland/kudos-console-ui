@@ -20,6 +20,7 @@ export abstract class BaseListPage extends BasePage {
     private tableMaxHeightMin = 280
     private tableBottomSafeGap = 20
 
+    /** @internal 子类通过 super(props, context) 调用 */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
     }

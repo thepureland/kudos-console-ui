@@ -13,6 +13,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
 
     private parentCascader: any
 
+    /** @internal 需要 parentCascader 组件 ref，用于提交时取选中的父级节点 */
     protected constructor(
         props: Record<string, any>,
         context: { emit: (event: string, ...args: any[]) => void },
@@ -23,6 +24,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         this.convertThis()
     }
 
+    /** 在租户级联基础上增加懒加载级联配置与 formModel.parent */
     protected initVars() {
         super.initVars()
         const _self = this
@@ -49,6 +51,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         return params
     }
 
+    /** 回填时用 subSysDictCode、tenantId、parentIds 组装 formModel.parent 数组 */
     protected fillForm(rowObject: any) {
         super.fillForm(rowObject)
         const parents = [rowObject.subSysDictCode]
@@ -66,6 +69,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
 
     public loadTreeNodes: (node: any, resolve: (data: any[]) => void) => void
 
+    /** 级联懒加载：根节点返回原子服务列表，子节点请求 organization 树接口 */
     protected async doLoadTreeNodes(node: any, resolve: (data: any[]) => void) {
         if (node.level === 0) {
             if (this.getAtomicServices().length === 0) await this.loadAtomicServices()
@@ -88,6 +92,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         }
     }
 
+    /** 从级联节点向上找到根节点，返回其 id（子系统编码） */
     protected getSubSysDictCode(node: any): string {
         while (node.parent) {
             node = node.parent
@@ -95,6 +100,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         return node.data.id
     }
 
+    /** 从级联节点向上找到「组织=false」的节点，返回其 id 作为租户 id */
     protected getTenantId(node: any): string | null {
         while (node.parent) {
             if (node.data.organization === false) {
@@ -105,6 +111,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         return null
     }
 
+    /** 当前节点为租户层或根则无父级 id，否则返回当前节点 id 作为 parentId */
     protected getParentId(node: any): string | null {
         if (node.data.organization === false || node.parent == undefined) {
             return null
@@ -112,6 +119,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         return node.data.id
     }
 
+    /** 绑定 loadTreeNodes 到 doLoadTreeNodes */
     protected convertThis() {
         super.convertThis()
         this.loadTreeNodes = (node: any, resolve: (data: any[]) => void) => {

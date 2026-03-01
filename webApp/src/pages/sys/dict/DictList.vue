@@ -144,24 +144,26 @@
                 @selection-change="handleSelectionChange"
                 @sort-change="handleSortChange"
               >
-                <el-table-column type="selection" min-width="39" />
+                <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
                 <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" />
                 <el-table-column
                   v-if="isColumnVisible('dictType')"
                   :label="t('dictList.columns.dictType')"
                   prop="dictType"
+                  :min-width="columnWidths['dictType'] ?? 120"
                   sortable="custom"
                 />
                 <el-table-column
                   v-if="isColumnVisible('dictName')"
                   :label="t('dictList.columns.dictName')"
                   prop="dictName"
-                  sortable="custom"
+                  :min-width="columnWidths['dictName'] ?? 120"
                 />
                 <el-table-column
                   v-if="isColumnVisible('module')"
                   :label="t('dictList.columns.module')"
                   prop="module"
+                  :min-width="columnWidths['module'] ?? 100"
                   sortable="custom"
                 >
                   <template #default="scope">
@@ -172,30 +174,33 @@
                   v-if="isColumnVisible('itemCode') && !searchParams.isDict"
                   :label="t('dictList.columns.itemCode')"
                   prop="itemCode"
+                  :min-width="columnWidths['itemCode'] ?? 100"
                   sortable="custom"
                 />
                 <el-table-column
                   v-if="isColumnVisible('itemName') && !searchParams.isDict"
                   :label="t('dictList.columns.itemName')"
                   prop="itemName"
-                  sortable="custom"
+                  :min-width="columnWidths['itemName'] ?? 120"
                 />
                 <el-table-column
                   v-if="isColumnVisible('parentCode') && !searchParams.isDict"
                   :label="t('dictList.columns.parentCode')"
                   prop="parentCode"
+                  :min-width="columnWidths['parentCode'] ?? 100"
                   sortable="custom"
                 />
                 <el-table-column
                   v-if="isColumnVisible('seqNo') && !searchParams.isDict"
                   :label="t('dictList.columns.seqNo')"
                   prop="seqNo"
+                  :min-width="columnWidths['seqNo'] ?? 80"
                   sortable="custom"
                 />
                 <el-table-column
                   v-if="isColumnVisible('active') && !searchParams.isDict"
                   :label="t('dictList.columns.active')"
-                  min-width="80"
+                  :min-width="columnWidths['active'] ?? 80"
                 >
                   <template #default="scope">
                     <el-switch
@@ -259,7 +264,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -269,7 +274,8 @@ import DictDetail from './DictDetail.vue';
 import DictItemDetail from './DictItemDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
-import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
+import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest } from '../../../utils/backendRequest';
 
@@ -602,31 +608,47 @@ export default defineComponent({
     const { t } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
-    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
-    listPage.configureListStatePersistence(DICT_LIST_STATE_STORAGE_KEY);
-    listPage.configureTableMaxHeight();
-    const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
-    const listLayoutRefs = { tableWrapRef, paginationRef };
-
-    const visibleColumnKeys = computed<string[]>({
-      get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
-      set: (next) => listPage.applyVisibleColumns(next),
+    const {
+      listLayoutRefs,
+      onTableWrapMounted: layoutOnTableWrapMounted,
+      visibleColumnKeys,
+      columnVisibilityOptions,
+      isColumnVisible,
+    } = useListPageLayout(listPage, {
+      stateStorageKey: DICT_LIST_STATE_STORAGE_KEY,
+      columnVisibility: {
+        storageKey: COLUMN_VISIBILITY_STORAGE_KEY,
+        columnKeys: COLUMN_VISIBILITY_KEYS,
+        defaultVisibleKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
+        getColumnLabel: (key) => (key === INDEX_COLUMN_KEY ? t('dictList.columns.index') : t('dictList.columns.' + key)),
+      },
     });
-    const columnVisibilityOptions = computed(() => [
-      { key: INDEX_COLUMN_KEY, label: t('dictList.columns.index') },
-      ...ALL_COLUMN_KEYS.map((key) => ({ key, label: t('dictList.columns.' + key) })),
+
+    const RESERVED_WIDTH_LEFT = 39 + 50;
+    const RESERVED_WIDTH_RIGHT = 140;
+    const autoWidthColumns = computed(() => [
+      { key: 'dictType', getLabel: () => t('dictList.columns.dictType'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.dictType ?? '') },
+      { key: 'dictName', getLabel: () => t('dictList.columns.dictName'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.dictName ?? '') },
+      { key: 'module', getLabel: () => t('dictList.columns.module'), sortable: true, getCellText: (row: Record<string, unknown>) => listPage.transAtomicService(row.module) },
+      { key: 'itemCode', getLabel: () => t('dictList.columns.itemCode'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.itemCode ?? '') },
+      { key: 'itemName', getLabel: () => t('dictList.columns.itemName'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.itemName ?? '') },
+      { key: 'parentCode', getLabel: () => t('dictList.columns.parentCode'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.parentCode ?? '') },
+      { key: 'seqNo', getLabel: () => t('dictList.columns.seqNo'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.seqNo ?? '') },
+      { key: 'active', getLabel: () => t('dictList.columns.active'), sortable: false, getCellText: () => '' },
     ]);
-    function isColumnVisible(key: string): boolean {
-      return listPage.isColumnVisible(key);
-    }
-
-    function onTableWrapMounted(): void {
-      nextTick(updateTableMaxHeight);
-    }
-
-    onMounted(() => {
-      listPage.restorePersistedListState();
+    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
+    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
+      containerRef: listLayoutRefs.tableWrapRef,
+      columns: autoWidthColumns,
+      tableData: tableDataRef,
+      reservedWidthLeft: RESERVED_WIDTH_LEFT,
+      reservedWidthRight: RESERVED_WIDTH_RIGHT,
     });
+    function onTableWrapMounted() {
+      layoutOnTableWrapMounted();
+      nextTick(runColumnAutoWidth);
+    }
+
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,
@@ -638,6 +660,7 @@ export default defineComponent({
       visibleColumnKeys,
       columnVisibilityOptions,
       isColumnVisible,
+      columnWidths,
       onTableWrapMounted,
     };
   },

@@ -22,6 +22,7 @@ export abstract class BaseAddEditPage extends BasePage {
     /** 编辑数据加载并回填后由组件注册，用于立即拍快照等（如未保存提示） */
     public onEditFormLoaded: (() => void) | null = null
 
+    /** @internal 有 rid 时加载编辑数据并 initValidationRule，无 rid 时直接 render + initValidationRule */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         this.form = ref()
@@ -87,6 +88,7 @@ export abstract class BaseAddEditPage extends BasePage {
         return rules
     }
 
+    /** 提交参数：合并 id（props.rid）与 state.formModel，子类可重写 */
     protected createSubmitParams(): any {
         // remark: this.state.formModel.remark
         const params = {
@@ -101,6 +103,7 @@ export abstract class BaseAddEditPage extends BasePage {
         return params
     }
 
+    /** 将接口返回的 rowObject 回填到 state.formModel，子类可重写以处理级联等 */
     protected fillForm(rowObject: any) {
         for (const propName in rowObject) {
             if (propName in this.state.formModel) {
@@ -109,11 +112,13 @@ export abstract class BaseAddEditPage extends BasePage {
         }
     }
 
+    /** 编辑时加载单条数据的请求参数，默认 { id: currentRid } */
     protected createRowObjectLoadParams(): any {
         const rid = this.currentRid || (this.props.rid ? String(this.props.rid) : '')
         return { id: rid }
     }
 
+    /** 请求 get 接口拉取编辑数据并 fillForm，成功时 render 并调用 onEditFormLoaded */
     protected async loadRowObject() {
         const params = this.createRowObjectLoadParams()
         const result = await backendRequest({url: this.getRowObjectLoadUrl(), params});
@@ -126,6 +131,7 @@ export abstract class BaseAddEditPage extends BasePage {
         }
     }
 
+    /** 请求校验规则接口并生成 state.rules（ValidationRuleAdapter），供 el-form 使用 */
     protected async initValidationRule(): Promise<any> {
         const result = await backendRequest({url: this.getValidationRuleUrl()});
         if (result.code == 200) {
@@ -140,6 +146,7 @@ export abstract class BaseAddEditPage extends BasePage {
         }
     }
 
+    /** 提交前校验前钩子，子类可在此同步 formModel（如级联字段） */
     protected beforeValidate() {
     }
 
@@ -153,6 +160,7 @@ export abstract class BaseAddEditPage extends BasePage {
         return f?.value ?? null
     }
 
+    /** 表单校验通过后组参请求保存接口，成功则 emit response 并关闭 */
     protected doSubmit() {
         try {
             const formInstance = this.getFormInstance()
@@ -194,12 +202,14 @@ export abstract class BaseAddEditPage extends BasePage {
         }
     }
 
+    /** 关闭时重置表单并调用父类 doClose */
     protected doClose() {
         super.doClose()
         const form = this.getFormInstance()
         if (form?.resetFields) form.resetFields()
     }
 
+    /** 绑定 submit 到 doSubmit */
     protected convertThis() {
         super.convertThis()
         this.submit = () => {
