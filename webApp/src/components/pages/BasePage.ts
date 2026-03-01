@@ -178,7 +178,8 @@ export abstract class BasePage {
     public close: () => void
 
     protected doClose() {
-        this.visible.value = false
+        const v = this.visible
+        if (v && typeof v === 'object' && 'value' in v) (v as { value: boolean }).value = false
         this.context.emit('update:modelValue', false)
     }
 

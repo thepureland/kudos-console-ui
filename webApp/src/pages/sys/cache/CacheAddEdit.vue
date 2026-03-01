@@ -2,81 +2,170 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="添加缓存信息"
-    width="33%"
+    :title="dialogTitle"
+    width="520px"
     center
-    @close="close"
+    class="add-edit-dialog cache-add-edit-dialog"
+    align-center
+    :append-to-body="false"
+    :close-on-click-modal="false"
+    :before-close="handleBeforeClose"
   >
     <el-form
       ref="form"
       :model="formModel"
       :rules="rules"
-      label-width="160px"
+      label-width="140px"
+      label-position="right"
       :validate-on-rule-change="false"
+      class="add-edit-dialog-form"
     >
-      <el-form-item label="缓存名称" prop="name" class="is-required">
-        <el-col :span="8">
-          <el-input v-model="formModel.name" />
-        </el-col>
-        <el-col v-if="props.rid" :span="16">
-          <span class="form-tip form-tip--warn">更改后仅当重启应用才生效！</span>
-        </el-col>
-      </el-form-item>
-      <el-form-item label="子系统" prop="subSysDictCode" class="is-required">
-        <el-select v-model="formModel.subSysDictCode" placeholder="请选择子系统" clearable>
-          <el-option
-            v-for="item in getAtomicServices()"
-            :key="item.code"
-            :value="item.code"
-            :label="item.name"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="缓存策略" prop="strategyDictCode" class="is-required">
-        <el-col :span="8">
-          <el-select v-model="formModel.strategyDictCode" placeholder="请选择缓存策略" clearable>
-            <el-option
-              v-for="item in getDictItems('kuark:sys', 'cache_strategy')"
-              :key="item.first"
-              :value="item.first"
-              :label="item.second"
+      <section class="form-section">
+        <div class="form-section__title">{{ t('cacheAddEdit.sections.basicInfo') }}</div>
+        <el-form-item :label="t('cacheAddEdit.labels.name')" prop="name" class="is-required">
+          <el-row :gutter="12" class="form-item-row">
+            <el-col :span="24">
+              <el-input
+                v-model="formModel.name"
+                :placeholder="t('cacheAddEdit.placeholders.name')"
+                clearable
+                size="default"
+              />
+            </el-col>
+          </el-row>
+          <div v-if="isEdit" class="form-tip-below">
+            <span class="form-tip form-tip--warn">
+              <el-icon><WarningFilled /></el-icon>
+              {{ t('cacheAddEdit.tips.restartRequired') }}
+            </span>
+          </div>
+        </el-form-item>
+        <el-form-item :label="t('cacheAddEdit.labels.atomicService')" prop="subSysDictCode" class="is-required">
+          <el-row :gutter="12" class="form-item-row">
+            <el-col :span="24">
+              <el-select
+                v-model="formModel.subSysDictCode"
+                :placeholder="t('cacheAddEdit.placeholders.atomicService')"
+                clearable
+                filterable
+                class="form-select-full"
+              >
+                <el-option
+                  v-for="item in atomicServiceList"
+                  :key="item.code"
+                  :value="item.code"
+                  :label="item.name"
+                />
+              </el-select>
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-form-item :label="t('cacheAddEdit.labels.strategy')" prop="strategyDictCode" class="is-required">
+          <el-row :gutter="12" class="form-item-row">
+            <el-col :span="24">
+              <el-select
+                v-model="formModel.strategyDictCode"
+                :placeholder="t('cacheAddEdit.placeholders.strategy')"
+                clearable
+                class="form-select-full"
+              >
+                <el-option
+                  v-for="item in strategyOptions"
+                  :key="item.first"
+                  :value="item.first"
+                  :label="t('cache_strategy.' + item.first) || item.second"
+                />
+              </el-select>
+            </el-col>
+          </el-row>
+          <div v-if="isEdit" class="form-tip-below">
+            <span class="form-tip form-tip--warn">
+              <el-icon><WarningFilled /></el-icon>
+              {{ t('cacheAddEdit.tips.restartRequired') }}
+            </span>
+          </div>
+        </el-form-item>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">{{ t('cacheAddEdit.sections.writeAndTtl') }}</div>
+        <div class="switch-row">
+          <el-form-item :label="t('cacheAddEdit.labels.writeOnBoot')" prop="writeOnBoot" class="form-item--inline">
+            <el-switch
+              v-model="formModel.writeOnBoot"
+              :active-value="true"
+              :inactive-value="false"
+              inline-prompt
+              :active-text="t('cacheAddEdit.switch.on')"
+              :inactive-text="t('cacheAddEdit.switch.off')"
             />
-          </el-select>
-        </el-col>
-        <el-col v-if="props.rid" :span="16">
-          <span class="form-tip form-tip--warn">更改后仅当重启应用才生效！</span>
-        </el-col>
-      </el-form-item>
-      <el-form-item label="是否启动时写缓存" prop="writeOnBoot">
-        <el-switch v-model="formModel.writeOnBoot" :active-value="true" :inactive-value="false" />
-      </el-form-item>
-      <el-form-item label="是否及时回写缓存" prop="writeInTime">
-        <el-switch v-model="formModel.writeInTime" :active-value="true" :inactive-value="false" />
-      </el-form-item>
-      <el-form-item label="TTL(秒)" prop="ttl">
-        <el-col :span="8">
-          <el-input v-model="formModel.ttl" />
-        </el-col>
-        <el-col v-if="props.rid" :span="16">
-          <span class="form-tip form-tip--warn">更改后仅当重启应用且重载缓存才生效！</span>
-        </el-col>
-      </el-form-item>
-      <el-form-item label="备注" prop="remark">
-        <el-input v-model="formModel.remark" />
-      </el-form-item>
+          </el-form-item>
+          <el-form-item :label="t('cacheAddEdit.labels.writeInTime')" prop="writeInTime" class="form-item--inline">
+            <el-switch
+              v-model="formModel.writeInTime"
+              :active-value="true"
+              :inactive-value="false"
+              inline-prompt
+              :active-text="t('cacheAddEdit.switch.on')"
+              :inactive-text="t('cacheAddEdit.switch.off')"
+            />
+          </el-form-item>
+        </div>
+        <el-form-item :label="t('cacheAddEdit.labels.ttl')" prop="ttl">
+          <el-row :gutter="12" class="form-item-row">
+            <el-col :span="24">
+              <el-input-number
+                v-model="formModel.ttl"
+                :min="0"
+                :max="2147483647"
+                :placeholder="t('cacheAddEdit.placeholders.ttl')"
+                controls-position="right"
+                class="form-input-number-full"
+              />
+            </el-col>
+          </el-row>
+          <div v-if="isEdit" class="form-tip-below">
+            <span class="form-tip form-tip--warn">
+              <el-icon><WarningFilled /></el-icon>
+              {{ t('cacheAddEdit.tips.restartAndReload') }}
+            </span>
+          </div>
+        </el-form-item>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">{{ t('cacheAddEdit.sections.other') }}</div>
+        <el-form-item :label="t('cacheAddEdit.labels.remark')" prop="remark">
+          <el-input
+            v-model="formModel.remark"
+            type="textarea"
+            :rows="3"
+            :placeholder="t('cacheAddEdit.placeholders.remark')"
+            maxlength="200"
+            show-word-limit
+            resize="none"
+          />
+        </el-form-item>
+      </section>
     </el-form>
     <template #footer>
-      <span class="dialog-footer">
-        <el-button type="primary" @click="submit">确 定</el-button>
-        <el-button @click="close">取 消</el-button>
-      </span>
+      <div class="add-edit-dialog-footer">
+        <el-button @click="handleCloseRequest">{{ t('cacheAddEdit.buttons.cancel') }}</el-button>
+        <el-button type="primary" @click.prevent="handleSubmit">{{ t('cacheAddEdit.buttons.confirm') }}</el-button>
+      </div>
     </template>
   </el-dialog>
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs } from 'vue';
+import { defineComponent, reactive, toRefs, computed, watch, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { WarningFilled } from '@element-plus/icons-vue';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
+import { Pair } from '../../../components/model/Pair';
+import { i18n } from '../../../i18n';
+import { useAddEditDialogCloseGuard } from '../../../components/pages/useAddEditDialogCloseGuard';
+import '../../../styles/add-edit-dialog-common.css';
 
 interface FormModel {
   name: string | null;
@@ -84,15 +173,23 @@ interface FormModel {
   strategyDictCode: string | null;
   writeOnBoot: boolean;
   writeInTime: boolean;
-  ttl: string | number | null;
+  ttl: number | null;
   managementBeanName: string | null;
   remark: string | null;
 }
+
+/** 缓存策略选项：first=code, second=label */
+type StrategyOption = { first: string; second: string };
 
 class AddEditPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.loadAtomicServices();
+    this.loadDicts([new Pair('kuark:sys', 'cache_strategy')]).then(() => {
+      (this.state as Record<string, unknown>).strategyOptions = this.getDictItems('kuark:sys', 'cache_strategy').map(
+        (p: { first: string; second: string }) => ({ first: p.first, second: p.second })
+      ) as StrategyOption[];
+    });
   }
 
   protected initState(): Record<string, unknown> {
@@ -107,16 +204,52 @@ class AddEditPage extends BaseAddEditPage {
         managementBeanName: null,
         remark: null,
       } as FormModel,
+      strategyOptions: [] as StrategyOption[],
     };
   }
 
   protected getRootActionPath(): string {
     return 'sys/cache';
   }
+
+  /** 必填项始终使用基类 i18n 必填规则并合并，保证切换语言后提示为当前语言（服务端/ mock 返回的 message 多为中文） */
+  protected async initValidationRule(): Promise<void> {
+    await super.initValidationRule();
+    const requiredRules = this.createRequiredRules(
+      {
+        name: 'cacheAddEdit.validation.requiredName',
+        subSysDictCode: 'cacheAddEdit.validation.requiredAtomicService',
+        strategyDictCode: 'cacheAddEdit.validation.requiredStrategy',
+      },
+      { subSysDictCode: 'change', strategyDictCode: 'change' }
+    );
+    const rules = (this.state.rules as Record<string, unknown>) || {};
+    this.state.rules = { ...rules, ...requiredRules };
+  }
+
+  /** 与详情页一致：使用 getDetail 接口按 id 拉取单条，Mock/后端均只处理此路径 */
+  protected getRowObjectLoadUrl(): string {
+    return this.getRootActionPath() + '/getDetail';
+  }
+
+  protected getLoadFailedMessageKey(): string {
+    return 'cacheAddEdit.messages.loadFailed';
+  }
+
+  /** 回填时保证 ttl 为 number | null，兼容 el-input-number */
+  protected fillForm(rowObject: Record<string, unknown>): void {
+    super.fillForm(rowObject);
+    const ttl = this.state.formModel?.ttl;
+    if (ttl !== undefined && ttl !== null && typeof ttl !== 'number') {
+      const n = Number(ttl);
+      this.state.formModel.ttl = Number.isNaN(n) ? null : n;
+    }
+  }
 }
 
 export default defineComponent({
   name: 'CacheAddEdit',
+  components: { WarningFilled },
   props: {
     modelValue: {
       type: Boolean,
@@ -126,25 +259,84 @@ export default defineComponent({
       type: String,
       default: '',
     },
+    onSaved: {
+      type: Function as (params: Record<string, unknown>) => void,
+      default: undefined,
+    },
   },
   emits: ['update:modelValue', 'response'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    const page = reactive(new AddEditPage(props, context)) as AddEditPage & { state: Record<string, unknown> };
+    const { t } = useI18n();
+    const pageInstance = new AddEditPage(props, context);
+    /** 必须在 reactive 之前取出 Ref，否则 reactive 代理后可能被当作普通值，导致模板 ref="form" 收到非 Ref 而报警告 */
+    const formRef = pageInstance.form;
+    const visibleRef = pageInstance.visible;
+    const page = reactive(pageInstance) as AddEditPage & { state: Record<string, unknown> };
+    const isEdit = computed(() => !!props.rid);
+    const dialogTitle = computed(() => (isEdit.value ? t('cacheAddEdit.titleEdit') : t('cacheAddEdit.titleAdd')));
+
+    /** 列表传入的 rid 变化时同步 */
+    watch(
+      () => props.rid,
+      (newRid) => {
+        page.currentRid = newRid ? String(newRid) : '';
+      },
+      { immediate: true }
+    );
+
+    /** 编辑弹窗显示时，用当前 props.rid 拉取数据 */
+    watch(
+      () => page.visible?.value,
+      (visible) => {
+        if (!visible) return;
+        const rid = props.rid ? String(props.rid) : '';
+        if (!rid) return;
+        page.currentRid = rid;
+        nextTick(() => page.reloadRowData());
+      },
+      { flush: 'post' }
+    );
+
+    const { handleBeforeClose, handleCloseRequest, registerOnEditFormLoaded } = useAddEditDialogCloseGuard({
+      page,
+      getIsEdit: () => !!props.rid,
+      i18nKeyPrefix: 'cacheAddEdit',
+      formHasContent(model: Record<string, unknown>) {
+        if (!model) return false;
+        if (model.name != null && String(model.name).trim() !== '') return true;
+        if (model.subSysDictCode != null && model.subSysDictCode !== '') return true;
+        if (model.strategyDictCode != null && model.strategyDictCode !== '') return true;
+        if (model.remark != null && String(model.remark).trim() !== '') return true;
+        if (model.ttl != null && model.ttl !== '') return true;
+        if (model.writeOnBoot === true || model.writeInTime === true) return true;
+        return false;
+      },
+    });
+    registerOnEditFormLoaded();
+
+    /** 直接调用 page 的 doSubmit，避免 reactive 后 submit 未正确暴露导致点击无反应 */
+    function handleSubmit(): void {
+      (page as unknown as { doSubmit: () => void }).doSubmit();
+    }
+
+    const { form: _formRef, visible: _visibleRef, ...restPageRefs } = toRefs(page);
     return {
-      ...toRefs(page),
+      ...restPageRefs,
       ...toRefs(page.state),
+      form: formRef,
+      visible: visibleRef,
       props,
+      isEdit,
+      dialogTitle,
+      t,
+      handleBeforeClose,
+      handleCloseRequest,
+      handleSubmit,
     };
   },
 });
 </script>
 
 <style scoped>
-.form-tip {
-  margin-left: 8px;
-}
-
-.form-tip--warn {
-  color: var(--el-color-danger);
-}
+/* 仅缓存页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
 </style>

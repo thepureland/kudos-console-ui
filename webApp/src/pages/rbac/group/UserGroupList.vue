@@ -202,17 +202,17 @@
             </template>
             <template #default="scope">
               <div class="operation-column-hover-area">
-                <el-tooltip :content="t('userGroupList.actions.edit')" placement="top">
+                <el-tooltip :content="t('userGroupList.actions.edit')" placement="top" :enterable="false">
                   <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
                     <Edit />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('userGroupList.actions.delete')" placement="top">
+                <el-tooltip :content="t('userGroupList.actions.delete')" placement="top" :enterable="false">
                   <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
                     <Delete />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('userGroupList.actions.detail')" placement="top">
+                <el-tooltip :content="t('userGroupList.actions.detail')" placement="top" :enterable="false">
                   <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
                     <Tickets />
                   </el-icon>

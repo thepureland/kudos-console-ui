@@ -4,13 +4,14 @@
     :width="width"
     center
     class="sectioned-detail-dialog"
+    align-center
+    :append-to-body="false"
     @update:model-value="$emit('update:modelValue', $event)"
     @close="onClose"
   >
     <template #header>
       <slot name="header">
         <div class="sectioned-detail-header">
-          <el-icon class="sectioned-detail-header-icon"><Document /></el-icon>
           <span class="sectioned-detail-header-title">{{ t(titleKey) }}</span>
         </div>
       </slot>
@@ -47,12 +48,10 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Document } from '@element-plus/icons-vue';
 import type { FieldConfig, SectionedDetailRow } from './sectionedDetail';
 
 export default defineComponent({
   name: 'SectionedDetailDialog',
-  components: { Document },
   props: {
     modelValue: {
       type: Boolean,
@@ -110,12 +109,7 @@ export default defineComponent({
 .sectioned-detail-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.sectioned-detail-header-icon {
-  font-size: 20px;
-  color: var(--el-color-primary);
+  justify-content: center;
 }
 
 .sectioned-detail-header-title {
@@ -137,16 +131,17 @@ export default defineComponent({
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
+/* 左侧竖线同 CacheAddEdit.vue .form-section__title，保留 section 淡灰背景 */
 .detail-section-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--el-text-color-secondary);
-  letter-spacing: 0.5px;
-  margin: 16px 0 0;
-  padding: 8px 12px;
-  background-color: var(--el-fill-color-light);
-  border-bottom: 1px dashed var(--el-border-color-extra-light);
-  border-radius: 4px 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  line-height: 1.4;
+  margin: 16px 0 12px 0;
+  padding: 8px 12px 8px 5px;
+  /* 竖线同色、极淡：由 --el-color-primary 与背景混合 */
+  background-color: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color));
+  border-left: 3px solid var(--el-color-primary);
 }
 
 .detail-section-title:first-child {

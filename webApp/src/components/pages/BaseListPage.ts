@@ -1,7 +1,8 @@
-import {ElMessage, ElMessageBox} from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
 import { BasePage } from "./BasePage"
 import { backendRequest } from "../../utils/backendRequest"
 import { ColumnVisibilitySupport } from "../widgets/ColumnVisibilitySupport"
+import { i18n } from "../../i18n"
 
 /**
  * 列表页面处理抽象父类
@@ -118,13 +119,13 @@ export abstract class BaseListPage extends BasePage {
     }
 
     /** 获取单条删除确认文案。 */
-    protected getDeleteMessage(row: any): string {
-        return '确定要删除该数据？'
+    protected getDeleteMessage(_row: any): string {
+        return i18n.global.t('listPage.deleteConfirm') as string
     }
 
     /** 获取批量删除确认文案。 */
     protected getBatchDeleteMessage(rows: Array<any>): string {
-        return "确定要删除这" + rows.length + "行数据吗？"
+        return i18n.global.t('listPage.batchDeleteConfirm', { n: rows.length }) as string
     }
 
     /** 获取数据行主键，默认取 row.id。 */
@@ -145,7 +146,7 @@ export abstract class BaseListPage extends BasePage {
         if (result.code == 200) {
             this.postSearchSuccessfully(result.data)
         } else {
-            ElMessage.error('查询失败！')
+            ElMessage.error(i18n.global.t('listPage.queryFailed') as string)
         }
     }
 
@@ -422,9 +423,10 @@ export abstract class BaseListPage extends BasePage {
 
     /** 处理单条删除（含确认与结果提示）。 */
     protected async doHandleDelete(row: any) {
-        const confirmResult = await ElMessageBox.confirm(this.getDeleteMessage(row), '提示', {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
+        const t = i18n.global.t.bind(i18n.global)
+        const confirmResult = await ElMessageBox.confirm(this.getDeleteMessage(row), t('listPage.confirmTitle') as string, {
+            confirmButtonText: t('listPage.confirmButton') as string,
+            cancelButtonText: t('listPage.cancelButton') as string,
             type: 'warning'
         }).catch(err => err)
         if (confirmResult !== 'confirm') {
@@ -433,10 +435,10 @@ export abstract class BaseListPage extends BasePage {
         const params = this.createDeleteParams(row)
         const result = await backendRequest({url: this.getDeleteUrl(), method: "delete", params: params})
         if (result.data === true) {
-            ElMessage.success('删除成功！')
+            ElMessage.success(t('listPage.deleteSuccess') as string)
             this.doAfterDelete([params["id"]])
         } else {
-            ElMessage.error('删除失败！')
+            ElMessage.error(t('listPage.deleteFailed') as string)
         }
     }
 
@@ -444,13 +446,14 @@ export abstract class BaseListPage extends BasePage {
 
     /** 处理批量删除（含确认与结果提示）。 */
     protected async doMultiDelete() {
+        const t = i18n.global.t.bind(i18n.global)
         const rows = this.state.selectedItems
         if (!rows || rows.length == 0) {
-            ElMessage.info('请先选择要删除的数据！')
+            ElMessage.info(t('listPage.selectDataFirst') as string)
         } else {
-            const confirmResult = await ElMessageBox.confirm(this.getBatchDeleteMessage(rows), '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
+            const confirmResult = await ElMessageBox.confirm(this.getBatchDeleteMessage(rows), t('listPage.confirmTitle') as string, {
+                confirmButtonText: t('listPage.confirmButton') as string,
+                cancelButtonText: t('listPage.cancelButton') as string,
                 type: 'warning'
             }).catch(err => err)
             if (confirmResult !== 'confirm') {
@@ -459,10 +462,10 @@ export abstract class BaseListPage extends BasePage {
             const params = this.createBatchDeleteParams()
             const result = await backendRequest({url: this.getBatchDeleteUrl(), method: "post", params: params})
             if (result.data === true) {
-                ElMessage.success('删除成功！')
+                ElMessage.success(t('listPage.deleteSuccess') as string)
                 this.doAfterDelete(this.getSelectedIds())
             } else {
-                ElMessage.error('删除失败！')
+                ElMessage.error(t('listPage.deleteFailed') as string)
             }
         }
     }
@@ -488,16 +491,16 @@ export abstract class BaseListPage extends BasePage {
         }
         const result = await backendRequest({url: this.getUpdateActiveUrl(), params})
         if (!result.data) {
-            ElMessage.error('启用状态更新失败！')
+            ElMessage.error(i18n.global.t('listPage.updateActiveFailed') as string)
         }
     }
 
     public handleEdit: (row: any) => void
 
-    /** 打开编辑弹窗。 */
+    /** 打开编辑弹窗。先设置 rid 再打开，确保弹窗拿到当前行 id。 */
     protected doHandleEdit(row: any) {
-        this.state.editDialogVisible = true
         this.state.rid = this.getRowId(row)
+        this.state.editDialogVisible = true
     }
 
     public openAddDialog: () => void
@@ -516,8 +519,8 @@ export abstract class BaseListPage extends BasePage {
 
     public afterAdd: (params: any) => void
 
-    /** 新增成功后的默认回调：重新查询。 */
-    protected doAfterAdd(params: any) {
+    /** 新增成功后的默认回调：重新查询列表。 */
+    protected doAfterAdd(_params: any) {
         this.search()
     }
 

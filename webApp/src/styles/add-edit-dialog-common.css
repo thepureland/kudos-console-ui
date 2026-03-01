@@ -1,0 +1,104 @@
+/*
+ * 添加/编辑弹窗共用样式：弹窗根节点使用 class="add-edit-dialog"，表单使用 class="add-edit-dialog-form"。
+ * 包含：弹窗壳(header/body/footer)、表单分区、表单项、开关行、底部按钮区。
+ *
+ * @since 1.0.0
+ */
+
+/* 弹窗壳 */
+.add-edit-dialog.el-dialog {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.add-edit-dialog .el-dialog__header {
+  padding: 2px 3px 5px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  margin-right: 0;
+}
+
+.add-edit-dialog .el-dialog__body {
+  padding: 7px 3px 2px 12px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.add-edit-dialog .el-dialog__footer {
+  padding: 10px 3px 4px 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+/* 表单 */
+.add-edit-dialog .add-edit-dialog-form {
+  padding: 8px 1px 0;
+}
+
+.add-edit-dialog .form-section {
+  margin-bottom: 20px;
+  margin-left: -12px;
+}
+
+.add-edit-dialog .form-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.add-edit-dialog .form-section__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 12px;
+  padding: 8px 12px 8px 5px;
+  line-height: 1.4;
+  background-color: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color));
+  border-left: 3px solid var(--el-color-primary);
+}
+
+.add-edit-dialog .form-item-row {
+  width: 100%;
+}
+
+.add-edit-dialog .form-select-full,
+.add-edit-dialog .form-input-number-full {
+  width: 100%;
+}
+
+.add-edit-dialog .form-tip-below {
+  margin-top: 3px;
+  margin-left: 0;
+  margin-bottom: 0;
+}
+
+.add-edit-dialog .form-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.add-edit-dialog .form-tip .el-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.add-edit-dialog .form-tip--warn {
+  color: var(--el-color-warning);
+}
+
+.add-edit-dialog .switch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+  margin-bottom: 18px;
+}
+
+.add-edit-dialog .switch-row .form-item--inline {
+  margin-bottom: 0;
+}
+
+.add-edit-dialog .add-edit-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

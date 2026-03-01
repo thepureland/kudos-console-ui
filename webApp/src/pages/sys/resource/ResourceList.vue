@@ -199,17 +199,17 @@
                   class-name="operation-column"
                 >
                   <template #default="scope">
-                    <el-tooltip :content="t('resourceList.actions.edit')" placement="top">
+                    <el-tooltip :content="t('resourceList.actions.edit')" placement="top" :enterable="false">
                       <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
                         <Edit />
                       </el-icon>
                     </el-tooltip>
-                    <el-tooltip :content="t('resourceList.actions.delete')" placement="top">
+                    <el-tooltip :content="t('resourceList.actions.delete')" placement="top" :enterable="false">
                       <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
                         <Delete />
                       </el-icon>
                     </el-tooltip>
-                    <el-tooltip :content="t('resourceList.actions.detail')" placement="top">
+                    <el-tooltip :content="t('resourceList.actions.detail')" placement="top" :enterable="false">
                       <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
                         <Tickets />
                       </el-icon>

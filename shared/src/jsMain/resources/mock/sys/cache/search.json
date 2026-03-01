@@ -999,8 +999,20 @@
         "ttl": 14400,
         "remark": "租户主题缓存",
         "active": false
+      },
+      {
+        "id": "cache-new-1",
+        "name": "mock新增缓存",
+        "atomicServiceCode": "console",
+        "subSysDictCode": "console",
+        "strategyDictCode": "caffeine",
+        "writeOnBoot": true,
+        "writeInTime": false,
+        "ttl": 3600,
+        "remark": "mock 新增后出现在列表中的一条",
+        "active": true
       }
     ],
-    "second": 77
+    "second": 78
   }
 }

@@ -93,6 +93,29 @@ export default {
   placeholder: {
     currentPath: '目前路徑',
   },
+  addEditPage: {
+    validationFailed: '驗證未通過',
+    formNotReady: '表單未就緒',
+    saveSuccess: '保存成功！',
+    saveFailed: '保存失敗！',
+    requestFailed: '請求失敗',
+    submitError: '提交異常',
+    defaultValidationMessage: '校驗未通過',
+    validationRuleLoadFailed: '表單校驗規則載入失敗！',
+    loadFailed: '資料載入失敗！',
+  },
+  listPage: {
+    confirmTitle: '提示',
+    confirmButton: '確定',
+    cancelButton: '取消',
+    deleteConfirm: '確定要刪除該資料？',
+    batchDeleteConfirm: '確定要刪除這 {n} 行資料嗎？',
+    selectDataFirst: '請先選擇要刪除的資料！',
+    deleteSuccess: '刪除成功！',
+    deleteFailed: '刪除失敗！',
+    queryFailed: '查詢失敗！',
+    updateActiveFailed: '啟用狀態更新失敗！',
+  },
   cacheList: {
     placeholders: {
       name: '快取名稱',
@@ -157,7 +180,7 @@ export default {
     fields: {
       id: '快取ID',
       name: '快取名稱',
-      subSysDictCode: '子系統',
+      subSysDictCode: '原子服務',
       strategyDictCode: '快取策略',
       writeOnBoot: '啟動時寫快取',
       writeInTime: '即時回寫快取',
@@ -171,6 +194,49 @@ export default {
       updateUser: '最近更新用戶',
     },
     empty: '—',
+  },
+  cacheAddEdit: {
+    titleAdd: '新增快取資訊',
+    titleEdit: '編輯快取資訊',
+    sections: {
+      basicInfo: '基本資訊',
+      writeAndTtl: '寫快取與時效',
+      other: '其他',
+    },
+    labels: {
+      name: '快取名稱',
+      atomicService: '原子服務',
+      strategy: '快取策略',
+      writeOnBoot: '啟動時寫快取',
+      writeInTime: '即時回寫快取',
+      ttl: 'TTL(秒)',
+      remark: '備註說明',
+    },
+    placeholders: {
+      name: '請輸入快取名稱',
+      atomicService: '請選擇原子服務',
+      strategy: '請選擇快取策略',
+      ttl: '留空表示不過期',
+      remark: '選填，最多 200 字',
+    },
+    switch: { on: '開', off: '關' },
+    tips: {
+      restartRequired: '更改後僅當重啟應用才生效',
+      restartAndReload: '更改後僅當重啟應用且重載快取才生效',
+    },
+    buttons: { cancel: '取 消', confirm: '確 定' },
+    closeConfirm: {
+      message: '有未儲存的修改，確定要關閉嗎？',
+      title: '提示',
+    },
+    messages: {
+      loadFailed: '資料載入失敗！',
+    },
+    validation: {
+      requiredName: '請輸入快取名稱',
+      requiredAtomicService: '請選擇原子服務',
+      requiredStrategy: '請選擇快取策略',
+    },
   },
   paramDetail: {
     title: '參數資訊詳情',

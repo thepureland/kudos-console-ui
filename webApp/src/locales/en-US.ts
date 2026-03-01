@@ -93,6 +93,29 @@ export default {
   placeholder: {
     currentPath: 'Current path',
   },
+  addEditPage: {
+    validationFailed: 'Validation failed.',
+    formNotReady: 'Form is not ready.',
+    saveSuccess: 'Saved successfully.',
+    saveFailed: 'Save failed.',
+    requestFailed: 'Request failed.',
+    submitError: 'Submit error.',
+    defaultValidationMessage: 'Validation failed.',
+    validationRuleLoadFailed: 'Failed to load form validation rules.',
+    loadFailed: 'Failed to load data.',
+  },
+  listPage: {
+    confirmTitle: 'Confirm',
+    confirmButton: 'OK',
+    cancelButton: 'Cancel',
+    deleteConfirm: 'Are you sure you want to delete this item?',
+    batchDeleteConfirm: 'Are you sure you want to delete these {n} item(s)?',
+    selectDataFirst: 'Please select at least one item to delete.',
+    deleteSuccess: 'Deleted successfully.',
+    deleteFailed: 'Delete failed.',
+    queryFailed: 'Query failed.',
+    updateActiveFailed: 'Failed to update active status.',
+  },
   cacheList: {
     placeholders: {
       name: 'Cache Name',
@@ -157,7 +180,7 @@ export default {
     fields: {
       id: 'Cache ID',
       name: 'Cache Name',
-      subSysDictCode: 'Subsystem',
+      subSysDictCode: 'Atomic Service',
       strategyDictCode: 'Cache Strategy',
       writeOnBoot: 'Write On Boot',
       writeInTime: 'Write In Time',
@@ -171,6 +194,49 @@ export default {
       updateUser: 'Last Updated By',
     },
     empty: '—',
+  },
+  cacheAddEdit: {
+    titleAdd: 'Add Cache',
+    titleEdit: 'Edit Cache',
+    sections: {
+      basicInfo: 'Basic Info',
+      writeAndTtl: 'Write Cache & TTL',
+      other: 'Other',
+    },
+    labels: {
+      name: 'Cache Name',
+      atomicService: 'Atomic Service',
+      strategy: 'Cache Strategy',
+      writeOnBoot: 'Write On Boot',
+      writeInTime: 'Write In Time',
+      ttl: 'TTL (sec)',
+      remark: 'Remark',
+    },
+    placeholders: {
+      name: 'Enter cache name',
+      atomicService: 'Select atomic service',
+      strategy: 'Select cache strategy',
+      ttl: 'Leave empty for no expiry',
+      remark: 'Optional, max 200 characters',
+    },
+    switch: { on: 'On', off: 'Off' },
+    tips: {
+      restartRequired: 'Takes effect after application restart.',
+      restartAndReload: 'Takes effect after restart and cache reload.',
+    },
+    buttons: { cancel: 'Cancel', confirm: 'OK' },
+    closeConfirm: {
+      message: 'You have unsaved changes. Close anyway?',
+      title: 'Confirm',
+    },
+    messages: {
+      loadFailed: 'Failed to load data.',
+    },
+    validation: {
+      requiredName: 'Please enter cache name',
+      requiredAtomicService: 'Please select atomic service',
+      requiredStrategy: 'Please select cache strategy',
+    },
   },
   paramDetail: {
     title: 'Parameter Detail',

@@ -110,7 +110,7 @@
           {{ t('cacheList.actions.delete') }}
         </el-button>
       </template>
-      <!-- 缓存列表表格：选择/序号/名称/子系统/策略/启用/写盘/写入时机/TTL/备注 + 操作列（编辑/删除/详情/管理下拉） -->
+      <!-- 缓存列表表格：选择/序号/名称/原子服务/策略/启用/写缓存/写入时机/TTL/备注 + 操作列（编辑/删除/详情/管理下拉） -->
       <div
         class="table-drag-drop-zone"
         @dragover="onTableDragOver"
@@ -314,17 +314,17 @@
           </template>
           <template #default="scope">
             <div class="operation-column-hover-area">
-              <el-tooltip :content="t('cacheList.actions.edit')" placement="top">
+              <el-tooltip :content="t('cacheList.actions.edit')" placement="top" :enterable="false">
                 <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
                   <Edit />
                 </el-icon>
               </el-tooltip>
-              <el-tooltip :content="t('cacheList.actions.delete')" placement="top">
+              <el-tooltip :content="t('cacheList.actions.delete')" placement="top" :enterable="false">
                 <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
                   <Delete />
                 </el-icon>
               </el-tooltip>
-              <el-tooltip :content="t('cacheList.actions.detail')" placement="top">
+              <el-tooltip :content="t('cacheList.actions.detail')" placement="top" :enterable="false">
                 <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
                   <Tickets />
                 </el-icon>
@@ -374,8 +374,8 @@
       </el-dialog>
 
     <!-- 新增/编辑/详情弹窗，按需挂载 -->
-    <cache-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
-    <cache-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
+    <cache-add-edit v-if="addDialogVisible" v-model="addDialogVisible" :on-saved="handleAddSaved" />
+    <cache-add-edit v-if="editDialogVisible" v-model="editDialogVisible" :on-saved="handleEditSaved" :rid="rid" />
     <cache-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
@@ -441,6 +441,13 @@ class ListPage extends BaseListPage {
   /** 接口根路径，用于请求与路由 */
   protected getRootActionPath(): string {
     return 'sys/cache';
+  }
+
+  /** 缓存行以 id 或 name（缓存名称）作为主键，编辑/详情/删除等均用此标识 */
+  protected getRowId(row: Record<string, unknown>): string | number {
+    if (row.id != null && row.id !== '') return row.id as string | number;
+    if (row.name != null && row.name !== '') return row.name as string | number;
+    return '';
   }
 
   /** 仅当勾选「仅启用」时传 active=true；不勾选时传 null，后端返回启用+未启用全部 */
@@ -554,7 +561,7 @@ class ListPage extends BaseListPage {
 
 /** 名称搜索框：镜像 span 宽度 + 该值作为 input 的 min-width 余量 */
 const NAME_INPUT_PADDING = 40;
-/** 子系统下拉：镜像 span 宽度 + 该值作为 select 的 min-width 余量 */
+/** 原子服务下拉：镜像 span 宽度 + 该值作为 select 的 min-width 余量 */
 const SELECT_INPUT_PADDING = 50;
 /** 操作列「固定展开」在 localStorage 的 key */
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'cacheList.operationColumnPinned';
@@ -669,7 +676,7 @@ export default defineComponent({
     const subSysSelectMirrorRef = ref<HTMLElement | null>(null);
     const subSysSelectWidth = ref(120);
     const subSysPlaceholder = computed(() => t('cacheList.placeholders.atomicService'));
-    /** 子系统下拉当前选中项的展示文案（用于镜像测量宽度） */
+    /** 原子服务下拉当前选中项的展示文案（用于镜像测量宽度） */
     const subSysSelectDisplayText = computed(() => {
       const params = listPage.state.searchParams as { atomicServiceCode?: string } | undefined;
       const code = params?.atomicServiceCode;
@@ -690,7 +697,7 @@ export default defineComponent({
         { text: t('cache_strategy.LOCAL_REMOTE'), value: 'LOCAL_REMOTE' },
       ];
     });
-    /** 布尔列（启用/写盘等）表头筛选：是/否 */
+    /** 布尔列（启用/写缓存等）表头筛选：是/否 */
     const boolFilters = computed(() => listPage.createBooleanFilters(t('cacheList.common.yes'), t('cacheList.common.no')));
     const columnKeyToLabel: Record<string, () => string> = {
       atomicServiceCode: () => t('cacheList.columns.subSystem'),
@@ -771,7 +778,7 @@ export default defineComponent({
       return listPage.isColumnVisible(key);
     }
 
-    /** 根据镜像 span 宽度更新子系统下拉框宽度 */
+    /** 根据镜像 span 宽度更新原子服务下拉框宽度 */
     function updateSubSysSelectWidth() {
       nextTick(() => {
         const el = subSysSelectMirrorRef.value;
@@ -796,7 +803,7 @@ export default defineComponent({
       });
     }
 
-    /** 首屏：恢复持久化状态，并测量名称/子系统输入宽度 */
+    /** 首屏：恢复持久化状态，并测量名称/原子服务输入宽度 */
     onMounted(() => {
       listPage.restorePersistedListState();
       updateNameInputWidth();
@@ -829,11 +836,19 @@ export default defineComponent({
       () => (listPage.state as Record<string, unknown>).showOperationColumn,
       () => { nextTick(forceFixedLeftWidth); },
     );
+    function handleAddSaved(params: Record<string, unknown>) {
+      listPage.doAfterAdd(params);
+    }
+    function handleEditSaved(params: Record<string, unknown>) {
+      listPage.doAfterEdit(params);
+    }
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
+      handleAddSaved,
+      handleEditSaved,
       t,
       commandValue: listPage.commandValue.bind(listPage),
       operateCache: listPage.operateCache.bind(listPage),

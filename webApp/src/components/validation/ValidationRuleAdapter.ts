@@ -19,12 +19,16 @@ export class ValidationRuleAdapter {
      * @param remoteRules 服务端返回的校验规则的对象
      * @param getModel 用于获取待校验对象的函数
      * @param trigger 校验规则触发器
+     * @param getDefaultMessage 当服务端未返回 message 时使用的默认提示（可用于国际化）
      */
-    constructor(remoteRules: any, getModel: () => any, trigger = 'blur') {
+    constructor(remoteRules: any, getModel: () => any, trigger = 'blur', getDefaultMessage?: () => string) {
         this.remoteRules = remoteRules
         this.getModel = getModel
         this.trigger = trigger
+        this.getDefaultMessage = getDefaultMessage ?? (() => '校验未通过')
     }
+
+    private getDefaultMessage: () => string
 
     /**
      * 返回async-validator校验规则对象
@@ -41,15 +45,19 @@ export class ValidationRuleAdapter {
 
     private parseRule(ruleName: string, propName: string, rules) {
         let ruleDetails: Array<any> = rules[ruleName]
+        if (!Array.isArray(ruleDetails) || ruleDetails.length === 0) {
+            return
+        }
         if (!this.destRules[propName]) {
             this.destRules[propName] = []
         }
         const rule = {trigger: this.trigger}
         this.doParseRule(ruleName, propName, ruleDetails, rule)
         if (!rule["message"]) {
-            rule["message"] = ruleDetails[0]["message"]
-            this.destRules[propName].push(rule)
+            const firstDetail = ruleDetails[0]
+            rule["message"] = firstDetail && firstDetail["message"] != null ? firstDetail["message"] : this.getDefaultMessage()
         }
+        this.destRules[propName].push(rule)
     }
 
     private doParseRule(ruleName: string, propName: string, ruleDetails: Array<any>, rule: any) {

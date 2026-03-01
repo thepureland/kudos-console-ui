@@ -93,6 +93,29 @@ export default {
   placeholder: {
     currentPath: '当前路径',
   },
+  addEditPage: {
+    validationFailed: '验证未通过',
+    formNotReady: '表单未就绪',
+    saveSuccess: '保存成功！',
+    saveFailed: '保存失败！',
+    requestFailed: '请求失败',
+    submitError: '提交异常',
+    defaultValidationMessage: '校验未通过',
+    validationRuleLoadFailed: '表单校验规则加载失败！',
+    loadFailed: '数据加载失败！',
+  },
+  listPage: {
+    confirmTitle: '提示',
+    confirmButton: '确定',
+    cancelButton: '取消',
+    deleteConfirm: '确定要删除该数据？',
+    batchDeleteConfirm: '确定要删除这 {n} 行数据吗？',
+    selectDataFirst: '请先选择要删除的数据！',
+    deleteSuccess: '删除成功！',
+    deleteFailed: '删除失败！',
+    queryFailed: '查询失败！',
+    updateActiveFailed: '启用状态更新失败！',
+  },
   cacheList: {
     placeholders: {
       name: '缓存名称',
@@ -157,7 +180,7 @@ export default {
     fields: {
       id: '缓存ID',
       name: '缓存名称',
-      subSysDictCode: '子系统',
+      subSysDictCode: '原子服务',
       strategyDictCode: '缓存策略',
       writeOnBoot: '启动时写缓存',
       writeInTime: '及时回写缓存',
@@ -171,6 +194,49 @@ export default {
       updateUser: '最近更新用户',
     },
     empty: '—',
+  },
+  cacheAddEdit: {
+    titleAdd: '添加缓存信息',
+    titleEdit: '编辑缓存信息',
+    sections: {
+      basicInfo: '基本信息',
+      writeAndTtl: '写缓存与时效',
+      other: '其他',
+    },
+    labels: {
+      name: '缓存名称',
+      atomicService: '原子服务',
+      strategy: '缓存策略',
+      writeOnBoot: '启动时写缓存',
+      writeInTime: '及时回写缓存',
+      ttl: 'TTL(秒)',
+      remark: '备注说明',
+    },
+    placeholders: {
+      name: '请输入缓存名称',
+      atomicService: '请选择原子服务',
+      strategy: '请选择缓存策略',
+      ttl: '留空表示不过期',
+      remark: '选填，最多 200 字',
+    },
+    switch: { on: '开', off: '关' },
+    tips: {
+      restartRequired: '更改后仅当重启应用才生效',
+      restartAndReload: '更改后仅当重启应用且重载缓存才生效',
+    },
+    buttons: { cancel: '取 消', confirm: '确 定' },
+    closeConfirm: {
+      message: '有未保存的修改，确定要关闭吗？',
+      title: '提示',
+    },
+    messages: {
+      loadFailed: '数据加载失败！',
+    },
+    validation: {
+      requiredName: '请输入缓存名称',
+      requiredAtomicService: '请选择原子服务',
+      requiredStrategy: '请选择缓存策略',
+    },
   },
   paramDetail: {
     title: '参数信息详情',

@@ -168,7 +168,8 @@ onUnmounted(() => {
   z-index: 100;
 }
 
-/* 主内容区容器：left 由 contentBoxStyle 动态设置（折叠 43px，展开为 sidebarWidth） */
+/* 主内容区容器：left 由 contentBoxStyle 动态设置（折叠 43px，展开为 sidebarWidth）。
+   transform 使内部 position:fixed 的弹窗相对本区域居中，而非相对屏幕。 */
 .content-box {
   position: absolute;
   top: 56px;
@@ -179,6 +180,7 @@ onUnmounted(() => {
   flex-direction: column;
   transition: left 0.2s ease;
   min-height: 0; /* flex 子项可正确收缩，使 .content 的 overflow 生效 */
+  transform: translateZ(0);
 }
 
 /* 标签栏不参与收缩，不随内容区滚动 */
