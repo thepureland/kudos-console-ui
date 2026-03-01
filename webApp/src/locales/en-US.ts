@@ -653,6 +653,27 @@ export default {
     },
     empty: '—',
   },
+  microServiceAddEdit: {
+    titleAdd: 'Add Microservice',
+    titleEdit: 'Edit Microservice',
+    sections: { basicInfo: 'Basic Info', other: 'Other' },
+    labels: { code: 'Code', name: 'Name', parentCode: 'Parent Code', context: 'Context', atomicService: 'Atomic Service', remark: 'Remark' },
+    placeholders: {
+      code: 'Enter code',
+      name: 'Enter name',
+      parentCode: 'Optional, parent microservice code',
+      context: 'Optional, context path',
+      remark: 'Optional, max 200 characters',
+    },
+    switch: { yes: 'Yes', no: 'No' },
+    buttons: { cancel: 'Cancel', confirm: 'OK' },
+    closeConfirm: { message: 'Unsaved changes. Close anyway?', title: 'Confirm' },
+    messages: { loadFailed: 'Failed to load data.' },
+    validation: {
+      requiredCode: 'Please enter code',
+      requiredName: 'Please enter name',
+    },
+  },
   i18nList: {
     placeholders: { key: 'Key', i18nTypeDictCode: 'I18n Type', atomicServiceCode: 'Atomic Service', locale: 'Locale' },
     common: { yes: 'Yes', no: 'No' },

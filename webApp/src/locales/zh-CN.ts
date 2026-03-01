@@ -653,6 +653,27 @@ export default {
     },
     empty: '—',
   },
+  microServiceAddEdit: {
+    titleAdd: '新增微服务',
+    titleEdit: '编辑微服务',
+    sections: { basicInfo: '基本信息', other: '其他' },
+    labels: { code: '编码', name: '名称', parentCode: '父级编码', context: '上下文', atomicService: '原子服务', remark: '备注' },
+    placeholders: {
+      code: '请输入编码',
+      name: '请输入名称',
+      parentCode: '选填，父级微服务编码',
+      context: '选填，上下文路径',
+      remark: '选填，最多 200 字',
+    },
+    switch: { yes: '是', no: '否' },
+    buttons: { cancel: '取 消', confirm: '确 定' },
+    closeConfirm: { message: '有未保存的修改，确定要关闭吗？', title: '提示' },
+    messages: { loadFailed: '数据加载失败！' },
+    validation: {
+      requiredCode: '请输入编码',
+      requiredName: '请输入名称',
+    },
+  },
   i18nList: {
     placeholders: { key: '键', i18nTypeDictCode: '国际化类型', atomicServiceCode: '原子服务', locale: '语言' },
     common: { yes: '是', no: '否' },

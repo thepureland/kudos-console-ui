@@ -653,6 +653,27 @@ export default {
     },
     empty: '—',
   },
+  microServiceAddEdit: {
+    titleAdd: '新增微服務',
+    titleEdit: '編輯微服務',
+    sections: { basicInfo: '基本資訊', other: '其他' },
+    labels: { code: '編碼', name: '名稱', parentCode: '父級編碼', context: '上下文', atomicService: '原子服務', remark: '備註' },
+    placeholders: {
+      code: '請輸入編碼',
+      name: '請輸入名稱',
+      parentCode: '選填，父級微服務編碼',
+      context: '選填，上下文路徑',
+      remark: '選填，最多 200 字',
+    },
+    switch: { yes: '是', no: '否' },
+    buttons: { cancel: '取 消', confirm: '確 定' },
+    closeConfirm: { message: '有未儲存的修改，確定要關閉嗎？', title: '提示' },
+    messages: { loadFailed: '資料載入失敗！' },
+    validation: {
+      requiredCode: '請輸入編碼',
+      requiredName: '請輸入名稱',
+    },
+  },
   i18nList: {
     placeholders: { key: '鍵', i18nTypeDictCode: '國際化類型', atomicServiceCode: '原子服務', locale: '語言' },
     common: { yes: '是', no: '否' },

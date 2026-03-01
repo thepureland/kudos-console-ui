@@ -256,6 +256,8 @@
         <!-- 树列表无分页 -->
       </template>
     </list-page-layout>
+    <micro-service-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
+    <micro-service-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
     <micro-service-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
@@ -269,6 +271,7 @@ import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
+import MicroServiceAddEdit from './MicroServiceAddEdit.vue';
 import MicroServiceDetail from './MicroServiceDetail.vue';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'microServiceList.operationColumnPinned';
@@ -315,6 +318,10 @@ class ListPage extends BaseListPage {
     return params;
   }
 
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['code', 'name'];
+  }
+
   /** 树接口直接返回 data 数组，无 first/second */
   protected postSearchSuccessfully(data: unknown): void {
     this.state.tableData = Array.isArray(data) ? data : [];
@@ -323,7 +330,7 @@ class ListPage extends BaseListPage {
 
 export default defineComponent({
   name: 'MicroServiceList',
-  components: { ListPageLayout, MicroServiceDetail, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { ListPageLayout, MicroServiceAddEdit, MicroServiceDetail, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };

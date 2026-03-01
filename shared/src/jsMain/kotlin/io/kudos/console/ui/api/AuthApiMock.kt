@@ -2316,6 +2316,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildMicroserviceGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/microservice/getValidationRule", "/api/sys/microservice/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/microservice/saveOrUpdate", "/api/sys/microservice/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "ms_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/dict/search", "/api/sys/dict/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDictSearchResponse(requestJson)
