@@ -14,12 +14,14 @@ export function useTableMaxHeight(listPage: BaseListPage & { state: { tableMaxHe
   const tableWrapRef = ref<HTMLElement | null>(null);
   const paginationRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
 
+  /** 从 paginationRef（可能为组件实例或 DOM）取实际 DOM 元素 */
   function getPaginationEl(): HTMLElement | null {
     const p = paginationRef.value;
     if (!p) return null;
     return (p as { $el?: HTMLElement }).$el ?? (p as HTMLElement);
   }
 
+  /** 根据表格容器与分页元素重新计算并写入 listPage.state.tableMaxHeight */
   function updateTableMaxHeight() {
     listPage.updateTableMaxHeightByElements(tableWrapRef.value, getPaginationEl());
   }

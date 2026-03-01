@@ -46,6 +46,10 @@
 </template>
 
 <script lang="ts">
+/**
+ * 分段详情弹窗：按 rowsWithSections 渲染分组标题与字段行，通过 formatFieldValue 按类型展示值。
+ * 与 useSectionedDetail 配合使用，用于缓存详情、参数详情等。
+ */
 import { defineComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { FieldConfig, SectionedDetailRow } from './sectionedDetail';

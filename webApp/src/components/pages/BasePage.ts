@@ -5,15 +5,19 @@ import { backendRequest } from "../../utils/backendRequest";
 import { i18n } from "../../i18n";
 
 /**
- * 列表页面处理抽象父类
+ * 页面处理抽象基类，被列表页、详情页、添加/编辑页继承。
+ * 提供字典缓存、原子服务、i18n 日期/布尔格式化及通用 close 等能力。
  *
  * @author K
  * @since 1.0.0
  */
 export abstract class BasePage {
 
-    public dictCache: Map<string, Record<string, string>> // Map<原子服务---字典类型, Map<字典项编码，字典项名称>>
+    /** 字典缓存：key 为 "模块---字典类型"，value 为 编码->名称 */
+    public dictCache: Map<string, Record<string, string>>
+    /** 页面响应式状态，由 initBaseState + initState 合并得到 */
     public state: Record<string, any>
+    /** 控制页面/弹窗是否显示 */
     public visible = ref(false)
 
     protected props: Record<string, any>
@@ -22,6 +26,7 @@ export abstract class BasePage {
     /** 原子服务列表（非字典）：{ code, name }[]，由 loadAtomicServices 拉取 */
     public atomicServiceList: Array<{ code: string; name: string }> = []
 
+    /** @internal 子类通过 super(props, context) 调用；初始化字典缓存、state、convertThis，并根据 showAfterLoadData 决定是否立即 render */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         this.props = props
         this.context = context
@@ -45,24 +50,31 @@ export abstract class BasePage {
         }
     }
 
+    /** 控制页面可见并触发渲染；子类可在数据加载后调用 */
     protected render() {
         this.visible.value = true
     }
 
+    /** 子类返回的扩展 state，会与 initBaseState 合并 */
     protected abstract initState(): any
 
+    /** 子类可重写以提供基础 state 字段 */
     protected initBaseState(): any {
         return {}
     }
 
+    /** 接口根路径，如 'sys/cache'，用于拼接待办接口地址 */
     protected abstract getRootActionPath(): string
 
+    /** 为 true 时构造函数中不立即 render，由子类在数据加载后调用 render */
     protected showAfterLoadData(): boolean {
         return false
     }
 
+    /** 根据模块+字典类型+编码翻译为显示名称（绑定到 doTransDict） */
     public transDict: (module: string | null | undefined, type: string, code: string) => string
 
+    /** 从 dictCache 中取字典项名称，无则返回 code */
     protected doTransDict(module: string | null | undefined, dictType: string, code: string): string {
         if (code) {
             const key = (module ? module : "") + '---' + dictType
@@ -76,6 +88,7 @@ export abstract class BasePage {
         return ''
     }
 
+    /** 加载单个字典到 dictCache，已存在则跳过 */
     protected async loadDict(module: string | null | undefined, dictType: string) {
         const key = (module ? module : "") + '---' + dictType
         if (this.dictCache.has(key)) {
@@ -94,6 +107,7 @@ export abstract class BasePage {
         }
     }
 
+    /** 批量加载多个字典到 dictCache，仅加载尚未缓存的项 */
     protected async loadDicts(moduleAndTypes: Array<Pair>) {
         const params = []
         for (let obj of moduleAndTypes) {
@@ -120,6 +134,7 @@ export abstract class BasePage {
         }
     }
 
+    /** 返回字典项列表 [Pair(编码, 名称)]，供 el-select 等使用；需先 loadDict/loadDicts */
     public getDictItems = (module: string | null | undefined, dictType: string): Array<Pair> => {
         const key = (module ? module : "") + '---' + dictType
         const map = this.dictCache.get(key)
@@ -160,6 +175,7 @@ export abstract class BasePage {
         return item ? item.name : code
     }
 
+    /** 布尔转「是/否」文案 */
     public formatBool = (value: boolean) => {
         return value ? "是" : "否"
     }
@@ -171,18 +187,22 @@ export abstract class BasePage {
         return i18n.global.d(parsed, 'datetime')
     }
 
+    /** 延迟指定毫秒的 Promise，用于串行请求等 */
     public sleep = (delay: number) => {
         return new Promise<void>((resolve) => window.setTimeout(resolve, delay))
     }
 
+    /** 关闭页面/弹窗（绑定到 doClose） */
     public close: () => void
 
+    /** 隐藏 visible 并 emit update:modelValue false */
     protected doClose() {
         const v = this.visible
         if (v && typeof v === 'object' && 'value' in v) (v as { value: boolean }).value = false
         this.context.emit('update:modelValue', false)
     }
 
+    /** 将 transDict、close 等绑定到实例方法，避免模板中 this 丢失 */
     protected convertThis() {
         this.transDict = (module: string | null | undefined, type: string, code: string) => {
             return this.doTransDict(module, type, code)
@@ -192,6 +212,7 @@ export abstract class BasePage {
         }
     }
 
+    /** 将后端返回的日期值（数组或字符串）转为 Date，无法解析则返回 null */
     private toDate(value: unknown): Date | null {
         if (!value) return null
         if (value instanceof Date) return value

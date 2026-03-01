@@ -10,6 +10,7 @@ import { backendRequest } from "../../utils/backendRequest"
  */
 export abstract class BaseDetailPage extends BasePage {
 
+    /** @internal 若有 props.rid 则 preLoad 后 loadData/loadOthers，否则报错 */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         if (props.rid) {
@@ -28,6 +29,7 @@ export abstract class BaseDetailPage extends BasePage {
         }
     }
 
+    /** 详情页基础 state：detail、rid */
     protected initBaseState(): any {
         return {
             detail: null,
@@ -35,26 +37,32 @@ export abstract class BaseDetailPage extends BasePage {
         }
     }
 
+    /** 子类可重写以扩展 state */
     protected initState(): any {
     }
 
+    /** 加载详情前的异步准备（如字典），返回 Promise；子类可重写 */
     protected async preLoad(): Promise<void> {
     }
 
+    /** 详情加载成功后是否立即显示（true 时在 postLoadDataSuccessfully 中调用 render） */
     protected showAfterLoadData(): boolean {
         return true
     }
 
+    /** 详情接口地址，默认 getRootActionPath() + "/getDetail" */
     protected getDetailLoadUrl(): string {
         return this.getRootActionPath() + "/getDetail"
     }
 
+    /** 详情请求参数，默认 { id: props.rid } */
     protected createDetailLoadParams(): any {
         return {
             id: this.props.rid
         }
     }
 
+    /** 请求详情接口并写入 state.detail，成功时调用 postLoadDataSuccessfully */
     protected async loadData() {
         const params = this.createDetailLoadParams()
         const result = await backendRequest({url: this.getDetailLoadUrl(), params});
@@ -65,6 +73,7 @@ export abstract class BaseDetailPage extends BasePage {
         }
     }
 
+    /** 详情加载成功：写入 state.detail，若 showAfterLoadData 则 render */
     protected postLoadDataSuccessfully(data) {
         this.state.detail = data
         if (this.showAfterLoadData()) {
@@ -72,9 +81,11 @@ export abstract class BaseDetailPage extends BasePage {
         }
     }
 
+    /** 详情加载后的额外请求（如关联数据），子类可重写 */
     protected async loadOthers() {
     }
 
+    /** 绑定 this，子类可在此追加方法绑定 */
     protected convertThis() {
         super.convertThis()
     }

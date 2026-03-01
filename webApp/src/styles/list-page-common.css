@@ -23,6 +23,12 @@
   table-layout: auto;
 }
 
+/* 选择列（复选框列）表头与单元格居中 */
+.list-page-common :deep(.el-table th.col-fixed-selection),
+.list-page-common :deep(.el-table td.col-fixed-selection) {
+  text-align: center;
+}
+
 /* 工具栏容器由 ListPageLayout 提供 .list-page-toolbar，此处为工具栏内公共结构样式 */
 .list-page-common .list-page-toolbar .toolbar-cell {
   flex: 1 1 0;

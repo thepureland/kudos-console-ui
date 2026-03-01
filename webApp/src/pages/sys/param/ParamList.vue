@@ -107,7 +107,7 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
           <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('paramList.columns.paramName')"
@@ -121,19 +121,19 @@
             v-if="isColumnVisible('paramValue')"
             :label="t('paramList.columns.paramValue')"
             prop="paramValue"
-            min-width="140"
+            :min-width="columnWidths['paramValue'] ?? 140"
           />
           <el-table-column
             v-if="isColumnVisible('defaultValue')"
             :label="t('paramList.columns.defaultValue')"
             prop="defaultValue"
-            min-width="120"
+            :min-width="columnWidths['defaultValue'] ?? 120"
           />
           <el-table-column
             v-if="isColumnVisible('module')"
             :label="t('paramList.columns.module')"
             prop="module"
-            min-width="100"
+            :min-width="columnWidths['module'] ?? 100"
             sortable="custom"
           >
             <template #default="scope">
@@ -144,21 +144,21 @@
             v-if="isColumnVisible('seqNo')"
             :label="t('paramList.columns.seqNo')"
             prop="seqNo"
-            min-width="80"
+            :min-width="columnWidths['seqNo'] ?? 80"
             sortable="custom"
           />
           <el-table-column
             v-if="isColumnVisible('remark')"
             :label="t('paramList.columns.remark')"
             prop="remark"
-            min-width="120"
+            :min-width="columnWidths['remark'] ?? 120"
             show-overflow-tooltip
           />
           <el-table-column
             v-if="isColumnVisible('active')"
             :label="t('paramList.columns.active')"
             prop="active"
-            min-width="80"
+            :min-width="columnWidths['active'] ?? 80"
           >
             <template #default="scope">
               <el-switch
@@ -217,23 +217,23 @@
       </template>
     </list-page-layout>
 
-    <param-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
-    <param-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
+    <param-add-edit v-if="addDialogVisible" v-model="addDialogVisible" :on-saved="handleAddSaved" />
+    <param-add-edit v-if="editDialogVisible" v-model="editDialogVisible" :on-saved="handleEditSaved" :rid="rid" />
     <param-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import ParamAddEdit from './ParamAddEdit.vue';
 import ParamDetail from './ParamDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
-import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
-import { Pair } from '../../../components/model/Pair';
+import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
+import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 
 class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
@@ -277,6 +277,8 @@ const ALL_COLUMN_KEYS = ['paramValue', 'defaultValue', 'module', 'seqNo', 'remar
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
+const RESERVED_WIDTH_LEFT = 39 + 50 + 120;
+const RESERVED_WIDTH_RIGHT = 140;
 
 export default defineComponent({
   name: 'ParamList',
@@ -294,70 +296,57 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
-    listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
-    listPage.configureListStatePersistence(PARAM_LIST_STATE_STORAGE_KEY);
-    listPage.configureTableMaxHeight();
-    const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
-    const listLayoutRefs = { tableWrapRef, paginationRef };
-    const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
-
-    const columnKeyToLabel: Record<string, () => string> = {
-      paramValue: () => t('paramList.columns.paramValue'),
-      defaultValue: () => t('paramList.columns.defaultValue'),
-      module: () => t('paramList.columns.module'),
-      seqNo: () => t('paramList.columns.seqNo'),
-      remark: () => t('paramList.columns.remark'),
-      active: () => t('paramList.columns.active'),
-    };
-    const columnVisibilityOptions = computed(() => [
-      { key: INDEX_COLUMN_KEY, label: t('paramList.columns.index') },
-      ...ALL_COLUMN_KEYS.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
-    ]);
-    const visibleColumnKeys = computed<string[]>({
-      get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],
-      set: (next) => listPage.applyVisibleColumns(next),
+    const {
+      listLayoutRefs,
+      onTableWrapMounted: layoutOnTableWrapMounted,
+      visibleColumnKeys,
+      columnVisibilityOptions,
+      isColumnVisible,
+    } = useListPageLayout(listPage, {
+      stateStorageKey: PARAM_LIST_STATE_STORAGE_KEY,
+      columnVisibility: {
+        storageKey: COLUMN_VISIBILITY_STORAGE_KEY,
+        columnKeys: COLUMN_VISIBILITY_KEYS,
+        defaultVisibleKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
+        getColumnLabel: (key) => (key === INDEX_COLUMN_KEY ? t('paramList.columns.index') : t('paramList.columns.' + key)),
+      },
     });
-    function isColumnVisible(key: string): boolean {
-      return listPage.isColumnVisible(key);
-    }
 
-    function forceFixedLeftWidth() {
-      nextTick(() => {
-        tableRef.value?.doLayout?.();
-        nextTick(() => {
-          const wrapper = tableRef.value?.$el?.querySelector?.('.el-table__fixed-left') as HTMLElement | null;
-          if (wrapper) {
-            wrapper.style.setProperty('width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-            wrapper.style.setProperty('max-width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-          }
-        });
-      });
-    }
+    const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
+    const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
+
+    const autoWidthColumns = computed(() => [
+      { key: 'paramValue', getLabel: () => t('paramList.columns.paramValue'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.paramValue ?? '') },
+      { key: 'defaultValue', getLabel: () => t('paramList.columns.defaultValue'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.defaultValue ?? '') },
+      { key: 'module', getLabel: () => t('paramList.columns.module'), sortable: true, getCellText: (row: Record<string, unknown>) => listPage.transAtomicService(row.module) },
+      { key: 'seqNo', getLabel: () => t('paramList.columns.seqNo'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.seqNo ?? '') },
+      { key: 'remark', getLabel: () => t('paramList.columns.remark'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.remark ?? '') },
+      { key: 'active', getLabel: () => t('paramList.columns.active'), sortable: false, getCellText: () => '' },
+    ]);
+    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
+    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
+      containerRef: listLayoutRefs.tableWrapRef,
+      columns: autoWidthColumns,
+      tableData: tableDataRef,
+      reservedWidthLeft: RESERVED_WIDTH_LEFT,
+      reservedWidthRight: RESERVED_WIDTH_RIGHT,
+    });
 
     function onTableWrapMounted() {
-      nextTick(updateTableMaxHeight);
+      layoutOnTableWrapMounted();
+      nextTick(runColumnAutoWidth);
     }
 
-    onMounted(() => {
-      listPage.restorePersistedListState();
-      nextTick(updateTableMaxHeight);
-    });
-    watch(
-      () => [
-        (listPage.state as Record<string, unknown>).searchParams,
-        (listPage.state as Record<string, unknown>).sort,
-        (listPage.state as Record<string, unknown>).pagination,
-        (listPage.state as Record<string, unknown>).tableData,
-      ],
-      () => {
-        listPage.persistListState();
-        nextTick(updateTableMaxHeight);
-      },
-      { deep: true },
-    );
+    function handleAddSaved(params: Record<string, unknown>) {
+      listPage.doAfterAdd(params);
+    }
+    function handleEditSaved(params: Record<string, unknown>) {
+      listPage.doAfterEdit(params);
+    }
+
     watch(
       () => (listPage.state as Record<string, unknown>).showOperationColumn,
-      () => { nextTick(forceFixedLeftWidth); },
+      () => nextTick(forceFixedLeftWidth),
     );
 
     return {
@@ -372,6 +361,9 @@ export default defineComponent({
       visibleColumnKeys,
       columnVisibilityOptions,
       isColumnVisible,
+      columnWidths,
+      handleAddSaved,
+      handleEditSaved,
     };
   },
 });

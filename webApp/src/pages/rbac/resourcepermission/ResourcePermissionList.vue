@@ -49,9 +49,9 @@
         <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                   :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
           <el-table-column type="index" min-width="50"/>
-          <el-table-column label="资源名称" prop="name" sortable="custom"/>
-          <el-table-column label="URL" prop="url" sortable="custom"/>
-          <el-table-column label="关联的角色" prop="roleNames"/>
+          <el-table-column label="资源名称" prop="name" :min-width="columnWidths['name'] ?? 120" sortable="custom"/>
+          <el-table-column label="URL" prop="url" :min-width="columnWidths['url'] ?? 120" sortable="custom"/>
+          <el-table-column label="关联的角色" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140"/>
           <el-table-column label="操作" align="center">
             <template #default="scope">
               <edit @click="handleEdit(scope.row)" class="operate-column-icon"/>
@@ -69,11 +69,12 @@
 </template>
 
 <script lang='ts'>
-import { defineComponent, reactive, toRefs, ref } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Pair } from '../../../components/model/Pair';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
-import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
+import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { backendRequest } from '../../../utils/backendRequest';
 
 class ListPage extends TenantSupportListPage {
@@ -255,14 +256,34 @@ export default defineComponent({
   components: {},
   setup(props, context) {
     const tree = ref();
-    const listPage = reactive(new ListPage(props, context, tree));
-    const { tableWrapRef, paginationRef } = useTableMaxHeight(listPage);
+    const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
+    const { listLayoutRefs } = useListPageLayout(listPage, {
+      stateStorageKey: 'resourcePermissionList.queryState',
+    });
+    const autoWidthColumns = computed(() => [
+      { key: 'name', getLabel: () => '资源名称', sortable: true, getCellText: (row: Record<string, unknown>) => String(row.name ?? '') },
+      { key: 'url', getLabel: () => 'URL', sortable: true, getCellText: (row: Record<string, unknown>) => String(row.url ?? '') },
+      { key: 'roleNames', getLabel: () => '关联的角色', getCellText: (row: Record<string, unknown>) => String(row.roleNames ?? '') },
+    ]);
+    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
+    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
+      containerRef: listLayoutRefs.tableWrapRef,
+      columns: autoWidthColumns,
+      tableData: tableDataRef,
+      reservedWidthLeft: 50,
+      reservedWidthRight: 120,
+    });
+    function runAutoWidth() {
+      nextTick(runColumnAutoWidth);
+    }
+    onMounted(runAutoWidth);
+    watch(tableDataRef, runAutoWidth);
     return {
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       tree,
-      tableWrapRef,
-      paginationRef,
+      ...listLayoutRefs,
+      columnWidths,
     };
   },
 })

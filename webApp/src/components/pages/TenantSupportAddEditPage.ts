@@ -11,12 +11,14 @@ import { backendRequest } from "../../utils/backendRequest"
  */
 export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
 
+    /** @internal 初始化租户相关 formModel/cascaderProps 并加载原子服务与租户数据 */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         this.initVars()
         this.loadAtomicServices().then(() => this.loadTenants())
     }
 
+    /** 初始化 formModel.subSysOrTenant、cascaderProps、subSysOrTenants 等 */
     protected initVars() {
         let formModel = this.state.formModel
         if (!formModel) {
@@ -35,10 +37,12 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         }
     }
 
+    /** 级联是否严格模式，子类可重写 */
     protected isCheckStrictly(): boolean {
         return false
     }
 
+    /** 提交前将 subSysOrTenant 拆成 subSysDictCode、tenantId 写入 formModel */
     protected beforeValidate() {
         const subSysOrTenant = this.state.formModel.subSysOrTenant
         if (!subSysOrTenant || subSysOrTenant.length == 0) {
@@ -52,6 +56,7 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         }
     }
 
+    /** 回填时把 subSysDictCode、tenantId 合并为 subSysOrTenant 数组供级联显示 */
     protected fillForm(rowObject: any) {
         super.fillForm(rowObject)
         const subSysOrTenant = [rowObject.subSysDictCode]
@@ -61,6 +66,7 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         this.state.formModel.subSysOrTenant = subSysOrTenant
     }
 
+    /** 拉取租户树并写入 state.subSysOrTenants，供级联选择使用 */
     protected async loadTenants() {
         const result = await backendRequest({url: "sys/tenant/getAllActiveTenants", method: "post"})
         if (result.code == 200) {

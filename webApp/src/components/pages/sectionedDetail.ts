@@ -67,6 +67,7 @@ export function useSectionedDetail(
     })
   );
 
+  /** 根据 field.type 从 page.state.detail 取字段值并格式化为展示文案（布尔/日期/原子服务/字典等） */
   function formatFieldValue(field: FieldConfig): string {
     const d = page.state.detail;
     if (!d) return '';

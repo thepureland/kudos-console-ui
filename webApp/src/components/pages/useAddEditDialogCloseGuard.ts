@@ -32,21 +32,25 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
 
   const initialFormSnapshot = ref<Record<string, unknown> | null>(null);
 
+  /** 从 page.form 或 page.state.formModel 取当前表单数据 */
   function getCurrentModel(): Record<string, unknown> | undefined {
     const form = page.form?.value as { model?: Record<string, unknown> } | undefined;
     const model = form?.model ?? (page.state?.formModel as Record<string, unknown> | undefined);
     return model;
   }
 
+  /** 对当前表单数据做深拷贝并保存为初始快照，用于脏检查 */
   function takeSnapshot(): void {
     const model = getCurrentModel();
     initialFormSnapshot.value = model ? JSON.parse(JSON.stringify(model)) : null;
   }
 
+  /** 清空快照，关闭弹窗或提交成功后调用 */
   function clearSnapshot(): void {
     initialFormSnapshot.value = null;
   }
 
+  /** 规范化对象用于比较：undefined→null、NaN→null，避免误判为脏 */
   function normalizeForCompare(obj: Record<string, unknown>): Record<string, unknown> {
     if (!obj || typeof obj !== 'object') return {};
     const o: Record<string, unknown> = {};
@@ -59,6 +63,7 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
     return o;
   }
 
+  /** 有快照时比较当前与快照；无快照时编辑模式视为脏，新增模式用 formHasContent 判断 */
   function isFormDirty(): boolean {
     const cur = getCurrentModel();
     if (!cur) return false;
@@ -89,11 +94,13 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
     { immediate: true, flush: 'post' }
   );
 
+  /** 执行关闭并调用 done（before-close 回调） */
   const doClose = (done?: () => void) => {
     page.close();
     done?.();
   };
 
+  /** el-dialog before-close：若脏则弹确认框，确认后执行 done */
   function handleBeforeClose(done: () => void): void {
     if (!isFormDirty()) {
       doClose(done);
@@ -112,6 +119,7 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
       .catch(() => {});
   }
 
+  /** 关闭按钮/取消按钮点击：若脏则弹确认框，确认后关闭 */
   function handleCloseRequest(): void {
     if (!isFormDirty()) {
       page.close();

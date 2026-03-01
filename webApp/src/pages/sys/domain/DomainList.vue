@@ -92,7 +92,7 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
           <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
             :label="t('domainList.columns.domain')"
@@ -106,7 +106,7 @@
             <el-table-column
               v-if="key === 'subSysDictCode' && isColumnVisible('subSysDictCode')"
               prop="subSysDictCode"
-              min-width="120"
+              :min-width="columnWidths['subSysDictCode'] ?? 120"
               sortable="custom"
             >
               <template #header>
@@ -128,7 +128,7 @@
             <el-table-column
               v-else-if="key === 'tenantName' && isColumnVisible('tenantName')"
               prop="tenantName"
-              min-width="120"
+              :min-width="columnWidths['tenantName'] ?? 120"
               sortable="custom"
             >
               <template #header>
@@ -147,7 +147,7 @@
             <el-table-column
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
-              min-width="80"
+              :min-width="columnWidths['active'] ?? 80"
               sortable="custom"
             >
               <template #header>
@@ -174,7 +174,7 @@
             <el-table-column
               v-else-if="key === 'remark' && isColumnVisible('remark')"
               prop="remark"
-              min-width="120"
+              :min-width="columnWidths['remark'] ?? 120"
               sortable="custom"
             >
               <template #header>
@@ -193,7 +193,7 @@
             <el-table-column
               v-else-if="key === 'createTime' && isColumnVisible('createTime')"
               prop="createTime"
-              min-width="160"
+              :min-width="columnWidths['createTime'] ?? 160"
               sortable="custom"
             >
               <template #header>
@@ -267,15 +267,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import DomainAddEdit from './DomainAddEdit.vue';
 import DomainDetail from './DomainDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
-import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
-import { Pair } from '../../../components/model/Pair';
+import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
+import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
+import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'domainList.operationColumnPinned';
 const DOMAIN_LIST_STATE_STORAGE_KEY = 'domainList.queryState';
@@ -329,54 +331,58 @@ export default defineComponent({
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
-    listPage.configureListStatePersistence(DOMAIN_LIST_STATE_STORAGE_KEY);
-    listPage.configureTableMaxHeight();
-    const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
-    const listLayoutRefs = { tableWrapRef, paginationRef };
-    const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
-
-    const FIXED_LEFT_TOTAL_WIDTH = 289;
-    function forceFixedLeftWidth() {
-      nextTick(() => {
-        tableRef.value?.doLayout?.();
-        nextTick(() => {
-          const wrapper = tableRef.value?.$el?.querySelector?.('.el-table__fixed-left') as HTMLElement | null;
-          if (wrapper) {
-            wrapper.style.setProperty('width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-            wrapper.style.setProperty('max-width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-          }
-        });
-      });
-    }
-
-    function loadColumnOrder(): string[] {
-      if (typeof window === 'undefined') return [...ALL_COLUMN_KEYS];
-      try {
-        const raw = window.localStorage.getItem(COLUMN_ORDER_STORAGE_KEY);
-        if (!raw) return [...ALL_COLUMN_KEYS];
-        const parsed = JSON.parse(raw) as unknown;
-        if (!Array.isArray(parsed)) return [...ALL_COLUMN_KEYS];
-        const set = new Set(ALL_COLUMN_KEYS);
-        const ordered = (parsed as string[]).filter((k) => set.has(k));
-        const missing = ALL_COLUMN_KEYS.filter((k) => !ordered.includes(k));
-        return ordered.length ? [...ordered, ...missing] : [...ALL_COLUMN_KEYS];
-      } catch {
-        return [...ALL_COLUMN_KEYS];
-      }
-    }
-    function saveColumnOrder(order: string[]) {
-      if (typeof window === 'undefined') return;
-      window.localStorage.setItem(COLUMN_ORDER_STORAGE_KEY, JSON.stringify(order));
-    }
-    const columnOrder = ref<string[]>(loadColumnOrder());
-    const orderedColumnKeys = computed(() => {
-      const order = columnOrder.value;
-      if (!order.length) return [...ALL_COLUMN_KEYS];
-      const set = new Set(ALL_COLUMN_KEYS);
-      const ordered = order.filter((k) => set.has(k));
-      const missing = ALL_COLUMN_KEYS.filter((k) => !ordered.includes(k));
-      return ordered.length ? [...ordered, ...missing] : [...ALL_COLUMN_KEYS];
+    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
+      stateStorageKey: DOMAIN_LIST_STATE_STORAGE_KEY,
     });
+    const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
+    const FIXED_LEFT_TOTAL_WIDTH = 289;
+    const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
+    const {
+      orderedColumnKeys,
+      columnDragKey,
+      columnDropTargetKey,
+      onHeaderDragStart,
+      onHeaderDragOver,
+      onHeaderDrop,
+      onHeaderDragEnd,
+      onTableDragOver,
+      onTableDrop,
+    } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS, {
+      onOrderChange: () => nextTick(forceFixedLeftWidth),
+    });
+
+    const RESERVED_WIDTH_LEFT = 289;
+    const RESERVED_WIDTH_RIGHT = 140;
+    const getDomainColumnLabel = (key: string) => t('domainList.columns.' + (key === 'subSysDictCode' ? 'subSys' : key === 'tenantName' ? 'tenant' : key));
+    const autoWidthColumns = computed(() =>
+      orderedColumnKeys.value.map((key) => ({
+        key,
+        getLabel: () => getDomainColumnLabel(key),
+        sortable: true,
+        getCellText:
+          key === 'subSysDictCode'
+            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
+            : key === 'tenantName'
+              ? (row: Record<string, unknown>) => String(row.tenantName ?? '')
+              : key === 'remark'
+                ? (row: Record<string, unknown>) => String(row.remark ?? '')
+                : key === 'createTime'
+                  ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
+                  : () => '',
+      }))
+    );
+    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
+    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
+      containerRef: listLayoutRefs.tableWrapRef,
+      columns: autoWidthColumns,
+      tableData: tableDataRef,
+      reservedWidthLeft: RESERVED_WIDTH_LEFT,
+      reservedWidthRight: RESERVED_WIDTH_RIGHT,
+    });
+    function onTableWrapMounted() {
+      layoutOnTableWrapMounted();
+      nextTick(runColumnAutoWidth);
+    }
 
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
@@ -390,76 +396,6 @@ export default defineComponent({
       return listPage.isColumnVisible(key);
     }
 
-    const columnDragKey = ref<string | null>(null);
-    const columnDropTargetKey = ref<string | null>(null);
-    function onHeaderDragStart(e: DragEvent, key: string) {
-      columnDragKey.value = key;
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-    }
-    function onHeaderDragOver(e: DragEvent, toKey: string) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      columnDropTargetKey.value = toKey;
-    }
-    function applyColumnDrop(toKey: string) {
-      const fromKey = columnDragKey.value;
-      columnDragKey.value = null;
-      columnDropTargetKey.value = null;
-      if (!fromKey || fromKey === toKey) return;
-      const order = [...orderedColumnKeys.value];
-      const fromIndex = order.indexOf(fromKey);
-      const toIndex = order.indexOf(toKey);
-      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
-      const [removed] = order.splice(fromIndex, 1);
-      order.splice(toIndex, 0, removed);
-      columnOrder.value = order;
-      saveColumnOrder(order);
-      nextTick(forceFixedLeftWidth);
-    }
-    function onHeaderDrop(e: DragEvent, toKey: string) {
-      e.preventDefault();
-      e.stopPropagation();
-      applyColumnDrop(toKey);
-    }
-    function onTableDragOver(e: DragEvent) {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      const keyEl = (e.target as HTMLElement)?.closest?.('[data-column-key]');
-      if (keyEl) columnDropTargetKey.value = keyEl.getAttribute('data-column-key');
-    }
-    function onTableDrop(e: DragEvent) {
-      e.preventDefault();
-      e.stopPropagation();
-      const keyEl = (e.target as HTMLElement)?.closest?.('[data-column-key]');
-      const toKey = keyEl?.getAttribute('data-column-key') ?? columnDropTargetKey.value;
-      if (toKey) applyColumnDrop(toKey);
-    }
-    function onHeaderDragEnd() {
-      columnDragKey.value = null;
-      columnDropTargetKey.value = null;
-    }
-
-    function onTableWrapMounted() {
-      nextTick(updateTableMaxHeight);
-    }
-
-    onMounted(() => {
-      listPage.restorePersistedListState();
-    });
-    watch(
-      () => [
-        listPage.state.searchParams,
-        listPage.state.sort,
-        listPage.state.pagination,
-        listPage.state.tableData,
-      ],
-      () => {
-        listPage.persistListState();
-        nextTick(updateTableMaxHeight);
-      },
-      { deep: true },
-    );
     watch(
       () => listPage.state.visibleColumnKeys,
       () => nextTick(forceFixedLeftWidth),
@@ -481,6 +417,7 @@ export default defineComponent({
       visibleColumnKeys,
       columnVisibilityOptions,
       isColumnVisible,
+      columnWidths,
       onTableWrapMounted,
       orderedColumnKeys,
       columnDragKey,

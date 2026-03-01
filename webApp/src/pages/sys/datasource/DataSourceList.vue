@@ -119,14 +119,14 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
           <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column :label="t('dataSourceList.columns.name')" prop="name" min-width="120" fixed="left" class-name="col-fixed-name" />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
               v-if="key === 'subSysDictCode' && isColumnVisible('subSysDictCode')"
               prop="subSysDictCode"
-              min-width="120"
+              :min-width="columnWidths['subSysDictCode'] ?? 120"
             >
               <template #header>
                 <div
@@ -147,7 +147,7 @@
             <el-table-column
               v-else-if="key === 'tenantName' && isColumnVisible('tenantName')"
               prop="tenantName"
-              min-width="120"
+              :min-width="columnWidths['tenantName'] ?? 120"
             >
               <template #header>
                 <div
@@ -165,7 +165,7 @@
             <el-table-column
               v-else-if="key === 'microservice' && isColumnVisible('microservice')"
               prop="microservice"
-              min-width="120"
+              :min-width="columnWidths['microservice'] ?? 120"
             >
               <template #header>
                 <div
@@ -186,7 +186,7 @@
             <el-table-column
               v-else-if="key === 'url' && isColumnVisible('url')"
               prop="url"
-              min-width="180"
+              :min-width="columnWidths['url'] ?? 180"
             >
               <template #header>
                 <div
@@ -204,7 +204,7 @@
             <el-table-column
               v-else-if="key === 'username' && isColumnVisible('username')"
               prop="username"
-              min-width="120"
+              :min-width="columnWidths['username'] ?? 120"
             >
               <template #header>
                 <div
@@ -222,7 +222,7 @@
             <el-table-column
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
-              min-width="80"
+              :min-width="columnWidths['active'] ?? 80"
             >
               <template #header>
                 <div
@@ -318,7 +318,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Delete, Edit, Lock, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
@@ -326,7 +326,10 @@ import DataSourceAddEdit from './DataSourceAddEdit.vue';
 import DataSourceDetail from './DataSourceDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
-import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
+import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
+import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
+import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest } from '../../../utils/backendRequest';
 import { i18n } from '../../../i18n';
@@ -432,70 +435,9 @@ export default defineComponent({
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
-    listPage.configureListStatePersistence(DATA_SOURCE_LIST_STATE_STORAGE_KEY);
-    listPage.configureTableMaxHeight();
-    const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
-    const listLayoutRefs = { tableWrapRef, paginationRef };
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
-    function forceFixedLeftWidth() {
-      nextTick(() => {
-        tableRef.value?.doLayout?.();
-        nextTick(() => {
-          const wrapper = tableRef.value?.$el?.querySelector?.('.el-table__fixed-left') as HTMLElement | null;
-          if (wrapper) {
-            wrapper.style.setProperty('width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-            wrapper.style.setProperty('max-width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-          }
-        });
-      });
-    }
-    function loadColumnOrder(): string[] {
-      if (typeof window === 'undefined') return [...ALL_COLUMN_KEYS];
-      try {
-        const raw = window.localStorage.getItem(COLUMN_ORDER_STORAGE_KEY);
-        let ordered: string[];
-        if (!raw) {
-          ordered = [...ALL_COLUMN_KEYS];
-        } else {
-          const parsed = JSON.parse(raw) as unknown;
-          if (!Array.isArray(parsed)) ordered = [...ALL_COLUMN_KEYS];
-          else {
-            const set = new Set(ALL_COLUMN_KEYS);
-            ordered = (parsed as string[]).filter((k) => set.has(k));
-            const missing = ALL_COLUMN_KEYS.filter((k) => !ordered.includes(k));
-            ordered = ordered.length ? [...ordered, ...missing] : [...ALL_COLUMN_KEYS];
-          }
-        }
-        // 强制微服务列紧跟在租户列后面
-        const tenantIdx = ordered.indexOf('tenantName');
-        const microIdx = ordered.indexOf('microservice');
-        if (tenantIdx !== -1 && microIdx !== -1 && microIdx !== tenantIdx + 1) {
-          ordered = ordered.filter((k) => k !== 'microservice');
-          ordered.splice(tenantIdx + 1, 0, 'microservice');
-        }
-        return ordered;
-      } catch {
-        return [...ALL_COLUMN_KEYS];
-      }
-    }
-    function saveColumnOrder(order: string[]) {
-      if (typeof window === 'undefined') return;
-      window.localStorage.setItem(COLUMN_ORDER_STORAGE_KEY, JSON.stringify(order));
-    }
-    const columnOrder = ref<string[]>(loadColumnOrder());
-    const orderedColumnKeys = computed(() => {
-      const order = columnOrder.value;
-      if (!order.length) return [...ALL_COLUMN_KEYS];
-      const set = new Set(ALL_COLUMN_KEYS);
-      const ordered = order.filter((k) => set.has(k));
-      const missing = ALL_COLUMN_KEYS.filter((k) => !ordered.includes(k));
-      return ordered.length ? [...ordered, ...missing] : [...ALL_COLUMN_KEYS];
-    });
-    const visibleColumnKeys = computed<string[]>({
-      get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],
-      set: (next) => listPage.applyVisibleColumns(next),
-    });
+    const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
     const nameInputMirrorRef = ref<HTMLElement | null>(null);
     const nameInputWidth = ref(180);
     const namePlaceholder = computed(() => t('dataSourceList.placeholders.name'));
@@ -506,6 +448,39 @@ export default defineComponent({
         nameInputWidth.value = el.offsetWidth + NAME_INPUT_PADDING;
       });
     }
+    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
+      stateStorageKey: DATA_SOURCE_LIST_STATE_STORAGE_KEY,
+      onAfterMount: updateNameInputWidth,
+      onAfterPersist: updateNameInputWidth,
+    });
+    function normalizeColumnOrder(order: string[]): string[] {
+      const tenantIdx = order.indexOf('tenantName');
+      const microIdx = order.indexOf('microservice');
+      if (tenantIdx !== -1 && microIdx !== -1 && microIdx !== tenantIdx + 1) {
+        const next = order.filter((k) => k !== 'microservice');
+        next.splice(tenantIdx + 1, 0, 'microservice');
+        return next;
+      }
+      return order;
+    }
+    const {
+      orderedColumnKeys,
+      columnDragKey,
+      columnDropTargetKey,
+      onHeaderDragStart,
+      onHeaderDragOver,
+      onHeaderDrop,
+      onHeaderDragEnd,
+      onTableDragOver,
+      onTableDrop,
+    } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS, {
+      onOrderChange: () => nextTick(forceFixedLeftWidth),
+      normalizeOrder: normalizeColumnOrder,
+    });
+    const visibleColumnKeys = computed<string[]>({
+      get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],
+      set: (next) => listPage.applyVisibleColumns(next),
+    });
     /** 微服务下拉选项（可与后端接口对接后替换） */
     const microserviceOptions = ref<Array<{ value: string; label: string }>>([
       { value: 'ams-sys', label: '系统服务' },
@@ -532,79 +507,42 @@ export default defineComponent({
       { key: INDEX_COLUMN_KEY, label: t('dataSourceList.columns.index') },
       ...orderedColumnKeys.value.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
     ]);
-    const columnDragKey = ref<string | null>(null);
-    const columnDropTargetKey = ref<string | null>(null);
-    function onHeaderDragStart(e: DragEvent, key: string) {
-      columnDragKey.value = key;
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-    }
-    function onHeaderDragOver(e: DragEvent, toKey: string) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      columnDropTargetKey.value = toKey;
-    }
-    function applyColumnDrop(toKey: string) {
-      const fromKey = columnDragKey.value;
-      columnDragKey.value = null;
-      columnDropTargetKey.value = null;
-      if (!fromKey || fromKey === toKey) return;
-      const order = [...orderedColumnKeys.value];
-      const fromIndex = order.indexOf(fromKey);
-      const toIndex = order.indexOf(toKey);
-      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
-      const [removed] = order.splice(fromIndex, 1);
-      order.splice(toIndex, 0, removed);
-      columnOrder.value = order;
-      saveColumnOrder(order);
-      nextTick(forceFixedLeftWidth);
-    }
-    function onHeaderDrop(e: DragEvent, toKey: string) {
-      e.preventDefault();
-      e.stopPropagation();
-      applyColumnDrop(toKey);
-    }
-    function onTableDragOver(e: DragEvent) {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      const keyEl = (e.target as HTMLElement)?.closest?.('[data-column-key]');
-      if (keyEl) columnDropTargetKey.value = keyEl.getAttribute('data-column-key');
-    }
-    function onTableDrop(e: DragEvent) {
-      e.preventDefault();
-      e.stopPropagation();
-      const keyEl = (e.target as HTMLElement)?.closest?.('[data-column-key]');
-      const toKey = keyEl?.getAttribute('data-column-key') ?? columnDropTargetKey.value;
-      if (toKey) applyColumnDrop(toKey);
-    }
-    function onHeaderDragEnd() {
-      columnDragKey.value = null;
-      columnDropTargetKey.value = null;
+    const RESERVED_WIDTH_LEFT = 39 + 50 + 120;
+    const RESERVED_WIDTH_RIGHT = 140;
+    const autoWidthColumns = computed(() =>
+      orderedColumnKeys.value.map((key) => ({
+        key,
+        getLabel: () => columnKeyToLabel[key]?.() ?? key,
+        sortable: false,
+        getCellText:
+          key === 'subSysDictCode'
+            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
+            : key === 'tenantName'
+              ? (row: Record<string, unknown>) => String(row.tenantName ?? '')
+              : key === 'microservice'
+                ? (row: Record<string, unknown>) => getMicroserviceDisplayText(row)
+                : key === 'url'
+                  ? (row: Record<string, unknown>) => String(row.url ?? '')
+                  : key === 'username'
+                    ? (row: Record<string, unknown>) => String(row.username ?? '')
+                    : () => '',
+      }))
+    );
+    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
+    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
+      containerRef: listLayoutRefs.tableWrapRef,
+      columns: autoWidthColumns,
+      tableData: tableDataRef,
+      reservedWidthLeft: RESERVED_WIDTH_LEFT,
+      reservedWidthRight: RESERVED_WIDTH_RIGHT,
+    });
+    function onTableWrapMounted() {
+      layoutOnTableWrapMounted();
+      nextTick(runColumnAutoWidth);
     }
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
     }
-    function onTableWrapMounted() {
-      nextTick(updateTableMaxHeight);
-    }
-    onMounted(() => {
-      listPage.restorePersistedListState();
-      updateNameInputWidth();
-    });
-    watch(
-      () => [
-        (listPage.state as Record<string, unknown>).searchParams,
-        (listPage.state as Record<string, unknown>).sort,
-        (listPage.state as Record<string, unknown>).pagination,
-        (listPage.state as Record<string, unknown>).tableData,
-      ],
-      () => {
-        listPage.persistListState();
-        updateNameInputWidth();
-        nextTick(updateTableMaxHeight);
-      },
-      { deep: true },
-    );
     watch(
       () => (listPage.state as Record<string, unknown>).visibleColumnKeys,
       () => { nextTick(forceFixedLeftWidth); },
@@ -630,6 +568,7 @@ export default defineComponent({
       getMicroserviceDisplayText,
       listLayoutRefs,
       tableRef,
+      columnWidths,
       orderedColumnKeys,
       visibleColumnKeys,
       columnVisibilityOptions,

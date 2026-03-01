@@ -238,6 +238,33 @@ export default {
       requiredStrategy: 'Please select cache strategy',
     },
   },
+  paramAddEdit: {
+    titleAdd: 'Add Parameter',
+    titleEdit: 'Edit Parameter',
+    sections: { basicInfo: 'Basic Info', other: 'Other' },
+    labels: {
+      module: 'Atomic Service',
+      paramName: 'Parameter Name',
+      paramValue: 'Parameter Value',
+      defaultValue: 'Default Value',
+      seqNo: 'Sequence',
+      remark: 'Remark',
+    },
+    placeholders: {
+      module: 'Select atomic service',
+      paramName: 'Enter parameter name',
+      paramValue: 'Enter parameter value',
+      defaultValue: 'Enter default value',
+      remark: 'Optional',
+    },
+    buttons: { cancel: 'Cancel', confirm: 'OK' },
+    closeConfirm: { message: 'You have unsaved changes. Close anyway?', title: 'Confirm' },
+    messages: { loadFailed: 'Failed to load data.' },
+    validation: {
+      requiredModule: 'Please select atomic service',
+      requiredParamName: 'Please enter parameter name',
+    },
+  },
   paramDetail: {
     title: 'Parameter Detail',
     sections: {

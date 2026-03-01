@@ -238,6 +238,33 @@ export default {
       requiredStrategy: '请选择缓存策略',
     },
   },
+  paramAddEdit: {
+    titleAdd: '添加参数信息',
+    titleEdit: '编辑参数信息',
+    sections: { basicInfo: '基本信息', other: '其他' },
+    labels: {
+      module: '原子服务',
+      paramName: '参数名称',
+      paramValue: '参数值',
+      defaultValue: '参数默认值',
+      seqNo: '序号',
+      remark: '备注',
+    },
+    placeholders: {
+      module: '请选择原子服务',
+      paramName: '请输入参数名称',
+      paramValue: '请输入参数值',
+      defaultValue: '请输入参数默认值',
+      remark: '选填',
+    },
+    buttons: { cancel: '取 消', confirm: '确 定' },
+    closeConfirm: { message: '有未保存的修改，确定要关闭吗？', title: '提示' },
+    messages: { loadFailed: '数据加载失败！' },
+    validation: {
+      requiredModule: '请选择原子服务',
+      requiredParamName: '请输入参数名称',
+    },
+  },
   paramDetail: {
     title: '参数信息详情',
     sections: {

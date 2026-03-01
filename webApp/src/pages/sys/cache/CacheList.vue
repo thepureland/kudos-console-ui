@@ -128,14 +128,14 @@
           @sort-change="handleSortChange"
           @filter-change="handleTableFilterChange"
         >
-          <el-table-column type="selection" min-width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
           <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column :label="t('cacheList.columns.name')" prop="name" sortable="custom" min-width="350" fixed="left" class-name="col-fixed-name" />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
             v-if="key === 'atomicServiceCode' && isColumnVisible('atomicServiceCode')"
             prop="atomicServiceCode"
-            min-width="120"
+            :min-width="columnWidths['atomicServiceCode'] ?? 120"
             sortable="custom"
           >
             <template #header>
@@ -157,7 +157,7 @@
           <el-table-column
             v-else-if="key === 'strategyDictCode' && isColumnVisible('strategyDictCode')"
             prop="strategyDictCode"
-            min-width="140"
+            :min-width="columnWidths['strategyDictCode'] ?? 140"
             column-key="strategyDictCode"
             :filters="strategyFilters"
             :filtered-value="getFilteredValueForColumn(searchParams.strategyDictCode)"
@@ -187,7 +187,7 @@
           <el-table-column
             v-else-if="key === 'active' && isColumnVisible('active')"
             prop="active"
-            min-width="80"
+            :min-width="columnWidths['active'] ?? 80"
             column-key="active"
             :filter-multiple="false"
             :filters="boolFilters"
@@ -217,7 +217,7 @@
           <el-table-column
             v-else-if="key === 'writeOnBoot' && isColumnVisible('writeOnBoot')"
             prop="writeOnBoot"
-            min-width="120"
+            :min-width="columnWidths['writeOnBoot'] ?? 120"
             column-key="writeOnBoot"
             :filter-multiple="false"
             :filters="boolFilters"
@@ -242,7 +242,7 @@
           <el-table-column
             v-else-if="key === 'writeInTime' && isColumnVisible('writeInTime')"
             prop="writeInTime"
-            min-width="120"
+            :min-width="columnWidths['writeInTime'] ?? 120"
             column-key="writeInTime"
             :filter-multiple="false"
             :filters="boolFilters"
@@ -267,7 +267,7 @@
           <el-table-column
             v-else-if="key === 'ttl' && isColumnVisible('ttl')"
             prop="ttl"
-            min-width="90"
+            :min-width="columnWidths['ttl'] ?? 90"
           >
             <template #header>
               <div
@@ -285,6 +285,7 @@
           <el-table-column
             v-else-if="key === 'remark' && isColumnVisible('remark')"
             prop="remark"
+            :min-width="columnWidths['remark'] ?? 120"
           >
             <template #header>
               <div
@@ -381,7 +382,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, onMounted, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
@@ -389,7 +390,10 @@ import CacheAddEdit from './CacheAddEdit.vue';
 import CacheDetail from './CacheDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
-import { useTableMaxHeight } from '../../../components/pages/useTableMaxHeight';
+import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
+import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
+import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest } from '../../../utils/backendRequest';
 import { i18n } from '../../../i18n';
@@ -603,67 +607,12 @@ export default defineComponent({
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
-    listPage.configureListStatePersistence(CACHE_LIST_STATE_STORAGE_KEY);
-    listPage.configureTableMaxHeight();
-    const { tableWrapRef, paginationRef, updateTableMaxHeight } = useTableMaxHeight(listPage);
-    /** 供模板使用且不被 Vue 解包的 ref 容器，避免 tableWrapRef 以 null 传给子组件 */
-    const listLayoutRefs = { tableWrapRef, paginationRef };
-    /** 表格实例，用于栏位可见性/操作列切换后调用 doLayout 并强制修正左侧固定列宽度 */
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
-    /** 左侧固定列总宽度（选择 39 + 序号 50 + 名称 350），用于防止被 doLayout 累加 */
     const FIXED_LEFT_TOTAL_WIDTH = 439;
-    function forceFixedLeftWidth() {
-      nextTick(() => {
-        tableRef.value?.doLayout?.();
-        nextTick(() => {
-          const wrapper = tableRef.value?.$el?.querySelector?.('.el-table__fixed-left') as HTMLElement | null;
-          if (wrapper) {
-            wrapper.style.setProperty('width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-            wrapper.style.setProperty('max-width', `${FIXED_LEFT_TOTAL_WIDTH}px`, 'important');
-          }
-        });
-      });
-    }
-    /** 栏位顺序（可拖拽调整），与 localStorage 同步 */
-    function loadColumnOrder(): string[] {
-      if (typeof window === 'undefined') return [...ALL_COLUMN_KEYS];
-      try {
-        const raw = window.localStorage.getItem(COLUMN_ORDER_STORAGE_KEY);
-        if (!raw) return [...ALL_COLUMN_KEYS];
-        const parsed = JSON.parse(raw) as unknown;
-        if (!Array.isArray(parsed)) return [...ALL_COLUMN_KEYS];
-        const set = new Set(ALL_COLUMN_KEYS);
-        const ordered = (parsed as string[]).filter((k) => set.has(k));
-        const missing = ALL_COLUMN_KEYS.filter((k) => !ordered.includes(k));
-        return ordered.length ? [...ordered, ...missing] : [...ALL_COLUMN_KEYS];
-      } catch {
-        return [...ALL_COLUMN_KEYS];
-      }
-    }
-    function saveColumnOrder(order: string[]) {
-      if (typeof window === 'undefined') return;
-      window.localStorage.setItem(COLUMN_ORDER_STORAGE_KEY, JSON.stringify(order));
-    }
-    const columnOrder = ref<string[]>(loadColumnOrder());
-    /** 当前栏位顺序（用于面板列表与表格列顺序） */
-    const orderedColumnKeys = computed(() => {
-      const order = columnOrder.value;
-      if (!order.length) return [...ALL_COLUMN_KEYS];
-      const set = new Set(ALL_COLUMN_KEYS);
-      const ordered = order.filter((k) => set.has(k));
-      const missing = ALL_COLUMN_KEYS.filter((k) => !ordered.includes(k));
-      return ordered.length ? [...ordered, ...missing] : [...ALL_COLUMN_KEYS];
-    });
-    /** 栏位可见性勾选与 listPage 状态双向同步 */
-    const visibleColumnKeys = computed<string[]>({
-      get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],
-      set: (next) => listPage.applyVisibleColumns(next),
-    });
+    const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
     const nameInputMirrorRef = ref<HTMLElement | null>(null);
     const nameInputWidth = ref(120);
     const namePlaceholder = computed(() => t('cacheList.placeholders.name'));
-
-    /** 根据镜像 span 宽度更新名称输入框宽度，保证输入时不被截断 */
     function updateNameInputWidth() {
       nextTick(() => {
         const el = nameInputMirrorRef.value;
@@ -672,11 +621,9 @@ export default defineComponent({
         nameInputWidth.value = w;
       });
     }
-
     const subSysSelectMirrorRef = ref<HTMLElement | null>(null);
     const subSysSelectWidth = ref(120);
     const subSysPlaceholder = computed(() => t('cacheList.placeholders.atomicService'));
-    /** 原子服务下拉当前选中项的展示文案（用于镜像测量宽度） */
     const subSysSelectDisplayText = computed(() => {
       const params = listPage.state.searchParams as { atomicServiceCode?: string } | undefined;
       const code = params?.atomicServiceCode;
@@ -684,6 +631,83 @@ export default defineComponent({
       const items = listPage.getAtomicServices();
       const found = items.find((p) => p.code === code);
       return found ? found.name : subSysPlaceholder.value;
+    });
+    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
+      stateStorageKey: CACHE_LIST_STATE_STORAGE_KEY,
+      onAfterMount: () => {
+        updateNameInputWidth();
+        updateSubSysSelectWidth();
+      },
+      onAfterPersist: () => {
+        updateNameInputWidth();
+        updateSubSysSelectWidth();
+      },
+    });
+    function updateSubSysSelectWidth() {
+      nextTick(() => {
+        const el = subSysSelectMirrorRef.value;
+        if (!el) return;
+        const w = el.offsetWidth + SELECT_INPUT_PADDING;
+        subSysSelectWidth.value = w;
+      });
+    }
+    const {
+      orderedColumnKeys,
+      columnDragKey,
+      columnDropTargetKey,
+      onHeaderDragStart,
+      onHeaderDragOver,
+      onHeaderDrop,
+      onHeaderDragEnd,
+      onTableDragOver,
+      onTableDrop,
+    } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS, {
+      onOrderChange: () => nextTick(forceFixedLeftWidth),
+    });
+    const RESERVED_WIDTH_LEFT = 439;
+    const RESERVED_WIDTH_RIGHT = 180;
+    const cacheListColumnLabel = (k: string) => t('cacheList.columns.' + (k === 'atomicServiceCode' ? 'subSystem' : k === 'strategyDictCode' ? 'strategy' : k === 'ttl' ? 'ttlSeconds' : k));
+    const autoWidthColumns = computed(() =>
+      orderedColumnKeys.value.map((key) => ({
+        key,
+        getLabel: () => cacheListColumnLabel(key),
+        sortable: key === 'atomicServiceCode',
+        getCellText:
+          key === 'atomicServiceCode'
+            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.atomicServiceCode)
+            : key === 'strategyDictCode'
+              ? (row: Record<string, unknown>) => {
+                  const code = row.strategyDictCode;
+                  if (!code) return '';
+                  const opts = (listPage.state.strategyDictOptions || []) as Array<{ first: string; second: string }>;
+                  const item = opts.find((o) => o.first === code);
+                  return item ? t(item.second) : String(code);
+                }
+              : key === 'active' || key === 'writeOnBoot' || key === 'writeInTime'
+                ? (row: Record<string, unknown>) => listPage.formatBoolean(row[key], t('cacheList.common.yes'), t('cacheList.common.no'))
+                : key === 'ttl'
+                  ? (row: Record<string, unknown>) => String(row.ttl ?? '')
+                  : key === 'remark'
+                    ? (row: Record<string, unknown>) => String(row.remark ?? '')
+                    : () => '',
+      }))
+    );
+    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
+    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
+      containerRef: listLayoutRefs.tableWrapRef,
+      columns: autoWidthColumns,
+      tableData: tableDataRef,
+      reservedWidthLeft: RESERVED_WIDTH_LEFT,
+      reservedWidthRight: RESERVED_WIDTH_RIGHT,
+    });
+    function onTableWrapMounted() {
+      layoutOnTableWrapMounted();
+      nextTick(runColumnAutoWidth);
+    }
+    /** 栏位可见性勾选与 listPage 状态双向同步 */
+    const visibleColumnKeys = computed<string[]>({
+      get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],
+      set: (next) => listPage.applyVisibleColumns(next),
     });
     /** 策略列表头筛选选项：字典项 value 为 i18n key，用 t() 显示 */
     const strategyFilters = computed(() => {
@@ -713,60 +737,6 @@ export default defineComponent({
       { key: INDEX_COLUMN_KEY, label: t('cacheList.columns.index') },
       ...orderedColumnKeys.value.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
     ]);
-    /** 表头拖拽排序：当前被拖拽的列 key */
-    const columnDragKey = ref<string | null>(null);
-    /** 当前悬停到的可放置表头（用于高亮「松手即放到这里」） */
-    const columnDropTargetKey = ref<string | null>(null);
-    function onHeaderDragStart(e: DragEvent, key: string) {
-      columnDragKey.value = key;
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-    }
-    function onHeaderDragOver(e: DragEvent, toKey: string) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      columnDropTargetKey.value = toKey;
-    }
-    /** 执行列顺序插入：fromKey 移到 toKey 位置 */
-    function applyColumnDrop(toKey: string) {
-      const fromKey = columnDragKey.value;
-      columnDragKey.value = null;
-      columnDropTargetKey.value = null;
-      if (!fromKey || fromKey === toKey) return;
-      const order = [...orderedColumnKeys.value];
-      const fromIndex = order.indexOf(fromKey);
-      const toIndex = order.indexOf(toKey);
-      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
-      const [removed] = order.splice(fromIndex, 1);
-      order.splice(toIndex, 0, removed);
-      columnOrder.value = order;
-      saveColumnOrder(order);
-      nextTick(forceFixedLeftWidth);
-    }
-    function onHeaderDrop(e: DragEvent, toKey: string) {
-      e.preventDefault();
-      e.stopPropagation();
-      applyColumnDrop(toKey);
-    }
-    /** 表格区域 dragover：保证任意位置都能触发 drop，并更新放置目标高亮 */
-    function onTableDragOver(e: DragEvent) {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      const keyEl = (e.target as HTMLElement)?.closest?.('[data-column-key]');
-      if (keyEl) columnDropTargetKey.value = keyEl.getAttribute('data-column-key');
-    }
-    /** 表格区域 drop：松手时若落在非表头元素上，用当前高亮列或鼠标下元素解析目标列，确保能插入 */
-    function onTableDrop(e: DragEvent) {
-      e.preventDefault();
-      e.stopPropagation();
-      const keyEl = (e.target as HTMLElement)?.closest?.('[data-column-key]');
-      const toKey = keyEl?.getAttribute('data-column-key') ?? columnDropTargetKey.value;
-      if (toKey) applyColumnDrop(toKey);
-    }
-    function onHeaderDragEnd() {
-      columnDragKey.value = null;
-      columnDropTargetKey.value = null;
-    }
 
     /** 将布尔值格式化为「是/否」文案 */
     function formatBoolText(value: unknown): string {
@@ -776,21 +746,6 @@ export default defineComponent({
     /** 判断某列是否在「栏位可见性」中勾选 */
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
-    }
-
-    /** 根据镜像 span 宽度更新原子服务下拉框宽度 */
-    function updateSubSysSelectWidth() {
-      nextTick(() => {
-        const el = subSysSelectMirrorRef.value;
-        if (!el) return;
-        const w = el.offsetWidth + SELECT_INPUT_PADDING;
-        subSysSelectWidth.value = w;
-      });
-    }
-
-    /** 表格容器挂载后重新计算表格最大高度（供 ListPageLayout 的 table-wrap-mounted 调用） */
-    function onTableWrapMounted() {
-      nextTick(updateTableMaxHeight);
     }
 
     /** 表格列筛选变化时同步到 searchParams 并请求列表 */
@@ -803,28 +758,6 @@ export default defineComponent({
       });
     }
 
-    /** 首屏：恢复持久化状态，并测量名称/原子服务输入宽度 */
-    onMounted(() => {
-      listPage.restorePersistedListState();
-      updateNameInputWidth();
-      updateSubSysSelectWidth();
-    });
-    /** 搜索/排序/分页/表格数据变化时持久化状态，并更新输入宽度与表格高度 */
-    watch(
-      () => [
-        (listPage.state as Record<string, unknown>).searchParams,
-        (listPage.state as Record<string, unknown>).sort,
-        (listPage.state as Record<string, unknown>).pagination,
-        (listPage.state as Record<string, unknown>).tableData,
-      ],
-      () => {
-        listPage.persistListState();
-        updateNameInputWidth();
-        updateSubSysSelectWidth();
-        nextTick(updateTableMaxHeight);
-      },
-      { deep: true },
-    );
     /** 栏位可见性变化后重新布局并强制锁定左侧固定列宽度 */
     watch(
       () => (listPage.state as Record<string, unknown>).visibleColumnKeys,
@@ -866,6 +799,7 @@ export default defineComponent({
       visibleColumnKeys,
       columnVisibilityOptions,
       isColumnVisible,
+      columnWidths,
       formatBoolText,
       getFilteredValueForColumn: listPage.getFilteredValueForColumn.bind(listPage),
       onTableWrapMounted,
