@@ -5,98 +5,128 @@
  * @since 1.0.0
  -->
 <template>
-  <el-dialog title="添加资源信息" v-model="visible" width="30%" center @close="close">
-    <el-form ref="form" :model="formModel" label-width="80px" :rules="rules" :validate-on-rule-change="false">
-      <el-form-item label="上级" prop="parent" class="is-required">
-        <el-cascader v-model="formModel.parent" :props="cascaderProps" style="display: block;"/>
-      </el-form-item>
-      <el-form-item label="资源名称" prop="name" class="is-required">
-        <el-input v-model="formModel.name"/>
-      </el-form-item>
-      <el-form-item label="URL" prop="url">
-        <el-input v-model="formModel.url"/>
-      </el-form-item>
-      <el-form-item label="图标" prop="icon`">
-        <el-input v-model="formModel.icon"/>
-      </el-form-item>
-      <el-form-item label="排序" prop="seqNo">
-        <el-input-number v-model="formModel.seqNo"/>
-      </el-form-item>
-      <el-form-item label="备注" prop="remark">
-        <el-input v-model="formModel.remark"/>
-      </el-form-item>
+  <el-dialog
+    v-model="visible"
+    :title="dialogTitle"
+    width="520px"
+    center
+    class="add-edit-dialog resource-add-edit-dialog"
+    align-center
+    :append-to-body="false"
+    :close-on-click-modal="false"
+    :before-close="handleBeforeClose"
+  >
+    <el-form
+      ref="form"
+      :model="formModel"
+      :rules="rules"
+      label-width="140px"
+      label-position="right"
+      :validate-on-rule-change="false"
+      class="add-edit-dialog-form"
+    >
+      <section class="form-section">
+        <div class="form-section__title">{{ t('resourceAddEdit.sections.basicInfo') }}</div>
+        <el-form-item :label="t('resourceAddEdit.labels.parent')" prop="parent" class="is-required">
+          <el-cascader v-model="formModel.parent" :props="cascaderProps" class="form-select-full" />
+        </el-form-item>
+        <el-form-item :label="t('resourceAddEdit.labels.name')" prop="name" class="is-required">
+          <el-input v-model="formModel.name" :placeholder="t('resourceAddEdit.placeholders.name')" clearable size="default" />
+        </el-form-item>
+        <el-form-item :label="t('resourceAddEdit.labels.url')" prop="url">
+          <el-input v-model="formModel.url" :placeholder="t('resourceAddEdit.placeholders.url')" clearable size="default" />
+        </el-form-item>
+        <el-form-item :label="t('resourceAddEdit.labels.icon')" prop="icon">
+          <el-input v-model="formModel.icon" :placeholder="t('resourceAddEdit.placeholders.icon')" clearable size="default" />
+        </el-form-item>
+        <el-form-item :label="t('resourceAddEdit.labels.seqNo')" prop="seqNo">
+          <el-input-number v-model="formModel.seqNo" :min="0" :max="99999" controls-position="right" class="form-input-number-full" />
+        </el-form-item>
+      </section>
+      <section class="form-section">
+        <div class="form-section__title">{{ t('resourceAddEdit.sections.other') }}</div>
+        <el-form-item :label="t('resourceAddEdit.labels.remark')" prop="remark">
+          <el-input v-model="formModel.remark" type="textarea" :rows="3" :placeholder="t('resourceAddEdit.placeholders.remark')" maxlength="200" show-word-limit resize="none" />
+        </el-form-item>
+      </section>
     </el-form>
     <template #footer>
-      <span class="dialog-footer">
-        <el-button type="primary" @click="submit">确 定</el-button>
-        <el-button @click="close">取 消</el-button>
-      </span>
+      <div class="add-edit-dialog-footer">
+        <el-button @click="handleCloseRequest">{{ t('resourceAddEdit.buttons.cancel') }}</el-button>
+        <el-button type="primary" @click.prevent="handleSubmit">{{ t('resourceAddEdit.buttons.confirm') }}</el-button>
+      </div>
     </template>
   </el-dialog>
 </template>
 
-<script lang='ts'>
-import {defineComponent, reactive, toRefs} from "vue"
-import {ElMessage} from 'element-plus'
-import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage'
-import { backendRequest } from '../../../utils/backendRequest'
+<script lang="ts">
+import { defineComponent, reactive, toRefs } from 'vue';
+import { ElMessage } from 'element-plus';
+import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
+import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
+import { backendRequest } from '../../../utils/backendRequest';
+import '../../../styles/add-edit-dialog-common.css';
 
 class AddEditPage extends BaseAddEditPage {
-
-  constructor(props, context) {
-    super(props, context)
+  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    super(props, context);
   }
 
-  protected initState(): any {
-    const _self = this
+  protected initState(): Record<string, unknown> {
+    const _self = this;
     return {
       formModel: {
-        parent: [],
-        name: null,
-        url: null,
-        icon: null,
-        seqNo: undefined,
-        remark:null
+        parent: [] as string[],
+        name: null as string | null,
+        url: null as string | null,
+        icon: null as string | null,
+        seqNo: undefined as number | undefined,
+        remark: null as string | null,
       },
       cascaderProps: {
         lazy: true,
-        value: "id",
-        label: "name",
+        value: 'id',
+        label: 'name',
         multiple: false,
         checkStrictly: true,
-        expandTrigger: "hover",
-        lazyLoad(node, resolve) {
-          _self.loadTreeNodes(node, resolve)
+        expandTrigger: 'hover',
+        lazyLoad(node: unknown, resolve: (data: unknown) => void) {
+          _self.doLoadTreeNodes(node as { level: number; data?: { id?: string } }, resolve);
         },
-      }
-    }
+      },
+    };
   }
 
-  protected getRootActionPath(): String {
-    return "sys/resource"
+  protected getRootActionPath(): string {
+    return 'sys/resource';
   }
 
-  protected getRowObjectLoadUrl(): String {
-    return this.getRootActionPath() + "/getRes"
+  protected getRowObjectLoadUrl(): string {
+    return this.getRootActionPath() + '/getDetail';
   }
 
-  protected createSubmitParams(): any {
-    const params = super.createSubmitParams();
-    const length = this.state.formModel.parent.length
-    params.parentId = length == 1 || length == 2 ? null : this.state.formModel.parent[length - 1]
-    params.resourceTypeDictCode = this.state.formModel.parent[0]
-    params.subSysDictCode = this.state.formModel.parent[1]
-    return params
+  protected getLoadFailedMessageKey(): string {
+    return 'resourceAddEdit.messages.loadFailed';
   }
 
-  protected doSubmit() {
-    const length = this.state.formModel.parent.length
-    if (!length || length == 0) {
-      return ElMessage.error('上级中的资源类型必须指定！')
-    } else if(length == 1) {
-      return ElMessage.error('上级中的子系统必须指定！')
-    }
-    return super.doSubmit()
+  protected async initValidationRule(): Promise<void> {
+    await super.initValidationRule();
+    const requiredRules = this.createRequiredRules(
+      { name: 'resourceAddEdit.validation.requiredName', parent: 'resourceAddEdit.validation.requiredParent' },
+      { name: 'change' }
+    );
+    const rules = (this.state.rules as Record<string, unknown>) || {};
+    this.state.rules = { ...rules, ...requiredRules };
+  }
+
+  protected createSubmitParams(): Record<string, unknown> {
+    const params = super.createSubmitParams() as Record<string, unknown>;
+    const parent = (this.state.formModel as { parent?: string[] }).parent ?? [];
+    const length = parent.length;
+    params.parentId = length <= 2 ? null : parent[length - 1];
+    params.resourceTypeDictCode = parent[0] ?? null;
+    params.subSysDictCode = parent[1] ?? null;
+    return params;
   }
 
   protected createRowObjectLoadParams(): any {
@@ -105,54 +135,53 @@ class AddEditPage extends BaseAddEditPage {
     return params
   }
 
-  protected fillForm(rowObject: any) {
-    super.fillForm(rowObject)
-    this.state.formModel.parent = rowObject.parentIds
+  protected fillForm(rowObject: Record<string, unknown>): void {
+    super.fillForm(rowObject);
+    (this.state.formModel as { parent?: unknown[] }).parent = (rowObject.parentIds as string[]) ?? [];
   }
 
-  public loadTreeNodes: (node, resolve) => void
-
-  private async doLoadTreeNodes(node, resolve) {
+  private async doLoadTreeNodes(node: { level: number; data?: { id?: string } }, resolve: (data: unknown) => void): Promise<void> {
     const params = {
       level: node.level,
-      parentId: node.level <= 2 ? null : node.data.id,
-      active: true
-    }
-    // @ts-ignore
-    const result = await backendRequest({url: "sys/resource/loadTreeNodes", method: "post", params})
-    if (result.code == 200) {
-      resolve(result.data)
+      parentId: node.level <= 2 ? null : node.data?.id ?? null,
+      active: true,
+    };
+    const result = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params }) as { code?: number; data?: unknown };
+    if (result.code === 200) {
+      resolve(result.data ?? []);
     } else {
-      ElMessage.error('资源树加载失败！')
-    }
-  }
-
-  protected convertThis() {
-    super.convertThis()
-    this.loadTreeNodes = (node, resolve) => {
-      this.doLoadTreeNodes(node, resolve)
+      ElMessage.error('资源树加载失败！');
     }
   }
 
 }
 
 export default defineComponent({
-  name: "~ResourceAddEdit",
+  name: 'ResourceAddEdit',
   props: {
-    modelValue: Boolean,
-    rid: String
+    modelValue: { type: Boolean, default: false },
+    rid: { type: String, default: '' },
+    onSaved: { type: Function as (params: Record<string, unknown>) => void, default: undefined },
   },
-  emits: ['update:modelValue', "response"],
-  setup(props, context) {
-    const page = reactive(new AddEditPage(props, context))
-    return {
-      ...toRefs(page),
-      ...toRefs(page.state)
-    }
-  }
-})
+  emits: ['update:modelValue', 'response'],
+  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    return useAddEditDialogSetup(props, context, {
+      createPage: (p, c) => new AddEditPage(p, c),
+      i18nKeyPrefix: 'resourceAddEdit',
+      formHasContent(model: Record<string, unknown>) {
+        if (!model) return false;
+        const parent = model.parent as unknown[] | undefined;
+        if (parent != null && parent.length > 0) return true;
+        if (model.name != null && String(model.name).trim() !== '') return true;
+        if (model.url != null && String(model.url).trim() !== '') return true;
+        if (model.icon != null && String(model.icon).trim() !== '') return true;
+        if (model.remark != null && String(model.remark).trim() !== '') return true;
+        if (model.seqNo != null && model.seqNo !== '') return true;
+        return false;
+      },
+    });
+  },
+});
 </script>
 
-<style lang='css' scoped>
-
-</style>
+<style scoped></style>

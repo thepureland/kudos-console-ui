@@ -2101,6 +2101,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildDataSourceGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/dataSource/getValidationRule", "/api/sys/dataSource/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/dataSource/saveOrUpdate", "/api/sys/dataSource/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "ds_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/param/search", "/api/sys/param/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildParamSearchResponse(requestJson)
@@ -2134,6 +2149,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/sys/resource/getDetail", "/api/sys/resource/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildResourceGetDetailResponse(id)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/resource/getValidationRule", "/api/sys/resource/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/resource/saveOrUpdate", "/api/sys/resource/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "res_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/resource/loadTreeNodes", "/api/sys/resource/loadTreeNodes" -> {
@@ -2235,6 +2265,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildI18nGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/i18n/getValidationRule", "/api/sys/i18n/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/i18n/saveOrUpdate", "/api/sys/i18n/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "i18n_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/user/account/search", "/api/user/account/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildAccountSearchResponse(requestJson)
@@ -2243,6 +2288,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/user/account/getDetail", "/api/user/account/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildAccountGetDetailResponse(id)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/user/account/getValidationRule", "/api/user/account/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/user/account/saveOrUpdate", "/api/user/account/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "account_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
         "/rbac/group/search", "/api/rbac/group/search" -> {
@@ -2255,6 +2315,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildUserGroupGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/rbac/group/getValidationRule", "/api/rbac/group/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/rbac/group/saveOrUpdate", "/api/rbac/group/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "group_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/rbac/role/search", "/api/rbac/role/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildRoleSearchResponse(requestJson)
@@ -2263,6 +2338,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/rbac/role/getDetail", "/api/rbac/role/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildRoleGetDetailResponse(id)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/rbac/role/getValidationRule", "/api/rbac/role/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/rbac/role/saveOrUpdate", "/api/rbac/role/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "role_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
         "/user/organization/loadTree", "/api/user/organization/loadTree" -> {
@@ -2279,6 +2369,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/user/organization/getDetail", "/api/user/organization/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildOrganizationGetDetailResponse(id)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/user/organization/getValidationRule", "/api/user/organization/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/user/organization/saveOrUpdate", "/api/user/organization/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "org_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/subsys/searchTree", "sys/subsys/searchTree", "/api/sys/subsys/searchTree" -> {
@@ -2346,6 +2451,12 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
                 ATOMIC_SERVICE_CODES_ORDERED.forEachIndexed { index, code ->
                     put(code, buildJsonObject {
                         put("t${index + 1}", JsonPrimitive("租户${index + 1}"))
+                        // 与 dataSource/search fixture 一致，便于编辑回填子系统/租户
+                        if (code == "console") {
+                            put("default", JsonPrimitive("默认租户"))
+                            put("tenant_2", JsonPrimitive("租户二"))
+                        }
+                        if (code == "service_a") put("1", JsonPrimitive("租户A1"))
                     })
                 }
             }

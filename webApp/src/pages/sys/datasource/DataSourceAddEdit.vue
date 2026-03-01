@@ -1,72 +1,203 @@
+<!-- 数据源新增/编辑 -->
 <template>
-  <el-dialog title="添加数据源信息" v-model="visible" width="25%" center @close="close">
-    <el-form ref="form" :model="formModel" label-width="140px" :rules="rules" :validate-on-rule-change="false">
-      <el-form-item label="名称" prop="name" class="is-required">
-        <el-col :span="10">
-          <el-input v-model="formModel.name"/>
-        </el-col>
-      </el-form-item>
-      <el-form-item label="子系统/租户" prop="subSysDictCode" class="is-required">
-        <el-col :span="10">
-          <el-cascader :options="subSysOrTenants" v-model="formModel.subSysOrTenant"
-                       :props="cascaderProps" placeholder="请选择子系统/租户"/>
-        </el-col>
-      </el-form-item>
-      <el-form-item label="URL" prop="url" class="is-required">
-        <el-col :span="10">
-          <el-input v-model="formModel.url"/>
-        </el-col>
-      </el-form-item>
-      <el-form-item label="用户名" prop="username" class="is-required">
-        <el-col :span="10">
-          <el-input v-model="formModel.username"/>
-        </el-col>
-      </el-form-item>
-      <el-form-item label="初始连接数" prop="initialSize">
-        <el-input-number v-model="formModel.initialSize"/>
-      </el-form-item>
-      <el-form-item label="最大连接数" prop="maxActive">
-        <el-input-number v-model="formModel.maxActive"/>
-      </el-form-item>
-      <el-form-item label="最大空闲连接数" prop="maxIdle">
-        <el-input-number v-model="formModel.maxIdle"/>
-      </el-form-item>
-      <el-form-item label="最小空闲连接数" prop="minIdle">
-        <el-input-number v-model="formModel.minIdle"/>
-      </el-form-item>
-      <el-form-item label="出借最长期限(毫秒)" prop="maxWait">
-        <el-input-number v-model="formModel.maxWait"/>
-      </el-form-item>
-      <el-form-item label="连接寿命(毫秒)" prop="maxAge">
-        <el-input-number v-model="formModel.maxAge"/>
-      </el-form-item>
-      <el-form-item label="备注" prop="remark">
-        <el-input v-model="formModel.remark"/>
-      </el-form-item>
+  <el-dialog
+    v-model="visible"
+    :title="dialogTitle"
+    width="520px"
+    center
+    class="add-edit-dialog datasource-add-edit-dialog"
+    align-center
+    :append-to-body="false"
+    :close-on-click-modal="false"
+    :before-close="handleBeforeClose"
+  >
+    <el-form
+      ref="form"
+      :model="formModel"
+      :rules="rules"
+      label-width="180px"
+      label-position="right"
+      :validate-on-rule-change="false"
+      class="add-edit-dialog-form"
+    >
+      <section class="form-section">
+        <div class="form-section__title">{{ t('dataSourceAddEdit.sections.basicInfo') }}</div>
+        <el-form-item :label="t('dataSourceAddEdit.labels.name')" prop="name" class="is-required">
+          <el-row :gutter="12" class="form-item-row">
+            <el-col :span="24">
+              <el-input
+                v-model="formModel.name"
+                :placeholder="t('dataSourceAddEdit.placeholders.name')"
+                clearable
+                size="default"
+              />
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-form-item :label="t('dataSourceAddEdit.labels.subSysOrTenant')" prop="subSysOrTenant" class="is-required">
+          <el-row :gutter="12" class="form-item-row">
+            <el-col :span="24">
+              <el-cascader
+                v-model="formModel.subSysOrTenant"
+                :options="subSysOrTenants"
+                :props="cascaderProps"
+                :placeholder="t('dataSourceAddEdit.placeholders.subSysOrTenant')"
+                clearable
+                class="form-select-full"
+              />
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-form-item :label="t('dataSourceAddEdit.labels.url')" prop="url" class="is-required">
+          <el-row :gutter="12" class="form-item-row">
+            <el-col :span="24">
+              <el-input
+                v-model="formModel.url"
+                :placeholder="t('dataSourceAddEdit.placeholders.url')"
+                clearable
+                size="default"
+              />
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-form-item :label="t('dataSourceAddEdit.labels.username')" prop="username" class="is-required">
+          <el-row :gutter="12" class="form-item-row">
+            <el-col :span="24">
+              <el-input
+                v-model="formModel.username"
+                :placeholder="t('dataSourceAddEdit.placeholders.username')"
+                clearable
+                size="default"
+              />
+            </el-col>
+          </el-row>
+        </el-form-item>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">{{ t('dataSourceAddEdit.sections.connection') }}</div>
+        <el-form-item :label="t('dataSourceAddEdit.labels.initialSize')" prop="initialSize">
+          <el-input-number
+            v-model="formModel.initialSize"
+            :min="0"
+            :max="9999"
+            controls-position="right"
+            class="form-input-number-full"
+          />
+        </el-form-item>
+        <el-form-item :label="t('dataSourceAddEdit.labels.maxActive')" prop="maxActive">
+          <el-input-number
+            v-model="formModel.maxActive"
+            :min="0"
+            :max="99999"
+            controls-position="right"
+            class="form-input-number-full"
+          />
+        </el-form-item>
+        <el-form-item :label="t('dataSourceAddEdit.labels.maxIdle')" prop="maxIdle">
+          <el-input-number
+            v-model="formModel.maxIdle"
+            :min="0"
+            :max="99999"
+            controls-position="right"
+            class="form-input-number-full"
+          />
+        </el-form-item>
+        <el-form-item :label="t('dataSourceAddEdit.labels.minIdle')" prop="minIdle">
+          <el-input-number
+            v-model="formModel.minIdle"
+            :min="0"
+            :max="99999"
+            controls-position="right"
+            class="form-input-number-full"
+          />
+        </el-form-item>
+        <el-form-item :label="t('dataSourceAddEdit.labels.maxWait')" prop="maxWait">
+          <el-input-number
+            v-model="formModel.maxWait"
+            :min="0"
+            :max="2147483647"
+            controls-position="right"
+            class="form-input-number-full"
+          />
+        </el-form-item>
+        <el-form-item :label="t('dataSourceAddEdit.labels.maxAge')" prop="maxAge">
+          <el-input-number
+            v-model="formModel.maxAge"
+            :min="0"
+            :max="2147483647"
+            controls-position="right"
+            class="form-input-number-full"
+          />
+        </el-form-item>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section__title">{{ t('dataSourceAddEdit.sections.other') }}</div>
+        <el-form-item :label="t('dataSourceAddEdit.labels.remark')" prop="remark">
+          <el-input
+            v-model="formModel.remark"
+            type="textarea"
+            :rows="3"
+            :placeholder="t('dataSourceAddEdit.placeholders.remark')"
+            maxlength="200"
+            show-word-limit
+            resize="none"
+          />
+        </el-form-item>
+      </section>
     </el-form>
     <template #footer>
-      <span class="dialog-footer">
-        <el-button type="primary" @click="submit">确 定</el-button>
-        <el-button @click="close">取 消</el-button>
-      </span>
+      <div class="add-edit-dialog-footer">
+        <el-button @click="handleCloseRequest">{{ t('dataSourceAddEdit.buttons.cancel') }}</el-button>
+        <el-button type="primary" @click.prevent="handleSubmit">{{ t('dataSourceAddEdit.buttons.confirm') }}</el-button>
+      </div>
     </template>
   </el-dialog>
 </template>
 
-<script lang='ts'>
-import {defineComponent, reactive, ref, toRefs} from "vue";
+<script lang="ts">
+import { defineComponent } from 'vue';
 import { TenantSupportAddEditPage } from '../../../components/pages/TenantSupportAddEditPage';
+import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
+import '../../../styles/add-edit-dialog-common.css';
+
+interface FormModel {
+  name: string | null;
+  subSysOrTenant: string[] | null;
+  url: string | null;
+  username: string | null;
+  initialSize: number | undefined;
+  maxActive: number | undefined;
+  maxIdle: number | undefined;
+  minIdle: number | undefined;
+  maxWait: number | undefined;
+  maxAge: number | undefined;
+  remark: string | null;
+}
+
+/** 将 value 转为 number 或 undefined，供 el-input-number */
+function toNumberOrUndefined(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const n = Number(value);
+  return Number.isNaN(n) ? undefined : n;
+}
 
 class AddEditPage extends TenantSupportAddEditPage {
-
-  constructor(props, context) {
-    super(props, context)
+  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    super(props, context);
   }
 
-  protected initState(): any {
+  /** 允许只选子系统不选租户，级联需 checkStrictly 才能回填仅子系统的值 */
+  protected isCheckStrictly(): boolean {
+    return true;
+  }
+
+  protected initState(): Record<string, unknown> {
     return {
       formModel: {
         name: null,
+        subSysOrTenant: null,
         url: null,
         username: null,
         initialSize: undefined,
@@ -75,34 +206,93 @@ class AddEditPage extends TenantSupportAddEditPage {
         minIdle: undefined,
         maxWait: undefined,
         maxAge: undefined,
-        remark: null
+        remark: null,
+      } as FormModel,
+    };
+  }
+
+  protected getRootActionPath(): string {
+    return 'sys/dataSource';
+  }
+
+  /** 与详情一致：使用 getDetail 接口按 id 拉取单条，Mock 已有此路径 */
+  protected getRowObjectLoadUrl(): string {
+    return this.getRootActionPath() + '/getDetail';
+  }
+
+  protected getLoadFailedMessageKey(): string {
+    return 'dataSourceAddEdit.messages.loadFailed';
+  }
+
+  /** 必填项使用基类 i18n 必填规则并合并 */
+  protected async initValidationRule(): Promise<void> {
+    await super.initValidationRule();
+    const requiredRules = this.createRequiredRules(
+      {
+        name: 'dataSourceAddEdit.validation.requiredName',
+        subSysOrTenant: 'dataSourceAddEdit.validation.requiredSubSysOrTenant',
+        url: 'dataSourceAddEdit.validation.requiredUrl',
+        username: 'dataSourceAddEdit.validation.requiredUsername',
       },
+      { subSysOrTenant: 'change', url: 'change', username: 'change' }
+    );
+    const rules = (this.state.rules as Record<string, unknown>) || {};
+    this.state.rules = { ...rules, ...requiredRules };
+  }
+
+  /** 回填时保证数字字段为 number | undefined，兼容 el-input-number */
+  protected fillForm(rowObject: Record<string, unknown>): void {
+    super.fillForm(rowObject);
+    const m = this.state.formModel as FormModel;
+    if (m) {
+      m.initialSize = toNumberOrUndefined(m.initialSize ?? rowObject.initialSize);
+      m.maxActive = toNumberOrUndefined(m.maxActive ?? rowObject.maxActive);
+      m.maxIdle = toNumberOrUndefined(m.maxIdle ?? rowObject.maxIdle);
+      m.minIdle = toNumberOrUndefined(m.minIdle ?? rowObject.minIdle);
+      m.maxWait = toNumberOrUndefined(m.maxWait ?? rowObject.maxWait);
+      m.maxAge = toNumberOrUndefined(m.maxAge ?? rowObject.maxAge);
     }
   }
-
-  protected getRootActionPath(): String {
-    return "sys/dataSource"
-  }
-
 }
 
 export default defineComponent({
-  name: "~DataSourceAddEdit",
+  name: 'DataSourceAddEdit',
   props: {
-    modelValue: Boolean,
-    rid: String
+    modelValue: {
+      type: Boolean,
+      default: false,
+    },
+    rid: {
+      type: String,
+      default: '',
+    },
+    onSaved: {
+      type: Function as (params: Record<string, unknown>) => void,
+      default: undefined,
+    },
   },
-  emits: ['update:modelValue', "response"],
-  setup(props, context) {
-    const page = reactive(new AddEditPage(props, context))
-    return {
-      ...toRefs(page),
-      ...toRefs(page.state),
-    }
-  }
-})
+  emits: ['update:modelValue', 'response'],
+  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    return useAddEditDialogSetup(props, context, {
+      createPage: (p, c) => new AddEditPage(p, c),
+      i18nKeyPrefix: 'dataSourceAddEdit',
+      formHasContent(model: Record<string, unknown>) {
+        if (!model) return false;
+        if (model.name != null && String(model.name).trim() !== '') return true;
+        if (model.subSysOrTenant != null && Array.isArray(model.subSysOrTenant) && model.subSysOrTenant.length > 0) return true;
+        if (model.url != null && String(model.url).trim() !== '') return true;
+        if (model.username != null && String(model.username).trim() !== '') return true;
+        if (model.remark != null && String(model.remark).trim() !== '') return true;
+        if (model.initialSize != null && model.initialSize !== '') return true;
+        if (model.maxActive != null && model.maxActive !== '') return true;
+        if (model.maxIdle != null || model.minIdle != null || model.maxWait != null || model.maxAge != null) return true;
+        return false;
+      },
+    });
+  },
+});
 </script>
 
-<style lang='css' scoped>
-
+<style scoped>
+/* 仅数据源页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
 </style>

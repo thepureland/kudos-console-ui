@@ -39,10 +39,27 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
     return model;
   }
 
-  /** 对当前表单数据做深拷贝并保存为初始快照，用于脏检查 */
+  /** 深度规范化：undefined、NaN→null，保证快照与比较时形状一致，避免误判为脏 */
+  function deepNormalize(value: unknown): unknown {
+    if (value === undefined || (typeof value === 'number' && Number.isNaN(value))) return null;
+    if (value === null || typeof value !== 'object') return value;
+    if (Array.isArray(value)) return value.map((item) => deepNormalize(item));
+    const o: Record<string, unknown> = {};
+    for (const k in value as Record<string, unknown>) {
+      o[k] = deepNormalize((value as Record<string, unknown>)[k]);
+    }
+    return o;
+  }
+
+  /** 对当前表单数据做深拷贝并保存为初始快照（先深度规范化再克隆，避免 undefined 被 stringify 丢弃导致比较不一致） */
   function takeSnapshot(): void {
     const model = getCurrentModel();
-    initialFormSnapshot.value = model ? JSON.parse(JSON.stringify(model)) : null;
+    if (!model) {
+      initialFormSnapshot.value = null;
+      return;
+    }
+    const normalized = deepNormalize(model) as Record<string, unknown>;
+    initialFormSnapshot.value = JSON.parse(JSON.stringify(normalized));
   }
 
   /** 清空快照，关闭弹窗或提交成功后调用 */
@@ -50,26 +67,13 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
     initialFormSnapshot.value = null;
   }
 
-  /** 规范化对象用于比较：undefined→null、NaN→null，避免误判为脏 */
-  function normalizeForCompare(obj: Record<string, unknown>): Record<string, unknown> {
-    if (!obj || typeof obj !== 'object') return {};
-    const o: Record<string, unknown> = {};
-    for (const k in obj) {
-      const v = obj[k];
-      if (v === undefined) o[k] = null;
-      else if (typeof v === 'number' && Number.isNaN(v)) o[k] = null;
-      else o[k] = v;
-    }
-    return o;
-  }
-
-  /** 有快照时比较当前与快照；无快照时编辑模式视为脏，新增模式用 formHasContent 判断 */
+  /** 有快照时比较当前与快照（两边都深度规范化）；无快照时编辑模式视为脏，新增模式用 formHasContent 判断 */
   function isFormDirty(): boolean {
     const cur = getCurrentModel();
     if (!cur) return false;
     const snap = initialFormSnapshot.value;
     if (snap) {
-      return JSON.stringify(normalizeForCompare(cur)) !== JSON.stringify(normalizeForCompare(snap));
+      return JSON.stringify(deepNormalize(cur)) !== JSON.stringify(deepNormalize(snap));
     }
     if (!getIsEdit()) return formHasContent ? formHasContent(cur) : false;
     return true;

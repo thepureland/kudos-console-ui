@@ -1,3 +1,4 @@
+import { nextTick } from "vue"
 import { ElMessage } from "element-plus"
 import { BaseAddEditPage } from "./BaseAddEditPage"
 import { backendRequest } from "../../utils/backendRequest"
@@ -57,11 +58,16 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
     /** 回填时把 subSysDictCode、tenantId 合并为 subSysOrTenant 数组供级联显示 */
     protected fillForm(rowObject: any) {
         super.fillForm(rowObject)
-        const subSysOrTenant = [rowObject.subSysDictCode]
-        if (rowObject.tenantId) {
-            subSysOrTenant.push(rowObject.tenantId)
+        const subSys = rowObject.subSysDictCode ?? this.state.formModel?.subSysDictCode
+        if (subSys == null || subSys === '') {
+            return
         }
-        this.state.formModel.subSysOrTenant = subSysOrTenant
+        const arr: string[] = [subSys]
+        const tid = rowObject.tenantId ?? this.state.formModel?.tenantId
+        if (tid != null && tid !== '') {
+            arr.push(String(tid))
+        }
+        this.state.formModel.subSysOrTenant = arr
     }
 
     /** 拉取租户树并写入 state.subSysOrTenants，供级联选择使用 */
@@ -84,6 +90,13 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
                 }
             }
             this.state.subSysOrTenants = options
+            // 编辑回填时可能先于 options 设置 subSysOrTenant，级联需在 options 就绪后重新触发显示
+            const current = this.state.formModel?.subSysOrTenant
+            if (Array.isArray(current) && current.length > 0) {
+                nextTick(() => {
+                    this.state.formModel.subSysOrTenant = [...current]
+                })
+            }
         } else {
             ElMessage.error('加载租户信息失败！')
         }

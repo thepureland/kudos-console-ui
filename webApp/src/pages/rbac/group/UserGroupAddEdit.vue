@@ -1,68 +1,151 @@
+<!-- 用户组新增/编辑 -->
 <template>
-  <el-dialog title="添加组信息" v-model="visible" width="30%" center @close="close">
-    <el-form ref="form" :model="formModel" label-width="80px" :rules="rules" :validate-on-rule-change="false">
-      <el-form-item label="组编码" prop="groupCode" class="is-required">
-        <el-input v-model="formModel.groupCode"/>
-      </el-form-item>
-      <el-form-item label="组名称" prop="groupName" class="is-required">
-        <el-input v-model="formModel.groupName"/>
-      </el-form-item>
-      <el-form-item label="备注" prop="remark">
-        <el-input v-model="formModel.remark"/>
-      </el-form-item>
+  <el-dialog
+    v-model="visible"
+    :title="dialogTitle"
+    width="520px"
+    center
+    class="add-edit-dialog usergroup-add-edit-dialog"
+    align-center
+    :append-to-body="false"
+    :close-on-click-modal="false"
+    :before-close="handleBeforeClose"
+  >
+    <el-form
+      ref="form"
+      :model="formModel"
+      :rules="rules"
+      label-width="140px"
+      label-position="right"
+      :validate-on-rule-change="false"
+      class="add-edit-dialog-form"
+    >
+      <section class="form-section">
+        <div class="form-section__title">{{ t('userGroupAddEdit.sections.basicInfo') }}</div>
+        <el-form-item :label="t('userGroupAddEdit.labels.groupCode')" prop="groupCode" class="is-required">
+          <el-row :gutter="12" class="form-item-row">
+            <el-col :span="24">
+              <el-input
+                v-model="formModel.groupCode"
+                :placeholder="t('userGroupAddEdit.placeholders.groupCode')"
+                clearable
+                size="default"
+              />
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-form-item :label="t('userGroupAddEdit.labels.groupName')" prop="groupName" class="is-required">
+          <el-row :gutter="12" class="form-item-row">
+            <el-col :span="24">
+              <el-input
+                v-model="formModel.groupName"
+                :placeholder="t('userGroupAddEdit.placeholders.groupName')"
+                clearable
+                size="default"
+              />
+            </el-col>
+          </el-row>
+        </el-form-item>
+      </section>
+      <section class="form-section">
+        <div class="form-section__title">{{ t('userGroupAddEdit.sections.other') }}</div>
+        <el-form-item :label="t('userGroupAddEdit.labels.remark')" prop="remark">
+          <el-input
+            v-model="formModel.remark"
+            type="textarea"
+            :rows="3"
+            :placeholder="t('userGroupAddEdit.placeholders.remark')"
+            maxlength="200"
+            show-word-limit
+            resize="none"
+          />
+        </el-form-item>
+      </section>
     </el-form>
     <template #footer>
-      <span class="dialog-footer">
-        <el-button type="primary" @click="submit">确 定</el-button>
-        <el-button @click="close">取 消</el-button>
-      </span>
+      <div class="add-edit-dialog-footer">
+        <el-button @click="handleCloseRequest">{{ t('userGroupAddEdit.buttons.cancel') }}</el-button>
+        <el-button type="primary" @click.prevent="handleSubmit">{{ t('userGroupAddEdit.buttons.confirm') }}</el-button>
+      </div>
     </template>
   </el-dialog>
 </template>
 
-<script lang='ts'>
-import {defineComponent, reactive, toRefs} from "vue";
+<script lang="ts">
+import { defineComponent } from 'vue';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
+import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
+import '../../../styles/add-edit-dialog-common.css';
+
+interface FormModel {
+  groupCode: string | null;
+  groupName: string | null;
+  remark: string | null;
+}
 
 class AddEditPage extends BaseAddEditPage {
-
-  constructor(props, context) {
-    super(props, context)
+  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    super(props, context);
   }
 
-  protected initState(): any {
+  protected initState(): Record<string, unknown> {
     return {
       formModel: {
         groupCode: null,
         groupName: null,
-        remark:null
+        remark: null,
+      } as FormModel,
+    };
+  }
+
+  protected getRootActionPath(): string {
+    return 'rbac/group';
+  }
+
+  protected getRowObjectLoadUrl(): string {
+    return this.getRootActionPath() + '/getDetail';
+  }
+
+  protected getLoadFailedMessageKey(): string {
+    return 'userGroupAddEdit.messages.loadFailed';
+  }
+
+  protected async initValidationRule(): Promise<void> {
+    await super.initValidationRule();
+    const requiredRules = this.createRequiredRules(
+      {
+        groupCode: 'userGroupAddEdit.validation.requiredGroupCode',
+        groupName: 'userGroupAddEdit.validation.requiredGroupName',
       },
-    }
+      { groupCode: 'change', groupName: 'change' }
+    );
+    const rules = (this.state.rules as Record<string, unknown>) || {};
+    this.state.rules = { ...rules, ...requiredRules };
   }
-
-  protected getRootActionPath(): String {
-    return "rbac/group"
-  }
-
 }
 
 export default defineComponent({
-  name: "~UserGroupAddEdit",
+  name: 'UserGroupAddEdit',
   props: {
-    modelValue: Boolean,
-    rid: String
+    modelValue: { type: Boolean, default: false },
+    rid: { type: String, default: '' },
+    onSaved: { type: Function as (params: Record<string, unknown>) => void, default: undefined },
   },
-  emits: ['update:modelValue', "response"],
-  setup(props, context) {
-    const page = reactive(new AddEditPage(props, context))
-    return {
-      ...toRefs(page),
-      ...toRefs(page.state)
-    }
-  }
-})
+  emits: ['update:modelValue', 'response'],
+  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    return useAddEditDialogSetup(props, context, {
+      createPage: (p, c) => new AddEditPage(p, c),
+      i18nKeyPrefix: 'userGroupAddEdit',
+      formHasContent(model: Record<string, unknown>) {
+        if (!model) return false;
+        if (model.groupCode != null && String(model.groupCode).trim() !== '') return true;
+        if (model.groupName != null && String(model.groupName).trim() !== '') return true;
+        if (model.remark != null && String(model.remark).trim() !== '') return true;
+        return false;
+      },
+    });
+  },
+});
 </script>
 
-<style lang='css' scoped>
-
-</style>
+<style scoped></style>

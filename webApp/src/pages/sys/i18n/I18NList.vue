@@ -292,6 +292,8 @@
         />
       </template>
     </list-page-layout>
+    <i18n-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
+    <i18n-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
     <I18NDetail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
@@ -306,6 +308,7 @@ import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { Pair } from '../../../components/model/Pair';
+import I18NAddEdit from './I18NAddEdit.vue';
 import I18NDetail from './I18NDetail.vue';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'i18nList.operationColumnPinned';
@@ -362,11 +365,15 @@ class ListPage extends BaseListPage {
     params.active = sp.active === true ? true : null;
     return params;
   }
+
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['key', 'locale', 'i18nTypeDictCode', 'atomicServiceCode'];
+  }
 }
 
 export default defineComponent({
   name: 'I18NList',
-  components: { ListPageLayout, I18NDetail, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { ListPageLayout, I18NAddEdit, I18NDetail, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
