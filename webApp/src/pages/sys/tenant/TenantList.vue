@@ -290,6 +290,10 @@ class ListPage extends BaseListPage {
     params.active = sp.active === true ? true : null;
     return params;
   }
+
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['name', 'subSysDictCode'];
+  }
 }
 
 export default defineComponent({

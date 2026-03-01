@@ -520,8 +520,23 @@ export abstract class BaseListPage extends BasePage {
 
     public afterAdd: (params: any) => void
 
-    /** 新增成功后的默认回调：重新查询列表。 */
-    protected doAfterAdd(_params: any) {
+    /**
+     * 子类可覆盖：新增成功后需要从保存结果回填到 searchParams 的字段名列表（与 params 的 key 一致）。
+     * 返回空数组则不回填任何字段，仅刷新列表。
+     */
+    protected getAfterAddSearchParamKeys(): string[] {
+        return []
+    }
+
+    /** 新增成功后的默认回调：按 getAfterAddSearchParamKeys 回填搜索条件后重新查询列表。 */
+    protected doAfterAdd(params: any) {
+        const keys = this.getAfterAddSearchParamKeys()
+        if (keys?.length && params && this.state.searchParams) {
+            const sp = this.state.searchParams as Record<string, unknown>
+            for (const k of keys) {
+                if (params[k] !== undefined && params[k] !== null) sp[k] = params[k]
+            }
+        }
         this.search()
     }
 

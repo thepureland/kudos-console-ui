@@ -292,6 +292,10 @@ class ListPage extends BaseListPage {
     }
     return params;
   }
+
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['groupCode', 'groupName'];
+  }
 }
 
 export default defineComponent({

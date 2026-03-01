@@ -464,6 +464,10 @@ class ListPage extends BaseListPage {
     return params;
   }
 
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['name', 'strategyDictCode'];
+  }
+
   /** 构造下拉菜单命令参数，供 el-dropdown 的 command 使用 */
   commandValue(item: number, row: Record<string, unknown>): CacheCommandPayload {
     return { item, row };

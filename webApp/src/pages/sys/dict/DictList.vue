@@ -345,6 +345,10 @@ class ListPage extends BaseListPage {
     return params;
   }
 
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['module', 'dictType'];
+  }
+
   protected createDeleteParams(row: Record<string, unknown>): Record<string, unknown> {
     return {
       id: this.getRowId(row),

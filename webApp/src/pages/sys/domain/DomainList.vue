@@ -317,10 +317,8 @@ class ListPage extends TenantSupportListPage {
     return params;
   }
 
-  protected doAfterAdd(params: Record<string, unknown>): void {
-    const sp = this.state.searchParams as Record<string, unknown>;
-    if (params.domain != null) sp.domain = params.domain;
-    super.doAfterAdd(params);
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['domain'];
   }
 }
 

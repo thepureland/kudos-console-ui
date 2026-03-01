@@ -366,6 +366,10 @@ class ListPage extends TenantSupportListPage {
     return params;
   }
 
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['roleCode', 'roleName'];
+  }
+
   commandValue(item: unknown, row: Record<string, unknown>): { item: unknown; row: Record<string, unknown> } {
     return { item, row };
   }

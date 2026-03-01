@@ -1684,6 +1684,50 @@ private fun buildTenantSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
+/** Mock 租户单条获取：按 id 返回编辑用数据，供 sys/tenant/get。 */
+private fun buildTenantGetResponse(id: String): String {
+    val mockRows = listOf(
+        buildJsonObject {
+            put("id", JsonPrimitive("tenant_1"))
+            put("name", JsonPrimitive("默认租户"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("remark", JsonPrimitive(""))
+            put("active", JsonPrimitive(true))
+            put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("tenant_2"))
+            put("name", JsonPrimitive("租户A"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("remark", JsonPrimitive("备注A"))
+            put("active", JsonPrimitive(true))
+            put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("tenant_3"))
+            put("name", JsonPrimitive("租户B"))
+            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("remark", JsonPrimitive("备注B"))
+            put("active", JsonPrimitive(false))
+            put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
+        },
+    )
+    val row = mockRows.firstOrNull { primitiveString(it, "id") == id }
+        ?: buildJsonObject {
+            put("id", JsonPrimitive(id))
+            put("name", JsonPrimitive(""))
+            put("subSysDictCode", JsonPrimitive(""))
+            put("remark", JsonPrimitive(""))
+            put("active", JsonPrimitive(true))
+            put("createTime", JsonPrimitive(""))
+        }
+    val body = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", row)
+    }.toString()
+    return body
+}
+
 /** Mock 域名列表搜索：根据 domain/subSysDictCode/tenantId/active 筛选，排序分页。tenantId 与 getAllActiveTenants 一致。 */
 private fun buildDomainSearchResponse(requestJson: String): String {
     val params = parseDomainSearchParams(parseJsonObjectOrEmpty(requestJson))
@@ -2159,6 +2203,26 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/sys/tenant/search", "/api/sys/tenant/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildTenantSearchResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/tenant/get", "/api/sys/tenant/get" -> {
+            val id = request.url.parameters["id"] ?: ""
+            val body = buildTenantGetResponse(id)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/tenant/getValidationRule", "/api/sys/tenant/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/tenant/saveOrUpdate", "/api/sys/tenant/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "tenant_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/i18n/search", "/api/sys/i18n/search" -> {

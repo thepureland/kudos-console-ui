@@ -486,6 +486,24 @@ export default {
     },
     empty: '—',
   },
+  tenantAddEdit: {
+    titleAdd: '新增租戶資訊',
+    titleEdit: '編輯租戶資訊',
+    sections: { basicInfo: '基本資訊', other: '其他' },
+    labels: { name: '租戶名稱', subSysDictCode: '子系統', remark: '備註' },
+    placeholders: {
+      name: '請輸入租戶名稱',
+      subSysDictCode: '請選擇子系統',
+      remark: '選填，最多 200 字',
+    },
+    buttons: { cancel: '取 消', confirm: '確 定' },
+    closeConfirm: { message: '有未儲存的修改，確定要關閉嗎？', title: '提示' },
+    messages: { loadFailed: '資料載入失敗！' },
+    validation: {
+      requiredName: '請輸入租戶名稱',
+      requiredSubSysDictCode: '請選擇子系統',
+    },
+  },
   accountList: {
     placeholders: { username: '用戶名', subSysTenant: '子系統/租戶' },
     common: { yes: '是', no: '否' },
