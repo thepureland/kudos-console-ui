@@ -445,6 +445,24 @@ export default {
     },
     empty: '—',
   },
+  domainAddEdit: {
+    titleAdd: 'Add Domain',
+    titleEdit: 'Edit Domain',
+    sections: { basicInfo: 'Basic Info', other: 'Other' },
+    labels: { domain: 'Domain', subSysOrTenant: 'Subsystem/Tenant', remark: 'Remark' },
+    placeholders: {
+      domain: 'Enter domain',
+      subSysOrTenant: 'Select subsystem/tenant',
+      remark: 'Optional',
+    },
+    buttons: { cancel: 'Cancel', confirm: 'OK' },
+    closeConfirm: { message: 'Unsaved changes will be lost. Close anyway?', title: 'Confirm' },
+    messages: { loadFailed: 'Failed to load data.' },
+    validation: {
+      requiredDomain: 'Please enter domain',
+      requiredSubSysOrTenant: 'Please select subsystem/tenant',
+    },
+  },
   tenantList: {
     placeholders: { name: 'Tenant Name', subSys: 'Subsystem' },
     common: { yes: 'Yes', no: 'No' },

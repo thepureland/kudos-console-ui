@@ -445,6 +445,24 @@ export default {
     },
     empty: '—',
   },
+  domainAddEdit: {
+    titleAdd: '新增域名資訊',
+    titleEdit: '編輯域名資訊',
+    sections: { basicInfo: '基本資訊', other: '其他' },
+    labels: { domain: '域名', subSysOrTenant: '子系統/租戶', remark: '備註' },
+    placeholders: {
+      domain: '請輸入域名',
+      subSysOrTenant: '請選擇子系統/租戶',
+      remark: '選填',
+    },
+    buttons: { cancel: '取 消', confirm: '確 定' },
+    closeConfirm: { message: '有未儲存的修改，確定要關閉嗎？', title: '提示' },
+    messages: { loadFailed: '資料載入失敗！' },
+    validation: {
+      requiredDomain: '請輸入域名',
+      requiredSubSysOrTenant: '請選擇子系統/租戶',
+    },
+  },
   tenantList: {
     placeholders: { name: '租戶名稱', subSys: '子系統' },
     common: { yes: '是', no: '否' },

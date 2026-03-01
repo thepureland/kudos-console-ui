@@ -1,0 +1,1 @@
+{"code":200,"data":{"domain":{"NotBlank":[{"message":"请输入域名"}]},"subSysOrTenant":{"NotEmpty":[{"message":"请选择子系统/租户"}]}}}
