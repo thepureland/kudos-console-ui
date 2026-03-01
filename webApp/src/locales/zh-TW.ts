@@ -603,6 +603,26 @@ export default {
     },
     empty: '—',
   },
+  systemAddEdit: {
+    titleAdd: '新增子系統',
+    titleEdit: '編輯子系統',
+    sections: { basicInfo: '基本資訊', other: '其他' },
+    labels: { code: '編碼', name: '名稱', parentCode: '父級編碼', subSystem: '子系統', remark: '備註' },
+    placeholders: {
+      code: '請輸入編碼',
+      name: '請輸入名稱',
+      parentCode: '選填，父級子系統編碼',
+      remark: '選填，最多 200 字',
+    },
+    switch: { yes: '是', no: '否' },
+    buttons: { cancel: '取 消', confirm: '確 定' },
+    closeConfirm: { message: '有未儲存的修改，確定要關閉嗎？', title: '提示' },
+    messages: { loadFailed: '資料載入失敗！' },
+    validation: {
+      requiredCode: '請輸入編碼',
+      requiredName: '請輸入名稱',
+    },
+  },
   microServiceList: {
     placeholders: { code: '編碼', name: '名稱' },
     common: { yes: '是', no: '否' },

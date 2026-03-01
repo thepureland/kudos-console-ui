@@ -603,6 +603,26 @@ export default {
     },
     empty: '—',
   },
+  systemAddEdit: {
+    titleAdd: 'Add Subsystem',
+    titleEdit: 'Edit Subsystem',
+    sections: { basicInfo: 'Basic Info', other: 'Other' },
+    labels: { code: 'Code', name: 'Name', parentCode: 'Parent Code', subSystem: 'Subsystem', remark: 'Remark' },
+    placeholders: {
+      code: 'Enter code',
+      name: 'Enter name',
+      parentCode: 'Optional, parent subsystem code',
+      remark: 'Optional, max 200 characters',
+    },
+    switch: { yes: 'Yes', no: 'No' },
+    buttons: { cancel: 'Cancel', confirm: 'OK' },
+    closeConfirm: { message: 'Unsaved changes. Close anyway?', title: 'Confirm' },
+    messages: { loadFailed: 'Failed to load data.' },
+    validation: {
+      requiredCode: 'Please enter code',
+      requiredName: 'Please enter name',
+    },
+  },
   microServiceList: {
     placeholders: { code: 'Code', name: 'Name' },
     common: { yes: 'Yes', no: 'No' },

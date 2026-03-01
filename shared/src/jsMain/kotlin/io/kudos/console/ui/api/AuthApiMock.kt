@@ -2291,6 +2291,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildSubsysGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/subsys/getValidationRule", "/api/sys/subsys/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/subsys/saveOrUpdate", "/api/sys/subsys/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "sys_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/microservice/searchTree", "sys/microservice/searchTree", "/api/sys/microservice/searchTree" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildMicroserviceSearchTreeResponse(requestJson)
