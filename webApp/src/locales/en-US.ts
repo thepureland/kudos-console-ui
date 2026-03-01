@@ -486,6 +486,24 @@ export default {
     },
     empty: '—',
   },
+  tenantAddEdit: {
+    titleAdd: 'Add Tenant',
+    titleEdit: 'Edit Tenant',
+    sections: { basicInfo: 'Basic Info', other: 'Other' },
+    labels: { name: 'Tenant Name', subSysDictCode: 'Subsystem', remark: 'Remark' },
+    placeholders: {
+      name: 'Enter tenant name',
+      subSysDictCode: 'Select subsystem',
+      remark: 'Optional, max 200 characters',
+    },
+    buttons: { cancel: 'Cancel', confirm: 'OK' },
+    closeConfirm: { message: 'Unsaved changes. Close anyway?', title: 'Confirm' },
+    messages: { loadFailed: 'Failed to load data.' },
+    validation: {
+      requiredName: 'Please enter tenant name',
+      requiredSubSysDictCode: 'Please select subsystem',
+    },
+  },
   accountList: {
     placeholders: { username: 'Username', subSysTenant: 'Subsystem / Tenant' },
     common: { yes: 'Yes', no: 'No' },

@@ -486,6 +486,24 @@ export default {
     },
     empty: '—',
   },
+  tenantAddEdit: {
+    titleAdd: '新增租户信息',
+    titleEdit: '编辑租户信息',
+    sections: { basicInfo: '基本信息', other: '其他' },
+    labels: { name: '租户名称', subSysDictCode: '子系统', remark: '备注' },
+    placeholders: {
+      name: '请输入租户名称',
+      subSysDictCode: '请选择子系统',
+      remark: '选填，最多 200 字',
+    },
+    buttons: { cancel: '取 消', confirm: '确 定' },
+    closeConfirm: { message: '有未保存的修改，确定要关闭吗？', title: '提示' },
+    messages: { loadFailed: '数据加载失败！' },
+    validation: {
+      requiredName: '请输入租户名称',
+      requiredSubSysDictCode: '请选择子系统',
+    },
+  },
   accountList: {
     placeholders: { username: '用户名', subSysTenant: '子系统/租户' },
     common: { yes: '是', no: '否' },

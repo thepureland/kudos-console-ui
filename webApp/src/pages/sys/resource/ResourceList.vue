@@ -313,8 +313,12 @@ class ListPage extends BaseListPage {
     await super.doSearch();
   }
 
-  protected doAfterAdd(_params?: unknown): void {
-    super.doAfterAdd();
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['name', 'parentId', 'subSysDictCode', 'resourceTypeDictCode'];
+  }
+
+  protected doAfterAdd(params?: unknown): void {
+    super.doAfterAdd(params);
     const root = this.state.rootNode as { childNodes?: unknown[]; level?: number; data?: unknown } | null;
     const resolve = this.state.rootResolve as ((data: unknown) => void) | null;
     if (root) root.childNodes = [];

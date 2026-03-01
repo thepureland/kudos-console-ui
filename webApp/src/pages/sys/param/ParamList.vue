@@ -266,6 +266,10 @@ class ListPage extends BaseListPage {
     }
     return params;
   }
+
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['module', 'paramName', 'paramValue'];
+  }
 }
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'paramList.operationColumnPinned';

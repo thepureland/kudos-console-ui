@@ -374,6 +374,10 @@ class ListPage extends TenantSupportListPage {
     return params;
   }
 
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['name'];
+  }
+
   /** 打开重置密码弹窗 */
   resetPassword(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;

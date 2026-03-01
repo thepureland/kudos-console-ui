@@ -354,6 +354,10 @@ class ListPage extends TenantSupportListPage {
     return 'user/account';
   }
 
+  protected getAfterAddSearchParamKeys(): string[] {
+    return ['username'];
+  }
+
   protected isCheckStrictly(): boolean {
     return false;
   }
