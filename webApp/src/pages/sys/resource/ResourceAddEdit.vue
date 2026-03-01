@@ -28,7 +28,12 @@
       <section class="form-section">
         <div class="form-section__title">{{ t('resourceAddEdit.sections.basicInfo') }}</div>
         <el-form-item :label="t('resourceAddEdit.labels.parent')" prop="parent" class="is-required">
-          <el-cascader v-model="formModel.parent" :props="cascaderProps" class="form-select-full" />
+          <el-cascader
+            v-model="formModel.parent"
+            :options="parentCascaderOptions"
+            :props="cascaderProps"
+            class="form-select-full"
+          />
         </el-form-item>
         <el-form-item :label="t('resourceAddEdit.labels.name')" prop="name" class="is-required">
           <el-input v-model="formModel.name" :placeholder="t('resourceAddEdit.placeholders.name')" clearable size="default" />
@@ -60,7 +65,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs } from 'vue';
+import { defineComponent, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
 import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
@@ -70,10 +75,10 @@ import '../../../styles/add-edit-dialog-common.css';
 class AddEditPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
+    this.buildParentCascaderOptions();
   }
 
   protected initState(): Record<string, unknown> {
-    const _self = this;
     return {
       formModel: {
         parent: [] as string[],
@@ -83,16 +88,14 @@ class AddEditPage extends BaseAddEditPage {
         seqNo: undefined as number | undefined,
         remark: null as string | null,
       },
+      /** 上级资源级联静态选项（前两级：资源类型 + 子系统），编辑回填可直接显示 */
+      parentCascaderOptions: [] as Array<{ id: string; name: string; children?: Array<{ id: string; name: string }> }>,
       cascaderProps: {
-        lazy: true,
         value: 'id',
         label: 'name',
         multiple: false,
         checkStrictly: true,
         expandTrigger: 'hover',
-        lazyLoad(node: unknown, resolve: (data: unknown) => void) {
-          _self.doLoadTreeNodes(node as { level: number; data?: { id?: string } }, resolve);
-        },
       },
     };
   }
@@ -137,21 +140,53 @@ class AddEditPage extends BaseAddEditPage {
 
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
-    (this.state.formModel as { parent?: unknown[] }).parent = (rowObject.parentIds as string[]) ?? [];
+    let parent: string[] = Array.isArray(rowObject.parentIds)
+      ? (rowObject.parentIds as string[]).slice()
+      : [];
+    if (parent.length === 0) {
+      const rt = rowObject.resourceTypeDictCode as string | undefined;
+      const sub = rowObject.subSysDictCode as string | undefined;
+      const pid = rowObject.parentId as string | undefined;
+      if (rt && sub) parent = pid ? [rt, sub, pid] : [rt, sub];
+    }
+    const formModel = this.state.formModel as { parent?: string[] };
+    formModel.parent = parent.length > 0 ? parent.slice() : [];
+    if (parent.length > 0) {
+      nextTick(() => {
+        formModel.parent = parent.slice();
+      });
+    }
   }
 
-  private async doLoadTreeNodes(node: { level: number; data?: { id?: string } }, resolve: (data: unknown) => void): Promise<void> {
-    const params = {
-      level: node.level,
-      parentId: node.level <= 2 ? null : node.data?.id ?? null,
-      active: true,
-    };
-    const result = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params }) as { code?: number; data?: unknown };
+  /** 编辑加载：先拉取级联前两级构建静态 options，再拉详情并 fillForm，使 Parent 能回填显示 */
+  protected async loadRowObject(): Promise<void> {
+    await this.buildParentCascaderOptions();
+    const params = this.createRowObjectLoadParams();
+    const result = await backendRequest({ url: this.getRowObjectLoadUrl(), params });
     if (result.code === 200) {
-      resolve(result.data ?? []);
+      this.fillForm(result.data);
+      super.render();
+      this.onEditFormLoaded?.();
     } else {
-      ElMessage.error('资源树加载失败！');
+      const i18n = (await import('../../../i18n')).i18n;
+      ElMessage.error(i18n.global.t(this.getLoadFailedMessageKey()) as string);
     }
+  }
+
+  /** 构建上级级联静态选项（资源类型 + 子系统），新增时也会在首次打开时加载 */
+  private async buildParentCascaderOptions(): Promise<void> {
+    const opts = this.state.parentCascaderOptions as Array<{ id: string; name: string; children?: Array<{ id: string; name: string }> }>;
+    if (opts.length > 0) return;
+    const res0 = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params: { level: 0, parentId: null, active: true } }) as { code?: number; data?: Array<{ id: string; name: string }> };
+    const res1 = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params: { level: 1, parentId: null, active: true } }) as { code?: number; data?: Array<{ id: string; name: string }> };
+    const level0 = (res0.code === 200 && res0.data) ? res0.data : [];
+    const level1 = (res1.code === 200 && res1.data) ? res1.data : [];
+    const options = level0.map((item) => ({
+      id: item.id,
+      name: item.name,
+      children: level1.map((c) => ({ id: c.id, name: c.name })),
+    }));
+    (this.state as Record<string, unknown>).parentCascaderOptions = options;
   }
 
 }

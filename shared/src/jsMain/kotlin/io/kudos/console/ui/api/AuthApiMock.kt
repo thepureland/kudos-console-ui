@@ -711,7 +711,7 @@ private fun buildResourceSearchResponse(path: String, requestJson: String): Stri
     return response.toString()
 }
 
-/** 资源详情：从 search fixture 中按 id 查单条；无 fixture 或未找到时返回 404。 */
+/** 资源详情：从 search fixture 中按 id 查单条，并补全 parentIds 供编辑回填级联。 */
 private fun buildResourceGetDetailResponse(requestId: String): String {
     val searchPath = "/sys/resource/search"
     val fixture = MockJsonStore.byPath[searchPath] ?: MockJsonStore.byPath["/api/sys/resource/search"]
@@ -721,9 +721,20 @@ private fun buildResourceGetDetailResponse(requestId: String): String {
     val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
     val row = allRows.firstOrNull { primitiveString(it, "id") == requestId }
         ?: return "{\"code\":404,\"data\":null}"
+    val resourceType = primitiveString(row, "resourceTypeDictCode").orEmpty()
+    val subSys = primitiveString(row, "subSysDictCode").orEmpty()
+    val parentId = primitiveString(row, "parentId")?.takeIf { it.isNotBlank() }
+    val parentIds = JsonArray(
+        listOf(JsonPrimitive(resourceType), JsonPrimitive(subSys)) +
+            if (parentId != null) listOf(JsonPrimitive(parentId)) else emptyList()
+    )
+    val detailRow = buildJsonObject {
+        row.forEach { (k, v) -> put(k, v) }
+        put("parentIds", parentIds)
+    }
     val body = buildJsonObject {
         put("code", JsonPrimitive(200))
-        put("data", row)
+        put("data", detailRow)
     }.toString()
     return body
 }
@@ -1916,38 +1927,25 @@ private fun buildDictLoadTreeNodesResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** Mock 资源树：根=资源类型，第二层=子系统，第三层=资源节点（从 search fixture 取）。 */
+/** 子系统列表（与 buildSubsysSearchTreeResponse 一致），供资源树第二级等复用。 */
+private fun buildResourceSubsystemLevelNodes(): List<JsonObject> = listOf(
+    buildJsonObject { put("id", JsonPrimitive("service_a")); put("name", JsonPrimitive("服务A")) },
+    buildJsonObject { put("id", JsonPrimitive("console")); put("name", JsonPrimitive("服务B")) },
+    buildJsonObject { put("id", JsonPrimitive("service_b")); put("name", JsonPrimitive("服务B")) },
+)
+
+/** Mock 资源树：仅两级——第一级=资源类型（菜单/按钮），第二级=子系统；严格按 level 分支。 */
 private fun buildResourceLoadTreeNodesResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val level = primitiveInt(params, "level") ?: 0
-    val parentId = primitiveString(params, "parentId")?.takeIf { it.isNotBlank() }
-    val resourceTypeDictCode = primitiveString(params, "resourceTypeDictCode")?.takeIf { it.isNotBlank() }
-    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
 
-    val nodes: List<JsonObject> = when {
-        level == 0 || (parentId == null && resourceTypeDictCode == null) -> listOf(
+    val nodes: List<JsonObject> = when (level) {
+        0 -> listOf(
             buildJsonObject { put("id", JsonPrimitive("menu")); put("name", JsonPrimitive("菜单")) },
             buildJsonObject { put("id", JsonPrimitive("button")); put("name", JsonPrimitive("按钮")) },
         )
-        level == 1 || (resourceTypeDictCode != null && subSysDictCode == null) ->
-            ATOMIC_SERVICE_CODES_ORDERED.map { code ->
-                buildJsonObject {
-                    put("id", JsonPrimitive(code))
-                    put("name", JsonPrimitive(ATOMIC_SERVICE_DISPLAY[code]!!))
-                }
-            }
-        else -> {
-            val fixture = MockJsonStore.byPath["/sys/resource/search"] ?: return "{\"code\":200,\"data\":[]}"
-            val fixtureObj = parseJsonObjectOrEmpty(fixture)
-            val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
-            val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
-            allRows.take(5).map { row ->
-                buildJsonObject {
-                    put("id", row["id"] ?: JsonPrimitive(""))
-                    put("name", row["name"] ?: JsonPrimitive(""))
-                }
-            }
-        }
+        1 -> buildResourceSubsystemLevelNodes()
+        else -> emptyList()
     }
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
