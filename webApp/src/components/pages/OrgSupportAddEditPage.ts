@@ -42,12 +42,15 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         this.state.formModel.parent = []
     }
 
+    /** 子类可重写：提交时从 parent 级联取 tenantId/parentId/subSysDictCode；Account 等改为从 subSysOrTenant + parent 取 */
     protected createSubmitParams(): any {
         const params = super.createSubmitParams()
-        const nodes = this.parentCascader.value.getCheckedNodes()
-        params.tenantId = this.getTenantId(nodes[0])
-        params.parentId = this.getParentId(nodes[0])
-        params.subSysDictCode = this.state.formModel.parent[0]
+        const nodes = this.parentCascader.value?.getCheckedNodes?.()
+        if (nodes?.[0]) {
+            params.tenantId = this.getTenantId(nodes[0])
+            params.parentId = this.getParentId(nodes[0])
+            params.subSysDictCode = this.state.formModel.parent[0]
+        }
         return params
     }
 
