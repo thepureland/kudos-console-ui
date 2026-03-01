@@ -292,8 +292,8 @@
         />
       </template>
     </list-page-layout>
-    <i18n-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
-    <i18n-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
+    <I18NAddEdit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
+    <I18NAddEdit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
     <I18NDetail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
