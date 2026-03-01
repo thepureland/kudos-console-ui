@@ -42,17 +42,15 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         return false
     }
 
-    /** 提交前将 subSysOrTenant 拆成 subSysDictCode、tenantId 写入 formModel */
+    /** 提交前将 subSysOrTenant 拆成 subSysDictCode、tenantId 写入 formModel；未选时不弹窗，由表单校验提示 */
     protected beforeValidate() {
         const subSysOrTenant = this.state.formModel.subSysOrTenant
-        if (!subSysOrTenant || subSysOrTenant.length == 0) {
-            ElMessage.error('请选择子系统/租户！')
+        if (!subSysOrTenant || subSysOrTenant.length === 0) {
             return
-        } else {
-            this.state.formModel.subSysDictCode = subSysOrTenant[0]
-            if (subSysOrTenant.length > 1) {
-                this.state.formModel.tenantId = subSysOrTenant[1]
-            }
+        }
+        this.state.formModel.subSysDictCode = subSysOrTenant[0]
+        if (subSysOrTenant.length > 1) {
+            this.state.formModel.tenantId = subSysOrTenant[1]
         }
     }
 

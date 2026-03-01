@@ -1684,7 +1684,7 @@ private fun buildTenantSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** Mock 域名列表搜索：根据 domain/subSysDictCode/tenantId/active 筛选，排序分页。 */
+/** Mock 域名列表搜索：根据 domain/subSysDictCode/tenantId/active 筛选，排序分页。tenantId 与 getAllActiveTenants 一致。 */
 private fun buildDomainSearchResponse(requestJson: String): String {
     val params = parseDomainSearchParams(parseJsonObjectOrEmpty(requestJson))
     val mockRows = listOf(
@@ -1692,8 +1692,8 @@ private fun buildDomainSearchResponse(requestJson: String): String {
             put("id", JsonPrimitive("domain_1"))
             put("domain", JsonPrimitive("console.example.com"))
             put("subSysDictCode", JsonPrimitive("console"))
-            put("tenantId", JsonPrimitive("t1"))
-            put("tenantName", JsonPrimitive("租户1"))
+            put("tenantId", JsonPrimitive("t6"))
+            put("tenantName", JsonPrimitive("租户6"))
             put("active", JsonPrimitive(true))
             put("remark", JsonPrimitive("控制台域名"))
             put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
@@ -1712,8 +1712,8 @@ private fun buildDomainSearchResponse(requestJson: String): String {
             put("id", JsonPrimitive("domain_3"))
             put("domain", JsonPrimitive("service-a.example.com"))
             put("subSysDictCode", JsonPrimitive("service_a"))
-            put("tenantId", JsonPrimitive("t2"))
-            put("tenantName", JsonPrimitive("租户2"))
+            put("tenantId", JsonPrimitive("t5"))
+            put("tenantName", JsonPrimitive("租户5"))
             put("active", JsonPrimitive(false))
             put("remark", JsonPrimitive("服务A域名"))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
@@ -1744,6 +1744,58 @@ private fun buildDomainSearchResponse(requestJson: String): String {
         })
     }
     return response.toString()
+}
+
+/** Mock 域名单条获取：按 id 返回编辑用数据，供 sys/domain/get。tenantId 需与 getAllActiveTenants 一致（console→t6，service_a→t5）。 */
+private fun buildDomainGetResponse(id: String): String {
+    val mockRows = listOf(
+        buildJsonObject {
+            put("id", JsonPrimitive("domain_1"))
+            put("domain", JsonPrimitive("console.example.com"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("tenantId", JsonPrimitive("t6"))
+            put("tenantName", JsonPrimitive("租户6"))
+            put("active", JsonPrimitive(true))
+            put("remark", JsonPrimitive("控制台域名"))
+            put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("domain_2"))
+            put("domain", JsonPrimitive("api.example.com"))
+            put("subSysDictCode", JsonPrimitive("console"))
+            put("tenantId", JsonNull)
+            put("tenantName", JsonPrimitive(""))
+            put("active", JsonPrimitive(true))
+            put("remark", JsonPrimitive("API 域名"))
+            put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
+        },
+        buildJsonObject {
+            put("id", JsonPrimitive("domain_3"))
+            put("domain", JsonPrimitive("service-a.example.com"))
+            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("tenantId", JsonPrimitive("t5"))
+            put("tenantName", JsonPrimitive("租户5"))
+            put("active", JsonPrimitive(false))
+            put("remark", JsonPrimitive("服务A域名"))
+            put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
+        },
+    )
+    val row = mockRows.firstOrNull { primitiveString(it, "id") == id }
+        ?: buildJsonObject {
+        put("id", JsonPrimitive(id))
+        put("domain", JsonPrimitive(""))
+        put("subSysDictCode", JsonPrimitive(""))
+        put("tenantId", JsonNull)
+        put("tenantName", JsonPrimitive(""))
+        put("active", JsonPrimitive(true))
+        put("remark", JsonPrimitive(""))
+        put("createTime", JsonPrimitive(""))
+    }
+    val body = buildJsonObject {
+        put("code", JsonPrimitive(200))
+        put("data", row)
+    }.toString()
+    return body
 }
 
 /** Mock 字典列表搜索：返回 first=行列表、second=总数。 */
@@ -1991,6 +2043,10 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildCacheGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/cache/getValidationRule", "/api/sys/cache/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/dataSource/search", "/api/sys/dataSource/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDataSourceSearchResponse(path, requestJson)
@@ -2012,10 +2068,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/param/getValidationRule", "/api/sys/param/getValidationRule" -> {
-            val body = buildJsonObject {
-                put("code", JsonPrimitive(200))
-                put("data", JsonObject(emptyMap()))
-            }.toString()
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/param/saveOrUpdate", "/api/sys/param/saveOrUpdate" -> {
@@ -2076,6 +2129,26 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
         "/sys/domain/search", "/api/sys/domain/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDomainSearchResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/domain/get", "/api/sys/domain/get" -> {
+            val id = request.url.parameters["id"] ?: ""
+            val body = buildDomainGetResponse(id)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/domain/getValidationRule", "/api/sys/domain/getValidationRule" -> {
+            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/domain/saveOrUpdate", "/api/sys/domain/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "domain_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/dictItem/batchGetDictItemMap", "/api/sys/dictItem/batchGetDictItemMap" -> {
