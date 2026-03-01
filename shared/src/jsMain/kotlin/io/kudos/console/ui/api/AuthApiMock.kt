@@ -873,14 +873,16 @@ private fun buildAccountSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 账号详情：根据 id 从与 search 一致的 mock 数据中查单条并补全详情字段。 */
+/** 账号详情：根据 id 从与 search 一致的 mock 数据中查单条并补全详情字段。tenantId 需与 getAllActiveTenants 一致（console→t6/default/tenant_2，service_a→t5/1）。 */
 private fun buildAccountGetDetailResponse(requestId: String): String {
     val mockRows = listOf(
         buildJsonObject {
             put("id", JsonPrimitive("acc_1"))
             put("username", JsonPrimitive("admin"))
             put("subSysDictCode", JsonPrimitive("console"))
+            put("tenantId", JsonPrimitive("t6"))
             put("organizationId", JsonPrimitive("org_1"))
+            put("parentIds", JsonArray(listOf(JsonPrimitive("org_1"))))
             put("userStatusDictCode", JsonPrimitive("NORMAL"))
             put("userTypeDictCode", JsonPrimitive("ADMIN"))
             put("lastLoginTime", JsonPrimitive("2024-02-01 09:00:00"))
@@ -890,7 +892,9 @@ private fun buildAccountGetDetailResponse(requestId: String): String {
             put("id", JsonPrimitive("acc_2"))
             put("username", JsonPrimitive("user1"))
             put("subSysDictCode", JsonPrimitive("console"))
+            put("tenantId", JsonPrimitive("default"))
             put("organizationId", JsonPrimitive("org_2"))
+            put("parentIds", JsonArray(listOf(JsonPrimitive("org_1"), JsonPrimitive("org_2"))))
             put("userStatusDictCode", JsonPrimitive("NORMAL"))
             put("userTypeDictCode", JsonPrimitive("USER"))
             put("lastLoginTime", JsonNull)
@@ -900,7 +904,9 @@ private fun buildAccountGetDetailResponse(requestId: String): String {
             put("id", JsonPrimitive("acc_3"))
             put("username", JsonPrimitive("user2"))
             put("subSysDictCode", JsonPrimitive("service_a"))
+            put("tenantId", JsonPrimitive("t5"))
             put("organizationId", JsonPrimitive("org_3"))
+            put("parentIds", JsonArray(listOf(JsonPrimitive("org_1"), JsonPrimitive("org_3"))))
             put("userStatusDictCode", JsonPrimitive("LOCKED"))
             put("userTypeDictCode", JsonPrimitive("USER"))
             put("lastLoginTime", JsonPrimitive("2024-01-15 14:00:00"))

@@ -66,7 +66,7 @@ export abstract class TenantSupportListPage extends BaseListPage {
     protected parseSubSysOrTenant(): Pair | null {
         const subSysOrTenant = this.state.searchParams.subSysOrTenant
         if (this.isRequireSubSysOrTenantForSearch() && (subSysOrTenant == null || subSysOrTenant.length == 0)) {
-            ElMessage.error('请先选择子系统/租户！')
+            ElMessage.error('请先选择租户！')
             return null
         }
         const pair = new Pair(null, null)

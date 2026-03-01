@@ -562,9 +562,10 @@ export default {
     titleAdd: 'Add Account',
     titleEdit: 'Edit Account',
     sections: { basicInfo: 'Basic Info', other: 'Other' },
-    labels: { username: 'Username', parent: 'Organization', userTypeDictCode: 'User Type', remark: 'Remark' },
+    labels: { username: 'Username', subSysOrTenant: 'Tenant', parent: 'Organization', userTypeDictCode: 'User Type', remark: 'Remark' },
     placeholders: {
       username: 'Enter username',
+      subSysOrTenant: 'Select tenant',
       parent: 'Select organization',
       userTypeDictCode: 'Select user type',
       remark: 'Optional, max 200 chars',
@@ -574,12 +575,13 @@ export default {
     messages: { loadFailed: 'Failed to load data.' },
     validation: {
       requiredUsername: 'Please enter username',
+      requiredSubSysOrTenant: 'Please select tenant',
       requiredParent: 'Please select organization',
       requiredUserTypeDictCode: 'Please select user type',
     },
   },
   accountList: {
-    placeholders: { username: 'Username', subSysTenant: 'Subsystem / Tenant' },
+    placeholders: { username: 'Username', subSysTenant: 'Tenant' },
     common: { yes: 'Yes', no: 'No' },
     columns: { index: 'Row No.', username: 'Username', subSys: 'Subsystem', userStatus: 'User Status', userType: 'User Type', lastLoginTime: 'Last Login', createTime: 'Create Time', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },

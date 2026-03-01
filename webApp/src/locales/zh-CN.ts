@@ -562,9 +562,10 @@ export default {
     titleAdd: '新增账号',
     titleEdit: '编辑账号',
     sections: { basicInfo: '基本信息', other: '其他' },
-    labels: { username: '账号', parent: '所属组织', userTypeDictCode: '用户类型', remark: '备注' },
+    labels: { username: '账号', subSysOrTenant: '租户', parent: '所属组织', userTypeDictCode: '用户类型', remark: '备注' },
     placeholders: {
       username: '请输入账号',
+      subSysOrTenant: '请选择租户',
       parent: '请选择所属组织',
       userTypeDictCode: '请选择用户类型',
       remark: '选填，最多 200 字',
@@ -574,12 +575,13 @@ export default {
     messages: { loadFailed: '数据加载失败！' },
     validation: {
       requiredUsername: '请输入账号',
+      requiredSubSysOrTenant: '请选择租户',
       requiredParent: '请选择所属组织',
       requiredUserTypeDictCode: '请选择用户类型',
     },
   },
   accountList: {
-    placeholders: { username: '用户名', subSysTenant: '子系统/租户' },
+    placeholders: { username: '用户名', subSysTenant: '租户' },
     common: { yes: '是', no: '否' },
     columns: { index: '行序', username: '用户名', subSys: '子系统', userStatus: '用户状态', userType: '用户类型', lastLoginTime: '最后登录时间', createTime: '创建时间', operation: '操作' },
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
