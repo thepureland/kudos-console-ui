@@ -81,7 +81,7 @@ export function useSectionedDetail(
         return page.transAtomicService(String(value ?? ''));
       case 'dict':
         return field.dictModule && field.dictCode
-          ? page.transDict(field.dictModule, field.dictCode, String(value ?? ''))
+          ? t(page.transDict(field.dictModule, field.dictCode, String(value ?? '')))
           : String(value ?? '');
       default:
         return value != null ? String(value) : '';

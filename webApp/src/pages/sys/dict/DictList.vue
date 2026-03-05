@@ -217,7 +217,8 @@
                   :label="t('dictList.columns.operation')"
                   align="center"
                   fixed="right"
-                  min-width="140"
+                  min-width="160"
+                  class-name="operation-column"
                 >
                   <template #default="scope">
                     <el-tooltip :content="t('dictList.actions.edit')" placement="top" :enterable="false">
@@ -301,7 +302,7 @@ class ListPage extends BaseListPage {
   protected initState(): Record<string, unknown> {
     return {
       ...super.initBaseState(),
-      dictTreeProps: { label: 'code' },
+      dictTreeProps: { label: 'name' },
       searchParams: {
         parentId: null,
         level: null,
@@ -555,10 +556,10 @@ class ListPage extends BaseListPage {
       params.orders = [{ property: this.state.sort.orderProperty, direction: this.state.sort.orderDirection }];
     }
     try {
-      const result = await backendRequest({ url: 'sys/dict/searchByTree', method: 'post', params }) as { code: number; data?: { first: unknown[]; second: number } };
+      const result = await backendRequest({ url: 'sys/dict/searchByTree', method: 'post', params }) as { code: number; data?: { data: unknown[]; totalCount: number } };
       if (result.code === 200 && result.data) {
-        this.state.tableData = result.data.first;
-        this.state.pagination.total = result.data.second;
+        this.state.tableData = result.data.data ?? [];
+        this.state.pagination.total = result.data.totalCount ?? 0;
       } else {
         ElMessage.error(tr('dictList.messages.loadFailed'));
       }

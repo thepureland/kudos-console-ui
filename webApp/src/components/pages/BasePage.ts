@@ -147,19 +147,18 @@ export abstract class BasePage {
         return pairs
     }
 
-    /** 加载原子服务列表（非字典，专用接口），结果缓存在 window.__kudosAtomicServices */
+    /** 加载原子服务列表（非字典，专用接口），结果缓存在 window.__kudosAtomicServices。始终请求接口以保证与字典树等接口返回的展示名一致。 */
     protected async loadAtomicServices(): Promise<void> {
         const win = window as unknown as { __kudosAtomicServices?: Array<{ code: string; name: string }> }
-        if (win.__kudosAtomicServices && win.__kudosAtomicServices.length > 0) {
-            this.atomicServiceList = win.__kudosAtomicServices
-            return
-        }
         const result = await backendRequest({ url: 'sys/atomicServices' }) as { code: number; data?: Array<{ code: string; name: string }> }
         if (result.code === 200 && result.data) {
             win.__kudosAtomicServices = result.data
             this.atomicServiceList = result.data
         } else {
-            ElMessage.error('原子服务列表加载失败')
+            if (!win.__kudosAtomicServices?.length) {
+                ElMessage.error('原子服务列表加载失败')
+            }
+            this.atomicServiceList = win.__kudosAtomicServices ?? []
         }
     }
 

@@ -72,7 +72,7 @@
               v-for="item in (listPage.state.localeOptions || [])"
               :key="item.first"
               :value="item.first"
-              :label="item.second"
+              :label="t(item.second)"
             />
           </el-select>
         </div>
@@ -250,7 +250,7 @@
             :label="t('i18nList.columns.operation')"
             align="center"
               fixed="right"
-              min-width="180"
+              min-width="160"
               class-name="operation-column"
             label-class-name="operation-column"
           >
@@ -561,12 +561,6 @@ export default defineComponent({
   width: 140px !important;
   min-width: 140px !important;
   max-width: 140px !important;
-}
-:deep(.el-table th.operation-column),
-:deep(.el-table td.operation-column) {
-  width: 180px !important;
-  min-width: 180px !important;
-  max-width: 180px !important;
 }
 :deep(.column-header-draggable) {
   cursor: grab;

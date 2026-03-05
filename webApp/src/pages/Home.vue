@@ -43,13 +43,11 @@
           class="content-inner"
           :class="{ 'content-inner--visible': !contentLoading }"
         >
-          <router-view v-slot="{ Component, route }">
-            <transition name="move" mode="out-in">
-              <keep-alive :max="30">
-                <component v-if="Component" :is="Component" :key="route.fullPath" />
-              </keep-alive>
-            </transition>
-          </router-view>
+          <transition name="move" mode="out-in">
+            <keep-alive :max="30">
+              <component v-if="currentComponent" :is="currentComponent" :key="currentMenuPath" />
+            </keep-alive>
+          </transition>
         </div>
       </div>
     </div>
@@ -57,15 +55,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { useStore } from 'vuex';
+import { getComponentForPath } from '../config/menuPathToComponent';
 import vHeader from '../components/widgets/Header.vue';
 import vSidebar from '../components/widgets/Sidebar.vue';
 import vTags from '../components/widgets/Tags.vue';
 
 const store = useStore();
-const router = useRouter();
+const currentMenuPath = computed(() => store.state.currentMenuPath);
+const currentComponent = computed(() => getComponentForPath(currentMenuPath.value));
 
 // ---------- 侧栏与内容区布局（含可拖拽分界线） ----------
 /** 侧栏是否折叠，来自 store，与 content-box 的 left 联动 */
@@ -124,29 +123,27 @@ function toggleCollapse() {
   store.commit('handleCollapse', !collapse.value);
 }
 
-/** 路由切换中时显示骨架屏，避免白屏 */
+/** 菜单切换时显示骨架屏，避免白屏 */
 const contentLoading = ref(false);
-let removeBefore: (() => void) | undefined;
-let removeAfter: (() => void) | undefined;
+let loadingTimer: ReturnType<typeof setTimeout> | undefined;
+
+watch(currentMenuPath, () => {
+  contentLoading.value = true;
+  loadingTimer = setTimeout(() => {
+    contentLoading.value = false;
+    loadingTimer = undefined;
+  }, 50);
+});
 
 onMounted(() => {
   document.documentElement.style.overflow = 'hidden';
   document.body.style.overflow = 'hidden';
-  removeBefore = router.beforeEach(() => {
-    contentLoading.value = true;
-  });
-  removeAfter = router.afterEach(() => {
-    nextTick(() => {
-      contentLoading.value = false;
-    });
-  });
 });
 
 onUnmounted(() => {
   document.documentElement.style.overflow = '';
   document.body.style.overflow = '';
-  removeBefore?.();
-  removeAfter?.();
+  if (loadingTimer) clearTimeout(loadingTimer);
 });
 </script>
 

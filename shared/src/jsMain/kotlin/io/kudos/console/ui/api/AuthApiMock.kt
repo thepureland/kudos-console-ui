@@ -77,6 +77,7 @@ private data class CacheSearchParams(
     val atomicServiceCode: String,
     val strategyDictCode: String,
     val active: Boolean?,
+    val hash: Boolean?,
     val writeOnBoot: Boolean?,
     val writeInTime: Boolean?,
     val pageNo: Int,
@@ -91,6 +92,7 @@ private val CACHE_SEARCH_ALLOWED_KEYS = setOf(
     "atomicServiceCode",
     "strategyDictCode",
     "active",
+    "hash",
     "writeOnBoot",
     "writeInTime",
     "pageNo",
@@ -106,6 +108,7 @@ private val CACHE_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
     "ttl",
     "remark",
     "active",
+    "hash",
 )
 
 private fun parseOptionalStringParam(params: JsonObject, key: String): String? {
@@ -163,6 +166,7 @@ private fun validateAndParseCacheSearchParams(params: JsonObject): CacheSearchPa
     val atomicServiceCode = parseOptionalStringParam(params, "atomicServiceCode") ?: ""
     val strategyDictCode = parseOptionalStringParam(params, "strategyDictCode") ?: ""
     val active = parseOptionalBooleanParam(params, "active")
+    val hash = parseOptionalBooleanParam(params, "hash")
     val writeOnBoot = parseOptionalBooleanParam(params, "writeOnBoot")
     val writeInTime = parseOptionalBooleanParam(params, "writeInTime")
 
@@ -177,6 +181,7 @@ private fun validateAndParseCacheSearchParams(params: JsonObject): CacheSearchPa
         atomicServiceCode = atomicServiceCode,
         strategyDictCode = strategyDictCode,
         active = active,
+        hash = hash,
         writeOnBoot = writeOnBoot,
         writeInTime = writeInTime,
         pageNo = pageNo,
@@ -221,10 +226,10 @@ private fun parseDataSourceSearchParams(params: JsonObject): DataSourceSearchPar
 }
 
 private fun buildDataSourceSearchResponse(path: String, requestJson: String): String {
-    val fixture = MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
+    val fixture = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
     val fixtureObj = parseJsonObjectOrEmpty(fixture)
     val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
-    val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
+    val allRows = (dataObj["data"] ?: dataObj["first"])?.jsonArray?.map { it.jsonObject } ?: emptyList()
     val paramsObj = parseJsonObjectOrEmpty(requestJson)
     val params = parseDataSourceSearchParams(paramsObj)
 
@@ -249,8 +254,8 @@ private fun buildDataSourceSearchResponse(path: String, requestJson: String): St
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
+            put("data", JsonArray(pageRows))
+            put("totalCount", JsonPrimitive(total))
         })
     }
     return response.toString()
@@ -333,7 +338,7 @@ private fun buildDataSourceGetDetailResponse(requestId: String): String {
         ?: return "{\"code\":404,\"data\":null}"
     val fixtureObj = parseJsonObjectOrEmpty(fixture)
     val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
-    val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
+    val allRows = (dataObj["data"] ?: dataObj["first"])?.jsonArray?.map { it.jsonObject } ?: emptyList()
     val row = allRows.firstOrNull { primitiveString(it, "id") == requestId }
         ?: return "{\"code\":404,\"data\":null}"
     val body = buildJsonObject {
@@ -343,11 +348,16 @@ private fun buildDataSourceGetDetailResponse(requestId: String): String {
     return body
 }
 
+private fun resolveFixturePath(path: String): String = when {
+    path.startsWith("/api/admin") -> "/api" + path.removePrefix("/api/admin")
+    else -> path
+}
+
 private fun buildCacheSearchResponse(path: String, requestJson: String): String {
-    val fixture = MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
+    val fixture = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
     val fixtureObj = parseJsonObjectOrEmpty(fixture)
     val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
-    val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
+    val allRows = (dataObj["data"] ?: dataObj["first"])?.jsonArray?.map { it.jsonObject } ?: emptyList()
     val paramsObj = parseJsonObjectOrEmpty(requestJson)
     val params = validateAndParseCacheSearchParams(paramsObj)
 
@@ -356,12 +366,14 @@ private fun buildCacheSearchResponse(path: String, requestJson: String): String 
         val rowAtomic = primitiveString(row, "atomicServiceCode").orEmpty()
         val rowStrategy = primitiveString(row, "strategyDictCode").orEmpty()
         val rowActive = primitiveBoolean(row, "active")
+        val rowHash = primitiveBoolean(row, "hash")
         val rowWriteOnBoot = primitiveBoolean(row, "writeOnBoot")
         val rowWriteInTime = primitiveBoolean(row, "writeInTime")
         (params.name.isEmpty() || rowName.contains(params.name, ignoreCase = true)) &&
             (params.atomicServiceCode.isEmpty() || rowAtomic == params.atomicServiceCode) &&
             (params.strategyDictCode.isEmpty() || rowStrategy == params.strategyDictCode) &&
             (params.active == null || rowActive == params.active) &&
+            (params.hash == null || rowHash == params.hash) &&
             (params.writeOnBoot == null || rowWriteOnBoot == params.writeOnBoot) &&
             (params.writeInTime == null || rowWriteInTime == params.writeInTime)
     }
@@ -374,11 +386,8 @@ private fun buildCacheSearchResponse(path: String, requestJson: String): String 
     val pageRows = if (fromIndex >= total) emptyList() else filtered.subList(fromIndex, toIndex)
 
     val response = buildJsonObject {
-        put("code", JsonPrimitive(200))
-        put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
-        })
+        put("data", JsonArray(pageRows))
+        put("totalCount", JsonPrimitive(total))
     }
     return response.toString()
 }
@@ -391,7 +400,7 @@ private fun buildCacheGetDetailResponse(requestId: String): String {
             ?: "{\"code\":404,\"data\":null}"
     val fixtureObj = parseJsonObjectOrEmpty(fixture)
     val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
-    val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
+    val allRows = (dataObj["data"] ?: dataObj["first"])?.jsonArray?.map { it.jsonObject } ?: emptyList()
     val row = allRows.firstOrNull { primitiveString(it, "id") == requestId }
     if (row == null) {
         return (MockJsonStore.byPath["/sys/cache/getDetail"] ?: MockJsonStore.byPath["/api/sys/cache/getDetail"])
@@ -541,8 +550,8 @@ private fun buildParamSearchResponse(requestJson: String): String {
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
+            put("data", JsonArray(pageRows))
+            put("totalCount", JsonPrimitive(total))
         })
     }
     return response.toString()
@@ -676,10 +685,10 @@ private fun parseSortParamForResource(params: JsonObject): Pair<String?, String>
 }
 
 private fun buildResourceSearchResponse(path: String, requestJson: String): String {
-    val fixture = MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
+    val fixture = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
     val fixtureObj = parseJsonObjectOrEmpty(fixture)
     val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
-    val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
+    val allRows = (dataObj["data"] ?: dataObj["first"])?.jsonArray?.map { it.jsonObject } ?: emptyList()
     val paramsObj = parseJsonObjectOrEmpty(requestJson)
     val params = parseResourceSearchParams(paramsObj)
 
@@ -704,8 +713,8 @@ private fun buildResourceSearchResponse(path: String, requestJson: String): Stri
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
+            put("data", JsonArray(pageRows))
+            put("totalCount", JsonPrimitive(total))
         })
     }
     return response.toString()
@@ -718,7 +727,7 @@ private fun buildResourceGetDetailResponse(requestId: String): String {
         ?: return "{\"code\":404,\"data\":null}"
     val fixtureObj = parseJsonObjectOrEmpty(fixture)
     val dataObj = fixtureObj["data"]?.jsonObject ?: JsonObject(emptyMap())
-    val allRows = dataObj["first"]?.jsonArray?.map { it.jsonObject } ?: emptyList()
+    val allRows = (dataObj["data"] ?: dataObj["first"])?.jsonArray?.map { it.jsonObject } ?: emptyList()
     val row = allRows.firstOrNull { primitiveString(it, "id") == requestId }
         ?: return "{\"code\":404,\"data\":null}"
     val resourceType = primitiveString(row, "resourceTypeDictCode").orEmpty()
@@ -822,6 +831,8 @@ private fun buildAccountSearchResponse(requestJson: String): String {
             put("id", JsonPrimitive("acc_1"))
             put("username", JsonPrimitive("admin"))
             put("subSysDictCode", JsonPrimitive("console"))
+            put("tenantId", JsonPrimitive("default"))
+            put("tenantName", JsonPrimitive("默认租户"))
             put("organizationId", JsonPrimitive("org_1"))
             put("userStatusDictCode", JsonPrimitive("NORMAL"))
             put("userTypeDictCode", JsonPrimitive("ADMIN"))
@@ -832,6 +843,8 @@ private fun buildAccountSearchResponse(requestJson: String): String {
             put("id", JsonPrimitive("acc_2"))
             put("username", JsonPrimitive("user1"))
             put("subSysDictCode", JsonPrimitive("console"))
+            put("tenantId", JsonPrimitive("t1"))
+            put("tenantName", JsonPrimitive("租户1"))
             put("organizationId", JsonPrimitive("org_2"))
             put("userStatusDictCode", JsonPrimitive("NORMAL"))
             put("userTypeDictCode", JsonPrimitive("USER"))
@@ -842,6 +855,8 @@ private fun buildAccountSearchResponse(requestJson: String): String {
             put("id", JsonPrimitive("acc_3"))
             put("username", JsonPrimitive("user2"))
             put("subSysDictCode", JsonPrimitive("service_a"))
+            put("tenantId", JsonPrimitive("1"))
+            put("tenantName", JsonPrimitive("租户A1"))
             put("organizationId", JsonPrimitive("org_3"))
             put("userStatusDictCode", JsonPrimitive("LOCKED"))
             put("userTypeDictCode", JsonPrimitive("USER"))
@@ -866,8 +881,8 @@ private fun buildAccountSearchResponse(requestJson: String): String {
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
+            put("data", JsonArray(pageRows))
+            put("totalCount", JsonPrimitive(total))
         })
     }
     return response.toString()
@@ -1036,8 +1051,8 @@ private fun buildRoleSearchResponse(requestJson: String): String {
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
+            put("data", JsonArray(pageRows))
+            put("totalCount", JsonPrimitive(total))
         })
     }
     return response.toString()
@@ -1149,8 +1164,8 @@ private fun buildUserGroupSearchResponse(requestJson: String): String {
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
+            put("data", JsonArray(pageRows))
+            put("totalCount", JsonPrimitive(total))
         })
     }
     return response.toString()
@@ -1202,18 +1217,24 @@ private fun buildUserGroupGetDetailResponse(requestId: String): String {
     return body
 }
 
-/** Mock 组织列表树查询 searchTree：根据 subSysDictCode/tenantId（所选租户）及 active 返回不同树。 */
-private fun buildOrganizationSearchTreeResponse(requestJson: String): String {
+/** Mock 组织列表树 searchTree：与角色列表一致从 body 解析 subSysDictCode/tenantId，按 tenantId 过滤返回不同树；无 tenantId 时返回空。 */
+private fun buildOrganizationSearchTreeResponse(requestJson: String, tenantIdFromQuery: String? = null): String {
     val params = parseJsonObjectOrEmpty(requestJson)
+    // 与 buildRoleSearchResponse 一致：先取 body 的 tenantId / subSysDictCode
     val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
-    val tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
-    val activeOnly = parseOptionalBooleanParam(params, "active") == true // true = 仅启用
-    if (subSysDictCode == null) {
-        val emptyResponse = buildJsonObject {
+    var tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
+    if (tenantId.isNullOrBlank()) {
+        tenantId = (params["subSysOrTenant"] as? JsonArray)?.getOrNull(1)?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+    }
+    if (tenantId.isNullOrBlank()) {
+        tenantId = tenantIdFromQuery?.takeIf { it.isNotBlank() }
+    }
+    val activeOnly = parseOptionalBooleanParam(params, "active") == true
+    if (tenantId.isNullOrBlank()) {
+        return buildJsonObject {
             put("code", JsonPrimitive(200))
             put("data", JsonArray(emptyList<JsonObject>()))
-        }
-        return emptyResponse.toString()
+        }.toString()
     }
     fun node(id: String, name: String, abbr: String, orgType: String, seq: Int, active: Boolean, createTime: String, children: List<JsonObject>) = buildJsonObject {
         put("id", JsonPrimitive(id))
@@ -1225,18 +1246,27 @@ private fun buildOrganizationSearchTreeResponse(requestJson: String): String {
         put("createTime", JsonPrimitive(createTime))
         put("children", JsonArray(children))
     }
-    val prefix = "org_${subSysDictCode}_${tenantId ?: "all"}_"
-    val display = ATOMIC_SERVICE_DISPLAY[subSysDictCode] ?: subSysDictCode
-    val (rootName, rootAbbr) = when {
-        subSysDictCode in ATOMIC_SERVICE_CODES_ORDERED && tenantId == "t1" -> "总部(租户1)" to "租户1"
-        subSysDictCode in ATOMIC_SERVICE_CODES_ORDERED && tenantId == "t2" -> "总部(租户2)" to "租户2"
-        subSysDictCode in ATOMIC_SERVICE_CODES_ORDERED && (tenantId == null || tenantId.isEmpty()) -> "总部($display)" to display
-        else -> "总部($subSysDictCode${if (tenantId != null) "-$tenantId" else ""})" to (tenantId ?: subSysDictCode)
+    // 与 getAllActiveTenants 一致：console 下有 t1..t6、default、tenant_2，每个租户返回不同名称便于区分
+    val names = when (tenantId) {
+        "t1" -> listOf("总部(租户1)", "研发部", "市场部", "已停用部门")
+        "t2" -> listOf("总部(租户2)", "部门A", "部门B", "部门C")
+        "t3" -> listOf("总部(租户3)", "技术部", "销售部", "已停用")
+        "t4" -> listOf("总部(租户4)", "子部门1", "子部门2", "子部门3")
+        "t5" -> listOf("总部(租户5)", "运营部", "财务部", "已停用")
+        "t6" -> listOf("总部(租户6)", "研发部", "市场部", "已停用部门")
+        "default" -> listOf("总部(默认租户)", "部门A", "部门B", "部门C")
+        "tenant_2" -> listOf("总部(租户二)", "技术部", "销售部", "已停用")
+        "1" -> listOf("总部(租户A1)", "部门X", "部门Y", "已停用")
+        else -> listOf("总部($tenantId)", "子部门1", "子部门2", "子部门3")
     }
-    val c1 = node("${prefix}2", "研发部", "研发", "dept", 1, true, "2024-01-02 10:00:00", emptyList())
-    val c2 = node("${prefix}3", "市场部", "市场", "dept", 2, true, "2024-01-03 10:00:00", emptyList())
-    val c3 = node("${prefix}4", "已停用部门", "停用", "dept", 3, false, "2024-01-04 10:00:00", emptyList())
-    val root = node("${prefix}1", rootName, rootAbbr, "company", 0, true, "2024-01-01 10:00:00", listOf(c1, c2, c3))
+    val rootName = names[0]
+    val c1Name = names[1]
+    val c2Name = names[2]
+    val c3Name = names[3]
+    val c1 = node("org_2", c1Name, c1Name.take(2), "dept", 1, true, "2024-01-02 10:00:00", emptyList())
+    val c2 = node("org_3", c2Name, c2Name.take(2), "dept", 2, true, "2024-01-03 10:00:00", emptyList())
+    val c3 = node("org_4", c3Name, c3Name.take(2), "dept", 3, false, "2024-01-04 10:00:00", emptyList())
+    val root = node("org_1", rootName, rootName.take(2), "company", 0, true, "2024-01-01 10:00:00", listOf(c1, c2, c3))
     fun filterByActiveOnly(obj: JsonObject): JsonObject? {
         if (activeOnly) {
             val a = primitiveBoolean(obj, "active") ?: return null
@@ -1257,7 +1287,7 @@ private fun buildOrganizationSearchTreeResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 组织机构详情：根据 id 返回单条，补全详情字段。 */
+/** 组织机构详情：根据 id 返回单条（id 与列表 searchTree、loadTree 一致为 org_1/org_2/org_3/org_4），编辑时取到的即所点的那一条。 */
 private fun buildOrganizationGetDetailResponse(requestId: String): String {
     val nameBySuffix = mapOf(
         "1" to "总部", "2" to "研发部", "3" to "市场部", "4" to "已停用部门"
@@ -1271,6 +1301,9 @@ private fun buildOrganizationGetDetailResponse(requestId: String): String {
         "4" -> "停用"
         else -> "—"
     }
+    // 与 loadTree 一致：org_1（总部）为根，上级为 null；org_2/org_3/org_4 的父级为 org_1；兼容带前缀的 id（如 org_console_t6_1）用 suffix 判根
+    val isRoot = suffix == "1"
+    val parentIds = if (isRoot) emptyList<String>() else listOf("org_1")
     val row = buildJsonObject {
         put("id", JsonPrimitive(requestId))
         put("name", JsonPrimitive(name))
@@ -1280,9 +1313,11 @@ private fun buildOrganizationGetDetailResponse(requestId: String): String {
         put("active", JsonPrimitive(suffix != "4"))
         put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
         put("subSysDictCode", JsonPrimitive("console"))
+        put("tenantId", JsonPrimitive("t6"))
+        put("tenantName", JsonPrimitive("租户1"))
+        put("parentId", if (isRoot) JsonNull else JsonPrimitive("org_1"))
+        put("parentIds", JsonArray(parentIds.map { JsonPrimitive(it) }))
         put("remark", JsonPrimitive(""))
-        put("tenantId", JsonPrimitive(""))
-        put("tenantName", JsonPrimitive(""))
         put("updateTime", JsonArray(listOf(JsonPrimitive(2024), JsonPrimitive(1), JsonPrimitive(1), JsonPrimitive(0), JsonPrimitive(0), JsonPrimitive(0))))
         put("createUser", JsonPrimitive(""))
         put("updateUser", JsonPrimitive(""))
@@ -1322,9 +1357,9 @@ private fun buildSubsysSearchTreeResponse(requestJson: String): String {
         put("remark", JsonPrimitive(remark))
     }
     val flat = listOf(
-        node("sys_1", "service_a", "服务A", null, true, true, true, "业务服务A"),
-        node("sys_2", "console", "服务B", null, true, true, true, "主控制台"),
-        node("sys_3", "service_b", "服务B", "console", true, false, true, "业务服务B"),
+        node("sys_1", "service_a", "子系统1", null, true, true, true, "业务服务A"),
+        node("sys_2", "console", "子系统2", null, true, true, true, "主控制台"),
+        node("sys_3", "service_b", "子系统3", "console", true, false, true, "业务服务B"),
         node("sys_4", "module_x", "模块X", "service_a", false, true, false, "子模块"),
         node("sys_5", "module_y", "模块Y", "service_a", false, true, false, ""),
     )
@@ -1388,9 +1423,9 @@ private fun buildSubsysGetDetailResponse(requestId: String): String {
         put("remark", JsonPrimitive(remark))
     }
     val flat = listOf(
-        node("sys_1", "service_a", "服务A", null, true, true, true, "业务服务A"),
-        node("sys_2", "console", "服务B", null, true, true, true, "主控制台"),
-        node("sys_3", "service_b", "服务B", "console", true, false, true, "业务服务B"),
+        node("sys_1", "service_a", "子系统1", null, true, true, true, "业务服务A"),
+        node("sys_2", "console", "子系统2", null, true, true, true, "主控制台"),
+        node("sys_3", "service_b", "子系统3", "console", true, false, true, "业务服务B"),
         node("sys_4", "module_x", "模块X", "service_a", false, true, false, "子模块"),
         node("sys_5", "module_y", "模块Y", "service_a", false, true, false, ""),
     )
@@ -1636,8 +1671,8 @@ private fun buildI18nSearchResponse(requestJson: String): String {
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
+            put("data", JsonArray(pageRows))
+            put("totalCount", JsonPrimitive(total))
         })
     }
     return response.toString()
@@ -1694,8 +1729,8 @@ private fun buildTenantSearchResponse(requestJson: String): String {
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
+            put("data", JsonArray(pageRows))
+            put("totalCount", JsonPrimitive(total))
         })
     }
     return response.toString()
@@ -1800,8 +1835,8 @@ private fun buildDomainSearchResponse(requestJson: String): String {
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
+            put("data", JsonArray(pageRows))
+            put("totalCount", JsonPrimitive(total))
         })
     }
     return response.toString()
@@ -1859,12 +1894,14 @@ private fun buildDomainGetResponse(id: String): String {
     return body
 }
 
-/** Mock 字典列表搜索：返回 first=行列表、second=总数。 */
+/** Mock 字典列表搜索：按 module、dictType 等条件过滤后返回 first=行列表、second=总数。 */
 private fun buildDictSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
     val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, 500)
-    val mockRows = listOf(
+    val filterModule = primitiveString(params, "module")?.takeIf { it.isNotBlank() }
+    val filterDictType = primitiveString(params, "dictType")?.takeIf { it.isNotBlank() }
+    val allRows = listOf(
         buildJsonObject {
             put("dictId", JsonPrimitive("dict_1"))
             put("dictType", JsonPrimitive("dict_type"))
@@ -1890,6 +1927,10 @@ private fun buildDictSearchResponse(requestJson: String): String {
             put("active", JsonPrimitive(true))
         },
     )
+    val mockRows = allRows.filter { row ->
+        (filterModule == null || primitiveString(row, "module") == filterModule) &&
+        (filterDictType == null || primitiveString(row, "dictType") == filterDictType)
+    }
     val total = mockRows.size
     val fromIndex = ((pageNo - 1) * pageSize).coerceAtLeast(0)
     val toIndex = min(fromIndex + pageSize, total)
@@ -1897,8 +1938,8 @@ private fun buildDictSearchResponse(requestJson: String): String {
     val response = buildJsonObject {
         put("code", JsonPrimitive(200))
         put("data", buildJsonObject {
-            put("first", JsonArray(pageRows))
-            put("second", JsonPrimitive(total))
+            put("data", JsonArray(pageRows))
+            put("totalCount", JsonPrimitive(total))
         })
     }
     return response.toString()
@@ -1907,7 +1948,13 @@ private fun buildDictSearchResponse(requestJson: String): String {
 /** Mock 字典按树查询：与 search 相同结构 first/second，供展开树节点时表格数据。 */
 private fun buildDictSearchByTreeResponse(requestJson: String): String = buildDictSearchResponse(requestJson)
 
-/** Mock 字典树：根=模块(code)，第二层=字典类型(id+code)，第三层=字典项(id+code)。 */
+/** 按原子服务(module)列出的字典类型(id, code)，与 buildDictSearchResponse 一致；树第二层仅展示 code 不翻译。 */
+private val MOCK_DICT_TYPES_BY_MODULE: Map<String, List<Pair<String, String>>> = mapOf(
+    "sys" to listOf("dict_1" to "dict_type"),
+    "user" to listOf("dict_2" to "user_status"),
+)
+
+/** Mock 字典树：第一层=原子服务，第二层=字典类型(仅 code)，第三层=字典项。 */
 private fun buildDictLoadTreeNodesResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val parentId = primitiveString(params, "parentId")?.takeIf { it.isNotBlank() }
@@ -1915,15 +1962,30 @@ private fun buildDictLoadTreeNodesResponse(requestJson: String): String {
 
     val nodes: List<JsonObject> = when {
         parentId == null -> ATOMIC_SERVICE_CODES_ORDERED.map { code ->
-            buildJsonObject { put("id", JsonPrimitive(code)); put("code", JsonPrimitive(code)) }
+            buildJsonObject {
+                put("id", JsonPrimitive(code))
+                put("code", JsonPrimitive(code))
+                put("name", JsonPrimitive(ATOMIC_SERVICE_DISPLAY[code]!!))
+            }
         }
-        firstLevel -> listOf(
-            buildJsonObject { put("id", JsonPrimitive("dict_${parentId}_1")); put("code", JsonPrimitive("dict_${parentId}_1")) },
-            buildJsonObject { put("id", JsonPrimitive("dict_${parentId}_2")); put("code", JsonPrimitive("dict_${parentId}_2")) },
-        )
+        firstLevel -> (MOCK_DICT_TYPES_BY_MODULE[parentId] ?: emptyList()).map { (dictId, dictType) ->
+            buildJsonObject {
+                put("id", JsonPrimitive(dictId))
+                put("code", JsonPrimitive(dictType))
+                put("name", JsonPrimitive(dictType))
+            }
+        }
         else -> listOf(
-            buildJsonObject { put("id", JsonPrimitive("item_${parentId}_1")); put("code", JsonPrimitive("item_1")) },
-            buildJsonObject { put("id", JsonPrimitive("item_${parentId}_2")); put("code", JsonPrimitive("item_2")) },
+            buildJsonObject {
+                put("id", JsonPrimitive("item_${parentId}_1"))
+                put("code", JsonPrimitive("item_1"))
+                put("name", JsonPrimitive("item_1"))
+            },
+            buildJsonObject {
+                put("id", JsonPrimitive("item_${parentId}_2"))
+                put("code", JsonPrimitive("item_2"))
+                put("name", JsonPrimitive("item_2"))
+            },
         )
     }
     val response = buildJsonObject {
@@ -1935,9 +1997,9 @@ private fun buildDictLoadTreeNodesResponse(requestJson: String): String {
 
 /** 子系统列表（与 buildSubsysSearchTreeResponse 一致），供资源树第二级等复用。 */
 private fun buildResourceSubsystemLevelNodes(): List<JsonObject> = listOf(
-    buildJsonObject { put("id", JsonPrimitive("service_a")); put("name", JsonPrimitive("服务A")) },
-    buildJsonObject { put("id", JsonPrimitive("console")); put("name", JsonPrimitive("服务B")) },
-    buildJsonObject { put("id", JsonPrimitive("service_b")); put("name", JsonPrimitive("服务B")) },
+    buildJsonObject { put("id", JsonPrimitive("service_a")); put("name", JsonPrimitive("子系统1")) },
+    buildJsonObject { put("id", JsonPrimitive("console")); put("name", JsonPrimitive("子系统2")) },
+    buildJsonObject { put("id", JsonPrimitive("service_b")); put("name", JsonPrimitive("子系统3")) },
 )
 
 /** Mock 资源树：仅两级——第一级=资源类型（菜单/按钮），第二级=子系统；严格按 level 分支。 */
@@ -1960,15 +2022,15 @@ private fun buildResourceLoadTreeNodesResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 原子服务（sub_sys）统一数据源：顺序与展示名，所有需要原子服务测试数据的 mock 均由此生成。 */
+/** 原子服务列表：供 getAtomicServices、字典列表「原子服务」筛选等使用；选租户时第一层也复用此列表（语义上子系统=原子服务）。 */
 private val ATOMIC_SERVICE_CODES_ORDERED = listOf("sys", "user", "auth", "msg", "service_a", "console")
 private val ATOMIC_SERVICE_DISPLAY = mapOf(
-    "sys" to "sys",
-    "user" to "user",
-    "auth" to "auth",
-    "msg" to "msg",
-    "service_a" to "服务A",
-    "console" to "服务B",
+    "sys" to "原子服务1",
+    "user" to "原子服务2",
+    "auth" to "原子服务3",
+    "msg" to "原子服务4",
+    "service_a" to "原子服务5",
+    "console" to "原子服务6",
 )
 
 /** 原子服务列表 API 返回：非字典，专用接口。 */
@@ -1985,11 +2047,11 @@ private fun buildAtomicServicesResponse(): String {
     }.toString()
 }
 
-/** 预置字典项 mock：module---dictType -> code->name。前端 batchGetDictItemMap 用 "[module, dictType]" 作 key。原子服务不是字典，不在此处。 */
+/** 预置字典项 mock：module---dictType -> code->name。name 均为国际化 key，前端用 t(name) 展示。 */
 private val MOCK_DICT_ITEM_MAP = mapOf(
     "kuark:sys---resource_type" to mapOf(
-        "menu" to "菜单",
-        "button" to "按钮",
+        "menu" to "resource_type.menu",
+        "button" to "resource_type.button",
     ),
     "kuark:sys---cache_strategy" to mapOf(
         "SINGLE_LOCAL" to "cache_strategy.SINGLE_LOCAL",
@@ -1997,29 +2059,39 @@ private val MOCK_DICT_ITEM_MAP = mapOf(
         "LOCAL_REMOTE" to "cache_strategy.LOCAL_REMOTE",
     ),
     "kuark:sys---module" to mapOf(
-        "kuark:sys" to "系统",
-        "kuark:user" to "用户",
-        "kuark:log" to "日志",
-        "kuark:job" to "任务",
+        "kuark:sys" to "module.kuark_sys",
+        "kuark:user" to "module.kuark_user",
+        "kuark:log" to "module.kuark_log",
+        "kuark:job" to "module.kuark_job",
     ),
     "kuark:user---user_status" to mapOf(
-        "NORMAL" to "正常",
-        "LOCKED" to "锁定",
-        "DISABLED" to "禁用",
+        "NORMAL" to "user_status.NORMAL",
+        "LOCKED" to "user_status.LOCKED",
+        "DISABLED" to "user_status.DISABLED",
     ),
     "kuark:user---user_type" to mapOf(
-        "ADMIN" to "管理员",
-        "USER" to "普通用户",
+        "ADMIN" to "user_type.ADMIN",
+        "USER" to "user_type.USER",
     ),
     "kuark:sys---locale" to mapOf(
-        "zh-CN" to "zh-CN",
-        "zh-TW" to "zh-TW",
-        "en-US" to "en-US",
+        "zh-CN" to "locale.zh_CN",
+        "zh-TW" to "locale.zh_TW",
+        "en-US" to "locale.en_US",
     ),
     "kuark:sys---i18n_type" to mapOf(
         "dict" to "i18n_type.dict",
         "dict_item" to "i18n_type.dict_item",
         "view" to "i18n_type.view",
+    ),
+    "share---organization_type" to mapOf(
+        "company" to "organization_type.company",
+        "dept" to "organization_type.dept",
+        "group" to "organization_type.group",
+    ),
+    "kuark:user---organization_type" to mapOf(
+        "company" to "organization_type.company",
+        "dept" to "organization_type.dept",
+        "group" to "organization_type.group",
     ),
 )
 
@@ -2081,35 +2153,35 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
                 respond(body, HttpStatusCode.OK, headers)
             }
         }
-        "/sys/cache/search", "/api/sys/cache/search" -> {
+        "/sys/cache/search", "/api/sys/cache/search", "/api/admin/sys/cache/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildCacheSearchResponse(path, requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/cache/getDetail", "/api/sys/cache/getDetail" -> {
+        "/sys/cache/getDetail", "/api/sys/cache/getDetail", "/api/admin/sys/cache/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildCacheGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/cache/getValidationRule", "/api/sys/cache/getValidationRule" -> {
+        "/sys/cache/getValidationRule", "/api/sys/cache/getValidationRule", "/api/admin/sys/cache/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dataSource/search", "/api/sys/dataSource/search" -> {
+        "/sys/dataSource/search", "/api/sys/dataSource/search", "/api/admin/sys/dataSource/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDataSourceSearchResponse(path, requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dataSource/getDetail", "/api/sys/dataSource/getDetail" -> {
+        "/sys/dataSource/getDetail", "/api/sys/dataSource/getDetail", "/api/admin/sys/dataSource/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildDataSourceGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dataSource/getValidationRule", "/api/sys/dataSource/getValidationRule" -> {
+        "/sys/dataSource/getValidationRule", "/api/sys/dataSource/getValidationRule", "/api/admin/sys/dataSource/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dataSource/saveOrUpdate", "/api/sys/dataSource/saveOrUpdate" -> {
+        "/sys/dataSource/saveOrUpdate", "/api/sys/dataSource/saveOrUpdate", "/api/admin/sys/dataSource/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2120,21 +2192,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/param/search", "/api/sys/param/search" -> {
+        "/sys/param/search", "/api/sys/param/search", "/api/admin/sys/param/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildParamSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/param/getDetail", "/api/sys/param/getDetail" -> {
+        "/sys/param/getDetail", "/api/sys/param/getDetail", "/api/admin/sys/param/getDetail" -> {
             val id = request.url.parameters["id"] ?: request.url.parameters["paramId"] ?: ""
             val body = buildParamGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/param/getValidationRule", "/api/sys/param/getValidationRule" -> {
+        "/sys/param/getValidationRule", "/api/sys/param/getValidationRule", "/api/admin/sys/param/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/param/saveOrUpdate", "/api/sys/param/saveOrUpdate" -> {
+        "/sys/param/saveOrUpdate", "/api/sys/param/saveOrUpdate", "/api/admin/sys/param/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2145,21 +2217,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/search", "/api/sys/resource/search" -> {
+        "/sys/resource/search", "/api/sys/resource/search", "/api/admin/sys/resource/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildResourceSearchResponse(path, requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/getDetail", "/api/sys/resource/getDetail" -> {
+        "/sys/resource/getDetail", "/api/sys/resource/getDetail", "/api/admin/sys/resource/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildResourceGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/getValidationRule", "/api/sys/resource/getValidationRule" -> {
+        "/sys/resource/getValidationRule", "/api/sys/resource/getValidationRule", "/api/admin/sys/resource/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/saveOrUpdate", "/api/sys/resource/saveOrUpdate" -> {
+        "/sys/resource/saveOrUpdate", "/api/sys/resource/saveOrUpdate", "/api/admin/sys/resource/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2170,21 +2242,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/loadTreeNodes", "/api/sys/resource/loadTreeNodes" -> {
+        "/sys/resource/loadTreeNodes", "/api/sys/resource/loadTreeNodes", "/api/admin/sys/resource/loadTreeNodes" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildResourceLoadTreeNodesResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/searchByTree", "/api/sys/resource/searchByTree" -> {
+        "/sys/resource/searchByTree", "/api/sys/resource/searchByTree", "/api/admin/sys/resource/searchByTree" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildResourceSearchResponse("/sys/resource/search", requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/atomicServices", "/api/sys/atomicServices" -> {
+        "/sys/atomicServices", "/api/sys/atomicServices", "/api/admin/sys/atomicServices" -> {
             val body = buildAtomicServicesResponse()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/loadDictTypes", "/api/sys/dict/loadDictTypes" -> {
+        "/sys/dict/loadDictTypes", "/api/sys/dict/loadDictTypes", "/api/admin/sys/dict/loadDictTypes" -> {
             val data = JsonArray(
                 listOf(
                     JsonPrimitive("module"),
@@ -2199,26 +2271,26 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/loadTreeNodes", "/api/sys/dict/loadTreeNodes" -> {
+        "/sys/dict/loadTreeNodes", "/api/sys/dict/loadTreeNodes", "/api/admin/sys/dict/loadTreeNodes" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDictLoadTreeNodesResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/domain/search", "/api/sys/domain/search" -> {
+        "/sys/domain/search", "/api/sys/domain/search", "/api/admin/sys/domain/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDomainSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/domain/get", "/api/sys/domain/get" -> {
+        "/sys/domain/get", "/api/sys/domain/get", "/api/admin/sys/domain/get" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildDomainGetResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/domain/getValidationRule", "/api/sys/domain/getValidationRule" -> {
+        "/sys/domain/getValidationRule", "/api/sys/domain/getValidationRule", "/api/admin/sys/domain/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/domain/saveOrUpdate", "/api/sys/domain/saveOrUpdate" -> {
+        "/sys/domain/saveOrUpdate", "/api/sys/domain/saveOrUpdate", "/api/admin/sys/domain/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2229,22 +2301,33 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dictItem/batchGetDictItemMap", "/api/sys/dictItem/batchGetDictItemMap" -> {
+        "/sys/dict/saveOrUpdate", "/api/sys/dict/saveOrUpdate", "/api/admin/sys/dict/saveOrUpdate" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "dict_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/dictItem/batchGetDictItemMap", "/api/sys/dictItem/batchGetDictItemMap", "/api/admin/sys/dictItem/batchGetDictItemMap" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildBatchGetDictItemMapResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/tenant/search", "/api/sys/tenant/search" -> {
+        "/sys/tenant/search", "/api/sys/tenant/search", "/api/admin/sys/tenant/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildTenantSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/tenant/get", "/api/sys/tenant/get" -> {
+        "/sys/tenant/get", "/api/sys/tenant/get", "/api/admin/sys/tenant/get" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildTenantGetResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/tenant/getValidationRule", "/api/sys/tenant/getValidationRule" -> {
+        "/sys/tenant/getValidationRule", "/api/sys/tenant/getValidationRule", "/api/admin/sys/tenant/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
@@ -2259,21 +2342,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/i18n/search", "/api/sys/i18n/search" -> {
+        "/sys/i18n/search", "/api/sys/i18n/search", "/api/admin/sys/i18n/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildI18nSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/i18n/getDetail", "/api/sys/i18n/getDetail" -> {
+        "/sys/i18n/getDetail", "/api/sys/i18n/getDetail", "/api/admin/sys/i18n/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildI18nGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/i18n/getValidationRule", "/api/sys/i18n/getValidationRule" -> {
+        "/sys/i18n/getValidationRule", "/api/sys/i18n/getValidationRule", "/api/admin/sys/i18n/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/i18n/saveOrUpdate", "/api/sys/i18n/saveOrUpdate" -> {
+        "/sys/i18n/saveOrUpdate", "/api/sys/i18n/saveOrUpdate", "/api/admin/sys/i18n/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2284,21 +2367,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/account/search", "/api/user/account/search" -> {
+        "/user/account/search", "/api/user/account/search", "/api/admin/user/account/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildAccountSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/account/getDetail", "/api/user/account/getDetail" -> {
+        "/user/account/getDetail", "/api/user/account/getDetail", "/api/admin/user/account/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildAccountGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/account/getValidationRule", "/api/user/account/getValidationRule" -> {
+        "/user/account/getValidationRule", "/api/user/account/getValidationRule", "/api/admin/user/account/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/account/saveOrUpdate", "/api/user/account/saveOrUpdate" -> {
+        "/user/account/saveOrUpdate", "/api/user/account/saveOrUpdate", "/api/admin/user/account/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2309,21 +2392,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/group/search", "/api/rbac/group/search" -> {
+        "/rbac/group/search", "/api/rbac/group/search", "/api/admin/rbac/group/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildUserGroupSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/group/getDetail", "/api/rbac/group/getDetail" -> {
+        "/rbac/group/getDetail", "/api/rbac/group/getDetail", "/api/admin/rbac/group/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildUserGroupGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/group/getValidationRule", "/api/rbac/group/getValidationRule" -> {
+        "/rbac/group/getValidationRule", "/api/rbac/group/getValidationRule", "/api/admin/rbac/group/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/group/saveOrUpdate", "/api/rbac/group/saveOrUpdate" -> {
+        "/rbac/group/saveOrUpdate", "/api/rbac/group/saveOrUpdate", "/api/admin/rbac/group/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2334,21 +2417,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/role/search", "/api/rbac/role/search" -> {
+        "/rbac/role/search", "/api/rbac/role/search", "/api/admin/rbac/role/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildRoleSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/role/getDetail", "/api/rbac/role/getDetail" -> {
+        "/rbac/role/getDetail", "/api/rbac/role/getDetail", "/api/admin/rbac/role/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildRoleGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/role/getValidationRule", "/api/rbac/role/getValidationRule" -> {
+        "/rbac/role/getValidationRule", "/api/rbac/role/getValidationRule", "/api/admin/rbac/role/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/role/saveOrUpdate", "/api/rbac/role/saveOrUpdate" -> {
+        "/rbac/role/saveOrUpdate", "/api/rbac/role/saveOrUpdate", "/api/admin/rbac/role/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2359,27 +2442,28 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/organization/loadTree", "/api/user/organization/loadTree" -> {
+        "/user/organization/loadTree", "/api/user/organization/loadTree", "/api/admin/user/organization/loadTree" -> {
             val subSys = request.url.parameters["subSysDictCode"]
             val tenant = request.url.parameters["tenantId"]
             val body = buildOrganizationLoadTreeResponse(subSys, tenant)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/organization/searchTree", "user/organization/searchTree", "/api/user/organization/searchTree" -> {
+        "/user/organization/searchTree", "user/organization/searchTree", "/api/user/organization/searchTree", "/api/admin/user/organization/searchTree" -> {
             val requestJson = requestBodyText(request.body)
-            val body = buildOrganizationSearchTreeResponse(requestJson)
+            val tenantFromQuery = request.url.parameters["tenantId"]?.takeIf { it.isNotBlank() }
+            val body = buildOrganizationSearchTreeResponse(requestJson, tenantFromQuery)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/organization/getDetail", "/api/user/organization/getDetail" -> {
+        "/user/organization/getDetail", "/api/user/organization/getDetail", "/api/admin/user/organization/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildOrganizationGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/organization/getValidationRule", "/api/user/organization/getValidationRule" -> {
+        "/user/organization/getValidationRule", "/api/user/organization/getValidationRule", "/api/admin/user/organization/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/organization/saveOrUpdate", "/api/user/organization/saveOrUpdate" -> {
+        "/user/organization/saveOrUpdate", "/api/user/organization/saveOrUpdate", "/api/admin/user/organization/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2390,21 +2474,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/subsys/searchTree", "sys/subsys/searchTree", "/api/sys/subsys/searchTree" -> {
+        "/sys/subsys/searchTree", "sys/subsys/searchTree", "/api/sys/subsys/searchTree", "/api/admin/sys/subsys/searchTree" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildSubsysSearchTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/subsys/getDetail", "/api/sys/subsys/getDetail" -> {
+        "/sys/subsys/getDetail", "/api/sys/subsys/getDetail", "/api/admin/sys/subsys/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildSubsysGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/subsys/getValidationRule", "/api/sys/subsys/getValidationRule" -> {
+        "/sys/subsys/getValidationRule", "/api/sys/subsys/getValidationRule", "/api/admin/sys/subsys/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/subsys/saveOrUpdate", "/api/sys/subsys/saveOrUpdate" -> {
+        "/sys/subsys/saveOrUpdate", "/api/sys/subsys/saveOrUpdate", "/api/admin/sys/subsys/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2415,21 +2499,21 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/microservice/searchTree", "sys/microservice/searchTree", "/api/sys/microservice/searchTree" -> {
+        "/sys/microservice/searchTree", "sys/microservice/searchTree", "/api/sys/microservice/searchTree", "/api/admin/sys/microservice/searchTree" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildMicroserviceSearchTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/microservice/getDetail", "/api/sys/microservice/getDetail" -> {
+        "/sys/microservice/getDetail", "/api/sys/microservice/getDetail", "/api/admin/sys/microservice/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildMicroserviceGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/microservice/getValidationRule", "/api/sys/microservice/getValidationRule" -> {
+        "/sys/microservice/getValidationRule", "/api/sys/microservice/getValidationRule", "/api/admin/sys/microservice/getValidationRule" -> {
             val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/microservice/saveOrUpdate", "/api/sys/microservice/saveOrUpdate" -> {
+        "/sys/microservice/saveOrUpdate", "/api/sys/microservice/saveOrUpdate", "/api/admin/sys/microservice/saveOrUpdate" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2440,17 +2524,17 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/search", "/api/sys/dict/search" -> {
+        "/sys/dict/search", "/api/sys/dict/search", "/api/admin/sys/dict/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDictSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/searchByTree", "/api/sys/dict/searchByTree" -> {
+        "/sys/dict/searchByTree", "/api/sys/dict/searchByTree", "/api/admin/sys/dict/searchByTree" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDictSearchByTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/tenant/getAllActiveTenants", "/api/sys/tenant/getAllActiveTenants" -> {
+        "/sys/tenant/getAllActiveTenants", "/api/sys/tenant/getAllActiveTenants", "/api/admin/sys/tenant/getAllActiveTenants" -> {
             val data = buildJsonObject {
                 ATOMIC_SERVICE_CODES_ORDERED.forEachIndexed { index, code ->
                     put(code, buildJsonObject {
@@ -2470,7 +2554,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/getDict", "/api/sys/dict/getDict" -> {
+        "/sys/dict/getDict", "/api/sys/dict/getDict", "/api/admin/sys/dict/getDict" -> {
             val id = request.url.parameters["id"] ?: ""
             val isDict = request.url.parameters["isDict"]?.toBooleanStrictOrNull() == true
             val row = buildJsonObject {
@@ -2491,7 +2575,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/getDetail", "/api/sys/dict/getDetail" -> {
+        "/sys/dict/getDetail", "/api/sys/dict/getDetail", "/api/admin/sys/dict/getDetail" -> {
             val id = request.url.parameters["id"] ?: request.url.parameters["dictId"] ?: ""
             val row = buildJsonObject {
                 put("id", JsonPrimitive("dict_$id"))
@@ -2509,6 +2593,38 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildJsonObject {
                 put("code", JsonPrimitive(200))
                 put("data", row)
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/dictItem/getDictItemsByDictId", "/api/sys/dictItem/getDictItemsByDictId", "/api/admin/sys/dictItem/getDictItemsByDictId" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val dictId = primitiveString(params, "dictId") ?: ""
+            val items = listOf(
+                buildJsonObject {
+                    put("id", JsonPrimitive("item_${dictId}_1"))
+                    put("itemCode", JsonPrimitive("item_1"))
+                    put("itemName", JsonPrimitive("项1"))
+                    put("seqNo", JsonPrimitive(0))
+                    put("active", JsonPrimitive(true))
+                    put("builtIn", JsonPrimitive(false))
+                    put("createTime", JsonNull)
+                    put("remark", JsonPrimitive(""))
+                },
+                buildJsonObject {
+                    put("id", JsonPrimitive("item_${dictId}_2"))
+                    put("itemCode", JsonPrimitive("item_2"))
+                    put("itemName", JsonPrimitive("项2"))
+                    put("seqNo", JsonPrimitive(1))
+                    put("active", JsonPrimitive(true))
+                    put("builtIn", JsonPrimitive(false))
+                    put("createTime", JsonNull)
+                    put("remark", JsonPrimitive(""))
+                },
+            )
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonArray(items))
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }

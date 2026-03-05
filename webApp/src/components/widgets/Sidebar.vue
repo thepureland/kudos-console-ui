@@ -5,25 +5,28 @@
  * @since 1.0.0
  -->
 <template>
-  <!-- 左侧导航：el-menu 多级 + 折叠 + router，宽度由 store.sidebarWidth 控制（可拖拽分界线调整） -->
+  <!-- 左侧导航：el-menu 多级 + 折叠，点击菜单仅更新 store.currentMenuPath 不改变地址栏 -->
   <div class="sidebar" :class="sidebarTimeClass" :style="sidebarStyle">
     <!-- 折叠时首页、消息中心用自定义两行，保证图标水平居中（不受 el-menu-item 默认样式影响） -->
     <div v-if="collapse" class="sidebar-collapse-top">
-      <router-link
+      <div
         v-for="item in collapseTopItems"
         :key="item.index"
-        :to="item.index"
         class="sidebar-collapse-row"
-        :class="{ 'is-active': onRoutes === item.index }"
+        :class="{ 'is-active': currentPath === item.index }"
+        role="button"
+        tabindex="0"
+        @click="onMenuSelect(item.index)"
+        @keydown.enter="onMenuSelect(item.index)"
       >
         <el-icon><component :is="item.icon" /></el-icon>
-      </router-link>
+      </div>
     </div>
     <el-menu
       class="sidebar-el-menu"
-      :default-active="onRoutes"
+      :default-active="currentPath"
       :collapse="collapse"
-      router
+      @select="onMenuSelect"
     >
       <template v-for="item in menuDataDisplay" :key="item.index">
         <template v-if="item.children">
@@ -79,7 +82,6 @@
 import { computed, markRaw, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import { useRoute } from 'vue-router';
 import {
   Bell,
   HomeFilled,
@@ -94,6 +96,8 @@ import {
   Key,
 } from '@element-plus/icons-vue';
 import { AuthApiFactory } from 'shared';
+import { REQUIRE_AUTH } from '../../config/auth';
+import { PATH_META, resolvePath } from '../../config/menuPathToComponent';
 import { backendRequest } from '../../utils/backendRequest';
 
 interface MenuItem {
@@ -105,12 +109,35 @@ interface MenuItem {
 }
 
 const { t } = useI18n();
-const route = useRoute();
 const store = useStore();
 const collapse = computed(() => store.state.collapse);
 /** 侧栏展开时的宽度（px），与 Home 页分界线拖拽联动，来自 store */
 const sidebarWidth = computed(() => store.state.sidebarWidth);
-const onRoutes = computed(() => route.path);
+/** 当前菜单路径，来自 store，点击菜单时更新（不改变地址栏） */
+const currentPath = computed(() => store.state.currentMenuPath);
+
+function onMenuSelect(path: string) {
+  const resolved = resolvePath(path);
+  store.commit('setCurrentMenuPath', resolved);
+  const item = findMenuItemByPath(menuData.value, resolved) ?? findMenuItemByPath(menuData.value, path);
+  const meta = PATH_META[resolved];
+  store.commit('setTagsItem', {
+    titleKey: item?.titleKey ?? meta?.titleKey,
+    icon: meta?.icon ?? 'Setting',
+    path: resolved,
+  });
+}
+
+function findMenuItemByPath(items: MenuItem[], targetPath: string): MenuItem | undefined {
+  for (const it of items) {
+    if (it.index === targetPath) return it;
+    if (it.children) {
+      const found = findMenuItemByPath(it.children, targetPath);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
 
 /** 侧栏根节点宽度：折叠时 43px（64 的三分之二），展开时为 store.sidebarWidth；菜单区用 width:100% 填满 */
 const SIDEBAR_COLLAPSED_WIDTH = 43;
@@ -234,8 +261,12 @@ function getFallbackMenus(): MenuItem[] {
     },
   ];
 }
-/** 加载顺序：AuthApi.getMenus → 全局 ajax getAuthorisedMenus → localhost 时 fallback */
+/** 加载顺序：sys 模式直接 fallback → AuthApi.getMenus → 全局 ajax getAuthorisedMenus → localhost 时 fallback */
 async function loadMenuData() {
+  if (!REQUIRE_AUTH) {
+    menuData.value = getFallbackMenus();
+    return;
+  }
   if (AuthApiFactory.getInstance().hasToken()) {
     try {
       const api = AuthApiFactory.getInstance().getAuthApi();
@@ -344,6 +375,7 @@ onMounted(() => loadMenuData());
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   width: 100%;
   height: 56px;
   min-height: 56px;

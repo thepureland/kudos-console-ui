@@ -32,12 +32,16 @@ class BackendApiExposed {
     private val scope = MainScope()
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun baseUrl(): String =
-        rawWindow().location.origin.unsafeCast<String>()
+    private fun baseUrl(): String {
+        val win = rawWindow()
+        val direct = win.__KUDOS_API_BASE__ as? String
+        if (!direct.isNullOrBlank()) return direct.removeSuffix("/")
+        return win.location.origin.unsafeCast<String>()
+    }
 
     private fun fullPath(url: String): String {
         val path = if (url.startsWith("/")) url else "/$url"
-        return baseUrl() + path
+        return baseUrl() + "/api/admin" + path
     }
 
     private fun appendJsonToUrlBuilder(
@@ -73,9 +77,11 @@ class BackendApiExposed {
      * @param paramsJson GET/DELETE 时为 query 参数对象 JSON，POST 时为 body JSON；可为 null
      */
     fun request(url: String, method: String, paramsJson: String?) = scope.promise {
+        val t0 = perfNow()
         val path = fullPath(url)
+        val t1 = perfNow()
         val methodLower = method.lowercase()
-        when (methodLower) {
+        val response = when (methodLower) {
             "get" -> {
                 client.get(path) {
                     url {
@@ -102,5 +108,17 @@ class BackendApiExposed {
             }
             else -> client.get(path).body<String>()
         }
+        val t2 = perfNow()
+        val total = (t2 - t0).toInt()
+        if (total > 1000) {
+            logSlow("[BackendApi] 慢请求 ${total}ms: $method $url | fullPath=${(t1 - t0).toInt()}ms 网络=${(t2 - t1).toInt()}ms")
+        }
+        response
+    }
+
+    private fun perfNow(): Double = js("performance.now()").unsafeCast<Double>()
+
+    private fun logSlow(msg: String) {
+        js("console.warn").call(js("console"), msg)
     }
 }

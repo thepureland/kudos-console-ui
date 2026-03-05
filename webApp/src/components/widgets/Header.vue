@@ -2,7 +2,7 @@
   <div class="header" :class="headerTimeClass">
     <!-- 左侧：Logo + 面包屑；右侧：全屏 / 主题 / 语言 / 消息 / 用户下拉；侧栏折叠在 sidebar 与内容区分界线处切换 -->
     <div class="header-left">
-      <router-link to="/home" class="logo">
+      <a href="#" class="logo" @click.prevent="store.commit('setCurrentMenuPath', resolvePath('/home'))">
         <span class="logo-icon" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.15" />
@@ -10,27 +10,29 @@
           </svg>
         </span>
         <span class="logo-text">{{ t('header.appName') }}</span>
-      </router-link>
+      </a>
       <nav class="breadcrumb" aria-label="面包屑">
         <template v-for="(item, i) in breadcrumbItems" :key="`${item.path}__${item.titleKey}__${i}`">
           <span v-if="i > 0" class="breadcrumb-sep">/</span>
-          <router-link
+          <a
             v-if="i < breadcrumbItems.length - 1"
-            :to="item.path"
+            href="#"
             class="breadcrumb-link"
+            @click.prevent="store.commit('setCurrentMenuPath', resolvePath(item.path))"
           >
             {{ t(item.titleKey) }}
-          </router-link>
+          </a>
           <span v-else class="breadcrumb-current">{{ t(item.titleKey) }}</span>
         </template>
       </nav>
     </div>
     <div class="header-right">
-      <router-link
-        to="/tabs"
+      <a
+        href="#"
         class="icon-btn"
         :class="{ 'is-hover-lift': messagesLinkHover }"
         :title="t('header.messages')"
+        @click.prevent="store.commit('setCurrentMenuPath', resolvePath('/tabs'))"
         @mouseenter="messagesLinkHover = true"
         @mouseleave="messagesLinkHover = false"
       >
@@ -38,7 +40,7 @@
           <el-icon><Bell /></el-icon>
         </el-tooltip>
         <span v-if="message" class="badge">{{ message > 99 ? '99+' : message }}</span>
-      </router-link>
+      </a>
       <button
         type="button"
         class="icon-btn"
@@ -123,6 +125,7 @@
         </template>
       </el-dropdown>
       <el-dropdown
+        v-if="REQUIRE_AUTH"
         trigger="hover"
         @command="handleCommand"
         @visible-change="(v: boolean) => userDropdownVisible = v"
@@ -151,16 +154,18 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import { Bell, CaretBottom, FullScreen } from '@element-plus/icons-vue';
 import { AuthApiFactory } from 'shared';
+import { PATH_META, resolvePath } from '../../config/menuPathToComponent';
+import { REQUIRE_AUTH } from '../../config/auth';
 import { localeOptions, setLocale, type LocaleId } from '../../i18n';
 
 const { t, locale } = useI18n();
-const route = useRoute();
 const router = useRouter();
 const store = useStore();
+const currentMenuPath = computed(() => store.state.currentMenuPath);
 /** 仅用于窄屏时自动折叠侧栏 */
 const collapse = computed(() => store.state.collapse);
 
@@ -214,9 +219,9 @@ const BREADCRUMB_MIDDLE: Record<string, { titleKey: string; path: string }> = {
 };
 type BreadcrumbItem = { titleKey: string; path: string };
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
-  const path = route.path;
-  const titleKey = (route.meta?.titleKey as string) || 'route.home';
+  const path = currentMenuPath.value;
   const segments = path.split('/').filter(Boolean);
+  const titleKey = segments.length === 0 ? 'route.home' : (PATH_META[path]?.titleKey ?? 'route.home');
   if (segments.length === 0) return [{ titleKey: 'route.home', path: '/home' }];
   if (segments.length === 1 && segments[0] === 'home') return [{ titleKey: 'route.home', path: '/home' }];
   const parent = SEGMENT_BREADCRUMB[segments[0]];
@@ -226,10 +231,10 @@ const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
       { titleKey: parent.titleKey, path: parent.firstChildPath },
     ];
     if (middle) items.push({ titleKey: middle.titleKey, path: middle.path });
-    items.push({ titleKey, path: route.path });
+    items.push({ titleKey, path });
     return items;
   }
-  return [{ titleKey, path: route.path }];
+  return [{ titleKey, path }];
 });
 
 // ---------- 用户与消息 ----------
@@ -288,7 +293,7 @@ async function handleCommand(command: string) {
       // 用户取消，不执行退出
     }
   } else if (command === 'user') {
-    router.push('/user/account');
+    store.commit('setCurrentMenuPath', resolvePath('/user/account'));
   }
 }
 

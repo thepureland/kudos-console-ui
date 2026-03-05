@@ -218,7 +218,7 @@
             :label="t('domainList.columns.operation')"
             align="center"
             fixed="right"
-            min-width="140"
+            min-width="160"
             class-name="operation-column"
           >
             <template #header>
@@ -471,12 +471,6 @@ export default defineComponent({
 :deep(.el-table__fixed-left) {
   width: 289px !important;
   max-width: 289px !important;
-}
-:deep(.el-table th.operation-column),
-:deep(.el-table td.operation-column) {
-  width: 140px !important;
-  min-width: 140px !important;
-  max-width: 140px !important;
 }
 :deep(.column-header-draggable) {
   cursor: grab;

@@ -47,26 +47,26 @@ export abstract class TenantSupportListPage extends BaseListPage {
         return false
     }
 
-    /** 在父类 createSearchParams 基础上注入 subSysDictCode、tenantId（来自 parseSubSysOrTenant） */
+    /** 在父类 createSearchParams 基础上注入 subSysDictCode、tenantId（与角色列表一致，便于 Mock/后端按租户过滤） */
     protected createSearchParams() {
         const pair = this.parseSubSysOrTenant()
         if (pair == null) {
             return null
         } else {
             const params = super.createSearchParams()
-            params.subSysDictCode = pair.first
             this.state.subSysDictCode = pair.first
-            params.tenantId = pair.second
             this.state.tenantId = pair.second
+            params.subSysDictCode = pair.first
+            params.tenantId = pair.second
             return params
         }
     }
 
-    /** 从 searchParams.subSysOrTenant 解析出 (subSysDictCode, tenantId)；必选时未选会提示并返回 null */
+    /** 从 searchParams.subSysOrTenant 解析出 (subSysDictCode, tenantId)；必选时须选到第二层（租户）才通过 */
     protected parseSubSysOrTenant(): Pair | null {
         const subSysOrTenant = this.state.searchParams.subSysOrTenant
-        if (this.isRequireSubSysOrTenantForSearch() && (subSysOrTenant == null || subSysOrTenant.length == 0)) {
-            ElMessage.error('请先选择租户！')
+        if (this.isRequireSubSysOrTenantForSearch() && (subSysOrTenant == null || subSysOrTenant.length < 2)) {
+            ElMessage.error('请先选择子系统并选择租户！')
             return null
         }
         const pair = new Pair(null, null)

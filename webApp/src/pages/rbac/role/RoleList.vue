@@ -226,7 +226,7 @@
             :label="t('roleList.columns.operation')"
             align="center"
             fixed="right"
-            min-width="340"
+            min-width="200"
             class-name="operation-column"
             label-class-name="operation-column"
           >
@@ -259,7 +259,7 @@
                         :key="String(item.first)"
                         :command="commandValue(item, scope.row)"
                       >
-                        {{ item.second }}
+                        {{ t(item.second) }}
                       </el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
@@ -355,6 +355,11 @@ class ListPage extends TenantSupportListPage {
 
   protected getRootActionPath(): string {
     return 'rbac/role';
+  }
+
+  /** 租户级联只能选第二级（必须选到具体租户），不能只选子系统 */
+  protected isCheckStrictly(): boolean {
+    return false;
   }
 
   protected createSearchParams(): Record<string, unknown> | null {
@@ -510,7 +515,7 @@ export default defineComponent({
       authorize: (cmd: { item: unknown; row: Record<string, unknown> }) => listPage.authorize(cmd),
       assign: (cmd: { item: number; row: Record<string, unknown> }) => listPage.assign(cmd),
       getDictItems: (module: string | null | undefined, dictType: string) => listPage.getDictItems(module, dictType),
-      transDict: (module: string, dictType: string, code: string | null | undefined) => listPage.transDict(module, dictType, code),
+      transDict: (module: string, dictType: string, code: string | null | undefined) => t(listPage.transDict(module, dictType, code)),
     };
   },
 });

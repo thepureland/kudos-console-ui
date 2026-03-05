@@ -18,7 +18,7 @@
       <el-row :gutter="20" class="toolbar">
         <el-col :span="2">
           <el-cascader :options="subSysOrTenants" v-model="searchParams.subSysOrTenant"
-                       :props="cascaderProps" placeholder="子系统/租户"/>
+                       :props="cascaderProps" :placeholder="t('organizationList.placeholders.subSysTenant')"/>
         </el-col>
 
         <el-col :span="16">
@@ -54,6 +54,7 @@
 
 <script lang='ts'>
 import { defineComponent, reactive, toRefs, computed, nextTick, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
@@ -87,6 +88,7 @@ export default defineComponent({
   name: "~index",
   components: {MenuRoleAssignDialog},
   setup(props, context) {
+    const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     const { listLayoutRefs } = useListPageLayout(listPage, {
       stateStorageKey: 'menuPermissionList.queryState',
@@ -110,6 +112,7 @@ export default defineComponent({
     onMounted(runAutoWidth);
     watch(tableDataRef, runAutoWidth);
     return {
+      t,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       ...listLayoutRefs,

@@ -25,7 +25,7 @@ import {
 /** 分组：从第几行开始显示分组标题（其他信息放最后） */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'cacheDetail.sections.basicInfo' },
-  { start: 2, titleKey: 'cacheDetail.sections.config' },
+  { start: 1, titleKey: 'cacheDetail.sections.config' },
   { start: 5, titleKey: 'cacheDetail.sections.audit' },
   { start: 7, titleKey: 'cacheDetail.sections.otherInfo' },
 ];
@@ -36,12 +36,13 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'cacheDetail.fields.name', key: 'name' },
   ],
   [
-    { labelKey: 'cacheDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+    { labelKey: 'cacheDetail.fields.atomicServiceCode', key: 'atomicServiceCode', type: 'atomicService' },
     { labelKey: 'cacheDetail.fields.strategyDictCode', key: 'strategyDictCode', type: 'dict', dictModule: 'kuark:sys', dictCode: 'cache_strategy' },
   ],
   [
     { labelKey: 'cacheDetail.fields.active', key: 'active', type: 'boolean' },
     { labelKey: 'cacheDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
+    { labelKey: 'cacheDetail.fields.hash', key: 'hash', type: 'boolean' },
   ],
   [
     { labelKey: 'cacheDetail.fields.writeOnBoot', key: 'writeOnBoot', type: 'boolean' },

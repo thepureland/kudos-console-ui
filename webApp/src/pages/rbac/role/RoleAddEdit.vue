@@ -103,8 +103,9 @@ class AddEditPage extends TenantSupportAddEditPage {
     super(props, context);
   }
 
+  /** 租户级联只能选第二级（必须选到具体租户），与角色列表一致 */
   protected isCheckStrictly(): boolean {
-    return true;
+    return false;
   }
 
   protected initState(): Record<string, unknown> {

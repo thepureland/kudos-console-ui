@@ -1,5 +1,4 @@
 import { AuthApiFactory } from "shared"
-import { ajax } from "./ajax"
 
 export type BackendRequestOptions = {
   url: string
@@ -8,40 +7,53 @@ export type BackendRequestOptions = {
 }
 
 /**
- * 通过 shared 中 Kotlin 的 BackendApi 请求后端（与 Auth 同源、同 Token）。
- * 若 shared 未暴露 getBackendApi，则回退到本地 ajax（同 Token、同行为）。
+ * 通过 shared 中 Kotlin 的 BackendApi（Ktor HttpClient）请求后端，与 Auth 同源、同 Token。
  *
  * @author K
  * @since 1.0.0
  */
-function getBackendApiInstance(): { request: (url: string, method: string, paramsJson: string | null) => Promise<string> } | null {
-  try {
-    const factory = AuthApiFactory.getInstance()
-    const getBackendApi = factory.getBackendApi
-    if (getBackendApi == null) return null
-    const api = typeof getBackendApi === "function" ? getBackendApi() : getBackendApi
-    if (api && typeof api.request === "function") return api
-  } catch {
-    // shared 未包含 getBackendApi 或未正确构建
+function getBackendApi() {
+  const factory = AuthApiFactory.getInstance()
+  const api = factory.getBackendApi()
+  if (!api || typeof api.request !== "function") {
+    throw new Error("[backendRequest] shared BackendApi 不可用，请确保 shared 已正确构建并包含 getBackendApi")
   }
-  return null
+  return api
 }
 
-const sharedBackendApi = getBackendApiInstance()
+/** 开发时打印慢请求（>1s）及各阶段耗时，便于排查代理/后端耗时 */
+const LOG_SLOW_REQUESTS = typeof import.meta !== "undefined" && import.meta.env?.DEV === true;
+
+function now(): number {
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
 
 export async function backendRequest(options: BackendRequestOptions): Promise<any> {
-  if (sharedBackendApi) {
-    const method = (options.method ?? "get").toLowerCase()
-    const paramsJson =
-      options.params != null ? JSON.stringify(options.params) : null
-    const raw = await sharedBackendApi.request(options.url, method, paramsJson)
-    const data = typeof raw === "string" ? JSON.parse(raw) : raw
-    return data ?? { code: 0, data: null }
+  const t0 = LOG_SLOW_REQUESTS ? now() : 0;
+  const api = getBackendApi();
+  const t1 = LOG_SLOW_REQUESTS ? now() : 0;
+  const method = (options.method ?? "get").toLowerCase();
+  const paramsJson =
+    options.params != null ? JSON.stringify(options.params) : null;
+  const raw = await api.request(options.url, method, paramsJson);
+  const t2 = LOG_SLOW_REQUESTS ? now() : 0;
+  const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+  const result = data ?? { code: 0, data: null };
+  const t3 = LOG_SLOW_REQUESTS ? now() : 0;
+  if (LOG_SLOW_REQUESTS && t0 > 0) {
+    const total = Math.round(t3 - t0);
+    if (total > 1000) {
+      const getApi = Math.round(t1 - t0);
+      const ktor = Math.round(t2 - t1);
+      const parse = Math.round(t3 - t2);
+      console.warn(
+        `[backendRequest] 慢请求 ${total}ms: ${options.method ?? "GET"} ${options.url}`,
+        "\n  阶段耗时:",
+        `getBackendApi=${getApi}ms`,
+        `ktor请求=${ktor}ms`,
+        `JSON.parse=${parse}ms`
+      );
+    }
   }
-  // 与 BackendApi 一致：相对 path 转为同源绝对 URL，避免相对路径解析到错误 path
-  const url =
-    typeof window !== "undefined" && options.url && !/^https?:\/\//i.test(options.url)
-      ? `${window.location.origin}${options.url.startsWith("/") ? options.url : `/${options.url}`}`
-      : options.url
-  return ajax({ ...options, url })
+  return result;
 }

@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "build": "cd webApp && npm run build",
-    "start": "cd webApp && npm run start"
+    "build:sys": "cd webApp && npm run build:sys",
+    "start": "cd webApp && npm run start",
+    "start:sys": "cd webApp && npm run start:sys"
   }
 }

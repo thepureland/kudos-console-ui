@@ -174,7 +174,7 @@
             :label="t('paramList.columns.operation')"
             align="center"
             fixed="right"
-            min-width="140"
+            min-width="160"
             class-name="operation-column"
             label-class-name="operation-column"
           >
@@ -430,12 +430,6 @@ export default defineComponent({
   width: 120px !important;
   min-width: 120px !important;
   max-width: 120px !important;
-}
-:deep(.el-table th.operation-column),
-:deep(.el-table td.operation-column) {
-  width: 140px !important;
-  min-width: 140px !important;
-  max-width: 140px !important;
 }
 :deep(.pagination-right) {
   margin-top: 8px;
