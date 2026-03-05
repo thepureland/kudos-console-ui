@@ -48,7 +48,7 @@
                     v-for="item in getDictItems('kuark:sys', 'resource_type')"
                     :key="item.first"
                     :value="item.first"
-                    :label="item.second"
+                    :label="t(item.second)"
                   />
                 </el-select>
               </div>
@@ -146,7 +146,7 @@
                   :min-width="columnWidths['resourceTypeDictCode'] ?? 100"
                 >
                   <template #default="scope">
-                    {{ transDict('kuark:sys', 'resource_type', scope.row.resourceTypeDictCode) }}
+                    {{ formatDictCell('kuark:sys', 'resource_type', scope.row.resourceTypeDictCode) }}
                   </template>
                 </el-table-column>
                 <el-table-column
@@ -197,7 +197,7 @@
                   :label="t('resourceList.columns.operation')"
                   align="center"
                   fixed="right"
-                  min-width="140"
+                  min-width="160"
                   class-name="operation-column"
                 >
                   <template #default="scope">
@@ -385,10 +385,10 @@ class ListPage extends BaseListPage {
     params.id = nodeData.id;
     params.resourceTypeDictCode = this.getResourceTypeByNode(node);
     try {
-      const result = await backendRequest({ url: 'sys/resource/searchOnClick', method: 'post', params }) as { code: number; data?: { first: unknown[]; second: number } };
+      const result = await backendRequest({ url: 'sys/resource/searchOnClick', method: 'post', params }) as { code: number; data?: { data: unknown[]; totalCount: number } };
       if (result.code === 200 && result.data) {
-        this.state.tableData = result.data.first;
-        (this.state.pagination as Record<string, number>).total = result.data.second;
+        this.state.tableData = result.data.data ?? [];
+        (this.state.pagination as Record<string, number>).total = result.data.totalCount ?? 0;
       } else ElMessage.error(tr('resourceList.messages.loadFailed'));
     } catch {
       ElMessage.error(tr('resourceList.messages.loadFailed'));
@@ -445,10 +445,10 @@ class ListPage extends BaseListPage {
     const sort = this.state.sort as { orderProperty?: string; orderDirection?: string };
     if (sort?.orderProperty) params.orders = [{ property: sort.orderProperty, direction: sort.orderDirection ?? 'ASC' }];
     try {
-      const result = await backendRequest({ url: 'sys/resource/searchByTree', method: 'post', params }) as { code: number; data?: { first: unknown[]; second: number } };
+      const result = await backendRequest({ url: 'sys/resource/searchByTree', method: 'post', params }) as { code: number; data?: { data: unknown[]; totalCount: number } };
       if (result.code === 200 && result.data) {
-        this.state.tableData = result.data.first;
-        (this.state.pagination as Record<string, number>).total = result.data.second;
+        this.state.tableData = result.data.data ?? [];
+        (this.state.pagination as Record<string, number>).total = result.data.totalCount ?? 0;
       } else ElMessage.error(tr('resourceList.messages.loadFailed'));
     } catch {
       ElMessage.error(tr('resourceList.messages.loadFailed'));
@@ -532,6 +532,11 @@ export default defineComponent({
     ]);
     const RESERVED_WIDTH_LEFT = 39 + 50;
     const RESERVED_WIDTH_RIGHT = 140;
+    /** 字典项展示：有 i18n key 时 t(key)，否则不调用 t('') 避免 intlify 报错 */
+    function formatDictCell(module: string, dictType: string, code: unknown): string {
+      const key = listPage.transDict(module, dictType, code);
+      return key ? t(key) : '—';
+    }
     const autoWidthColumns = computed(() =>
       ALL_COLUMN_KEYS.map((key) => ({
         key,
@@ -541,7 +546,7 @@ export default defineComponent({
           key === 'subSysDictCode'
             ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
             : key === 'resourceTypeDictCode'
-              ? (row: Record<string, unknown>) => listPage.transDict('kuark:sys', 'resource_type', row.resourceTypeDictCode)
+              ? (row: Record<string, unknown>) => formatDictCell('kuark:sys', 'resource_type', row.resourceTypeDictCode)
               : key === 'name'
                 ? (row: Record<string, unknown>) => String(row.name ?? '')
                 : key === 'url'
@@ -587,6 +592,7 @@ export default defineComponent({
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,
+      formatDictCell,
       tree,
       listLayoutRefs,
       tableRef,

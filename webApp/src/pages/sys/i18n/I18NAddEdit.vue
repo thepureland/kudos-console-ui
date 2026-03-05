@@ -30,7 +30,7 @@
         </el-form-item>
         <el-form-item :label="t('i18nAddEdit.labels.locale')" prop="locale">
           <el-select v-model="formModel.locale" :placeholder="t('i18nAddEdit.placeholders.locale')" clearable filterable class="form-select-full">
-            <el-option v-for="item in (localeOptions || [])" :key="item.first" :value="item.first" :label="item.second" />
+            <el-option v-for="item in (localeOptions || [])" :key="item.first" :value="item.first" :label="t(item.second)" />
           </el-select>
         </el-form-item>
         <el-form-item :label="t('i18nAddEdit.labels.i18nTypeDictCode')" prop="i18nTypeDictCode">

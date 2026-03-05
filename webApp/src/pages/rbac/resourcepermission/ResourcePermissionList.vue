@@ -17,12 +17,12 @@
     <el-row :gutter="20" class="toolbar">
       <el-col :span="2">
         <el-cascader :options="subSysOrTenants" v-model="searchParams.subSysOrTenant"
-                     :props="cascaderProps" placeholder="子系统/租户" class="border_red"/>
+                     :props="cascaderProps" :placeholder="t('organizationList.placeholders.subSysTenant')" class="border_red"/>
       </el-col>
       <el-col :span="2">
         <el-select v-model="searchParams.resourceTypeDictCode" placeholder="资源类型" clearable class="border_red">
           <el-option v-for="item in getDictItems('kuark:sys', 'resource_type')"
-                     :key="item.first" :value="item.first" :label="item.second"/>
+                     :key="item.first" :value="item.first" :label="t(item.second)"/>
         </el-select>
       </el-col>
       <el-col :span="2">
@@ -70,6 +70,7 @@
 
 <script lang='ts'>
 import { defineComponent, reactive, toRefs, ref, computed, nextTick, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Pair } from '../../../components/model/Pair';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
@@ -172,8 +173,8 @@ class ListPage extends TenantSupportListPage {
     // @ts-ignore
     const result = await backendRequest({url: "sys/resource/searchOnClick", method: "post", params});
     if (result.code == 200) {
-      this.state.tableData = result.data.first
-      this.state.pagination.total = result.data.second
+      this.state.tableData = result.data.data ?? []
+      this.state.pagination.total = result.data.totalCount ?? 0
     } else {
       ElMessage.error('数据加载失败！')
     }
@@ -231,8 +232,8 @@ class ListPage extends TenantSupportListPage {
     // @ts-ignore
     const result = await backendRequest({url: "rbac/resourcepermission/searchTree", method: "post", params})
     if (result.code == 200) {
-      this.state.tableData = result.data.first
-      this.state.pagination.total = result.data.second
+      this.state.tableData = result.data.data ?? []
+      this.state.pagination.total = result.data.totalCount ?? 0
     } else {
       ElMessage.error('数据加载失败！')
     }
@@ -255,6 +256,7 @@ export default defineComponent({
   name: "~index",
   components: {},
   setup(props, context) {
+    const { t } = useI18n();
     const tree = ref();
     const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
     const { listLayoutRefs } = useListPageLayout(listPage, {
@@ -279,6 +281,7 @@ export default defineComponent({
     onMounted(runAutoWidth);
     watch(tableDataRef, runAutoWidth);
     return {
+      t,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       tree,

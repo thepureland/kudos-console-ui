@@ -1,7 +1,7 @@
 {
   "code": 200,
   "data": {
-    "first": [
+    "data": [
       {
         "id": "1",
         "name": "主数据源",
@@ -47,6 +47,6 @@
         "active": false
       }
     ],
-    "second": 4
+    "totalCount": 4
   }
 }

@@ -144,18 +144,20 @@ export abstract class BaseListPage extends BasePage {
         }
 
         const result = await backendRequest({url: this.getSearchUrl(), method: "post", params})
-        if (result.code == 200) {
-            this.postSearchSuccessfully(result.data)
+        // 响应格式：{ data: 行数组, totalCount: 总条数 }
+        const isSuccess = Array.isArray(result?.data) && typeof result?.totalCount === "number"
+        if (isSuccess) {
+            this.postSearchSuccessfully(result)
         } else {
             ElMessage.error(i18n.global.t('listPage.queryFailed') as string)
         }
     }
 
-    /** 处理查询成功后的列表与分页数据。 */
+    /** 处理查询成功后的列表与分页数据。结构：{ data: 行数组, totalCount: 总条数 } */
     protected postSearchSuccessfully(data: any) {
-        if (data && Array.isArray(data.first) && typeof data.second === "number") {
-            this.state.tableData = data.first
-            this.state.pagination.total = data.second
+        if (data && Array.isArray(data.data) && typeof data.totalCount === "number") {
+            this.state.tableData = data.data
+            this.state.pagination.total = data.totalCount
             return
         }
         this.state.tableData = Array.isArray(data) ? data : []

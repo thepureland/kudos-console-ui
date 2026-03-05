@@ -130,7 +130,7 @@
                 >{{ t('organizationList.columns.orgType') }}</div>
               </template>
               <template #default="scope">
-                {{ transDict('kuark:user', 'organization_type', scope.row.orgTypeDictCode) }}
+                {{ formatOrgTypeLabel(scope.row.orgTypeDictCode) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -201,7 +201,7 @@
             v-if="showOperationColumn"
             :label="t('organizationList.columns.operation')"
             align="center"
-            min-width="120"
+            min-width="160"
             class-name="operation-column"
             label-class-name="operation-column"
           >
@@ -244,6 +244,7 @@
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ElMessage } from 'element-plus';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import OrganizationAddEdit from './OrganizationAddEdit.vue';
 import OrganizationDetail from './OrganizationDetail.vue';
@@ -284,6 +285,7 @@ class ListPage extends TenantSupportListPage {
   protected initState(): Record<string, unknown> {
     return {
       searchParams: {
+        subSysOrTenant: null as string[] | null,
         active: true,
       },
     };
@@ -297,10 +299,13 @@ class ListPage extends TenantSupportListPage {
     return this.getRootActionPath() + '/searchTree';
   }
 
+  /** 与角色列表一致：只覆盖 createSearchParams，doSearch 用基类，保证 tenantId 随 params 一起发到 searchTree */
   protected createSearchParams(): Record<string, unknown> | null {
     const params = super.createSearchParams();
-    if (params && this.state.searchParams) {
-      (params as Record<string, unknown>).active = (this.state.searchParams as Record<string, unknown>).active;
+    if (!params) return null;
+    const sp = this.state.searchParams as { active?: boolean; subSysOrTenant?: string[] | null } | undefined;
+    if (sp) {
+      (params as Record<string, unknown>).active = sp.active === true ? true : null;
     }
     return params;
   }
@@ -357,7 +362,7 @@ export default defineComponent({
           key === 'abbrName'
             ? (row: Record<string, unknown>) => String(row.abbrName ?? '')
             : key === 'orgTypeDictCode'
-              ? (row: Record<string, unknown>) => listPage.transDict('kuark:user', 'organization_type', row.orgTypeDictCode)
+              ? (row: Record<string, unknown>) => formatOrgTypeLabel(row.orgTypeDictCode)
               : key === 'seqNo'
                 ? (row: Record<string, unknown>) => String(row.seqNo ?? '')
                 : key === 'createTime'
@@ -376,6 +381,13 @@ export default defineComponent({
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
       nextTick(runColumnAutoWidth);
+    }
+
+    /** 组织类型列：transDict 可能返回 i18n key（含.）或原始 code；空则不再 t('') 避免 intlify 报错 */
+    function formatOrgTypeLabel(code: string | null | undefined): string {
+      const val = listPage.transDict('kuark:user', 'organization_type', code ?? '');
+      if (!val) return '';
+      return val.includes('.') ? t(val) : t('organization_type.' + val);
     }
 
     const visibleColumnKeys = computed<string[]>({
@@ -400,6 +412,7 @@ export default defineComponent({
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,
+      formatOrgTypeLabel,
       listLayoutRefs,
       tableRef,
       visibleColumnKeys,

@@ -15,6 +15,7 @@
 <script lang="ts">
 import { defineComponent, reactive, toRefs, watch, computed } from 'vue';
 import { BaseDetailPage } from '../../../components/pages/BaseDetailPage';
+import { Pair } from '../../../components/model/Pair';
 import SectionedDetailDialog from '../../../components/pages/SectionedDetailDialog.vue';
 import {
   type FieldConfig,
@@ -36,7 +37,7 @@ const ROW_FIELDS: FieldConfig[][] = [
   ],
   [
     { labelKey: 'organizationDetail.fields.abbrName', key: 'abbrName' },
-    { labelKey: 'organizationDetail.fields.orgTypeDictCode', key: 'orgTypeDictCode' },
+    { labelKey: 'organizationDetail.fields.orgTypeDictCode', key: 'orgTypeDictCode', type: 'dict', dictModule: 'kuark:user', dictCode: 'organization_type' },
   ],
   [
     { labelKey: 'organizationDetail.fields.createTime', key: 'createTime', type: 'date' },
@@ -78,6 +79,7 @@ class DetailPage extends BaseDetailPage {
 
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
+    await this.loadDicts([new Pair('kuark:user', 'organization_type')]);
   }
 }
 

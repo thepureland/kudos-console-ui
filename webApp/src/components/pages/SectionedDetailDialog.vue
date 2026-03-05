@@ -42,6 +42,9 @@
         </div>
       </template>
     </div>
+    <div v-if="$slots.default" class="sectioned-detail-extra">
+      <slot />
+    </div>
   </el-dialog>
 </template>
 
@@ -207,5 +210,9 @@ export default defineComponent({
 }
 .detail-item--value-span-3 .detail-value {
   flex: 1 1 auto;
+}
+
+.sectioned-detail-extra {
+  margin-top: 16px;
 }
 </style>

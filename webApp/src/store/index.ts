@@ -1,5 +1,6 @@
 import { createStore } from 'vuex';
 import { AuthApiFactory } from 'shared';
+import { resolvePath, VALID_MENU_PATHS } from '../config/menuPathToComponent';
 
 export type TagItem = {
   name?: string;
@@ -26,12 +27,15 @@ type RootState = {
   /** 侧栏展开时的宽度（px），由 Home 页分界线拖拽调整，持久化到 localStorage */
   sidebarWidth: number;
   tagsList: TagItem[];
+  /** 当前菜单页路径（点击菜单时更新，不改变地址栏） */
+  currentMenuPath: string;
 };
 
 const STORAGE_KEYS = {
   collapse: 'sidebar_collapse',
   sidebarWidth: 'sidebar_width',
   tagsList: 'tags_list',
+  currentMenuPath: 'current_menu_path',
 } as const;
 
 function loadSavedTags(): TagItem[] {
@@ -56,6 +60,15 @@ function saveTagsList(list: TagItem[]) {
 const savedCollapse =
   typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_KEYS.collapse) === 'true';
 
+/** 从 localStorage 读取上次保存的当前菜单路径，刷新后恢复原标签 */
+function loadSavedCurrentMenuPath(): string {
+  if (typeof localStorage === 'undefined') return '/home';
+  const raw = localStorage.getItem(STORAGE_KEYS.currentMenuPath);
+  if (!raw || typeof raw !== 'string') return '/home';
+  const path = resolvePath(raw.trim());
+  return VALID_MENU_PATHS.has(path) ? path : '/home';
+}
+
 /** 从 localStorage 读取上次保存的侧栏宽度，不合法或缺失时返回默认值并落在 [MIN, MAX] 内 */
 function loadSavedSidebarWidth(): number {
   if (typeof localStorage === 'undefined') return SIDEBAR_WIDTH_DEFAULT;
@@ -72,6 +85,7 @@ const store = createStore<RootState>({
     collapse: savedCollapse,
     sidebarWidth: loadSavedSidebarWidth(),
     tagsList: loadSavedTags(),
+    currentMenuPath: loadSavedCurrentMenuPath(),
   },
   mutations: {
     /** 登录成功后调用，使 App.vue 立即显示 router-view 而非 Login */
@@ -123,6 +137,12 @@ const store = createStore<RootState>({
       const insertIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
       list.splice(insertIndex, 0, item);
       saveTagsList(state.tagsList);
+    },
+    setCurrentMenuPath(state, path: string) {
+      state.currentMenuPath = path;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEYS.currentMenuPath, path);
+      }
     },
   },
 });

@@ -46,7 +46,7 @@
           @click="goToPath(item.path)"
         >
           <el-icon class="tags-li-icon"><component :is="tagIcon(item)" /></el-icon>
-          <router-link :to="item.path" class="tags-li-title">{{ tagTitle(item) }}</router-link>
+          <span class="tags-li-title">{{ tagTitle(item) }}</span>
           <span class="tag-close" @click.stop="closeTags(index)" aria-label="关闭">×</span>
         </li>
         <li
@@ -67,7 +67,7 @@
                 >
                   <span
                     class="more-item-row"
-                    :class="{ 'more-item-active': item.path === route.fullPath }"
+                    :class="{ 'more-item-active': item.path === currentMenuPath }"
                   >
                     <el-icon class="more-item-icon"><component :is="tagIcon(item)" /></el-icon>
                     <span class="more-item-title">{{ tagTitle(item) }}</span>
@@ -105,8 +105,6 @@
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import { useRoute, useRouter } from 'vue-router';
-import type { RouteLocationNormalizedLoaded } from 'vue-router';
 import {
   ArrowDown,
   Bell,
@@ -122,12 +120,12 @@ import {
   User,
   UserFilled,
 } from '@element-plus/icons-vue';
+import { PATH_META } from '../../config/menuPathToComponent';
 import type { TagItem } from '../../store/index';
 
 const { t } = useI18n();
-const route = useRoute();
-const router = useRouter();
 const store = useStore();
+const currentMenuPath = computed(() => store.state.currentMenuPath);
 
 // ---------- 可见数量与尺子测量 ----------
 const listRef = ref<HTMLElement | null>(null);
@@ -195,7 +193,7 @@ watch(tagsList, scheduleMeasure, { deep: true });
 watch(() => t('tags.more'), scheduleMeasure);
 
 // ---------- 标签文案与图标（与侧栏菜单一致） ----------
-const isActive = (path: string) => path === route.fullPath;
+const isActive = (path: string) => path === currentMenuPath.value;
 function tagTitle(item: { titleKey?: string; title?: string }) {
   return item.titleKey ? t(item.titleKey) : (item.title ?? '');
 }
@@ -254,21 +252,20 @@ function tagIcon(item: TagItem): unknown {
   const name = item.icon ?? pathToIcon[item.path];
   return name ? tagIconMap[name] ?? Setting : Setting;
 }
-/** 路由进入/更新时往 store 追加标签；超出栏宽时由「更多」下拉展示，不自动关闭最早标签 */
-function setTags(r: RouteLocationNormalizedLoaded) {
-  const isExist = tagsList.value.some((item) => item.path === r.fullPath);
+/** 当前菜单路径变化时追加标签（不改变地址栏） */
+function setTagsForPath(path: string) {
+  if (!path) return;
+  const isExist = tagsList.value.some((item) => item.path === path);
   if (!isExist) {
+    const meta = PATH_META[path];
     store.commit('setTagsItem', {
-      name: r.name,
-      titleKey: r.meta?.titleKey as string | undefined,
-      icon: r.meta?.icon as string | undefined,
-      path: r.fullPath,
+      titleKey: meta?.titleKey,
+      icon: meta?.icon,
+      path,
     });
   }
 }
-setTags(route);
-/** 监听路由变化：侧栏/链接跳转时 Tags 不是路由组件，onBeforeRouteUpdate 不会触发，故用 watch 同步标签 */
-watch(() => route.fullPath, () => setTags(route));
+watch(currentMenuPath, setTagsForPath, { immediate: true });
 
 // ---------- 关闭与选项 ----------
 function closeTags(index: number) {
@@ -279,9 +276,9 @@ function closeTags(index: number) {
   store.commit('delTagsItem', { index });
   const next = tagsList.value[index] ?? tagsList.value[index - 1];
   if (next) {
-    if (delItem.path === route.fullPath) router.push(next.path);
+    if (delItem.path === currentMenuPath.value) store.commit('setCurrentMenuPath', next.path);
   } else {
-    router.push('/');
+    store.commit('setCurrentMenuPath', '/home');
   }
 }
 function closeAll() {
@@ -289,16 +286,16 @@ function closeAll() {
     clearPersistedStateByPath(item.path);
   });
   store.commit('clearTags');
-  router.push('/');
+  store.commit('setCurrentMenuPath', '/home');
 }
 function closeOther() {
-  const currentPath = route.fullPath;
+  const curPath = currentMenuPath.value;
   tagsList.value.forEach((item) => {
-    if (item.path !== currentPath) {
+    if (item.path !== curPath) {
       clearPersistedStateByPath(item.path);
     }
   });
-  const cur = tagsList.value.filter((item) => item.path === route.fullPath);
+  const cur = tagsList.value.filter((item) => item.path === curPath);
   store.commit('closeTagsOther', cur);
 }
 function handleTags(command: string) {
@@ -308,11 +305,11 @@ function goToTag(cmd: { item: TagItem; visibleIndex: number }) {
   if (cmd.visibleIndex > 0) {
     store.commit('reorderTags', { fromIndex: cmd.visibleIndex, toIndex: 0 });
   }
-  router.push(cmd.item.path);
+  store.commit('setCurrentMenuPath', cmd.item.path);
 }
 function goToPath(path: string) {
-  if (route.fullPath === path) return;
-  router.push(path);
+  if (currentMenuPath.value === path) return;
+  store.commit('setCurrentMenuPath', path);
 }
 
 // ---------- 拖拽排序 ----------

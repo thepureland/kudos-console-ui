@@ -19,3 +19,21 @@
 
 - 启动开发服务：`npm run start`
 - 生产构建：`npm run build`
+
+## 鉴权模式（sys / user）
+项目支持两种构建模式，由环境变量 `VITE_REQUIRE_AUTH` 控制：
+
+| 模式 | 命令 | 说明 |
+|------|------|------|
+| **user**（默认） | `npm run start` / `npm run build` | 需要登录，未登录显示登录页 |
+| **sys** | `npm run start:sys` / `npm run build:sys` | 无需登录，直接进入主界面（仅 sys 微服务，无用户体系） |
+
+- 配置文件：`webApp/.env`（默认）、`webApp/.env.sys`（sys 模式）
+- sys 模式下：不显示登录页、不显示用户下拉（头像/退出）、侧栏使用静态菜单
+
+## 开发时前后端分离
+前端与后端端口不同时，通过 Vite proxy 将 API 请求转发到后端：
+
+- 配置 `VITE_API_PROXY_TARGET`（如 `http://localhost:8081`），默认 `http://localhost:8081`
+- 代理路径：`/api`、`/sys`、`/user`、`/rbac`
+- Mock 模式不受影响（MockEngine 不发起真实请求，不经过 proxy）

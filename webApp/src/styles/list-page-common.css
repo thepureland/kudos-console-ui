@@ -147,6 +147,25 @@
   gap: 4px;
 }
 
+/* 操作列宽度由各列表页 el-table-column 的 min-width 手动指定；单元格及内部一律不换行 */
+.list-page-common :deep(.el-table th.operation-column),
+.list-page-common :deep(.el-table td.operation-column) {
+  white-space: nowrap;
+}
+.list-page-common :deep(.el-table th.operation-column .cell),
+.list-page-common :deep(.el-table td.operation-column .cell) {
+  white-space: nowrap;
+}
+.list-page-common :deep(.el-table .operation-column *),
+.list-page-common :deep(.el-table .operation-column-hover-area) {
+  white-space: nowrap;
+}
+.list-page-common :deep(.el-table .operation-column .el-tooltip__trigger),
+.list-page-common :deep(.el-table .operation-column .el-dropdown) {
+  display: inline-block;
+  white-space: nowrap;
+}
+
 /* 以下为当前组件内类名，操作列图标与占位区域 */
 .list-page-common .operate-column-icon {
   cursor: pointer;

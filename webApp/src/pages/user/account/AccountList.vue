@@ -139,6 +139,27 @@
                     </template>
                   </el-table-column>
                   <el-table-column
+                    v-else-if="key === 'tenantId' && isColumnVisible('tenantId')"
+                    prop="tenantId"
+                    :min-width="columnWidths['tenantId'] ?? 100"
+                  >
+                    <template #header>
+                      <div
+                        class="column-header-draggable"
+                        data-column-key="tenantId"
+                        :class="{ 'is-dragging': columnDragKey === 'tenantId', 'is-drop-target': columnDropTargetKey === 'tenantId' }"
+                        draggable="true"
+                        @dragstart="onHeaderDragStart($event, 'tenantId')"
+                        @dragover="onHeaderDragOver($event, 'tenantId')"
+                        @drop="onHeaderDrop($event, 'tenantId')"
+                        @dragend="onHeaderDragEnd"
+                      >{{ t('accountList.columns.tenant') }}</div>
+                    </template>
+                    <template #default="scope">
+                      {{ scope.row.tenantName ?? '—' }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column
                     v-else-if="key === 'userStatusDictCode' && isColumnVisible('userStatusDictCode')"
                     prop="userStatusDictCode"
                     :min-width="columnWidths['userStatusDictCode'] ?? 100"
@@ -157,7 +178,7 @@
                       >{{ t('accountList.columns.userStatus') }}</div>
                     </template>
                     <template #default="scope">
-                      {{ transDict('kuark:user', 'user_status', scope.row.userStatusDictCode) }}
+                      {{ formatDictCell('kuark:user', 'user_status', scope.row.userStatusDictCode) }}
                     </template>
                   </el-table-column>
                   <el-table-column
@@ -179,7 +200,7 @@
                       >{{ t('accountList.columns.userType') }}</div>
                     </template>
                     <template #default="scope">
-                      {{ transDict('kuark:user', 'user_type', scope.row.userTypeDictCode) }}
+                      {{ formatDictCell('kuark:user', 'user_type', scope.row.userTypeDictCode) }}
                     </template>
                   </el-table-column>
                   <el-table-column
@@ -232,7 +253,7 @@
                   :label="t('accountList.columns.operation')"
                   align="center"
                     fixed="right"
-                    min-width="140"
+                    min-width="160"
                     class-name="operation-column"
                 >
                   <template #header>
@@ -304,7 +325,7 @@ const ACCOUNT_LIST_STATE_STORAGE_KEY = 'accountList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'accountList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'accountList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSysDictCode', 'userStatusDictCode', 'userTypeDictCode', 'lastLoginTime', 'createTime'];
+const ALL_COLUMN_KEYS = ['subSysDictCode', 'tenantId', 'userStatusDictCode', 'userTypeDictCode', 'lastLoginTime', 'createTime'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
@@ -362,10 +383,6 @@ class ListPage extends TenantSupportListPage {
     return false;
   }
 
-  protected isRequireSubSysOrTenantForSearch(): boolean {
-    return true;
-  }
-
   protected async doSearch(): Promise<void> {
     const pair = this.parseSubSysOrTenant();
     if (pair == null) return;
@@ -419,11 +436,18 @@ export default defineComponent({
     const RESERVED_WIDTH_RIGHT = 140;
     const columnKeyToLabelKey: Record<string, string> = {
       subSysDictCode: 'subSys',
+      tenantId: 'tenant',
       userStatusDictCode: 'userStatus',
       userTypeDictCode: 'userType',
       lastLoginTime: 'lastLoginTime',
       createTime: 'createTime',
     };
+    /** 字典项展示：若为 i18n key（含.）则 t(key)，否则直接显示 key 或 —，避免 t('NORMAL') 等报错 */
+    function formatDictCell(module: string, dictType: string, code: unknown): string {
+      const key = listPage.transDict(module, dictType, code);
+      if (!key) return '—';
+      return key.includes('.') ? t(key) : key;
+    }
     const autoWidthColumns = computed(() =>
       orderedColumnKeys.value.map((key) => ({
         key,
@@ -432,10 +456,12 @@ export default defineComponent({
         getCellText:
           key === 'subSysDictCode'
             ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
-            : key === 'userStatusDictCode'
-              ? (row: Record<string, unknown>) => listPage.transDict('kuark:user', 'user_status', row.userStatusDictCode)
+            : key === 'tenantId'
+              ? (row: Record<string, unknown>) => String(row.tenantName ?? '—')
+              : key === 'userStatusDictCode'
+              ? (row: Record<string, unknown>) => formatDictCell('kuark:user', 'user_status', row.userStatusDictCode)
               : key === 'userTypeDictCode'
-                ? (row: Record<string, unknown>) => listPage.transDict('kuark:user', 'user_type', row.userTypeDictCode)
+                ? (row: Record<string, unknown>) => formatDictCell('kuark:user', 'user_type', row.userTypeDictCode)
                 : key === 'lastLoginTime'
                   ? (row: Record<string, unknown>) => listPage.formatDate(row.lastLoginTime)
                   : key === 'createTime'
@@ -514,6 +540,7 @@ export default defineComponent({
       onTableWrapMounted,
       onOrgNodeClick,
       onSubSysOrTenantChange,
+      formatDictCell,
     };
   },
 });

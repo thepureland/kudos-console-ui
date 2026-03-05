@@ -185,7 +185,7 @@
             :label="t('tenantList.columns.operation')"
             align="center"
             fixed="right"
-            min-width="140"
+            min-width="160"
             class-name="operation-column"
           >
             <template #header>
@@ -443,12 +443,6 @@ export default defineComponent({
   width: 200px !important;
   min-width: 200px !important;
   max-width: 200px !important;
-}
-:deep(.el-table th.operation-column),
-:deep(.el-table td.operation-column) {
-  width: 140px !important;
-  min-width: 140px !important;
-  max-width: 140px !important;
 }
 :deep(.column-header-draggable) {
   cursor: grab;

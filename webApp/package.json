@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc && vite build",
-    "start": "vite"
+    "build:sys": "tsc && vite build --mode sys",
+    "start": "vite",
+    "start:sys": "vite --mode sys"
   },
   "dependencies": {
     "cropperjs": "^1.6.1",

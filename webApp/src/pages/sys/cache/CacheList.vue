@@ -18,7 +18,7 @@
       :operation-column-hide-text="t('cacheList.actions.hideOperationColumn')"
       @table-wrap-mounted="onTableWrapMounted"
     >
-      <!-- 搜索栏：名称/原子服务/策略/仅启用 + 搜索、重置 -->
+      <!-- 搜索栏：名称/原子服务/策略/Hash存储/仅启用 + 搜索、重置 -->
       <template #toolbar>
         <div class="toolbar-cell toolbar-name">
           <div class="search-name-input-wrap">
@@ -68,6 +68,18 @@
               :value="item.first"
               :label="t(item.second)"
             />
+          </el-select>
+        </div>
+        <div class="toolbar-cell toolbar-hash">
+          <el-select
+            v-model="searchParams.hash"
+            :placeholder="t('cacheList.placeholders.hash')"
+            clearable
+            class="search-select-input"
+            @change="search"
+          >
+            <el-option :value="true" :label="t('cacheList.common.yes')" />
+            <el-option :value="false" :label="t('cacheList.common.no')" />
           </el-select>
         </div>
         <div class="toolbar-extra">
@@ -185,9 +197,34 @@
             </template>
           </el-table-column>
           <el-table-column
+            v-else-if="key === 'hash' && isColumnVisible('hash')"
+            prop="hash"
+            :min-width="columnWidths['hash'] ?? 90"
+            column-key="hash"
+            :filter-multiple="false"
+            :filters="boolFilters"
+            :filtered-value="getFilteredValueForColumn(searchParams.hash)"
+          >
+            <template #header>
+              <div
+                class="column-header-draggable"
+                data-column-key="hash"
+                :class="{ 'is-dragging': columnDragKey === 'hash', 'is-drop-target': columnDropTargetKey === 'hash' }"
+                draggable="true"
+                @dragstart="onHeaderDragStart($event, 'hash')"
+                @dragover="onHeaderDragOver($event, 'hash')"
+                @drop="onHeaderDrop($event, 'hash')"
+                @dragend="onHeaderDragEnd"
+              >{{ t('cacheList.columns.hash') }}</div>
+            </template>
+            <template #default="scope">
+              {{ formatBoolText(scope.row.hash) }}
+            </template>
+          </el-table-column>
+          <el-table-column
             v-else-if="key === 'active' && isColumnVisible('active')"
             prop="active"
-            :min-width="columnWidths['active'] ?? 80"
+            :min-width="65"
             column-key="active"
             :filter-multiple="false"
             :filters="boolFilters"
@@ -306,7 +343,7 @@
           :label="t('cacheList.columns.operation')"
           align="center"
           fixed="right"
-          min-width="180"
+          min-width="200"
           class-name="operation-column"
           label-class-name="operation-column"
         >
@@ -430,6 +467,7 @@ class ListPage extends BaseListPage {
         atomicServiceCode: null,
         strategyDictCode: null,
         active: true,
+        hash: null,
         writeOnBoot: null,
         writeInTime: null,
       },
@@ -465,7 +503,7 @@ class ListPage extends BaseListPage {
   }
 
   protected getAfterAddSearchParamKeys(): string[] {
-    return ['name', 'strategyDictCode'];
+    return ['name', 'atomicServiceCode', 'strategyDictCode', 'hash'];
   }
 
   /** 构造下拉菜单命令参数，供 el-dropdown 的 command 使用 */
@@ -585,6 +623,7 @@ const ALL_COLUMN_KEYS = [
   'atomicServiceCode',
   'strategyDictCode',
   'active',
+  'hash',
   'writeOnBoot',
   'writeInTime',
   'ttl',
@@ -670,7 +709,7 @@ export default defineComponent({
     });
     const RESERVED_WIDTH_LEFT = 439;
     const RESERVED_WIDTH_RIGHT = 180;
-    const cacheListColumnLabel = (k: string) => t('cacheList.columns.' + (k === 'atomicServiceCode' ? 'subSystem' : k === 'strategyDictCode' ? 'strategy' : k === 'ttl' ? 'ttlSeconds' : k));
+    const cacheListColumnLabel = (k: string) => t('cacheList.columns.' + (k === 'atomicServiceCode' ? 'subSystem' : k === 'strategyDictCode' ? 'strategy' : k === 'ttl' ? 'ttlSeconds' : k === 'hash' ? 'hash' : k));
     const autoWidthColumns = computed(() =>
       orderedColumnKeys.value.map((key) => ({
         key,
@@ -687,7 +726,7 @@ export default defineComponent({
                   const item = opts.find((o) => o.first === code);
                   return item ? t(item.second) : String(code);
                 }
-              : key === 'active' || key === 'writeOnBoot' || key === 'writeInTime'
+              : key === 'active' || key === 'hash' || key === 'writeOnBoot' || key === 'writeInTime'
                 ? (row: Record<string, unknown>) => listPage.formatBoolean(row[key], t('cacheList.common.yes'), t('cacheList.common.no'))
                 : key === 'ttl'
                   ? (row: Record<string, unknown>) => String(row.ttl ?? '')
@@ -731,6 +770,7 @@ export default defineComponent({
       atomicServiceCode: () => t('cacheList.columns.subSystem'),
       strategyDictCode: () => t('cacheList.columns.strategy'),
       active: () => t('cacheList.columns.active'),
+      hash: () => t('cacheList.columns.hash'),
       writeOnBoot: () => t('cacheList.columns.writeOnBoot'),
       writeInTime: () => t('cacheList.columns.writeInTime'),
       ttl: () => t('cacheList.columns.ttlSeconds'),
@@ -753,10 +793,11 @@ export default defineComponent({
     }
 
     /** 表格列筛选变化时同步到 searchParams 并请求列表 */
-    function handleTableFilterChange(filters: Record<string, Array<string | number | boolean>>) {
+    function       handleTableFilterChange(filters: Record<string, Array<string | number | boolean>>) {
       listPage.applyRemoteTableFilters(filters, {
         strategyDictCode: { paramName: 'strategyDictCode', emptyValue: null },
         active: listPage.createBooleanFilterMapping('active'),
+        hash: listPage.createBooleanFilterMapping('hash'),
         writeOnBoot: listPage.createBooleanFilterMapping('writeOnBoot'),
         writeInTime: listPage.createBooleanFilterMapping('writeInTime'),
       });
@@ -827,14 +868,17 @@ export default defineComponent({
 
 <style src="../../../styles/list-page-common.css" scoped></style>
 <style scoped>
-.cache-list-page .list-page-toolbar .toolbar-cell.toolbar-strategy {
+.cache-list-page .list-page-toolbar .toolbar-cell.toolbar-strategy,
+.cache-list-page .list-page-toolbar .toolbar-cell.toolbar-hash {
   margin-right: 8px;
 }
-.cache-list-page .list-page-toolbar .toolbar-strategy .search-select-input {
+.cache-list-page .list-page-toolbar .toolbar-strategy .search-select-input,
+.cache-list-page .list-page-toolbar .toolbar-hash .search-select-input {
   width: 100%;
   min-width: 0;
 }
-.cache-list-page .list-page-toolbar .toolbar-strategy :deep(.el-input__wrapper) {
+.cache-list-page .list-page-toolbar .toolbar-strategy :deep(.el-input__wrapper),
+.cache-list-page .list-page-toolbar .toolbar-hash :deep(.el-input__wrapper) {
   min-width: 0;
 }
 /* 穿透 Element 表格/分页内部类，需保留在组件内使用 :deep */
@@ -874,13 +918,6 @@ export default defineComponent({
   width: 350px !important;
   min-width: 350px !important;
   max-width: 350px !important;
-}
-
-:deep(.el-table th.operation-column),
-:deep(.el-table td.operation-column) {
-  width: 180px !important;
-  min-width: 180px !important;
-  max-width: 180px !important;
 }
 
 :deep(.pagination-right) {

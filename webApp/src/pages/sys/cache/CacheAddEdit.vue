@@ -40,11 +40,11 @@
             </span>
           </div>
         </el-form-item>
-        <el-form-item :label="t('cacheAddEdit.labels.atomicService')" prop="subSysDictCode" class="is-required">
+        <el-form-item :label="t('cacheAddEdit.labels.atomicService')" prop="atomicServiceCode" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
               <el-select
-                v-model="formModel.subSysDictCode"
+                v-model="formModel.atomicServiceCode"
                 :placeholder="t('cacheAddEdit.placeholders.atomicService')"
                 clearable
                 filterable
@@ -135,6 +135,16 @@
 
       <section class="form-section">
         <div class="form-section__title">{{ t('cacheAddEdit.sections.other') }}</div>
+        <el-form-item :label="t('cacheAddEdit.labels.hash')" prop="hash" class="form-item--inline">
+          <el-switch
+            v-model="formModel.hash"
+            :active-value="true"
+            :inactive-value="false"
+            inline-prompt
+            :active-text="t('cacheAddEdit.switch.on')"
+            :inactive-text="t('cacheAddEdit.switch.off')"
+          />
+        </el-form-item>
         <el-form-item :label="t('cacheAddEdit.labels.remark')" prop="remark">
           <el-input
             v-model="formModel.remark"
@@ -167,8 +177,9 @@ import '../../../styles/add-edit-dialog-common.css';
 
 interface FormModel {
   name: string | null;
-  subSysDictCode: string | null;
+  atomicServiceCode: string | null;
   strategyDictCode: string | null;
+  hash: boolean;
   writeOnBoot: boolean;
   writeInTime: boolean;
   ttl: number | null;
@@ -194,8 +205,9 @@ class AddEditPage extends BaseAddEditPage {
     return {
       formModel: {
         name: null,
-        subSysDictCode: null,
+        atomicServiceCode: null,
         strategyDictCode: null,
+        hash: false,
         writeOnBoot: false,
         writeInTime: false,
         ttl: null,
@@ -216,10 +228,10 @@ class AddEditPage extends BaseAddEditPage {
     const requiredRules = this.createRequiredRules(
       {
         name: 'cacheAddEdit.validation.requiredName',
-        subSysDictCode: 'cacheAddEdit.validation.requiredAtomicService',
+        atomicServiceCode: 'cacheAddEdit.validation.requiredAtomicService',
         strategyDictCode: 'cacheAddEdit.validation.requiredStrategy',
       },
-      { subSysDictCode: 'change', strategyDictCode: 'change' }
+      { atomicServiceCode: 'change', strategyDictCode: 'change' }
     );
     const rules = (this.state.rules as Record<string, unknown>) || {};
     this.state.rules = { ...rules, ...requiredRules };
@@ -270,7 +282,7 @@ export default defineComponent({
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;
         if (model.name != null && String(model.name).trim() !== '') return true;
-        if (model.subSysDictCode != null && model.subSysDictCode !== '') return true;
+        if (model.atomicServiceCode != null && model.atomicServiceCode !== '') return true;
         if (model.strategyDictCode != null && model.strategyDictCode !== '') return true;
         if (model.remark != null && String(model.remark).trim() !== '') return true;
         if (model.ttl != null && model.ttl !== '') return true;

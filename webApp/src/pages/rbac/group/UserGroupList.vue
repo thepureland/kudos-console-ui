@@ -193,7 +193,7 @@
             :label="t('userGroupList.columns.operation')"
             align="center"
             fixed="right"
-            min-width="140"
+            min-width="160"
             class-name="operation-column"
             label-class-name="operation-column"
           >
