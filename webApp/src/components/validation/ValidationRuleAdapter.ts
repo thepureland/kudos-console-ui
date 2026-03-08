@@ -1,7 +1,10 @@
 import { backendRequest } from "../../utils/backendRequest";
+import { i18n } from "../../i18n";
 
 /**
  * 校验规则适配器，用于将服务端返回的校验规则适配为async-validator的校验规则
+ * 校验规则的国际化均由后端提供：message 为完整 key（atomicServiceCode.i18nTypeDictCode.namespace.key），
+ * 合并到 vue-i18n 后为 i18nTypeDictCode.namespace.key，此处仅用去掉首段后的 key 做一次翻译，不再用完整 key 查前端文案。
  *
  * @author K
  * @since 1.0.0
@@ -12,6 +15,19 @@ export class ValidationRuleAdapter {
     private getModel: any
     private destRules: any = {}
     private trigger: string
+
+    /** 将后端返回的 message 转为展示文案：四段式 key 去掉首段后翻译，否则原样返回（后端文案） */
+    private static resolveMessage(raw: string | null | undefined): string {
+        if (raw == null || typeof raw !== 'string' || raw === '') return ''
+        const parts = raw.split('.')
+        if (parts.length >= 4) {
+            const keyWithoutAtomic = parts.slice(1).join('.')
+            const t = i18n.global.t.bind(i18n.global)
+            const out = t(keyWithoutAtomic) as string
+            return out !== keyWithoutAtomic ? out : raw
+        }
+        return raw
+    }
 
     /**
      * 校验规则适配器的构造器
@@ -55,7 +71,8 @@ export class ValidationRuleAdapter {
         this.doParseRule(ruleName, propName, ruleDetails, rule)
         if (!rule["message"]) {
             const firstDetail = ruleDetails[0]
-            rule["message"] = firstDetail && firstDetail["message"] != null ? firstDetail["message"] : this.getDefaultMessage()
+            const raw = firstDetail && firstDetail["message"] != null ? firstDetail["message"] : null
+            rule["message"] = raw != null ? ValidationRuleAdapter.resolveMessage(raw) : this.getDefaultMessage()
         }
         this.destRules[propName].push(rule)
     }
@@ -197,37 +214,47 @@ export class ValidationRuleAdapter {
         }
     }
 
+    /** 使用 callback 形式确保校验失败时展示 rule.message（async-validator 在仅 return false 时可能不显示文案） */
+    private static validatorWithMessage(rule: any, value: any, callback: (err?: Error) => void, pass: boolean) {
+        if (pass) callback()
+        else callback(new Error(rule?.message || ''))
+    }
+
     /** null约束，被校验对象可以是任何类型 */
     private null(propName: string, ruleDetails: Array<any>, rule: any) {
-        rule["validator"] = (rule: any, value: any) => value == null || value == ''
+        rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
+            ValidationRuleAdapter.validatorWithMessage(r, value, callback, value == null || value == '')
     }
 
     /** 非null约束，被校验对象可以是任何类型 */
     private notNull(propName: string, ruleDetails: Array<any>, rule: any) {
-        rule["validator"] = (rule: any, value: any) => value != null && value != ''
+        rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
+            ValidationRuleAdapter.validatorWithMessage(r, value, callback, value != null && value != '')
     }
 
     /** 非空约束, 被校验对象类型必须为以下之一：字符串、数组、集合、Map */
     private notEmpty(propName: string, ruleDetails: Array<any>, rule: any) {
-        rule["validator"] = (rule: any, value: any) => {
-            return !this.isEmpty(value)
-        }
+        rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
+            ValidationRuleAdapter.validatorWithMessage(r, value, callback, !this.isEmpty(value))
     }
 
     /** 非空白约束，被校验对象类型必须为字符串 */
     private notBlank(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "string"
-        rule["validator"] = (rule: any, value: any) => value != null && value.trim() != ""
+        rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
+            ValidationRuleAdapter.validatorWithMessage(r, value, callback, value != null && String(value).trim() !== '')
     }
 
     /** 逻辑真约束，被校验对象类型必须为Boolean，且值为true，或者值为"true"的字符串 */
     private assertTrue(propName: string, ruleDetails: Array<any>, rule: any) {
-        rule["validator"] = (rule: any, value: any) => value == null || value == '' || value == true || value == "true"
+        rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
+            ValidationRuleAdapter.validatorWithMessage(r, value, callback, value == null || value == '' || value == true || value == "true")
     }
 
     /** 逻辑假约束，被校验对象类型必须为Boolean，且值为false，或者值为"false"的字符串 */
     private assertFalse(propName: string, ruleDetails: Array<any>, rule: any) {
-        rule["validator"] = (rule: any, value: any) => value == null || value == '' || value == false || value == "false"
+        rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
+            ValidationRuleAdapter.validatorWithMessage(r, value, callback, value == null || value == '' || value == false || value == "false")
     }
 
     /** 字符串代码点长度(实际字符数)约束，被校验对象类型必须为字符串 */
@@ -250,10 +277,10 @@ export class ValidationRuleAdapter {
                 params[propName] = value
 
                 const result = await backendRequest({url: ruleDetails[0].requestUrl, params})
-                if (result.code == 200) {
+                if (result != null) {
                     resolve()
                 } else {
-                    reject(ruleDetails[0]["message"])
+                    reject(ValidationRuleAdapter.resolveMessage(ruleDetails[0]["message"]))
                 }
             });
         }
@@ -289,7 +316,7 @@ export class ValidationRuleAdapter {
                     const logic = ruleDetail["logic"]
                     const result = this.compareTwoValue(logic, value, anotherValue)
                     if (!result) {
-                        reject(ruleDetail["message"])
+                        reject(ValidationRuleAdapter.resolveMessage(ruleDetail["message"]))
                     } else {
                         resolve()
                     }

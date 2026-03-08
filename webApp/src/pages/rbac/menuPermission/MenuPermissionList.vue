@@ -91,7 +91,6 @@ export default defineComponent({
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     const { listLayoutRefs } = useListPageLayout(listPage, {
-      stateStorageKey: 'menuPermissionList.queryState',
     });
     const autoWidthColumns = computed(() => [
       { key: 'name', getLabel: () => '名称', getCellText: (row: Record<string, unknown>) => String(row.name ?? '') },

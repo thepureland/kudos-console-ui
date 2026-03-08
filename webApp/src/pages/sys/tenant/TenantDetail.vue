@@ -84,8 +84,8 @@ class DetailPage extends BaseDetailPage {
   protected async loadData(): Promise<void> {
     const params = this.createDetailLoadParams();
     const result = await backendRequest({ url: this.getDetailLoadUrl(), method: 'post', params });
-    if (result.code == 200 && result.data) {
-      const list = result.data.first;
+    if (result != null && typeof result === 'object' && 'first' in result) {
+      const list = (result as { first: unknown }).first;
       const row = Array.isArray(list) && list.length > 0 ? list[0] : null;
       this.postLoadDataSuccessfully(row);
     } else {

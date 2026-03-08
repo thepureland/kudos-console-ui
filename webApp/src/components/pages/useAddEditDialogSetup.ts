@@ -1,7 +1,10 @@
-import { computed, reactive, toRefs, watch, nextTick } from 'vue';
+import { computed, inject, reactive, ref, toRefs, watch, nextTick, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { BaseAddEditPage } from './BaseAddEditPage';
 import { useAddEditDialogCloseGuard } from './useAddEditDialogCloseGuard';
+
+/** 列表页 provide 此 key（值为 Ref<Set<string>>），AddEdit 注入后作为校验 i18n 的列表页级缓存，避免多次打开弹窗重复请求 */
+export const ValidationI18nCacheKey = Symbol('ValidationI18nCache');
 
 export interface UseAddEditDialogSetupOptions {
   /** 创建页面实例的工厂（如 () => new CacheAddEditPage(props, context)） */
@@ -23,7 +26,8 @@ export function useAddEditDialogSetup(
 ) {
   const { createPage, i18nKeyPrefix, formHasContent } = options;
   const { t } = useI18n();
-  const pageInstance = createPage(props, context);
+  const validationI18nCache = inject<Ref<Set<string>>>(ValidationI18nCacheKey, () => ref(new Set()), true);
+  const pageInstance = createPage({ ...props, validationI18nCache }, context);
   const formRef = pageInstance.form;
   const visibleRef = pageInstance.visible;
   const page = reactive(pageInstance) as BaseAddEditPage & { state: Record<string, unknown> };

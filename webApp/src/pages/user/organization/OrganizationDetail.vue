@@ -79,7 +79,7 @@ class DetailPage extends BaseDetailPage {
 
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
-    await this.loadDicts([new Pair('kuark:user', 'organization_type')]);
+    await this.loadDicts(['organization_type'], 'kuark:user');
   }
 }
 

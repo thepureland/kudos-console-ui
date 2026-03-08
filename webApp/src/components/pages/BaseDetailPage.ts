@@ -62,12 +62,12 @@ export abstract class BaseDetailPage extends BasePage {
         }
     }
 
-    /** 请求详情接口并写入 state.detail，成功时调用 postLoadDataSuccessfully */
+    /** 请求详情接口并写入 state.detail，成功时调用 postLoadDataSuccessfully。仅支持后端直接返回实体 */
     protected async loadData() {
         const params = this.createDetailLoadParams()
-        const result = await backendRequest({url: this.getDetailLoadUrl(), params});
-        if (result.code == 200) {
-            this.postLoadDataSuccessfully(result.data)
+        const result = await backendRequest({ url: this.getDetailLoadUrl(), params })
+        if (result != null) {
+            this.postLoadDataSuccessfully(result)
         } else {
             ElMessage.error('数据加载失败！')
         }

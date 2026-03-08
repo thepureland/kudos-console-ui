@@ -56,15 +56,26 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useStore } from 'vuex';
-import { getComponentForPath } from '../config/menuPathToComponent';
+import { getComponentForPath, VALID_MENU_PATHS } from '../config/menuPathToComponent';
 import vHeader from '../components/widgets/Header.vue';
 import vSidebar from '../components/widgets/Sidebar.vue';
 import vTags from '../components/widgets/Tags.vue';
 
 const store = useStore();
+const route = useRoute();
 const currentMenuPath = computed(() => store.state.currentMenuPath);
 const currentComponent = computed(() => getComponentForPath(currentMenuPath.value));
+
+/** 根据路由同步 store.currentMenuPath，使直接访问/刷新 /sys/subsys 等时内容区与侧栏/标签一致；点菜单不改地址栏 */
+function syncStoreFromRoute() {
+  const path = route.path || '/home';
+  const menuPath = path.startsWith('/') ? path : '/' + path;
+  if (VALID_MENU_PATHS.has(menuPath) && currentMenuPath.value !== menuPath) {
+    store.commit('setCurrentMenuPath', menuPath);
+  }
+}
 
 // ---------- 侧栏与内容区布局（含可拖拽分界线） ----------
 /** 侧栏是否折叠，来自 store，与 content-box 的 left 联动 */
@@ -135,7 +146,10 @@ watch(currentMenuPath, () => {
   }, 50);
 });
 
+watch(() => route.path, syncStoreFromRoute);
+
 onMounted(() => {
+  syncStoreFromRoute();
   document.documentElement.style.overflow = 'hidden';
   document.body.style.overflow = 'hidden';
 });

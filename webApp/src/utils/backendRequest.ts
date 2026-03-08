@@ -37,8 +37,17 @@ export async function backendRequest(options: BackendRequestOptions): Promise<an
     options.params != null ? JSON.stringify(options.params) : null;
   const raw = await api.request(options.url, method, paramsJson);
   const t2 = LOG_SLOW_REQUESTS ? now() : 0;
-  const data = typeof raw === "string" ? JSON.parse(raw) : raw;
-  const result = data ?? { code: 0, data: null };
+  let result: unknown
+  if (typeof raw !== "string") {
+    result = raw
+  } else {
+    try {
+      result = JSON.parse(raw)
+    } catch {
+      // 非 JSON 时原样返回字符串（如仅返回主键的纯文本）
+      result = raw
+    }
+  }
   const t3 = LOG_SLOW_REQUESTS ? now() : 0;
   if (LOG_SLOW_REQUESTS && t0 > 0) {
     const total = Math.round(t3 - t0);

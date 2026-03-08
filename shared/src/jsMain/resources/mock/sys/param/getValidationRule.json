@@ -1,1 +1,1 @@
-{"code":200,"data":{"module":{"NotNull":[{"message":"请选择原子服务"}]},"paramName":{"NotBlank":[{"message":"请输入参数名称"}]}}}
+{"module":{"NotNull":[{"message":"请选择原子服务"}]},"paramName":{"NotBlank":[{"message":"请输入参数名称"}]}}

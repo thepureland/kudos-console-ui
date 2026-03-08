@@ -305,7 +305,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import AccountAddEdit from './AccountAddEdit.vue';
@@ -316,6 +316,7 @@ import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
+import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
 import { ElMessage } from 'element-plus';
 import { backendRequest } from '../../../utils/backendRequest';
@@ -332,10 +333,7 @@ const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 class ListPage extends TenantSupportListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
-    this.loadDicts([
-      new Pair('kuark:user', 'user_status'),
-      new Pair('kuark:user', 'user_type'),
-    ]);
+    this.loadDicts(['user_status', 'user_type'], 'kuark:user');
     this.convertThis();
   }
 
@@ -397,8 +395,8 @@ class ListPage extends TenantSupportListPage {
       tenantId: pair.second,
     };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
-    if (result.code == 200) {
-      (this.state as Record<string, unknown>).organizations = result.data ?? [];
+    if (Array.isArray(result)) {
+      (this.state as Record<string, unknown>).organizations = result;
     } else {
       ElMessage.error('加载组织机构树失败！');
     }
@@ -409,11 +407,11 @@ export default defineComponent({
   name: 'AccountList',
   components: { AccountAddEdit, AccountDetail, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-      stateStorageKey: ACCOUNT_LIST_STATE_STORAGE_KEY,
     });
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;

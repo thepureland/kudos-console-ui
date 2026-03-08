@@ -318,10 +318,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Delete, Edit, Lock, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
+import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import DataSourceAddEdit from './DataSourceAddEdit.vue';
 import DataSourceDetail from './DataSourceDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
@@ -398,8 +399,8 @@ class ListPage extends TenantSupportListPage {
     const params = { id: row.id, password: newPassword };
     const url = 'sys/dataSource/resetPassword';
     try {
-      const result = await backendRequest({ url, params }) as { code: number };
-      if (result.code === 200) {
+      const result = await backendRequest({ url, params });
+      if (result != null) {
         ElMessage.info(tr('dataSourceList.messages.resetPasswordSuccess'));
       } else {
         ElMessage.error(tr('dataSourceList.messages.resetPasswordFailed'));
@@ -436,6 +437,7 @@ export default defineComponent({
     Plus,
   },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
@@ -453,7 +455,6 @@ export default defineComponent({
       });
     }
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-      stateStorageKey: DATA_SOURCE_LIST_STATE_STORAGE_KEY,
       onAfterMount: updateNameInputWidth,
       onAfterPersist: updateNameInputWidth,
     });

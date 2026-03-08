@@ -102,11 +102,9 @@ class DetailPage extends BaseDetailPage {
 
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
-    await this.loadDicts([
-      new Pair('kuark:sys', 'sys'),
-      new Pair('kuark:user', 'user_status'),
-      new Pair('kuark:user', 'user_type'),
-      new Pair('kuark:user', 'user_terminal'),
+    await this.loadDictsBatch([
+      { dictTypes: ['sys'], atomicServiceCode: 'kuark:sys' },
+      { dictTypes: ['user_status', 'user_type', 'user_terminal'], atomicServiceCode: 'kuark:user' },
     ]);
   }
 }

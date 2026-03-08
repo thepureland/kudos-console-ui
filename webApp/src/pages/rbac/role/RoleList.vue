@@ -308,7 +308,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, provide } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import RoleAddEdit from './RoleAddEdit.vue';
@@ -321,6 +321,7 @@ import { TenantSupportListPage } from '../../../components/pages/TenantSupportLi
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
+import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'roleList.operationColumnPinned';
@@ -335,7 +336,7 @@ const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 class ListPage extends TenantSupportListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
-    this.loadDicts([new Pair('kuark:sys', 'resource_type')]);
+    this.loadDicts(['resource_type'], 'kuark:sys');
     this.convertThis();
   }
 
@@ -420,11 +421,11 @@ export default defineComponent({
     Plus,
   },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-      stateStorageKey: ROLE_LIST_STATE_STORAGE_KEY,
     });
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
     const {
@@ -514,7 +515,7 @@ export default defineComponent({
       commandValue: (item: unknown, row: Record<string, unknown>) => listPage.commandValue(item, row),
       authorize: (cmd: { item: unknown; row: Record<string, unknown> }) => listPage.authorize(cmd),
       assign: (cmd: { item: number; row: Record<string, unknown> }) => listPage.assign(cmd),
-      getDictItems: (module: string | null | undefined, dictType: string) => listPage.getDictItems(module, dictType),
+      getDictItems: (module: string, dictType: string) => listPage.getDictItems(module, dictType),
       transDict: (module: string, dictType: string, code: string | null | undefined) => t(listPage.transDict(module, dictType, code)),
     };
   },

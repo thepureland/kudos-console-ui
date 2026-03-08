@@ -244,12 +244,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, onBeforeUnmount } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, onBeforeUnmount, provide } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { i18n } from '../../../i18n';
+import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import ResourceAddEdit from './ResourceAddEdit.vue';
 import ResourceDetail from './ResourceDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
@@ -275,7 +276,7 @@ class ListPage extends BaseListPage {
     this.tree = tree;
     this.convertThis();
     this.loadAtomicServices();
-    this.loadDicts([new Pair('kuark:sys', 'resource_type')]);
+    this.loadDicts(['resource_type'], 'kuark:sys');
   }
 
   protected initState(): Record<string, unknown> {
@@ -325,8 +326,8 @@ class ListPage extends BaseListPage {
     if (root && resolve) this.doLoadTree(root, resolve);
   }
 
-  protected doAfterEdit(): void {
-    this.doAfterAdd();
+  protected doAfterEdit(params: any): void {
+    this.doAfterAdd(params);
   }
 
   protected doAfterDelete(ids: string[]): void {
@@ -345,8 +346,8 @@ class ListPage extends BaseListPage {
     this.setParamsForTree(node, true);
     const params = this.createSearchParams();
     try {
-      const result = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params }) as { code: number; data?: unknown };
-      if (result.code === 200) resolve(result.data ?? []);
+      const result = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params });
+      if (Array.isArray(result)) resolve(result);
       else ElMessage.error(tr('resourceList.messages.loadTreeFailed'));
     } catch {
       ElMessage.error(tr('resourceList.messages.loadTreeFailed'));
@@ -385,10 +386,10 @@ class ListPage extends BaseListPage {
     params.id = nodeData.id;
     params.resourceTypeDictCode = this.getResourceTypeByNode(node);
     try {
-      const result = await backendRequest({ url: 'sys/resource/searchOnClick', method: 'post', params }) as { code: number; data?: { data: unknown[]; totalCount: number } };
-      if (result.code === 200 && result.data) {
-        this.state.tableData = result.data.data ?? [];
-        (this.state.pagination as Record<string, number>).total = result.data.totalCount ?? 0;
+      const result = await backendRequest({ url: 'sys/resource/searchOnClick', method: 'post', params });
+      if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
+        this.state.tableData = (result as { data: unknown[] }).data ?? [];
+        (this.state.pagination as Record<string, number>).total = (result as { totalCount: number }).totalCount ?? 0;
       } else ElMessage.error(tr('resourceList.messages.loadFailed'));
     } catch {
       ElMessage.error(tr('resourceList.messages.loadFailed'));
@@ -445,10 +446,10 @@ class ListPage extends BaseListPage {
     const sort = this.state.sort as { orderProperty?: string; orderDirection?: string };
     if (sort?.orderProperty) params.orders = [{ property: sort.orderProperty, direction: sort.orderDirection ?? 'ASC' }];
     try {
-      const result = await backendRequest({ url: 'sys/resource/searchByTree', method: 'post', params }) as { code: number; data?: { data: unknown[]; totalCount: number } };
-      if (result.code === 200 && result.data) {
-        this.state.tableData = result.data.data ?? [];
-        (this.state.pagination as Record<string, number>).total = result.data.totalCount ?? 0;
+      const result = await backendRequest({ url: 'sys/resource/searchByTree', method: 'post', params });
+      if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
+        this.state.tableData = (result as { data: unknown[] }).data ?? [];
+        (this.state.pagination as Record<string, number>).total = (result as { totalCount: number }).totalCount ?? 0;
       } else ElMessage.error(tr('resourceList.messages.loadFailed'));
     } catch {
       ElMessage.error(tr('resourceList.messages.loadFailed'));
@@ -508,12 +509,12 @@ export default defineComponent({
   name: 'ResourceList',
   components: { ResourceAddEdit, ResourceDetail, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-      stateStorageKey: RESOURCE_LIST_STATE_STORAGE_KEY,
     });
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
 

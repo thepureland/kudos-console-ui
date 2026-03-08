@@ -93,7 +93,7 @@ class AddEditPage extends OrgSupportAddEditPage {
     parentCascader: { value?: { getCheckedNodes: () => unknown[] } }
   ) {
     super(props, context, parentCascader);
-    this.loadDicts([new Pair('share', 'organization_type')]);
+    this.loadDicts(['organization_type'], 'share');
   }
 
   /** 租户级联与列表页一致：非严格模式 */
@@ -164,10 +164,10 @@ class AddEditPage extends OrgSupportAddEditPage {
     const tenantId = arr.length > 1 ? arr[1] : null;
     const params = { subSysDictCode, tenantId } as { subSysDictCode: string; tenantId: string | null };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
-    if (result?.code === 200 && Array.isArray(result.data)) {
-      this.state.organizationTree = result.data;
+    if (Array.isArray(result)) {
+      this.state.organizationTree = result;
     } else {
-      ElMessage.error(result?.msg || '加载组织机构树失败！');
+      ElMessage.error((result as { msg?: string })?.msg || '加载组织机构树失败！');
       this.state.organizationTree = [];
     }
     this.state.formModel.parent = [];
@@ -177,8 +177,8 @@ class AddEditPage extends OrgSupportAddEditPage {
   async loadOrganizationTreeForEdit(subSysDictCode: string, tenantId: string | null): Promise<void> {
     const params = { subSysDictCode, tenantId };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
-    if (result?.code === 200 && Array.isArray(result.data)) {
-      this.state.organizationTree = result.data;
+    if (Array.isArray(result)) {
+      this.state.organizationTree = result;
     } else {
       this.state.organizationTree = [];
     }

@@ -85,9 +85,7 @@ class ListPage extends TenantSupportListPage {
   constructor(props, context, tree) {
     super(props, context)
     this.tree = tree
-    this.loadDicts([
-      new Pair("kuark:sys", "resource_type"),
-    ])
+    this.loadDicts(["resource_type"], "kuark:sys")
   }
 
   protected initState(): any {
@@ -132,7 +130,7 @@ class ListPage extends TenantSupportListPage {
   }
 
   protected doAfterEdit(params: any) {
-
+    super.doAfterEdit(params)
   }
 
   protected doAfterDelete(ids: Array<any>) {
@@ -148,8 +146,8 @@ class ListPage extends TenantSupportListPage {
     }
     // @ts-ignore
     const result = await backendRequest({url: "sys/resource/getSimpleMenus", params})
-    if (result.code == 200) {
-      this.state.menus = result.data
+    if (Array.isArray(result)) {
+      this.state.menus = result
     } else {
       ElMessage.error('资源树加载失败！')
     }
@@ -172,9 +170,9 @@ class ListPage extends TenantSupportListPage {
     params.resourceTypeDictCode = this.getResourceTypeByNode(node)
     // @ts-ignore
     const result = await backendRequest({url: "sys/resource/searchOnClick", method: "post", params});
-    if (result.code == 200) {
-      this.state.tableData = result.data.data ?? []
-      this.state.pagination.total = result.data.totalCount ?? 0
+    if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
+      this.state.tableData = (result as { data: unknown[] }).data ?? []
+      this.state.pagination.total = (result as { totalCount: number }).totalCount ?? 0
     } else {
       ElMessage.error('数据加载失败！')
     }
@@ -231,9 +229,9 @@ class ListPage extends TenantSupportListPage {
     }
     // @ts-ignore
     const result = await backendRequest({url: "rbac/resourcepermission/searchTree", method: "post", params})
-    if (result.code == 200) {
-      this.state.tableData = result.data.data ?? []
-      this.state.pagination.total = result.data.totalCount ?? 0
+    if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
+      this.state.tableData = (result as { data: unknown[] }).data ?? []
+      this.state.pagination.total = (result as { totalCount: number }).totalCount ?? 0
     } else {
       ElMessage.error('数据加载失败！')
     }
@@ -260,7 +258,6 @@ export default defineComponent({
     const tree = ref();
     const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
     const { listLayoutRefs } = useListPageLayout(listPage, {
-      stateStorageKey: 'resourcePermissionList.queryState',
     });
     const autoWidthColumns = computed(() => [
       { key: 'name', getLabel: () => '资源名称', sortable: true, getCellText: (row: Record<string, unknown>) => String(row.name ?? '') },

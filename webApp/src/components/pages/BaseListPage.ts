@@ -14,15 +14,41 @@ export abstract class BaseListPage extends BasePage {
 
     // 列可见性能力按需启用，避免影响未接入页面
     private columnVisibilitySupport: ColumnVisibilitySupport | null = null
-    // 列表状态持久化 key（由子页面配置）
+    // 列表状态持久化 key（由子页面配置；不配置则关闭后不保留查询结果）
     private listStateStorageKey: string | null = null
     private tableMaxHeightFallback = 520
     private tableMaxHeightMin = 280
     private tableBottomSafeGap = 20
+    /** 初始搜索条件/分页/排序，用于关闭页面时重置（默认行为：不保留上次结果） */
+    private _initialSearchParams: Record<string, unknown> | null = null
+    private _initialPagination: Record<string, unknown> | null = null
+    private _initialSort: Record<string, unknown> | null = null
 
     /** @internal 子类通过 super(props, context) 调用 */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
+        this.snapshotInitialListState()
+    }
+
+    /** 保存当前搜索条件、分页、排序为「初始状态」，离开页面时重置用 */
+    private snapshotInitialListState(): void {
+        if (this.state.searchParams) this._initialSearchParams = JSON.parse(JSON.stringify(this.state.searchParams))
+        if (this.state.pagination) this._initialPagination = { ...this.state.pagination }
+        if (this.state.sort) this._initialSort = { ...this.state.sort }
+    }
+
+    /** 关闭/离开页面时重置搜索条件与表格数据（keep-alive 下由 useListPageLayout 的 onDeactivated 调用） */
+    public resetSearchAndTableOnLeave(): void {
+        if (this._initialSearchParams && this.state.searchParams) {
+            Object.assign(this.state.searchParams, this._initialSearchParams)
+        }
+        if (this._initialPagination && this.state.pagination) {
+            Object.assign(this.state.pagination, this._initialPagination)
+        }
+        if (this._initialSort && this.state.sort) {
+            Object.assign(this.state.sort, this._initialSort)
+        }
+        this.state.tableData = []
     }
 
     /** 初始化列表页基础状态。 */
@@ -243,8 +269,8 @@ export abstract class BaseListPage extends BasePage {
         this.state.columnVisibilityPanelVisible = false
     }
 
-    /** 配置列表状态持久化存储 key。 */
-    public configureListStatePersistence(storageKey: string) {
+    /** 配置列表状态持久化存储 key；传 null 则不持久化（关闭后不保留查询结果）。 */
+    public configureListStatePersistence(storageKey: string | null) {
         this.listStateStorageKey = storageKey
     }
 
@@ -437,7 +463,7 @@ export abstract class BaseListPage extends BasePage {
         }
         const params = this.createDeleteParams(row)
         const result = await backendRequest({url: this.getDeleteUrl(), method: "delete", params: params})
-        if (result.data === true) {
+        if (result === true || result?.data === true) {
             ElMessage.success(t('listPage.deleteSuccess') as string)
             this.doAfterDelete([params["id"]])
         } else {
@@ -464,7 +490,7 @@ export abstract class BaseListPage extends BasePage {
             }
             const params = this.createBatchDeleteParams()
             const result = await backendRequest({url: this.getBatchDeleteUrl(), method: "post", params: params})
-            if (result.data === true) {
+            if (result === true || result?.data === true) {
                 ElMessage.success(t('listPage.deleteSuccess') as string)
                 this.doAfterDelete(this.getSelectedIds())
             } else {
@@ -493,7 +519,7 @@ export abstract class BaseListPage extends BasePage {
             params["subSysDictCode"] = row.subSysDictCode
         }
         const result = await backendRequest({url: this.getUpdateActiveUrl(), params})
-        if (!result.data) {
+        if (result !== true && result?.data !== true) {
             ElMessage.error(i18n.global.t('listPage.updateActiveFailed') as string)
         }
     }
@@ -544,9 +570,9 @@ export abstract class BaseListPage extends BasePage {
 
     public afterEdit: (params: any) => void
 
-    /** 编辑成功后的默认回调：重新查询。 */
+    /** 编辑成功后的默认回调：与新增一致，按 getAfterAddSearchParamKeys 回填搜索条件后重新查询列表，以查出刚编辑的那条数据。 */
     protected doAfterEdit(params: any) {
-        this.search()
+        this.doAfterAdd(params)
     }
 
     public afterDelete: (ids: Array<any>) => void

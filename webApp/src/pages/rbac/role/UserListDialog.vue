@@ -65,10 +65,7 @@ class UserListDialog extends BaseListPage {
 
   constructor(props, context) {
     super(props, context)
-    this.loadDicts([
-      new Pair("kuark:user", "user_status"),
-      new Pair("kuark:user", "user_type"),
-    ])
+    this.loadDicts(["user_status", "user_type"], "kuark:user")
     this.search()
   }
 
