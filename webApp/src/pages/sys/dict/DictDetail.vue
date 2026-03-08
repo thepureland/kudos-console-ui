@@ -100,7 +100,7 @@ class DetailPage extends BaseDetailPage {
   }
 
   protected async preLoad(): Promise<void> {
-    await this.loadDict('kuark:sys', 'module');
+    await this.loadDicts(['module'], 'kuark:sys');
   }
 
   protected getRootActionPath(): string {
@@ -141,9 +141,10 @@ class DetailPage extends BaseDetailPage {
     const result = await backendRequest({
       url: 'sys/dictItem/getDictItemsByDictId',
       params: { dictId: rid },
-    }) as { code: number; data?: Record<string, unknown>[] };
-    if (result.code === 200 && result.data) {
-      (this.state as Record<string, unknown>).tableData = result.data;
+    });
+    const list = Array.isArray(result) ? result : null;
+    if (list != null) {
+      (this.state as Record<string, unknown>).tableData = list;
     } else {
       ElMessage.error((i18n.global.t('dictDetail.messages.loadItemsFailed') as string) || '字典项加载失败！');
     }

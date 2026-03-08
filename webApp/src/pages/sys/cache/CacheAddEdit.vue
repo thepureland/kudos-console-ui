@@ -194,9 +194,9 @@ class AddEditPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.loadAtomicServices();
-    this.loadDicts([new Pair('kuark:sys', 'cache_strategy')]).then(() => {
-      (this.state as Record<string, unknown>).strategyOptions = this.getDictItems('kuark:sys', 'cache_strategy').map(
-        (p: { first: string; second: string }) => ({ first: p.first, second: p.second })
+    this.loadDicts(['cache_strategy'], 'sys').then(() => {
+      this.state.strategyOptions = this.getDictItems('sys', 'cache_strategy').map(
+        (p) => ({ first: p.first, second: p.second })
       ) as StrategyOption[];
     });
   }
@@ -220,21 +220,6 @@ class AddEditPage extends BaseAddEditPage {
 
   protected getRootActionPath(): string {
     return 'sys/cache';
-  }
-
-  /** 必填项始终使用基类 i18n 必填规则并合并，保证切换语言后提示为当前语言（服务端/ mock 返回的 message 多为中文） */
-  protected async initValidationRule(): Promise<void> {
-    await super.initValidationRule();
-    const requiredRules = this.createRequiredRules(
-      {
-        name: 'cacheAddEdit.validation.requiredName',
-        atomicServiceCode: 'cacheAddEdit.validation.requiredAtomicService',
-        strategyDictCode: 'cacheAddEdit.validation.requiredStrategy',
-      },
-      { atomicServiceCode: 'change', strategyDictCode: 'change' }
-    );
-    const rules = (this.state.rules as Record<string, unknown>) || {};
-    this.state.rules = { ...rules, ...requiredRules };
   }
 
   /** 与详情页一致：使用 getDetail 接口按 id 拉取单条，Mock/后端均只处理此路径 */

@@ -11,7 +11,7 @@ import DomainList from '../pages/sys/domain/DomainList.vue';
 import TenantList from '../pages/sys/tenant/TenantList.vue';
 import SystemList from '../pages/sys/system/SystemList.vue';
 import MicroServiceList from '../pages/sys/microservice/MicroServiceList.vue';
-import I18NList from '../pages/sys/i18n/I18NList.vue';
+import I18NList from '../pages/sys/i18n/I18nList.vue';
 import AccountList from '../pages/user/account/AccountList.vue';
 import OrganizationList from '../pages/user/organization/OrganizationList.vue';
 import RoleList from '../pages/rbac/role/RoleList.vue';

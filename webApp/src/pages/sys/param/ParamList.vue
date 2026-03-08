@@ -224,7 +224,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import ParamAddEdit from './ParamAddEdit.vue';
@@ -234,6 +234,7 @@ import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
+import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 
 class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
@@ -298,6 +299,7 @@ export default defineComponent({
     Plus,
   },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     const {
@@ -307,7 +309,6 @@ export default defineComponent({
       columnVisibilityOptions,
       isColumnVisible,
     } = useListPageLayout(listPage, {
-      stateStorageKey: PARAM_LIST_STATE_STORAGE_KEY,
       columnVisibility: {
         storageKey: COLUMN_VISIBILITY_STORAGE_KEY,
         columnKeys: COLUMN_VISIBILITY_KEYS,

@@ -14,7 +14,7 @@
           <span class="tag-close">×</span>
         </li>
         <li class="tags-li tags-more-trigger">
-          <span class="tags-more-btn">{{ t('tags.more') }} (0)<el-icon class="el-icon--right"><ArrowDown /></el-icon></span>
+          <span class="tags-more-btn">{{ t('tags.more') }} (0)<el-icon class="el-icon--right"><component :is="tagIconMap['ArrowDown']" /></el-icon></span>
         </li>
       </ul>
     </div>
@@ -56,7 +56,7 @@
           @drop="onDrop($event, visibleTags.length)"
         >
           <el-dropdown trigger="click" @command="goToTag" placement="bottom-start">
-            <span class="tags-more-btn">{{ t('tags.more') }} ({{ moreTags.length }})<el-icon class="el-icon--right"><ArrowDown /></el-icon></span>
+            <span class="tags-more-btn">{{ t('tags.more') }} ({{ moreTags.length }})<el-icon class="el-icon--right"><component :is="tagIconMap['ArrowDown']" /></el-icon></span>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item
@@ -88,7 +88,7 @@
           :title="t('tags.options')"
           aria-label="标签选项"
         >
-          <el-icon><CaretBottom /></el-icon>
+          <el-icon><component :is="tagIconMap['CaretBottom']" /></el-icon>
         </button>
         <template #dropdown>
           <el-dropdown-menu size="small">
@@ -102,28 +102,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { computed, markRaw, ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import {
-  ArrowDown,
-  Bell,
-  CaretBottom,
-  Coin,
-  Collection,
-  Document,
-  HomeFilled,
-  Key,
-  Lock,
-  OfficeBuilding,
-  Setting,
-  User,
-  UserFilled,
-} from '@element-plus/icons-vue';
-import { PATH_META } from '../../config/menuPathToComponent';
+import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import type { TagItem } from '../../store/index';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const store = useStore();
 const currentMenuPath = computed(() => store.state.currentMenuPath);
 
@@ -194,23 +179,17 @@ watch(() => t('tags.more'), scheduleMeasure);
 
 // ---------- 标签文案与图标（与侧栏菜单一致） ----------
 const isActive = (path: string) => path === currentMenuPath.value;
+/** 菜单/路由文案：titleKey 存在且当前 locale 有译文时用 t(titleKey)，否则用 title（后端菜单 key 未拉取到时避免报错） */
 function tagTitle(item: { titleKey?: string; title?: string }) {
-  return item.titleKey ? t(item.titleKey) : (item.title ?? '');
+  if (item.titleKey && te(item.titleKey)) return t(item.titleKey);
+  return item.title ?? item.titleKey ?? '';
 }
 
-const tagIconMap: Record<string, unknown> = {
-  Bell,
-  HomeFilled,
-  Setting,
-  Coin,
-  Collection,
-  Document,
-  User,
-  UserFilled,
-  OfficeBuilding,
-  Lock,
-  Key,
-};
+/** 全量图标名 → 组件；与 Sidebar 一致，支持后端动态指定任意图标名 */
+const tagIconMap: Record<string, unknown> = {};
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  tagIconMap[key] = markRaw(component);
+}
 /** path → icon 名，用于从 localStorage 恢复的标签无 icon 时回退 */
 const pathToIcon: Record<string, string> = {
   '/home': 'HomeFilled',
@@ -250,28 +229,33 @@ function clearPersistedStateByPath(path: string) {
 }
 function tagIcon(item: TagItem): unknown {
   const name = item.icon ?? pathToIcon[item.path];
-  return name ? tagIconMap[name] ?? Setting : Setting;
+  return name ? tagIconMap[name] ?? tagIconMap.Setting : tagIconMap.Setting;
 }
-/** 当前菜单路径变化时追加标签（不改变地址栏） */
+/** 当前菜单路径变化时追加标签（仅当菜单中有该 path 时，titleKey/icon 来自后端或 mock） */
 function setTagsForPath(path: string) {
   if (!path) return;
   const isExist = tagsList.value.some((item) => item.path === path);
   if (!isExist) {
-    const meta = PATH_META[path];
-    store.commit('setTagsItem', {
-      titleKey: meta?.titleKey,
-      icon: meta?.icon,
-      path,
-    });
+    const item = (store.getters.getMenuItemByPath as (path: string) => { titleKey?: string; icon?: string } | undefined)(path);
+    if (item) {
+      store.commit('setTagsItem', {
+        titleKey: item.titleKey,
+        icon: item.icon,
+        path,
+      });
+    }
   }
 }
 watch(currentMenuPath, setTagsForPath, { immediate: true });
+/** 菜单加载完成后为当前 path 补标签（如刷新后恢复 currentMenuPath） */
+watch(() => store.state.menuData.length, () => setTagsForPath(currentMenuPath.value));
 
 // ---------- 关闭与选项 ----------
 function closeTags(index: number) {
   const delItem = tagsList.value[index];
   if (delItem?.path) {
     clearPersistedStateByPath(delItem.path);
+    store.commit('addListStateResetPath', delItem.path);
   }
   store.commit('delTagsItem', { index });
   const next = tagsList.value[index] ?? tagsList.value[index - 1];
@@ -284,6 +268,7 @@ function closeTags(index: number) {
 function closeAll() {
   tagsList.value.forEach((item) => {
     clearPersistedStateByPath(item.path);
+    store.commit('addListStateResetPath', item.path);
   });
   store.commit('clearTags');
   store.commit('setCurrentMenuPath', '/home');
@@ -293,6 +278,7 @@ function closeOther() {
   tagsList.value.forEach((item) => {
     if (item.path !== curPath) {
       clearPersistedStateByPath(item.path);
+      store.commit('addListStateResetPath', item.path);
     }
   });
   const cur = tagsList.value.filter((item) => item.path === curPath);

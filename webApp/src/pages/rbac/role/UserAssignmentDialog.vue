@@ -88,7 +88,7 @@ class UserAssignmentDialog extends BaseDetailPage {
     }
     // @ts-ignore
     const result = await backendRequest({url: this.getRootActionPath() + "/assignUser", method: "post", params})
-    if (result.code == 200) {
+    if (result != null) {
       ElMessage.success('保存成功！')
       this.context.emit('update:modelValue', false)
     } else {

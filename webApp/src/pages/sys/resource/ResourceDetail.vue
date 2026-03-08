@@ -77,7 +77,7 @@ class DetailPage extends BaseDetailPage {
 
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
-    await this.loadDicts([new Pair('kuark:sys', 'resource_type')]);
+    await this.loadDicts(['resource_type'], 'kuark:sys');
   }
 
   protected getRootActionPath(): string {

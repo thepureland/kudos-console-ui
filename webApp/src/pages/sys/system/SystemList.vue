@@ -245,7 +245,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, provide } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
@@ -253,6 +253,10 @@ import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
+import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
+import { backendRequest } from '../../../utils/backendRequest';
+import { i18n } from '../../../i18n';
+import { ElMessage } from 'element-plus';
 import SystemAddEdit from './SystemAddEdit.vue';
 import SystemDetail from './SystemDetail.vue';
 
@@ -304,9 +308,27 @@ class ListPage extends BaseListPage {
     return ['code', 'name'];
   }
 
-  /** 树接口直接返回 data 数组，无 first/second */
+  /** 与缓存等列表一致：支持 { data: 树数组, totalCount } 或直接数组 */
   protected postSearchSuccessfully(data: unknown): void {
+    if (data != null && typeof data === 'object' && Array.isArray((data as { data?: unknown }).data)) {
+      const obj = data as { data: unknown[]; totalCount?: number };
+      this.state.tableData = obj.data;
+      if (typeof obj.totalCount === 'number') this.state.pagination.total = obj.totalCount;
+      return;
+    }
     this.state.tableData = Array.isArray(data) ? data : [];
+  }
+
+  /** 树接口可能直接返回数组或仅 { data }，与基类仅认 { data, totalCount } 对齐：此处均视为成功并填表 */
+  protected async doSearch() {
+    const params = this.createSearchParams();
+    if (!params) return;
+    const result = await backendRequest({ url: this.getSearchUrl(), method: 'post', params });
+    if (Array.isArray(result) || (result != null && Array.isArray((result as { data?: unknown }).data))) {
+      this.postSearchSuccessfully(result);
+      return;
+    }
+    ElMessage.error(i18n.global.t('listPage.queryFailed') as string);
   }
 }
 
@@ -314,11 +336,11 @@ export default defineComponent({
   name: 'SystemList',
   components: { ListPageLayout, SystemAddEdit, SystemDetail, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-      stateStorageKey: SYSTEM_LIST_STATE_STORAGE_KEY,
     });
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
     const {

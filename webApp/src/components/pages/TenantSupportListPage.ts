@@ -94,29 +94,23 @@ export abstract class TenantSupportListPage extends BaseListPage {
         super.doAfterAdd(params)
     }
 
-    /** 拉取所有活跃租户并按原子服务分组，写入 state.subSysOrTenants 供级联使用 */
+    /** 按子系统拉取启用租户（getTenantsBySubSystemCode），写入 state.subSysOrTenants 供级联使用 */
     private async loadTenants() {
-        const result = await backendRequest({url: "sys/tenant/getAllActiveTenants", method: "post"})
-        if (result.code == 200) {
-            const options = []
-            const subSyses = this.getAtomicServices()
-            for (let subSys of subSyses) {
-                const subSysOption = {value: subSys.code, label: subSys.name}
-                options.push(subSysOption)
-                const tenants = result.data[subSys.code]
-                if (tenants) {
-                    const tenantOptions = []
-                    subSysOption["children"] = tenantOptions
-                    for (let tenantId in tenants) {
-                        const tenantOption = {value: tenantId, label: tenants[tenantId]}
-                        tenantOptions.push(tenantOption)
-                    }
+        const options: Array<{ value: string; label: string; children?: Array<{ value: string; label: string }> }> = []
+        const subSyses = this.getAtomicServices()
+        for (const subSys of subSyses) {
+            const subSysOption: { value: string; label: string; children?: Array<{ value: string; label: string }> } = { value: subSys.code, label: subSys.name }
+            options.push(subSysOption)
+            try {
+                const result = await backendRequest({ url: "sys/tenant/getTenantsBySubSystemCode", method: "get", params: { subSystemCode: subSys.code } })
+                if (Array.isArray(result) && result.length > 0) {
+                    subSysOption.children = (result as Array<{ id: string; name: string }>).map((item) => ({ value: item.id, label: item.name }))
                 }
+            } catch {
+                // 单子系统失败不阻塞其余
             }
-            this.state.subSysOrTenants = options
-        } else {
-            ElMessage.error('加载租户信息失败！')
         }
+        this.state.subSysOrTenants = options
     }
 
 }

@@ -265,7 +265,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, provide } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -277,6 +277,7 @@ import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
+import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest } from '../../../utils/backendRequest';
 
@@ -497,9 +498,9 @@ class ListPage extends BaseListPage {
       active: sp.active === true ? true : null,
     };
     try {
-      const result = await backendRequest({ url: 'sys/dict/loadTreeNodes', method: 'post', params }) as { code: number; data?: unknown[] };
-      if (result.code === 200) {
-        resolve(result.data ?? []);
+      const result = await backendRequest({ url: 'sys/dict/loadTreeNodes', method: 'post', params });
+      if (Array.isArray(result)) {
+        resolve(result);
       } else {
         ElMessage.error(tr('dictList.messages.loadTreeFailed'));
       }
@@ -525,9 +526,9 @@ class ListPage extends BaseListPage {
     this.setParamsForTree(node as Parameters<InstanceType<typeof ListPage>['setParamsForTree']>[0], false);
     const params = { id: nodeData.id, isDict: node.level === 2 };
     try {
-      const result = await backendRequest({ url: 'sys/dict/getDict', params }) as { code: number; data?: unknown };
-      if (result.code === 200) {
-        this.state.tableData = result.data ? [result.data] : [];
+      const result = await backendRequest({ url: 'sys/dict/getDict', params });
+      if (result != null && typeof result === 'object') {
+        this.state.tableData = [result];
         this.state.pagination.total = 1;
       } else {
         ElMessage.error(tr('dictList.messages.loadFailed'));
@@ -556,10 +557,10 @@ class ListPage extends BaseListPage {
       params.orders = [{ property: this.state.sort.orderProperty, direction: this.state.sort.orderDirection }];
     }
     try {
-      const result = await backendRequest({ url: 'sys/dict/searchByTree', method: 'post', params }) as { code: number; data?: { data: unknown[]; totalCount: number } };
-      if (result.code === 200 && result.data) {
-        this.state.tableData = result.data.data ?? [];
-        this.state.pagination.total = result.data.totalCount ?? 0;
+      const result = await backendRequest({ url: 'sys/dict/searchByTree', method: 'post', params });
+      if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
+        this.state.tableData = (result as { data: unknown[] }).data ?? [];
+        this.state.pagination.total = (result as { totalCount: number }).totalCount ?? 0;
       } else {
         ElMessage.error(tr('dictList.messages.loadFailed'));
       }
@@ -570,9 +571,9 @@ class ListPage extends BaseListPage {
 
   private async loadDictTypes(): Promise<void> {
     try {
-      const result = await backendRequest({ url: 'sys/dict/loadDictTypes' }) as { code: number; data?: string[] };
-      if (result.code === 200 && result.data) {
-        (this.state as Record<string, unknown>).dictTypes = result.data.map((val) => ({ value: val }));
+      const result = await backendRequest({ url: 'sys/dict/loadDictTypes' });
+      if (Array.isArray(result)) {
+        (this.state as Record<string, unknown>).dictTypes = result.map((val: string) => ({ value: val }));
       } else {
         ElMessage.error(tr('dictList.messages.loadDictTypesFailed'));
       }
@@ -610,6 +611,7 @@ export default defineComponent({
   name: 'DictList',
   components: { DictAddEdit, DictDetail, DictItemDetail, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
@@ -620,7 +622,6 @@ export default defineComponent({
       columnVisibilityOptions,
       isColumnVisible,
     } = useListPageLayout(listPage, {
-      stateStorageKey: DICT_LIST_STATE_STORAGE_KEY,
       columnVisibility: {
         storageKey: COLUMN_VISIBILITY_STORAGE_KEY,
         columnKeys: COLUMN_VISIBILITY_KEYS,

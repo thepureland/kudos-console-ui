@@ -267,7 +267,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import DomainAddEdit from './DomainAddEdit.vue';
@@ -278,6 +278,7 @@ import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
+import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'domainList.operationColumnPinned';
 const DOMAIN_LIST_STATE_STORAGE_KEY = 'domainList.queryState';
@@ -326,11 +327,11 @@ export default defineComponent({
   name: 'DomainList',
   components: { DomainAddEdit, DomainDetail, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-      stateStorageKey: DOMAIN_LIST_STATE_STORAGE_KEY,
     });
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const FIXED_LEFT_TOTAL_WIDTH = 289;

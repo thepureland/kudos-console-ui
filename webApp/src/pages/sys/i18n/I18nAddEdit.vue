@@ -73,9 +73,9 @@ class AddEditPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.loadAtomicServices();
-    this.loadDicts([new Pair('kuark:sys', 'locale'), new Pair('kuark:sys', 'i18n_type')]).then(() => {
-      (this.state as Record<string, unknown>).localeOptions = this.getDictItems('kuark:sys', 'locale') as Array<{ first: string; second: string }>;
-      (this.state as Record<string, unknown>).i18nTypeDictOptions = this.getDictItems('kuark:sys', 'i18n_type') as Array<{ first: string; second: string }>;
+    this.loadDicts(['locale', 'i18n_type'], 'kuark:sys').then(() => {
+      this.state.localeOptions = this.getDictItems('kuark:sys', 'locale');
+      this.state.i18nTypeDictOptions = this.getDictItems('kuark:sys', 'i18n_type');
     });
   }
 

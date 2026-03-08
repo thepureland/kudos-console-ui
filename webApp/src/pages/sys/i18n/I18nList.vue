@@ -299,7 +299,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
@@ -308,8 +308,9 @@ import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { Pair } from '../../../components/model/Pair';
-import I18NAddEdit from './I18NAddEdit.vue';
-import I18NDetail from './I18NDetail.vue';
+import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
+import I18NAddEdit from './I18nAddEdit.vue';
+import I18NDetail from './I18nDetail.vue';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'i18nList.operationColumnPinned';
 const I18N_LIST_STATE_STORAGE_KEY = 'i18nList.queryState';
@@ -324,12 +325,9 @@ class ListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.loadAtomicServices();
-    this.loadDicts([
-      new Pair('kuark:sys', 'locale'),
-      new Pair('kuark:sys', 'i18n_type'),
-    ]).then(() => {
-      (this.state as Record<string, unknown>).localeOptions = this.getDictItems('kuark:sys', 'locale') as Array<{ first: string; second: string }>;
-      (this.state as Record<string, unknown>).i18nTypeDictOptions = this.getDictItems('kuark:sys', 'i18n_type') as Array<{ first: string; second: string }>;
+    this.loadDicts(['locale', 'i18n_type'], 'kuark:sys').then(() => {
+      this.state.localeOptions = this.getDictItems('kuark:sys', 'locale');
+      this.state.i18nTypeDictOptions = this.getDictItems('kuark:sys', 'i18n_type');
     });
     this.convertThis();
   }
@@ -375,11 +373,11 @@ export default defineComponent({
   name: 'I18NList',
   components: { ListPageLayout, I18NAddEdit, I18NDetail, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-      stateStorageKey: I18N_LIST_STATE_STORAGE_KEY,
     });
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
 

@@ -70,35 +70,29 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         this.state.formModel.subSysOrTenant = arr
     }
 
-    /** 拉取租户树并写入 state.subSysOrTenants，供级联选择使用 */
+    /** 按子系统拉取启用租户（getTenantsBySubSystemCode），写入 state.subSysOrTenants 供级联选择使用 */
     protected async loadTenants() {
-        const result = await backendRequest({url: "sys/tenant/getAllActiveTenants", method: "post"})
-        if (result.code == 200) {
-            const options = []
-            const subSyses = this.getAtomicServices()
-            for (let subSys of subSyses) {
-                const subSysOption = {value: subSys.code, label: subSys.name}
-                options.push(subSysOption)
-                const tenants = result.data[subSys.code]
-                if (tenants) {
-                    const tenantOptions = []
-                    subSysOption["children"] = tenantOptions
-                    for (let tenantId in tenants) {
-                        const tenantOption = {value: tenantId, label: tenants[tenantId]}
-                        tenantOptions.push(tenantOption)
-                    }
+        const options: Array<{ value: string; label: string; children?: Array<{ value: string; label: string }> }> = []
+        const subSyses = this.getAtomicServices()
+        for (const subSys of subSyses) {
+            const subSysOption: { value: string; label: string; children?: Array<{ value: string; label: string }> } = { value: subSys.code, label: subSys.name }
+            options.push(subSysOption)
+            try {
+                const result = await backendRequest({ url: "sys/tenant/getTenantsBySubSystemCode", method: "get", params: { subSystemCode: subSys.code } })
+                if (Array.isArray(result) && result.length > 0) {
+                    subSysOption.children = (result as Array<{ id: string; name: string }>).map((item) => ({ value: item.id, label: item.name }))
                 }
+            } catch {
+                // 单子系统失败不阻塞其余
             }
-            this.state.subSysOrTenants = options
-            // 编辑回填时可能先于 options 设置 subSysOrTenant，级联需在 options 就绪后重新触发显示
-            const current = this.state.formModel?.subSysOrTenant
-            if (Array.isArray(current) && current.length > 0) {
-                nextTick(() => {
-                    this.state.formModel.subSysOrTenant = [...current]
-                })
-            }
-        } else {
-            ElMessage.error('加载租户信息失败！')
+        }
+        this.state.subSysOrTenants = options
+        // 编辑回填时可能先于 options 设置 subSysOrTenant，级联需在 options 就绪后重新触发显示
+        const current = this.state.formModel?.subSysOrTenant
+        if (Array.isArray(current) && current.length > 0) {
+            nextTick(() => {
+                this.state.formModel.subSysOrTenant = [...current]
+            })
         }
     }
 

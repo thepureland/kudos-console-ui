@@ -58,9 +58,9 @@ class Page extends BasePage {
     const url = this.getRootActionPath() + "/getResourceRoles"
     // @ts-ignore
     const result = await backendRequest({url: url, method: "post", params})
-    if (result.code == 200) {
-      this.state.roles = result.data.first
-      this.state.checkedRoles = result.data.second
+    if (result != null && typeof result === 'object' && 'first' in result) {
+      this.state.roles = (result as { first: unknown }).first
+      this.state.checkedRoles = (result as { second: unknown }).second
     } else {
       ElMessage.error('数据加载失败！')
     }
@@ -78,7 +78,7 @@ class Page extends BasePage {
     const url = this.getRootActionPath() + "/reassignRolesForResource"
     // @ts-ignore
     const result = await backendRequest({url: url, method: "post", params})
-    if (result.code == 200) {
+    if (result != null) {
       ElMessage.info('授权成功！')
       this.close()
       this.context.emit('response')

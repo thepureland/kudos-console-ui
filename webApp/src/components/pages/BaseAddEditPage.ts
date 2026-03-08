@@ -3,8 +3,45 @@ import { nextTick, ref } from "vue"
 import { ValidationRuleAdapter } from "../validation/ValidationRuleAdapter"
 import { BasePage } from "./BasePage"
 import { backendRequest } from "../../utils/backendRequest"
-import { i18n } from "../../i18n"
+import { i18n, loadMessagesForConfig, loadMessagesForValidationPage } from "../../i18n"
 
+/** 后端 getValidationRule 常见规则类型，用于识别「直接返回规则对象」的响应 */
+const VALIDATION_RULE_TYPES = new Set(['NotBlank', 'NotNull', 'NotEmpty', 'Null', 'Length', 'Pattern', 'Email', 'Min', 'Max', 'Remote', 'Compare', 'CodePointLength'])
+
+/** 判断是否为后端 getValidationRule 直接返回的校验规则对象 */
+function isDirectValidationRulesObject(obj: unknown): obj is Record<string, unknown> {
+    if (obj == null || typeof obj !== 'object' || Array.isArray(obj)) return false
+    const o = obj as Record<string, unknown>
+    if (o.code !== undefined && o.code !== null) return false
+    for (const key of Object.keys(o)) {
+        const val = o[key]
+        if (val != null && typeof val === 'object' && !Array.isArray(val)) {
+            const ruleKeys = Object.keys(val as Record<string, unknown>)
+            if (ruleKeys.some((k) => VALIDATION_RULE_TYPES.has(k))) return true
+        }
+    }
+    return false
+}
+
+/** 从保存接口的 result（直接格式）中解析出主键 id（支持 { data: [entity], totalCount }、单实体、数组、或直接为 id） */
+function getSavedIdFromResponse(data: unknown): string | number | null {
+    if (data == null) return null
+    if (typeof data === 'string' || typeof data === 'number') return data
+    if (Array.isArray(data) && data.length > 0) {
+        const first = data[0] as Record<string, unknown> | undefined
+        return first != null && 'id' in first ? (first.id as string | number) : null
+    }
+    if (typeof data === 'object' && data !== null) {
+        const o = data as Record<string, unknown>
+        if ('id' in o && o.id !== undefined && o.id !== null) return o.id as string | number
+        const list = o.data as unknown[] | undefined
+        if (Array.isArray(list) && list.length > 0) {
+            const first = list[0] as Record<string, unknown> | undefined
+            return first != null && 'id' in first ? (first.id as string | number) : null
+        }
+    }
+    return null
+}
 
 /**
  * 添加/编辑页面处理抽象父类
@@ -50,6 +87,24 @@ export abstract class BaseAddEditPage extends BasePage {
         return this.getRootActionPath() + "/getValidationRule"
     }
 
+    /** 公共校验提示 i18n：atomicServiceCode=sys, i18nTypeDictCode=valid-msg, namespace=default（应用级缓存，与后端 message 格式 atomicServiceCode.i18nTypeDictCode.namespace.key 对应） */
+    protected getDefaultValidMsgI18nConfig(): { atomicServiceCode: string; i18nTypeDictCode: string; namespaces: string[] } {
+        return { atomicServiceCode: 'sys', i18nTypeDictCode: 'valid-msg', namespaces: ['default'] }
+    }
+
+    /** 本页后端自定义校验提示的 i18n 命名空间，默认由 getRootActionPath() 转成点分（如 sys/tenant -> sys.tenant），子类可重写 */
+    protected getValidationI18nNamespace(): string | undefined {
+        const path = this.getRootActionPath()
+        return path ? path.replace(/\//g, '.') : undefined
+    }
+
+    /** 本页校验 i18n 的 atomicServiceCode，默认取 getRootActionPath() 首段（如 sys/tenant -> sys），子类可重写 */
+    protected getValidationI18nAtomicServiceCode(): string {
+        const path = this.getRootActionPath()
+        const first = path?.split('/')[0]
+        return first || 'sys'
+    }
+
     protected getSubmitUrl(): string {
         return this.getRootActionPath() + "/saveOrUpdate"
     }
@@ -88,10 +143,9 @@ export abstract class BaseAddEditPage extends BasePage {
         return rules
     }
 
-    /** 提交参数：合并 id（props.rid）与 state.formModel，子类可重写 */
+    /** 提交参数：合并 id（props.rid）与 state.formModel，子类可重写。保存时 id 为空串会置为 null。 */
     protected createSubmitParams(): any {
-        // remark: this.state.formModel.remark
-        const params = {
+        const params: Record<string, any> = {
             id: this.props.rid
         }
         const model = this.state.formModel
@@ -100,6 +154,7 @@ export abstract class BaseAddEditPage extends BasePage {
                 params[propName] = model[propName]
             }
         }
+        if (params.id === '') params.id = null
         return params
     }
 
@@ -118,12 +173,16 @@ export abstract class BaseAddEditPage extends BasePage {
         return { id: rid }
     }
 
-    /** 请求 get 接口拉取编辑数据并 fillForm，成功时 render 并调用 onEditFormLoaded */
+    /** 请求 get 接口拉取编辑数据并 fillForm，成功时 render 并调用 onEditFormLoaded。仅支持后端直接返回实体（含 id 的对象） */
     protected async loadRowObject() {
         const params = this.createRowObjectLoadParams()
-        const result = await backendRequest({url: this.getRowObjectLoadUrl(), params});
-        if (result.code == 200) {
-            this.fillForm(result.data)
+        const result = await backendRequest({ url: this.getRowObjectLoadUrl(), params })
+        const rowData =
+            typeof result === 'object' && result !== null && !Array.isArray(result) && 'id' in result
+                ? result
+                : null
+        if (rowData != null) {
+            this.fillForm(rowData)
             super.render()
             this.onEditFormLoaded?.()
         } else {
@@ -131,18 +190,48 @@ export abstract class BaseAddEditPage extends BasePage {
         }
     }
 
-    /** 请求校验规则接口并生成 state.rules（ValidationRuleAdapter），供 el-form 使用 */
+    /** 请求校验规则接口并生成 state.rules（ValidationRuleAdapter），供 el-form 使用。先加载公共与本页校验 i18n（带缓存）。 */
     protected async initValidationRule(): Promise<any> {
-        const result = await backendRequest({url: this.getValidationRuleUrl()});
-        if (result.code == 200) {
+        const defaultCfg = this.getDefaultValidMsgI18nConfig()
+        await loadMessagesForConfig([{ atomicServiceCode: defaultCfg.atomicServiceCode, i18nTypeDictCode: defaultCfg.i18nTypeDictCode, namespaces: defaultCfg.namespaces }])
+
+        const namespace = this.getValidationI18nNamespace()
+        const pathKey = this.getRootActionPath()
+        if (namespace && pathKey) {
+            const cacheHolder = this.props.validationI18nCache as import('vue').Ref<Set<string>> | Set<string> | undefined
+            await loadMessagesForValidationPage(
+                this.getValidationI18nAtomicServiceCode(),
+                'view',
+                namespace,
+                pathKey,
+                cacheHolder
+            )
+        }
+
+        let result: unknown
+        try {
+            result = await backendRequest({ url: this.getValidationRuleUrl() })
+        } catch (_) {
+            if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+                console.warn('[BaseAddEditPage] getValidationRule 请求失败，表单将无后端校验规则。', this.getValidationRuleUrl())
+            }
+            this.state.rules = {}
+            return
+        }
+
+        // 后端 getValidationRule 仅支持直接返回规则对象：{ fieldName: { NotBlank: [...] }, ... }，不包装 code/data
+        if (isDirectValidationRulesObject(result)) {
             this.state.rules = new ValidationRuleAdapter(
-            result.data,
-            () => this.getFormInstance()?.model,
-            'blur',
-            () => i18n.global.t('addEditPage.defaultValidationMessage') as string
-        ).getRules()
+                result,
+                () => this.getFormInstance()?.model,
+                'blur',
+                () => i18n.global.t('addEditPage.defaultValidationMessage') as string
+            ).getRules()
         } else {
-            ElMessage.error(i18n.global.t('addEditPage.validationRuleLoadFailed') as string)
+            if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && result != null) {
+                console.warn('[BaseAddEditPage] getValidationRule 返回非规则对象，表单将无后端校验规则。', result)
+            }
+            this.state.rules = {}
         }
     }
 
@@ -178,17 +267,16 @@ export abstract class BaseAddEditPage extends BasePage {
                 if (!params) return
                 backendRequest({ url: this.getSubmitUrl(), method: 'post', params })
                     .then((result) => {
-                        if (result && result.code == 200) {
+                        if (result != null) {
                             ElMessage.success(i18n.global.t('addEditPage.saveSuccess') as string)
                             const form = this.getFormInstance()
                             if (form?.resetFields) form.resetFields()
-                            params.id = result.data
+                            params.id = getSavedIdFromResponse(result)
                             if (typeof this.props?.onSaved === 'function') this.props.onSaved(params)
                             this.context.emit('response', params)
                             nextTick(() => this.doClose())
                         } else {
-                            const msg = result?.msg ?? result?.message ?? i18n.global.t('addEditPage.saveFailed')
-                            ElMessage.error(typeof msg === 'string' ? msg : (i18n.global.t('addEditPage.saveFailed') as string))
+                            ElMessage.error(i18n.global.t('addEditPage.saveFailed') as string)
                         }
                     })
                     .catch((e) => {

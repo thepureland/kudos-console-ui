@@ -158,7 +158,7 @@ import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import { Bell, CaretBottom, FullScreen } from '@element-plus/icons-vue';
 import { AuthApiFactory } from 'shared';
-import { PATH_META, resolvePath } from '../../config/menuPathToComponent';
+import { resolvePath } from '../../config/menuPathToComponent';
 import { REQUIRE_AUTH } from '../../config/auth';
 import { localeOptions, setLocale, type LocaleId } from '../../i18n';
 
@@ -221,7 +221,8 @@ type BreadcrumbItem = { titleKey: string; path: string };
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
   const path = currentMenuPath.value;
   const segments = path.split('/').filter(Boolean);
-  const titleKey = segments.length === 0 ? 'route.home' : (PATH_META[path]?.titleKey ?? 'route.home');
+  const menuItem = (store.getters.getMenuItemByPath as (path: string) => { titleKey?: string } | undefined)(path);
+  const titleKey = segments.length === 0 ? 'route.home' : (menuItem?.titleKey ?? 'route.home');
   if (segments.length === 0) return [{ titleKey: 'route.home', path: '/home' }];
   if (segments.length === 1 && segments[0] === 'home') return [{ titleKey: 'route.home', path: '/home' }];
   const parent = SEGMENT_BREADCRUMB[segments[0]];

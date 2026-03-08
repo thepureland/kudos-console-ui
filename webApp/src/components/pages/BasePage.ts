@@ -2,19 +2,38 @@ import { reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Pair } from "../model/Pair";
 import { backendRequest } from "../../utils/backendRequest";
-import { i18n } from "../../i18n";
+import { i18n, loadMessagesForConfig } from "../../i18n";
+import type { I18nLoadConfig } from "../../i18n";
+import { DictService } from "./DictService";
+
+/** 原子服务（微服务）缓存项，与后端 SysMicroServiceCacheItem 一致 */
+export interface SysMicroServiceCacheItem {
+  id: string;
+  code: string;
+  name: string;
+  context?: string | null;
+  atomicService: boolean;
+  parentCode?: string | null;
+  remark?: string | null;
+  active: boolean;
+  builtIn: boolean;
+}
 
 /**
  * 页面处理抽象基类，被列表页、详情页、添加/编辑页继承。
- * 提供字典缓存、原子服务、i18n 日期/布尔格式化及通用 close 等能力。
+ * 提供字典、原子服务、i18n 日期/布尔格式化及通用 close 等能力。
  *
  * @author K
  * @since 1.0.0
  */
 export abstract class BasePage {
 
-    /** 字典缓存：key 为 "模块---字典类型"，value 为 编码->名称 */
-    public dictCache: Map<string, Record<string, string>>
+    /** 字典服务（加载、缓存、翻译） */
+    protected readonly dictService: DictService
+    /** 字典缓存引用（等价于 dictService.cache），供需要直接访问缓存的场景使用 */
+    public get dictCache(): Map<string, Record<string, string>> {
+        return this.dictService.cache
+    }
     /** 页面响应式状态，由 initBaseState + initState 合并得到 */
     public state: Record<string, any>
     /** 控制页面/弹窗是否显示 */
@@ -23,27 +42,27 @@ export abstract class BasePage {
     protected props: Record<string, any>
     protected context: { emit: (event: string, ...args: any[]) => void }
 
-    /** 原子服务列表（非字典）：{ code, name }[]，由 loadAtomicServices 拉取 */
-    public atomicServiceList: Array<{ code: string; name: string }> = []
+    /** 原子服务列表（GET sys/microService/getAllActiveAtomicServices），由 loadAtomicServices 拉取 */
+    public atomicServiceList: SysMicroServiceCacheItem[] = []
 
-    /** @internal 子类通过 super(props, context) 调用；初始化字典缓存、state、convertThis，并根据 showAfterLoadData 决定是否立即 render */
+    /** @internal 子类通过 super(props, context) 调用；初始化字典服务、state、convertThis，并根据 showAfterLoadData 决定是否立即 render */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         this.props = props
         this.context = context
-        const win = window as unknown as { __kudosDictCache?: Map<string, Record<string, string>>; __kudosAtomicServices?: Array<{ code: string; name: string }> }
-        if (!win.__kudosDictCache) {
-            win.__kudosDictCache = new Map()
-        }
-        this.dictCache = win.__kudosDictCache
-        if (win.__kudosAtomicServices) {
+        this.dictService = new DictService()
+        const win = window as unknown as { __kudosAtomicServices?: SysMicroServiceCacheItem[] }
+        this.state = reactive(this.initBaseState())
+        if (win.__kudosAtomicServices?.length) {
+            this.state.atomicServiceList = win.__kudosAtomicServices
             this.atomicServiceList = win.__kudosAtomicServices
         }
-        this.state = reactive(this.initBaseState())
         const initState = this.initState()
         if (initState) {
             const additionalState = reactive(initState)
             Object.assign(this.state, additionalState)
         }
+        const i18nConfigs = this.getI18nConfig()
+        if (i18nConfigs?.length) loadMessagesForConfig(i18nConfigs)
         this.convertThis()
         if (!this.showAfterLoadData()) {
             this.render()
@@ -55,12 +74,17 @@ export abstract class BasePage {
         this.visible.value = true
     }
 
+    /** 子类重写以指定本页需加载的国际化（namespace + atomicServiceCode）；不重写则不加载 */
+    protected getI18nConfig(): I18nLoadConfig[] | undefined {
+        return undefined
+    }
+
     /** 子类返回的扩展 state，会与 initBaseState 合并 */
     protected abstract initState(): any
 
-    /** 子类可重写以提供基础 state 字段 */
+    /** 子类可重写以提供基础 state 字段。atomicServiceList 放 state 以保证异步加载后视图更新。 */
     protected initBaseState(): any {
-        return {}
+        return { atomicServiceList: [] as SysMicroServiceCacheItem[] }
     }
 
     /** 接口根路径，如 'sys/cache'，用于拼接待办接口地址 */
@@ -71,100 +95,64 @@ export abstract class BasePage {
         return false
     }
 
-    /** 根据模块+字典类型+编码翻译为显示名称（绑定到 doTransDict） */
-    public transDict: (module: string | null | undefined, type: string, code: string) => string
+    /** 根据原子服务编码+字典类型+编码翻译为显示名称（绑定到 dictService.transDict） */
+    public transDict: (atomicServiceCode: string, type: string, code: string) => string
 
-    /** 从 dictCache 中取字典项名称，无则返回 code */
-    protected doTransDict(module: string | null | undefined, dictType: string, code: string): string {
-        if (code) {
-            const key = (module ? module : "") + '---' + dictType
-            const itemMap = this.dictCache.get(key)
-            if (itemMap) {
-                const name = itemMap[code]
-                return name != null ? name : code
-            }
-            return code
-        }
-        return ''
+    /** 加载单个字典，已存在则跳过 */
+    protected async loadDict(atomicServiceCode: string, dictType: string) {
+        await this.dictService.loadDict(atomicServiceCode, dictType)
     }
 
-    /** 加载单个字典到 dictCache，已存在则跳过 */
-    protected async loadDict(module: string | null | undefined, dictType: string) {
-        const key = (module ? module : "") + '---' + dictType
-        if (this.dictCache.has(key)) {
-            return
-        }
-
-        const params = {
-            module: module,
-            dictType: dictType
-        }
-        const result = await backendRequest({ url: "sys/dictItem/getDictItemMap", params })
-        if (result.code == 200) {
-            this.dictCache.set(key, result.data)
-        } else {
-            ElMessage.error('字典项加载失败！')
-        }
+    /** 批量加载字典，仅加载尚未缓存的项 */
+    protected async loadDicts(dictTypes: string[], atomicServiceCode: string) {
+        await this.dictService.loadDicts(dictTypes, atomicServiceCode)
     }
 
-    /** 批量加载多个字典到 dictCache，仅加载尚未缓存的项 */
-    protected async loadDicts(moduleAndTypes: Array<Pair>) {
-        const params = []
-        for (let obj of moduleAndTypes) {
-            const module = obj.first ? obj.first : ""
-            const dictType = obj.second
-            const key = module + '---' + dictType
-            if (!this.dictCache.has(key)) {
-                params.push({
-                    module: module,
-                    dictType: dictType
-                })
-            }
-        }
-        if (params.length == 0) return
-
-        const result = await backendRequest({ url: "sys/dictItem/batchGetDictItemMap", method: "post", params })
-        if (result.code == 200) {
-            for (let key in result.data) {
-                const parts = key.slice(1, -1).split(", ")
-                this.dictCache.set(parts[0] + "---" + parts[1], result.data[key])
-            }
-        } else {
-            ElMessage.error('批量加载字典项失败！')
-        }
+    /** 批量加载多组字典（不同 atomicServiceCode 时使用） */
+    protected async loadDictsBatch(configs: Array<{ dictTypes: string[]; atomicServiceCode: string }>) {
+        await this.dictService.loadDictsBatch(configs)
     }
 
     /** 返回字典项列表 [Pair(编码, 名称)]，供 el-select 等使用；需先 loadDict/loadDicts */
-    public getDictItems = (module: string | null | undefined, dictType: string): Array<Pair> => {
-        const key = (module ? module : "") + '---' + dictType
-        const map = this.dictCache.get(key)
-        const pairs = []
-        if (map) {
-            for (let k in map) {
-                pairs.push(new Pair(k, map[k]))
-            }
-        }
-        return pairs
+    public getDictItems = (atomicServiceCode: string, dictType: string): Array<Pair> => {
+        return this.dictService.getDictItems(atomicServiceCode, dictType)
     }
 
-    /** 加载原子服务列表（非字典，专用接口），结果缓存在 window.__kudosAtomicServices。始终请求接口以保证与字典树等接口返回的展示名一致。 */
+    /** 加载原子服务列表（GET sys/microService/getAllActiveAtomicServiceCodes）。后端返回 List<String> 编码，前端转为 { code, name: code }。 */
     protected async loadAtomicServices(): Promise<void> {
-        const win = window as unknown as { __kudosAtomicServices?: Array<{ code: string; name: string }> }
-        const result = await backendRequest({ url: 'sys/atomicServices' }) as { code: number; data?: Array<{ code: string; name: string }> }
-        if (result.code === 200 && result.data) {
-            win.__kudosAtomicServices = result.data
-            this.atomicServiceList = result.data
+        const win = window as unknown as { __kudosAtomicServices?: SysMicroServiceCacheItem[] }
+        const result = await backendRequest({ url: 'sys/microService/getAllActiveAtomicServiceCodes' })
+        const raw = Array.isArray(result) ? result : null
+        const list = raw?.length
+            ? raw.map((code) => ({
+                id: code,
+                code,
+                name: code,
+                context: null as string | null,
+                atomicService: true,
+                parentCode: null as string | null,
+                remark: null as string | null,
+                active: true,
+                builtIn: true,
+              }))
+            : null
+        if (list?.length) {
+            win.__kudosAtomicServices = list
+            this.atomicServiceList = list
+            this.state.atomicServiceList = list
         } else {
             if (!win.__kudosAtomicServices?.length) {
                 ElMessage.error('原子服务列表加载失败')
             }
-            this.atomicServiceList = win.__kudosAtomicServices ?? []
+            const fallback = win.__kudosAtomicServices ?? []
+            this.atomicServiceList = fallback
+            this.state.atomicServiceList = fallback
         }
     }
 
-    /** 获取原子服务列表，用于下拉等（需先调用 loadAtomicServices） */
-    public getAtomicServices = (): Array<{ code: string; name: string }> => {
-        return this.atomicServiceList
+    /** 获取原子服务列表，用于下拉等（需先调用 loadAtomicServices）。从 state 取以保证响应式更新。 */
+    public getAtomicServices = (): SysMicroServiceCacheItem[] => {
+        return (this.state?.atomicServiceList ?? this.atomicServiceList) ?? []
     }
 
     /** 根据 code 显示原子服务名称（非字典） */
@@ -203,8 +191,8 @@ export abstract class BasePage {
 
     /** 将 transDict、close 等绑定到实例方法，避免模板中 this 丢失 */
     protected convertThis() {
-        this.transDict = (module: string | null | undefined, type: string, code: string) => {
-            return this.doTransDict(module, type, code)
+        this.transDict = (atomicServiceCode: string, type: string, code: string) => {
+            return this.dictService.transDict(atomicServiceCode, type, code)
         }
         this.close = () => {
             this.doClose()

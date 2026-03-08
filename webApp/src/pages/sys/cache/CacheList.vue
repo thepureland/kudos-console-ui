@@ -412,14 +412,14 @@
       </el-dialog>
 
     <!-- 新增/编辑/详情弹窗，按需挂载 -->
-    <cache-add-edit v-if="addDialogVisible" v-model="addDialogVisible" :on-saved="handleAddSaved" />
-    <cache-add-edit v-if="editDialogVisible" v-model="editDialogVisible" :on-saved="handleEditSaved" :rid="rid" />
+    <cache-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
+    <cache-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
     <cache-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
@@ -434,6 +434,7 @@ import { useTableColumnAutoWidth } from '../../../components/pages/useTableColum
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest } from '../../../utils/backendRequest';
 import { i18n } from '../../../i18n';
+import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 
 /** 下拉菜单「管理」操作项的命令参数：操作编号 + 当前行数据 */
 interface CacheCommandPayload {
@@ -452,10 +453,8 @@ class ListPage extends BaseListPage {
     super(props, context);
     this.convertThis();
     this.loadAtomicServices();
-    this.loadDicts([
-      new Pair('kuark:sys', 'cache_strategy'),
-    ]).then(() => {
-      (this.state as Record<string, unknown>).strategyDictOptions = this.getDictItems('kuark:sys', 'cache_strategy') as Array<{ first: string; second: string }>;
+    this.loadDicts(['cache_strategy'], 'sys').then(() => {
+      this.state.strategyDictOptions = this.getDictItems('sys', 'cache_strategy');
     });
   }
 
@@ -483,6 +482,13 @@ class ListPage extends BaseListPage {
   /** 接口根路径，用于请求与路由 */
   protected getRootActionPath(): string {
     return 'sys/cache';
+  }
+
+  /** 本页需加载的国际化：cacheList + cacheAddEdit（弹窗共用） */
+  protected getI18nConfig() {
+    return [
+      { i18nTypeDictCode: 'dict-item', namespaces: ['cache_strategy'], atomicServiceCode: 'sys' },
+    ];
   }
 
   /** 缓存行以 id 或 name（缓存名称）作为主键，编辑/详情/删除等均用此标识 */
@@ -539,9 +545,9 @@ class ListPage extends BaseListPage {
     }
     const url = `sys/cache/management/${operation}`;
     try {
-      const result = await backendRequest({ url, params }) as { code: number; data?: string };
-      if (result.code === 200) {
-        ElMessage.info(result.data ?? '');
+      const result = await backendRequest({ url, params });
+      if (result != null) {
+        ElMessage.info(typeof result === 'string' ? result : (result as { data?: string })?.data ?? '');
       } else {
         ElMessage.error(tr('cacheList.messages.requestOperationFailed'));
       }
@@ -611,8 +617,6 @@ const NAME_INPUT_PADDING = 40;
 const SELECT_INPUT_PADDING = 50;
 /** 操作列「固定展开」在 localStorage 的 key */
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'cacheList.operationColumnPinned';
-/** 列表状态（搜索/排序/分页）持久化的 localStorage key */
-const CACHE_LIST_STATE_STORAGE_KEY = 'cacheList.queryState';
 /** 栏位可见性持久化的 localStorage key */
 const COLUMN_VISIBILITY_STORAGE_KEY = 'cacheList.visibleColumns';
 /** 栏位顺序持久化的 localStorage key */
@@ -647,6 +651,7 @@ export default defineComponent({
     Plus,
   },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+    provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
@@ -676,7 +681,6 @@ export default defineComponent({
       return found ? found.name : subSysPlaceholder.value;
     });
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-      stateStorageKey: CACHE_LIST_STATE_STORAGE_KEY,
       onAfterMount: () => {
         updateNameInputWidth();
         updateSubSysSelectWidth();
@@ -814,19 +818,11 @@ export default defineComponent({
       () => (listPage.state as Record<string, unknown>).showOperationColumn,
       () => { nextTick(forceFixedLeftWidth); },
     );
-    function handleAddSaved(params: Record<string, unknown>) {
-      listPage.doAfterAdd(params);
-    }
-    function handleEditSaved(params: Record<string, unknown>) {
-      listPage.doAfterEdit(params);
-    }
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
-      handleAddSaved,
-      handleEditSaved,
       t,
       commandValue: listPage.commandValue.bind(listPage),
       operateCache: listPage.operateCache.bind(listPage),

@@ -1,34 +1,75 @@
 /**
  * 路径到组件的映射，用于菜单点击时按状态切换内容（不改变地址栏）
+ * 约定：path /a/b 默认对应 pages/a/b/${PascalCase(b)}List.vue；例外见 PATH_OVERRIDES
  */
 import { defineAsyncComponent, type Component } from 'vue';
 
 const PATH_REDIRECTS: Record<string, string> = {
   '/': '/home',
-  '/sys/basic': '/sys/cache',
 };
 
-const PATH_TO_COMPONENT: Record<string, Component> = {
-  '/home': defineAsyncComponent(() => import('../pages/Welcome.vue')),
-  '/sys/cache': defineAsyncComponent(() => import('../pages/sys/cache/CacheList.vue')),
-  '/sys/dict': defineAsyncComponent(() => import('../pages/sys/dict/DictList.vue')),
-  '/sys/param': defineAsyncComponent(() => import('../pages/sys/param/ParamList.vue')),
-  '/sys/domain': defineAsyncComponent(() => import('../pages/sys/domain/DomainList.vue')),
-  '/sys/tenant': defineAsyncComponent(() => import('../pages/sys/tenant/TenantList.vue')),
-  '/sys/subsys': defineAsyncComponent(() => import('../pages/sys/system/SystemList.vue')),
-  '/sys/microservice': defineAsyncComponent(() => import('../pages/sys/microservice/MicroServiceList.vue')),
-  '/sys/datasource': defineAsyncComponent(() => import('../pages/sys/datasource/DataSourceList.vue')),
-  '/sys/resource': defineAsyncComponent(() => import('../pages/sys/resource/ResourceList.vue')),
-  '/sys/i18n': defineAsyncComponent(() => import('../pages/sys/i18n/I18NList.vue')),
-  '/user/account': defineAsyncComponent(() => import('../pages/user/account/AccountList.vue')),
-  '/user/organization': defineAsyncComponent(() => import('../pages/user/organization/OrganizationList.vue')),
-  '/rbac/role': defineAsyncComponent(() => import('../pages/rbac/role/RoleList.vue')),
-  '/rbac/group': defineAsyncComponent(() => import('../pages/rbac/group/UserGroupList.vue')),
-  '/tabs': defineAsyncComponent(() => import('../pages/Placeholder.vue')),
+/** 不符合约定的 path → 组件文件路径（相对 pages 目录） */
+const PATH_OVERRIDES: Record<string, string> = {
+  '/home': 'Welcome.vue',
+  '/tabs': 'Placeholder.vue',
 };
+
+const PAGE_MODULES = import.meta.glob<{ default: Component }>('../pages/**/*.vue');
+
+/**
+ * 从 glob 推导 path → 组件文件路径（相对 pages）。
+ * 凡符合 pages/{s1}/{s2}/*List.vue 的，path 为 /s1/s2（小写），文件路径保留实际大小写（如 MicroServiceList.vue）。
+ */
+function deriveConventionPathToFile(): Record<string, string> {
+  const prefix = '../pages/';
+  const suffix = '.vue';
+  const pathToFile: Record<string, string> = {};
+  for (const key of Object.keys(PAGE_MODULES)) {
+    if (!key.startsWith(prefix) || !key.endsWith(suffix)) continue;
+    const inner = key.slice(prefix.length, -suffix.length);
+    const parts = inner.split('/');
+    if (parts.length !== 3) continue;
+    const [s1, s2, fileName] = parts;
+    if (!fileName.endsWith('List')) continue;
+    const path = `/${s1.toLowerCase()}/${s2.toLowerCase()}`;
+    const relativePath = key.slice(prefix.length); // 保留 glob 实际路径与大小写（如 MicroServiceList.vue）
+    pathToFile[path] = relativePath;
+  }
+  return pathToFile;
+}
+
+function loadPage(relativePath: string): Promise<Component> {
+  const key = `../pages/${relativePath}`;
+  const loader = PAGE_MODULES[key];
+  if (!loader) return Promise.reject(new Error(`No page module: ${key}`));
+  return loader().then((m) => m.default);
+}
+
+function buildPathToComponent(): Record<string, Component> {
+  const map: Record<string, Component> = {};
+  const convention = deriveConventionPathToFile();
+  const overridePaths = new Set(Object.keys(PATH_OVERRIDES));
+  for (const [p, file] of Object.entries(convention)) {
+    if (overridePaths.has(p)) continue;
+    map[p] = defineAsyncComponent(() => loadPage(file));
+  }
+  for (const [p, file] of Object.entries(PATH_OVERRIDES)) {
+    map[p] = defineAsyncComponent(() => loadPage(file));
+  }
+  return map;
+}
+
+const PATH_TO_COMPONENT = buildPathToComponent();
+
+/** path 查表前统一为小写，与 deriveConventionPaths / PATH_OVERRIDES 的 key 一致 */
+function normalizePath(path: string): string {
+  if (!path || !path.startsWith('/')) return path;
+  return '/' + path.slice(1).split('/').map((s) => s.toLowerCase()).join('/');
+}
 
 export function resolvePath(path: string): string {
-  return PATH_REDIRECTS[path] ?? path;
+  const redirected = PATH_REDIRECTS[path] ?? path;
+  return normalizePath(redirected);
 }
 
 export const VALID_MENU_PATHS = new Set(Object.keys(PATH_TO_COMPONENT));
@@ -38,22 +79,3 @@ export function getComponentForPath(path: string): Component | undefined {
   return PATH_TO_COMPONENT[resolved];
 }
 
-/** 路径对应的 meta（用于 Tags 等） */
-export const PATH_META: Record<string, { titleKey: string; icon: string }> = {
-  '/home': { titleKey: 'route.home', icon: 'HomeFilled' },
-  '/sys/cache': { titleKey: 'route.sysCache', icon: 'Coin' },
-  '/sys/dict': { titleKey: 'route.sysDict', icon: 'Collection' },
-  '/sys/param': { titleKey: 'route.sysParam', icon: 'Document' },
-  '/sys/domain': { titleKey: 'route.sysDomain', icon: 'Document' },
-  '/sys/tenant': { titleKey: 'route.sysTenant', icon: 'Document' },
-  '/sys/subsys': { titleKey: 'route.sysSubsys', icon: 'Document' },
-  '/sys/microservice': { titleKey: 'route.sysMicroservice', icon: 'Setting' },
-  '/sys/datasource': { titleKey: 'route.sysDatasource', icon: 'Collection' },
-  '/sys/resource': { titleKey: 'route.sysResource', icon: 'Document' },
-  '/sys/i18n': { titleKey: 'route.sysI18n', icon: 'Setting' },
-  '/user/account': { titleKey: 'route.userAccount', icon: 'UserFilled' },
-  '/user/organization': { titleKey: 'route.userOrganization', icon: 'OfficeBuilding' },
-  '/rbac/role': { titleKey: 'route.rbacRole', icon: 'Key' },
-  '/rbac/group': { titleKey: 'route.rbacGroup', icon: 'User' },
-  '/tabs': { titleKey: 'route.tabs', icon: 'Bell' },
-};

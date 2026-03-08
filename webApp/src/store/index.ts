@@ -12,6 +12,15 @@ export type TagItem = {
   path: string;
 };
 
+/** 与 Sidebar 菜单项一致，用于 store.menuData 与按 path 查找 */
+export type MenuItem = {
+  index: string;
+  title: string;
+  titleKey?: string;
+  icon?: string;
+  children?: MenuItem[];
+};
+
 // ---------- 侧栏可拖拽宽度（Home 页分界线左右拉动） ----------
 /** 侧栏展开时宽度下限（px） */
 const SIDEBAR_WIDTH_MIN = 200;
@@ -29,6 +38,10 @@ type RootState = {
   tagsList: TagItem[];
   /** 当前菜单页路径（点击菜单时更新，不改变地址栏） */
   currentMenuPath: string;
+  /** 关闭标签时记录的 path，下次该页激活时重置列表状态（切换标签不重置） */
+  listStateResetPaths: string[];
+  /** 菜单数据（后端或 mock），Sidebar 加载后写入，Tags/Header 按 path 取 titleKey、icon */
+  menuData: MenuItem[];
 };
 
 const STORAGE_KEYS = {
@@ -79,6 +92,18 @@ function loadSavedSidebarWidth(): number {
   return Math.max(SIDEBAR_WIDTH_MIN, Math.min(SIDEBAR_WIDTH_MAX, Math.round(n)));
 }
 
+function findMenuItemByPath(items: MenuItem[], targetPath: string): MenuItem | undefined {
+  const norm = resolvePath(targetPath);
+  for (const it of items) {
+    if (resolvePath(it.index) === norm) return it;
+    if (it.children?.length) {
+      const found = findMenuItemByPath(it.children, targetPath);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
 const store = createStore<RootState>({
   state: {
     isAuthenticated: AuthApiFactory.getInstance().hasToken(),
@@ -86,6 +111,15 @@ const store = createStore<RootState>({
     sidebarWidth: loadSavedSidebarWidth(),
     tagsList: loadSavedTags(),
     currentMenuPath: loadSavedCurrentMenuPath(),
+    listStateResetPaths: [],
+    menuData: [],
+  },
+  getters: {
+    /** 按 path 查找菜单项（path 会 normalize），用于 Tags/Header 取 titleKey、icon */
+    getMenuItemByPath:
+      (state: RootState) =>
+      (path: string): MenuItem | undefined =>
+        findMenuItemByPath(state.menuData, path),
   },
   mutations: {
     /** 登录成功后调用，使 App.vue 立即显示 router-view 而非 Login */
@@ -143,6 +177,19 @@ const store = createStore<RootState>({
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(STORAGE_KEYS.currentMenuPath, path);
       }
+    },
+    /** 关闭标签时调用，下次该 path 对应列表页激活时重置状态 */
+    addListStateResetPath(state: RootState, path: string) {
+      if (!state.listStateResetPaths.includes(path)) {
+        state.listStateResetPaths = [...state.listStateResetPaths, path];
+      }
+    },
+    removeListStateResetPath(state: RootState, path: string) {
+      state.listStateResetPaths = state.listStateResetPaths.filter((p) => p !== path);
+    },
+    /** Sidebar 加载菜单后调用（后端或 mock） */
+    setMenuData(state: RootState, list: MenuItem[]) {
+      state.menuData = list ?? [];
     },
   },
 });

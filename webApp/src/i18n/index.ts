@@ -1,95 +1,21 @@
-import { createI18n } from 'vue-i18n';
-import zhCN from '../locales/zh-CN';
-import zhTW from '../locales/zh-TW';
-import enUS from '../locales/en-US';
-import { backendRequest } from '../utils/backendRequest';
+import { I18nService, APP_DEFAULT_I18N_CONFIG, localeOptions, type I18nLoadConfig, type LocaleId } from './I18nService';
 
-export type LocaleId = 'zh-CN' | 'zh-TW' | 'en-US';
+const i18nService = new I18nService();
 
-const LOCALE_KEY = 'locale';
+/** vue-i18n 实例，供 app.use(i18n) 及 t()、d() 等使用 */
+export const i18n = i18nService.i18n;
 
-/**
- * 服务端翻译接口：GET {I18N_API_PATH}/{locale}
- * 返回格式与 locales/zh-CN.ts 一致（嵌套对象），或 { data: 同上 }。
- * 与本地语言包 merge 后，服务端键优先。
- */
-const I18N_API_PATH = 'api/i18n';
+export type { LocaleId, I18nLoadConfig };
+export { APP_DEFAULT_I18N_CONFIG, localeOptions };
 
-const defaultLocale: LocaleId =
-  (typeof localStorage !== 'undefined' ? localStorage.getItem(LOCALE_KEY) : null) as LocaleId | null ||
-  'zh-CN';
+/** 按配置加载国际化，列表页在 getI18nConfig 中指定 */
+export const loadMessagesForConfig = i18nService.loadMessagesForConfig.bind(i18nService);
 
-/** 各语言日期时间显示格式（用于 formatDate / d('datetime')） */
-const datetimeFormats: Record<LocaleId, Intl.DateTimeFormatOptions> = {
-  'zh-CN': {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  },
-  'zh-TW': {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  },
-  'en-US': {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-  },
-};
+/** 加载 AddEdit 页级校验 i18n（可带列表页级 cacheHolder，避免重复请求） */
+export const loadMessagesForValidationPage = i18nService.loadMessagesForValidationPage.bind(i18nService);
 
-export const i18n = createI18n({
-  legacy: false,
-  locale: defaultLocale,
-  fallbackLocale: 'zh-CN',
-  messages: {
-    'zh-CN': zhCN,
-    'zh-TW': zhTW,
-    'en-US': enUS,
-  },
-  datetimeFormats: {
-    'zh-CN': { datetime: datetimeFormats['zh-CN'] },
-    'zh-TW': { datetime: datetimeFormats['zh-TW'] },
-    'en-US': { datetime: datetimeFormats['en-US'] },
-  },
-});
+/** 加载应用级默认国际化（App 挂载时调用） */
+export const loadAppMessages = i18nService.loadAppMessages.bind(i18nService);
 
-/** 从服务端拉取某语言的翻译并 merge 到当前 i18n（与本地语言包合并，服务端键优先） */
-export async function loadMessagesFromServer(locale: LocaleId): Promise<void> {
-  try {
-    const res = await backendRequest({ url: `${I18N_API_PATH}/${locale}` });
-    const messages = (res && typeof res === 'object' && 'data' in res ? (res as { data: Record<string, unknown> }).data : res) as Record<string, unknown> | undefined;
-    if (messages && typeof messages === 'object') {
-      i18n.global.mergeLocaleMessage(locale, messages);
-    }
-  } catch {
-    // 接口失败时继续使用本地语言包
-  }
-}
-
-export function setLocale(locale: LocaleId): void {
-  i18n.global.locale.value = locale;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(LOCALE_KEY, locale);
-  }
-  loadMessagesFromServer(locale);
-}
-
-/** 语言选项：id、地区旗帜、该语言下的名称（始终用母语显示，不受当前语言影响） */
-export const localeOptions: { id: LocaleId; flag: string; label: string }[] = [
-  { id: 'zh-CN', flag: '🇨🇳', label: '简体中文' },
-  { id: 'zh-TW', flag: '🇹🇼', label: '繁体中文(台湾)' },
-  { id: 'en-US', flag: '🇺🇸', label: 'English (US)' },
-];
+/** 切换语言并持久化到 localStorage */
+export const setLocale = i18nService.setLocale.bind(i18nService);

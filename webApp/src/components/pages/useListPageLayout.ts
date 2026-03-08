@@ -1,5 +1,6 @@
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, onActivated, onDeactivated, watch } from 'vue';
 import { nextTick } from 'vue';
+import { useStore } from 'vuex';
 import type { BaseListPage } from './BaseListPage';
 import { useTableMaxHeight } from './useTableMaxHeight';
 
@@ -12,8 +13,10 @@ export interface ListPageColumnVisibilityOption {
 }
 
 export interface UseListPageLayoutOptions {
-  /** 列表状态持久化 localStorage key */
-  stateStorageKey: string;
+  /** 列表状态持久化 localStorage key；不传或传空则关闭后不保留查询结果（默认不持久化） */
+  stateStorageKey?: string | null;
+  /** 离开页面时是否重置（默认 false）；关闭标签时由 store 记录，下次激活时再重置，以保留「切换标签」时的状态 */
+  resetStateOnDeactivate?: boolean;
   /** 列可见性配置，不传则不做列可见性配置与返回 */
   columnVisibility?: ListPageColumnVisibilityOption;
   /** onMounted 中在 restorePersistedListState + updateTableMaxHeight 之后调用 */
@@ -32,9 +35,12 @@ export function useListPageLayout(
   listPage: ListPageWithState,
   options: UseListPageLayoutOptions
 ) {
-  const { stateStorageKey, columnVisibility, onAfterMount, onAfterPersist } = options;
+  const { stateStorageKey, resetStateOnDeactivate = false, columnVisibility, onAfterMount, onAfterPersist } = options;
+  const store = useStore();
 
-  listPage.configureListStatePersistence(stateStorageKey);
+  if (stateStorageKey) {
+    listPage.configureListStatePersistence(stateStorageKey);
+  }
   listPage.configureTableMaxHeight();
   if (columnVisibility) {
     listPage.configureColumnVisibility(
@@ -74,6 +80,19 @@ export function useListPageLayout(
     nextTick(updateTableMaxHeight);
     onAfterMount?.();
   });
+
+  /** 激活时：若该 path 是关闭标签时记录的，则重置列表状态（切换标签不重置，仅关闭后重开时重置） */
+  onActivated(() => {
+    const path = (store.state as { currentMenuPath?: string }).currentMenuPath;
+    const resetPaths = (store.state as { listStateResetPaths?: string[] }).listStateResetPaths;
+    if (path && resetPaths?.includes(path)) {
+      listPage.resetSearchAndTableOnLeave();
+      store.commit('removeListStateResetPath', path);
+    }
+  });
+  if (resetStateOnDeactivate) {
+    onDeactivated(() => listPage.resetSearchAndTableOnLeave());
+  }
 
   watch(
     () => [

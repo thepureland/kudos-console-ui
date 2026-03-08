@@ -234,8 +234,8 @@ class AddEditPage extends BaseAddEditPage {
       active: true,
     };
     const result = await backendRequest({ url: 'sys/dict/loadTreeNodes', method: 'post', params });
-    if (result.code === 200 && result.data) {
-      const data = result.data as Array<Record<string, unknown>>;
+    const data = Array.isArray(result) ? result : null;
+    if (data != null) {
       const cache = this.state.parentCache as Record<string, string>;
       for (const item of data) {
         cache[String(item.id)] = String(item.code ?? '');

@@ -87,8 +87,8 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
                 active: true
             }
             const result = await backendRequest({url: "user/organization/lazyLoadTree", method: "post", params})
-            if (result.code == 200) {
-                resolve(result.data)
+            if (Array.isArray(result)) {
+                resolve(result)
             } else {
                 ElMessage.error('组织机构树加载失败！')
             }

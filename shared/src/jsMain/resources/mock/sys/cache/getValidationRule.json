@@ -1,1 +1,1 @@
-{"code":200,"data":{"name":{"NotNull":[{"message":"缓存名称必填"}]},"subSysDictCode":{"NotNull":[{"message":"请选择原子服务"}]},"strategyDictCode":{"NotNull":[{"message":"请选择缓存策略"}]}}}
+{"atomicServiceCode":{"NotBlank":[{"message":"sys.valid-msg.default.NotBlank"}]},"name":{"NotBlank":[{"message":"sys.valid-msg.default.NotBlank"}]},"strategyDictCode":{"NotBlank":[{"message":"sys.valid-msg.default.NotBlank"}]}}

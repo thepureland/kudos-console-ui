@@ -2095,38 +2095,41 @@ private val MOCK_DICT_ITEM_MAP = mapOf(
     ),
 )
 
-/** 从请求 body 解析出 params 数组：支持直接数组或 { params: [...] } */
-private fun parseBatchGetDictItemParams(requestJson: String): List<Pair<String, String>> {
-    if (requestJson.isBlank()) return emptyList()
-    val element = runCatching { json.parseToJsonElement(requestJson) }.getOrNull() ?: return emptyList()
-    val arr = when (element) {
-        is JsonArray -> element
-        is JsonObject -> element["params"] as? JsonArray ?: return emptyList()
-        else -> return emptyList()
+/** 从请求 body 解析 dictTypesByAtomicServiceCode: Map<原子服务编码, Collection<字典类型>> */
+private fun parseDictTypesByAtomicServiceCode(requestJson: String): Map<String, List<String>> {
+    if (requestJson.isBlank()) return emptyMap()
+    val element = runCatching { json.parseToJsonElement(requestJson) }.getOrNull() ?: return emptyMap()
+    if (element !is JsonObject) return emptyMap()
+    val result = mutableMapOf<String, MutableList<String>>()
+    for ((atomic, value) in element) {
+        when (value) {
+            is JsonArray -> value.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.let { list ->
+                if (list.isNotEmpty()) result[atomic] = list.toMutableList()
+            }
+            else -> {}
+        }
     }
-    val list = mutableListOf<Pair<String, String>>()
-    for (e in arr) {
-        if (e !is JsonObject) continue
-        val module = primitiveString(e, "module").orEmpty()
-        val dictType = primitiveString(e, "dictType").orEmpty()
-        if (dictType.isNotEmpty()) list.add(Pair(module, dictType))
-    }
-    return list
+    return result
 }
 
-/** Mock 批量获取字典项：请求 body 为 [{ module, dictType }, ...] 或 { params: [...] }，返回 data: { "[module, dictType]": { "code": "name", ... }, ... } */
+/** Mock 批量获取字典项：请求 body 为 dictTypesByAtomicServiceCode，返回 data: Map<原子服务, Map<字典类型, Record<编码, 名称>>> */
 private fun buildBatchGetDictItemMapResponse(requestJson: String): String {
-    val params = parseBatchGetDictItemParams(requestJson)
+    val byAtomic = parseDictTypesByAtomicServiceCode(requestJson)
     val dataObj = buildJsonObject {
-        for ((module, dictType) in params) {
-            val cacheKey = "$module---$dictType"
-            val items = MOCK_DICT_ITEM_MAP[cacheKey] ?: emptyMap()
-            val mapObj = buildJsonObject {
-                for ((code, name) in items) {
-                    put(code, JsonPrimitive(name))
+        for ((atomic, dictTypes) in byAtomic) {
+            val typeObj = buildJsonObject {
+                for (dictType in dictTypes) {
+                    val cacheKey = "$atomic---$dictType"
+                    val items = MOCK_DICT_ITEM_MAP[cacheKey] ?: emptyMap()
+                    val mapObj = buildJsonObject {
+                        for ((code, name) in items) {
+                            put(code, JsonPrimitive(name))
+                        }
+                    }
+                    put(dictType, mapObj)
                 }
             }
-            put("[$module, $dictType]", mapObj)
+            put(atomic, typeObj)
         }
     }
     val body = buildJsonObject {
@@ -2164,7 +2167,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/cache/getValidationRule", "/api/sys/cache/getValidationRule", "/api/admin/sys/cache/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/dataSource/search", "/api/sys/dataSource/search", "/api/admin/sys/dataSource/search" -> {
@@ -2178,7 +2181,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/dataSource/getValidationRule", "/api/sys/dataSource/getValidationRule", "/api/admin/sys/dataSource/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/dataSource/saveOrUpdate", "/api/sys/dataSource/saveOrUpdate", "/api/admin/sys/dataSource/saveOrUpdate" -> {
@@ -2203,7 +2206,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/param/getValidationRule", "/api/sys/param/getValidationRule", "/api/admin/sys/param/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/param/saveOrUpdate", "/api/sys/param/saveOrUpdate", "/api/admin/sys/param/saveOrUpdate" -> {
@@ -2228,7 +2231,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/resource/getValidationRule", "/api/sys/resource/getValidationRule", "/api/admin/sys/resource/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/resource/saveOrUpdate", "/api/sys/resource/saveOrUpdate", "/api/admin/sys/resource/saveOrUpdate" -> {
@@ -2252,8 +2255,24 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildResourceSearchResponse("/sys/resource/search", requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/resource/getMenus", "/api/sys/resource/getMenus", "/api/admin/sys/resource/getMenus" -> {
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath["/api/sys/resource/getMenus"] ?: "{\"code\":200,\"data\":[]}"
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/atomicServices", "/api/sys/atomicServices", "/api/admin/sys/atomicServices" -> {
             val body = buildAtomicServicesResponse()
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/microService/getAllActiveAtomicServices", "/api/sys/microService/getAllActiveAtomicServices", "/api/admin/sys/microService/getAllActiveAtomicServices" -> {
+            val body = buildAtomicServicesResponse()
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/microService/getAllActiveAtomicServiceCodes", "/api/sys/microService/getAllActiveAtomicServiceCodes", "/api/admin/sys/microService/getAllActiveAtomicServiceCodes" -> {
+            val codes = ATOMIC_SERVICE_CODES_ORDERED
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonArray(codes.map { JsonPrimitive(it) }))
+            }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/dict/loadDictTypes", "/api/sys/dict/loadDictTypes", "/api/admin/sys/dict/loadDictTypes" -> {
@@ -2287,7 +2306,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/domain/getValidationRule", "/api/sys/domain/getValidationRule", "/api/admin/sys/domain/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/domain/saveOrUpdate", "/api/sys/domain/saveOrUpdate", "/api/admin/sys/domain/saveOrUpdate" -> {
@@ -2312,7 +2331,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dictItem/batchGetDictItemMap", "/api/sys/dictItem/batchGetDictItemMap", "/api/admin/sys/dictItem/batchGetDictItemMap" -> {
+        "/sys/dict/batchGetDictItemMap", "/api/sys/dict/batchGetDictItemMap", "/api/admin/sys/dict/batchGetDictItemMap" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildBatchGetDictItemMapResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2328,7 +2347,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/tenant/getValidationRule", "/api/sys/tenant/getValidationRule", "/api/admin/sys/tenant/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/tenant/saveOrUpdate", "/api/sys/tenant/saveOrUpdate" -> {
@@ -2353,7 +2372,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/i18n/getValidationRule", "/api/sys/i18n/getValidationRule", "/api/admin/sys/i18n/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/i18n/saveOrUpdate", "/api/sys/i18n/saveOrUpdate", "/api/admin/sys/i18n/saveOrUpdate" -> {
@@ -2364,6 +2383,38 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildJsonObject {
                 put("code", JsonPrimitive(200))
                 put("data", JsonPrimitive(savedId))
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/i18n/batchGetI18ns", "/api/sys/i18n/batchGetI18ns", "/api/admin/sys/i18n/batchGetI18ns" -> {
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", buildJsonObject {
+                    put("view", buildJsonObject {
+                        put("menu", buildJsonObject {
+                            put("home", JsonPrimitive("首页"))
+                            put("tabs", JsonPrimitive("消息中心"))
+                            put("sys", JsonPrimitive("系统管理"))
+                            put("sysBasic", JsonPrimitive("基础配置"))
+                            put("sysCache", JsonPrimitive("缓存管理"))
+                            put("sysDict", JsonPrimitive("字典管理"))
+                            put("sysParam", JsonPrimitive("参数配置"))
+                            put("sysDomain", JsonPrimitive("域名"))
+                            put("sysTenant", JsonPrimitive("租户"))
+                            put("sysSubsys", JsonPrimitive("子系统"))
+                            put("sysMicroservice", JsonPrimitive("微服务"))
+                            put("sysDatasource", JsonPrimitive("数据源"))
+                            put("sysResource", JsonPrimitive("资源"))
+                            put("sysI18n", JsonPrimitive("国际化"))
+                            put("user", JsonPrimitive("用户与组织"))
+                            put("userAccount", JsonPrimitive("账号管理"))
+                            put("userOrganization", JsonPrimitive("组织管理"))
+                            put("rbac", JsonPrimitive("权限管理"))
+                            put("rbacRole", JsonPrimitive("角色管理"))
+                            put("rbacGroup", JsonPrimitive("用户组"))
+                        })
+                    })
+                })
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
@@ -2378,7 +2429,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/user/account/getValidationRule", "/api/user/account/getValidationRule", "/api/admin/user/account/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/user/account/saveOrUpdate", "/api/user/account/saveOrUpdate", "/api/admin/user/account/saveOrUpdate" -> {
@@ -2403,7 +2454,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/rbac/group/getValidationRule", "/api/rbac/group/getValidationRule", "/api/admin/rbac/group/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/rbac/group/saveOrUpdate", "/api/rbac/group/saveOrUpdate", "/api/admin/rbac/group/saveOrUpdate" -> {
@@ -2428,7 +2479,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/rbac/role/getValidationRule", "/api/rbac/role/getValidationRule", "/api/admin/rbac/role/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/rbac/role/saveOrUpdate", "/api/rbac/role/saveOrUpdate", "/api/admin/rbac/role/saveOrUpdate" -> {
@@ -2460,7 +2511,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/user/organization/getValidationRule", "/api/user/organization/getValidationRule", "/api/admin/user/organization/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/user/organization/saveOrUpdate", "/api/user/organization/saveOrUpdate", "/api/admin/user/organization/saveOrUpdate" -> {
@@ -2485,7 +2536,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/subsys/getValidationRule", "/api/sys/subsys/getValidationRule", "/api/admin/sys/subsys/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/subsys/saveOrUpdate", "/api/sys/subsys/saveOrUpdate", "/api/admin/sys/subsys/saveOrUpdate" -> {
@@ -2510,7 +2561,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/microservice/getValidationRule", "/api/sys/microservice/getValidationRule", "/api/admin/sys/microservice/getValidationRule" -> {
-            val body = MockJsonStore.byPath[path] ?: "{\"code\":200,\"data\":{}}"
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/microservice/saveOrUpdate", "/api/sys/microservice/saveOrUpdate", "/api/admin/sys/microservice/saveOrUpdate" -> {

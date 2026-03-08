@@ -163,8 +163,9 @@ class AddEditPage extends BaseAddEditPage {
     await this.buildParentCascaderOptions();
     const params = this.createRowObjectLoadParams();
     const result = await backendRequest({ url: this.getRowObjectLoadUrl(), params });
-    if (result.code === 200) {
-      this.fillForm(result.data);
+    const rowData = result != null && typeof result === 'object' && !Array.isArray(result) && 'id' in result ? result : null;
+    if (rowData != null) {
+      this.fillForm(rowData);
       super.render();
       this.onEditFormLoaded?.();
     } else {
@@ -177,10 +178,10 @@ class AddEditPage extends BaseAddEditPage {
   private async buildParentCascaderOptions(): Promise<void> {
     const opts = this.state.parentCascaderOptions as Array<{ id: string; name: string; children?: Array<{ id: string; name: string }> }>;
     if (opts.length > 0) return;
-    const res0 = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params: { level: 0, parentId: null, active: true } }) as { code?: number; data?: Array<{ id: string; name: string }> };
-    const res1 = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params: { level: 1, parentId: null, active: true } }) as { code?: number; data?: Array<{ id: string; name: string }> };
-    const level0 = (res0.code === 200 && res0.data) ? res0.data : [];
-    const level1 = (res1.code === 200 && res1.data) ? res1.data : [];
+    const res0 = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params: { level: 0, parentId: null, active: true } });
+    const res1 = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params: { level: 1, parentId: null, active: true } });
+    const level0 = Array.isArray(res0) ? res0 : (res0 != null && typeof res0 === 'object' && Array.isArray((res0 as { data?: unknown }).data) ? (res0 as { data: Array<{ id: string; name: string }> }).data : []);
+    const level1 = Array.isArray(res1) ? res1 : (res1 != null && typeof res1 === 'object' && Array.isArray((res1 as { data?: unknown }).data) ? (res1 as { data: Array<{ id: string; name: string }> }).data : []);
     const options = level0.map((item) => ({
       id: item.id,
       name: item.name,

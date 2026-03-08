@@ -19,7 +19,7 @@
         @click="onMenuSelect(item.index)"
         @keydown.enter="onMenuSelect(item.index)"
       >
-        <el-icon><component :is="item.icon" /></el-icon>
+        <el-icon><component :is="resolveIcon(item.icon)" /></el-icon>
       </div>
     </div>
     <el-menu
@@ -33,7 +33,7 @@
           <el-sub-menu :index="item.index">
             <template #title>
               <el-icon>
-                <component :is="item.icon" />
+                <component :is="resolveIcon(item.icon)" />
               </el-icon>
               <span>{{ menuLabel(item) }}</span>
             </template>
@@ -41,7 +41,7 @@
               <el-sub-menu v-if="subItem.children" :index="subItem.index">
                 <template #title>
                   <el-icon v-if="subItem.icon">
-                    <component :is="subItem.icon" />
+                    <component :is="resolveIcon(subItem.icon)" />
                   </el-icon>
                   <span>{{ menuLabel(subItem) }}</span>
                 </template>
@@ -51,14 +51,14 @@
                   :index="threeItem.index"
                 >
                   <el-icon v-if="threeItem.icon">
-                    <component :is="threeItem.icon" />
+                    <component :is="resolveIcon(threeItem.icon)" />
                   </el-icon>
                   <template #title>{{ menuLabel(threeItem) }}</template>
                 </el-menu-item>
               </el-sub-menu>
               <el-menu-item v-else :index="subItem.index">
                 <el-icon>
-                  <component :is="subItem.icon" />
+                  <component :is="resolveIcon(subItem.icon)" />
                 </el-icon>
                 <template #title>{{ menuLabel(subItem) }}</template>
               </el-menu-item>
@@ -68,7 +68,7 @@
         <template v-else>
           <el-menu-item :index="item.index">
             <el-icon>
-              <component :is="item.icon" />
+              <component :is="resolveIcon(item.icon)" />
             </el-icon>
             <template #title>{{ menuLabel(item) }}</template>
           </el-menu-item>
@@ -79,36 +79,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, onMounted, ref } from 'vue';
+import { computed, markRaw, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import {
-  Bell,
-  HomeFilled,
-  Setting,
-  Coin,
-  Collection,
-  Document,
-  User,
-  UserFilled,
-  OfficeBuilding,
-  Lock,
-  Key,
-} from '@element-plus/icons-vue';
+import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import { AuthApiFactory } from 'shared';
 import { REQUIRE_AUTH } from '../../config/auth';
-import { PATH_META, resolvePath } from '../../config/menuPathToComponent';
+import { resolvePath } from '../../config/menuPathToComponent';
 import { backendRequest } from '../../utils/backendRequest';
+import { loadMessagesForConfig } from '../../i18n';
 
 interface MenuItem {
   index: string;
   title: string;
   titleKey?: string;
-  icon?: unknown;
+  icon?: string;
   children?: MenuItem[];
 }
 
-const { t } = useI18n();
+const { t, te, locale } = useI18n();
 const store = useStore();
 const collapse = computed(() => store.state.collapse);
 /** 侧栏展开时的宽度（px），与 Home 页分界线拖拽联动，来自 store */
@@ -120,10 +109,9 @@ function onMenuSelect(path: string) {
   const resolved = resolvePath(path);
   store.commit('setCurrentMenuPath', resolved);
   const item = findMenuItemByPath(menuData.value, resolved) ?? findMenuItemByPath(menuData.value, path);
-  const meta = PATH_META[resolved];
   store.commit('setTagsItem', {
-    titleKey: item?.titleKey ?? meta?.titleKey,
-    icon: meta?.icon ?? 'Setting',
+    titleKey: item?.titleKey,
+    icon: item?.icon,
     path: resolved,
   });
 }
@@ -155,36 +143,48 @@ const sidebarTimeClass = computed(() => {
 });
 
 // ---------- 菜单项文案与图标 ----------
-/** 服务端 / shared 返回的 name 为 i18n key，直接用 t(titleKey) 显示 */
+/** 菜单文案由后端提供：有 titleKey 且当前 locale 存在该 key 时用 t(titleKey)，否则用后端返回的 title，避免 "Not found 'view.menu.xxx' in 'zh' locale" */
 function menuLabel(item: MenuItem): string {
-  if (item.titleKey) return t(item.titleKey);
-  return item.title;
+  if (item.titleKey && te(item.titleKey)) return t(item.titleKey);
+  return item.title ?? item.titleKey ?? '';
 }
 
-/** 图标名 → 组件；用 markRaw 避免被放入 ref(menuData) 时变成响应式触发 Vue 警告 */
-const iconMap: Record<string, unknown> = {
-  Bell: markRaw(Bell),
-  HomeFilled: markRaw(HomeFilled),
-  Setting: markRaw(Setting),
-  Coin: markRaw(Coin),
-  Collection: markRaw(Collection),
-  Document: markRaw(Document),
-  User: markRaw(User),
-  UserFilled: markRaw(UserFilled),
-  OfficeBuilding: markRaw(OfficeBuilding),
-  Lock: markRaw(Lock),
-  Key: markRaw(Key),
-};
+/** 全量图标名 → 组件；用 markRaw 避免被放入 ref(menuData) 时变成响应式触发 Vue 警告；后端可动态指定任意图标名 */
+const iconMap: Record<string, unknown> = {};
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  iconMap[key] = markRaw(component);
+}
 function resolveIcon(name: string | null | undefined): unknown {
   return name ? iconMap[name] ?? iconMap.Setting : iconMap.Setting;
 }
-/** 将服务端 / shared 菜单转为本地 MenuItem，name 即 i18n key，用作 titleKey */
+/** MenuTreeNode 后端结构：index(url)、title(名称或i18n key)、icon、children */
+interface MenuTreeNode {
+  index?: string | null;
+  title?: string | null;
+  icon?: string | null;
+  children?: MenuTreeNode[];
+}
+
+/** 将 sys/resource/getMenus 返回的 MenuTreeNode 转为本地 MenuItem（icon 保留字符串，供 store/Tags 使用，侧栏渲染时用 resolveIcon） */
+function mapMenuTreeToItems(nodes: MenuTreeNode[]): MenuItem[] {
+  return nodes
+    .filter((n) => n.index)
+    .map((n) => ({
+      index: n.index!,
+      title: n.title ?? '',
+      titleKey: n.title ?? undefined,
+      icon: (n.icon as string) ?? undefined,
+      children: n.children?.length ? mapMenuTreeToItems(n.children) : undefined,
+    }));
+}
+
+/** 兼容 shared AuthApi 返回格式：path、name、icon、children */
 function mapMenusFromShared(items: Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>): MenuItem[] {
   return items.map((it) => ({
     index: it.path,
     title: it.name,
     titleKey: it.name,
-    icon: resolveIcon(it.icon ?? null),
+    icon: (it.icon as string) ?? undefined,
     children: it.children?.length ? mapMenusFromShared(it.children as Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>) : undefined,
   }));
 }
@@ -204,94 +204,81 @@ const menuDataDisplay = computed(() =>
   collapse.value ? menuData.value.filter((i) => i.children) : menuData.value
 );
 
-function isLocalhost(): boolean {
-  const h = typeof window !== 'undefined' ? window.location?.hostname : '';
-  return h === 'localhost' || h === '127.0.0.1';
-}
-/** localhost 且接口不可用时使用的静态菜单（文案仍通过 titleKey 走 i18n）；图标从 iconMap 取，已是 markRaw */
-function getFallbackMenus(): MenuItem[] {
-  return [
-    { index: '/home', title: '首页', titleKey: 'menu.home', icon: iconMap.HomeFilled },
-    { index: '/tabs', title: '消息中心', titleKey: 'menu.tabs', icon: iconMap.Bell },
-    {
-      index: '/sys',
-      title: '系统管理',
-      titleKey: 'menu.sys',
-      icon: iconMap.Setting,
-      children: [
-        {
-          index: '/sys/basic',
-          title: '基础配置',
-          titleKey: 'menu.sysBasic',
-          icon: iconMap.Document,
-          children: [
-            { index: '/sys/cache', title: '缓存管理', titleKey: 'menu.sysCache', icon: iconMap.Coin },
-            { index: '/sys/dict', title: '字典管理', titleKey: 'menu.sysDict', icon: iconMap.Collection },
-            { index: '/sys/param', title: '参数配置', titleKey: 'menu.sysParam', icon: iconMap.Document },
-            { index: '/sys/domain', title: '域名', titleKey: 'menu.sysDomain', icon: iconMap.Document },
-            { index: '/sys/tenant', title: '租户', titleKey: 'menu.sysTenant', icon: iconMap.Document },
-          ],
-        },
-        { index: '/sys/subsys', title: '子系统', titleKey: 'menu.sysSubsys', icon: iconMap.Document },
-        { index: '/sys/microservice', title: '微服务', titleKey: 'menu.sysMicroservice', icon: iconMap.Setting },
-        { index: '/sys/datasource', title: '数据源', titleKey: 'menu.sysDatasource', icon: iconMap.Collection },
-        { index: '/sys/resource', title: '资源', titleKey: 'menu.sysResource', icon: iconMap.Document },
-        { index: '/sys/i18n', title: '国际化', titleKey: 'menu.sysI18n', icon: iconMap.Setting },
-      ],
-    },
-    {
-      index: '/user',
-      title: '用户与组织',
-      titleKey: 'menu.user',
-      icon: iconMap.User,
-      children: [
-        { index: '/user/account', title: '账号管理', titleKey: 'menu.userAccount', icon: iconMap.UserFilled },
-        { index: '/user/organization', title: '组织管理', titleKey: 'menu.userOrganization', icon: iconMap.OfficeBuilding },
-      ],
-    },
-    {
-      index: '/rbac',
-      title: '权限管理',
-      titleKey: 'menu.rbac',
-      icon: iconMap.Lock,
-      children: [
-        { index: '/rbac/role', title: '角色管理', titleKey: 'menu.rbacRole', icon: iconMap.Key },
-        { index: '/rbac/group', title: '用户组', titleKey: 'menu.rbacGroup', icon: iconMap.User },
-      ],
-    },
-  ];
-}
-/** 加载顺序：sys 模式直接 fallback → AuthApi.getMenus → 全局 ajax getAuthorisedMenus → localhost 时 fallback */
-async function loadMenuData() {
-  if (!REQUIRE_AUTH) {
-    menuData.value = getFallbackMenus();
-    return;
-  }
-  if (AuthApiFactory.getInstance().hasToken()) {
-    try {
-      const api = AuthApiFactory.getInstance().getAuthApi();
-      const menus = await api.getMenus();
-      if (menus && menus.length > 0) {
-        menuData.value = mapMenusFromShared(menus as Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>);
-        return;
-      }
-    } catch {
-      // 接口失败继续尝试 ajax 或 fallback
+const DEFAULT_SUB_SYSTEM_CODE = 'default';
+
+/** 从 shared mock 获取静态菜单（sys/resource/getMenus 或 AuthApi.getMenus 返回 menus.json） */
+async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {
+  try {
+    const result = await backendRequest({
+      url: 'sys/resource/getMenus',
+      params: { subSystemCode: DEFAULT_SUB_SYSTEM_CODE },
+    });
+    const raw = (result && typeof result === 'object' && 'data' in result ? (result as { data: unknown }).data : result) as MenuTreeNode[] | undefined;
+    if (raw && Array.isArray(raw) && raw.length > 0) {
+      return mapMenuTreeToItems(raw);
     }
-    if (isLocalhost()) {
-      menuData.value = getFallbackMenus();
-      return;
-    }
+  } catch {
+    // 继续尝试 AuthApi.getMenus
   }
   try {
-    const result = await backendRequest({ url: 'user/account/getAuthorisedMenus' }) as { data: MenuItem[] };
-    menuData.value = result.data ?? [];
+    const api = AuthApiFactory.getInstance().getAuthApi();
+    const menus = await api.getMenus();
+    if (menus && menus.length > 0) {
+      return mapMenusFromShared(menus as Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>);
+    }
   } catch {
-    if (isLocalhost()) menuData.value = getFallbackMenus();
+    // ignore
   }
+  return null;
+}
+
+/** 菜单 i18n 配置：后端返回的 name 为 i18n key，需从此接口拉取译文 */
+const MENU_I18N_CONFIG = [{ i18nTypeDictCode: 'view', namespaces: ['menu'], atomicServiceCode: 'sys' }];
+
+/**
+ * 加载菜单：优先 sys/resource/getMenus（shared mock 或后端），失败则 getAuthorisedMenus，最后用 shared mock 的 menus.json。
+ * 菜单 name 为 i18n key，会调用 loadMessagesForConfig 从后端拉取 menu 命名空间译文。
+ */
+async function loadMenuData() {
+  // 0. 加载菜单 i18n 译文（view 类型、menu 命名空间、sys 原子服务）
+  await loadMessagesForConfig(MENU_I18N_CONFIG);
+  // 1. sys 模式或已登录：优先 sys/resource/getMenus（mock 或后端）
+  const fromShared = await loadMenusFromSharedMock();
+  if (fromShared && fromShared.length > 0) {
+    menuData.value = fromShared;
+    store.commit('setMenuData', fromShared);
+    return;
+  }
+  // 2. user 模式且未登录：不加载菜单（会显示登录页）
+  if (REQUIRE_AUTH && !AuthApiFactory.getInstance().hasToken()) {
+    menuData.value = [];
+    store.commit('setMenuData', []);
+    return;
+  }
+  // 3. 尝试 getAuthorisedMenus（后端权限菜单）
+  try {
+    const result = await backendRequest({ url: 'user/account/getAuthorisedMenus' });
+    if (Array.isArray(result) && result.length) {
+      const list = result as MenuItem[];
+      menuData.value = list;
+      store.commit('setMenuData', list);
+      return;
+    }
+  } catch {
+    // 继续
+  }
+  // 4. 最终回退：再次尝试 shared mock（localhost 等场景）
+  const fallback = await loadMenusFromSharedMock();
+  menuData.value = fallback ?? [];
+  store.commit('setMenuData', menuData.value);
 }
 
 onMounted(() => loadMenuData());
+
+/** 切换语言后重新拉取菜单命名空间译文（setLocale 会清空 I18nService 缓存，此处按新 locale 请求） */
+watch(locale, () => {
+  loadMessagesForConfig(MENU_I18N_CONFIG);
+}, { immediate: false });
 </script>
 
 <style scoped>
