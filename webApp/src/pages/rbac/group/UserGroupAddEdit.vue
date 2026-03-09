@@ -109,19 +109,6 @@ class AddEditPage extends BaseAddEditPage {
   protected getLoadFailedMessageKey(): string {
     return 'userGroupAddEdit.messages.loadFailed';
   }
-
-  protected async initValidationRule(): Promise<void> {
-    await super.initValidationRule();
-    const requiredRules = this.createRequiredRules(
-      {
-        groupCode: 'userGroupAddEdit.validation.requiredGroupCode',
-        groupName: 'userGroupAddEdit.validation.requiredGroupName',
-      },
-      { groupCode: 'change', groupName: 'change' }
-    );
-    const rules = (this.state.rules as Record<string, unknown>) || {};
-    this.state.rules = { ...rules, ...requiredRules };
-  }
 }
 
 export default defineComponent({

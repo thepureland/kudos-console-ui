@@ -46,24 +46,24 @@
             </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item :label="t('microServiceAddEdit.labels.parentCode')" prop="parentCode">
+        <el-form-item :label="t('microServiceAddEdit.labels.context')" prop="context" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
               <el-input
-                v-model="formModel.parentCode"
-                :placeholder="t('microServiceAddEdit.placeholders.parentCode')"
+                v-model="formModel.context"
+                :placeholder="t('microServiceAddEdit.placeholders.context')"
                 clearable
                 size="default"
               />
             </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item :label="t('microServiceAddEdit.labels.context')" prop="context">
+        <el-form-item :label="t('microServiceAddEdit.labels.parentCode')" prop="parentCode">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
               <el-input
-                v-model="formModel.context"
-                :placeholder="t('microServiceAddEdit.placeholders.context')"
+                v-model="formModel.parentCode"
+                :placeholder="t('microServiceAddEdit.placeholders.parentCode')"
                 clearable
                 size="default"
               />
@@ -121,7 +121,7 @@ interface FormModel {
   remark: string | null;
 }
 
-class AddEditPage extends BaseAddEditPage {
+class MicroServiceAddEditPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
   }
@@ -140,7 +140,7 @@ class AddEditPage extends BaseAddEditPage {
   }
 
   protected getRootActionPath(): string {
-    return 'sys/microservice';
+    return 'sys/microService';
   }
 
   /** 与详情一致：使用 getDetail 接口按 id 拉取单条，Mock 已有此路径 */
@@ -150,20 +150,6 @@ class AddEditPage extends BaseAddEditPage {
 
   protected getLoadFailedMessageKey(): string {
     return 'microServiceAddEdit.messages.loadFailed';
-  }
-
-  /** 必填项使用基类 i18n 必填规则并合并 */
-  protected async initValidationRule(): Promise<void> {
-    await super.initValidationRule();
-    const requiredRules = this.createRequiredRules(
-      {
-        code: 'microServiceAddEdit.validation.requiredCode',
-        name: 'microServiceAddEdit.validation.requiredName',
-      },
-      { code: 'change', name: 'change' }
-    );
-    const rules = (this.state.rules as Record<string, unknown>) || {};
-    this.state.rules = { ...rules, ...requiredRules };
   }
 }
 
@@ -186,7 +172,7 @@ export default defineComponent({
   emits: ['update:modelValue', 'response'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     return useAddEditDialogSetup(props, context, {
-      createPage: (p, c) => new AddEditPage(p, c),
+      createPage: (p, c) => new MicroServiceAddEditPage(p, c),
       i18nKeyPrefix: 'microServiceAddEdit',
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;

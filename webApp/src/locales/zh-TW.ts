@@ -785,7 +785,7 @@ export default {
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', subSystemOnly: '僅子系統', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
   systemDetail: {
-    title: '子系統資訊詳情',
+    title: '系統資訊詳情',
     sections: {
       basicInfo: '基本資訊',
       audit: '審計資訊',
@@ -808,14 +808,14 @@ export default {
     empty: '—',
   },
   systemAddEdit: {
-    titleAdd: '新增子系統',
-    titleEdit: '編輯子系統',
+    titleAdd: '新增系統',
+    titleEdit: '編輯系統',
     sections: { basicInfo: '基本資訊', other: '其他' },
     labels: { code: '編碼', name: '名稱', parentCode: '父級編碼', subSystem: '子系統', remark: '備註' },
     placeholders: {
       code: '請輸入編碼',
       name: '請輸入名稱',
-      parentCode: '選填，父級子系統編碼',
+      parentCode: '選填，父級系統編碼',
       remark: '選填，最多 200 字',
     },
     switch: { yes: '是', no: '否' },
@@ -866,7 +866,7 @@ export default {
       code: '請輸入編碼',
       name: '請輸入名稱',
       parentCode: '選填，父級微服務編碼',
-      context: '選填，上下文路徑',
+      context: '請輸入上下文路徑',
       remark: '選填，最多 200 字',
     },
     switch: { yes: '是', no: '否' },

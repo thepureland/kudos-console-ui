@@ -285,7 +285,7 @@ function tr(key: string): string {
   return i18n.global.t(key) as string;
 }
 
-class ListPage extends BaseListPage {
+class DictListPage extends BaseListPage {
   private tree: { value?: { remove: (obj: { id: string }) => void } };
 
   constructor(
@@ -456,8 +456,8 @@ class ListPage extends BaseListPage {
         sp.itemCode = null;
         sp.isDict = !expand;
       } else {
-        sp.module = ListPage.getAtomicServiceByNode(node);
-        sp.dictType = ListPage.getDictTypeByNode(node);
+        sp.module = DictListPage.getAtomicServiceByNode(node);
+        sp.dictType = DictListPage.getDictTypeByNode(node);
         if (!expand) {
           sp.itemCode = (node.data as { code: string }).code;
         }
@@ -490,7 +490,7 @@ class ListPage extends BaseListPage {
       (this.state as Record<string, unknown>).rootNode = node;
       (this.state as Record<string, unknown>).rootResolve = resolve;
     }
-    this.setParamsForTree(node as Parameters<InstanceType<typeof ListPage>['setParamsForTree']>[0], true);
+    this.setParamsForTree(node as Parameters<InstanceType<typeof DictListPage>['setParamsForTree']>[0], true);
     const sp = this.state.searchParams as Record<string, unknown>;
     const params = {
       parentId: node.level === 0 ? null : node.level === 1 ? (node.data as { code: string }).code : (node.data as { id: string }).id,
@@ -513,7 +513,7 @@ class ListPage extends BaseListPage {
 
   private doExpandTreeNode(nodeData: unknown, node: { data?: unknown }): void {
     if (node.data) {
-      this.setParamsForTree(node as Parameters<InstanceType<typeof ListPage>['setParamsForTree']>[0], true);
+      this.setParamsForTree(node as Parameters<InstanceType<typeof DictListPage>['setParamsForTree']>[0], true);
       this.searchByTree();
     }
   }
@@ -523,7 +523,7 @@ class ListPage extends BaseListPage {
   private async doClickTreeNode(nodeData: Record<string, unknown>, node: { level: number; data?: { id: string; code: string } }): Promise<void> {
     if (node.level === 1) return;
     (this.state as Record<string, unknown>).searchSource = 'tree';
-    this.setParamsForTree(node as Parameters<InstanceType<typeof ListPage>['setParamsForTree']>[0], false);
+    this.setParamsForTree(node as Parameters<InstanceType<typeof DictListPage>['setParamsForTree']>[0], false);
     const params = { id: nodeData.id, isDict: node.level === 2 };
     try {
       const result = await backendRequest({ url: 'sys/dict/getDict', params });
@@ -593,7 +593,7 @@ class ListPage extends BaseListPage {
   private convertThis(): void {
     super.convertThis();
     this.filterDictType = (q, cb) => this.doFilterDictType(q, cb);
-    this.loadTree = (node, resolve) => this.doLoadTree(node as Parameters<InstanceType<typeof ListPage>['doLoadTree']>[0], resolve as (data: unknown[]) => void);
+    this.loadTree = (node, resolve) => this.doLoadTree(node as Parameters<InstanceType<typeof DictListPage>['doLoadTree']>[0], resolve as (data: unknown[]) => void);
     this.expandTreeNode = (nodeData, node) => this.doExpandTreeNode(nodeData, node);
     this.clickTreeNode = (nodeData, node) => this.doClickTreeNode(nodeData as Record<string, unknown>, node);
   }
@@ -614,7 +614,7 @@ export default defineComponent({
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
-    const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
+    const listPage = reactive(new DictListPage(props, context, tree)) as DictListPage & { state: Record<string, unknown> };
     const {
       listLayoutRefs,
       onTableWrapMounted: layoutOnTableWrapMounted,

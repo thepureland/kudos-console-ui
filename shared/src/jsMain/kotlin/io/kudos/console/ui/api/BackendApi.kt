@@ -5,6 +5,7 @@ import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -102,6 +103,12 @@ class BackendApiExposed {
             }
             "post" -> {
                 client.post(path) {
+                    header(HttpHeaders.ContentType, ContentType.Application.Json)
+                    setBody(paramsJson ?: "{}")
+                }.body<String>()
+            }
+            "put" -> {
+                client.put(path) {
                     header(HttpHeaders.ContentType, ContentType.Application.Json)
                     setBody(paramsJson ?: "{}")
                 }.body<String>()

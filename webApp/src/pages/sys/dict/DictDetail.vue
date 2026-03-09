@@ -84,7 +84,7 @@ const ROW_FIELDS: FieldConfig[][] = [
   ],
 ];
 
-class DetailPage extends BaseDetailPage {
+class DictDetailPage extends BaseDetailPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     if (props.rid) {
@@ -167,7 +167,7 @@ export default defineComponent({
   emits: ['update:modelValue'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
-    const page = reactive(new DetailPage(props, context)) as DetailPage & {
+    const page = reactive(new DictDetailPage(props, context)) as DictDetailPage & {
       state: { detail: Record<string, unknown> | null; tableData: Record<string, unknown>[] };
       formatDate: (value: unknown) => string;
       transAtomicService: (code: string) => string;

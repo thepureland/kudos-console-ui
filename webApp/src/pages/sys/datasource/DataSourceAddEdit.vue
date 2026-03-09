@@ -183,7 +183,7 @@ function toNumberOrUndefined(value: unknown): number | undefined {
   return Number.isNaN(n) ? undefined : n;
 }
 
-class AddEditPage extends TenantSupportAddEditPage {
+class DataSourceAddEditPage extends TenantSupportAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
   }
@@ -224,22 +224,6 @@ class AddEditPage extends TenantSupportAddEditPage {
     return 'dataSourceAddEdit.messages.loadFailed';
   }
 
-  /** 必填项使用基类 i18n 必填规则并合并 */
-  protected async initValidationRule(): Promise<void> {
-    await super.initValidationRule();
-    const requiredRules = this.createRequiredRules(
-      {
-        name: 'dataSourceAddEdit.validation.requiredName',
-        subSysOrTenant: 'dataSourceAddEdit.validation.requiredSubSysOrTenant',
-        url: 'dataSourceAddEdit.validation.requiredUrl',
-        username: 'dataSourceAddEdit.validation.requiredUsername',
-      },
-      { subSysOrTenant: 'change', url: 'change', username: 'change' }
-    );
-    const rules = (this.state.rules as Record<string, unknown>) || {};
-    this.state.rules = { ...rules, ...requiredRules };
-  }
-
   /** 回填时保证数字字段为 number | undefined，兼容 el-input-number */
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
@@ -274,7 +258,7 @@ export default defineComponent({
   emits: ['update:modelValue', 'response'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     return useAddEditDialogSetup(props, context, {
-      createPage: (p, c) => new AddEditPage(p, c),
+      createPage: (p, c) => new DataSourceAddEditPage(p, c),
       i18nKeyPrefix: 'dataSourceAddEdit',
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;

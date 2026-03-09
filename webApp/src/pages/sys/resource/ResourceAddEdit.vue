@@ -72,7 +72,7 @@ import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialo
 import { backendRequest } from '../../../utils/backendRequest';
 import '../../../styles/add-edit-dialog-common.css';
 
-class AddEditPage extends BaseAddEditPage {
+class ResourceAddEditPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.buildParentCascaderOptions();
@@ -110,16 +110,6 @@ class AddEditPage extends BaseAddEditPage {
 
   protected getLoadFailedMessageKey(): string {
     return 'resourceAddEdit.messages.loadFailed';
-  }
-
-  protected async initValidationRule(): Promise<void> {
-    await super.initValidationRule();
-    const requiredRules = this.createRequiredRules(
-      { name: 'resourceAddEdit.validation.requiredName', parent: 'resourceAddEdit.validation.requiredParent' },
-      { name: 'change' }
-    );
-    const rules = (this.state.rules as Record<string, unknown>) || {};
-    this.state.rules = { ...rules, ...requiredRules };
   }
 
   protected createSubmitParams(): Record<string, unknown> {
@@ -202,7 +192,7 @@ export default defineComponent({
   emits: ['update:modelValue', 'response'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     return useAddEditDialogSetup(props, context, {
-      createPage: (p, c) => new AddEditPage(p, c),
+      createPage: (p, c) => new ResourceAddEditPage(p, c),
       i18nKeyPrefix: 'resourceAddEdit',
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;

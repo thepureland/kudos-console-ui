@@ -284,7 +284,7 @@ const ALL_COLUMN_KEYS = ['atomicService', 'context', 'active', 'builtIn', 'remar
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
-class ListPage extends BaseListPage {
+class MicroServiceListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.convertThis();
@@ -302,11 +302,7 @@ class ListPage extends BaseListPage {
   }
 
   protected getRootActionPath(): string {
-    return 'sys/microservice';
-  }
-
-  protected getSearchUrl(): string {
-    return this.getRootActionPath() + '/searchTree';
+    return 'sys/microService';
   }
 
   protected createSearchParams(): Record<string, unknown> {
@@ -323,9 +319,37 @@ class ListPage extends BaseListPage {
     return ['code', 'name'];
   }
 
-  /** 树接口直接返回 data 数组，无 first/second */
+  /** 将扁平列表按 parentCode 挂成树（父节点为 code === item.parentCode 的节点） */
+  protected flatListToTree(flat: Record<string, unknown>[]): Record<string, unknown>[] {
+    if (!flat.length) return [];
+    const list = flat.map((row) => ({ ...row, children: [] as Record<string, unknown>[] }));
+    const byCode = new Map<string, Record<string, unknown>>();
+    list.forEach((row) => {
+      const k = row.code != null ? String(row.code) : (row.id != null ? String(row.id) : '');
+      if (k !== '') byCode.set(k, row);
+    });
+    const roots: Record<string, unknown>[] = [];
+    list.forEach((row) => {
+      const parentCode = row.parentCode != null ? String(row.parentCode).trim() : '';
+      if (!parentCode) {
+        roots.push(row);
+        return;
+      }
+      const parent = byCode.get(parentCode) as Record<string, unknown> | undefined;
+      const children = parent?.children as Record<string, unknown>[] | undefined;
+      if (parent && Array.isArray(children)) children.push(row);
+      else roots.push(row);
+    });
+    return roots;
+  }
+
+  /** 后端返回格式：{ data: 行数组, totalCount }；扁平数据按 parentCode 转成树后赋给 tableData */
   protected postSearchSuccessfully(data: unknown): void {
-    this.state.tableData = Array.isArray(data) ? data : [];
+    const obj = data as { data: unknown[]; totalCount: number };
+    const rows = (obj.data ?? []) as Record<string, unknown>[];
+    const hasChildren = rows.some((r) => Array.isArray((r as Record<string, unknown>).children));
+    this.state.tableData = hasChildren ? rows : this.flatListToTree(rows);
+    this.state.pagination.total = typeof obj.totalCount === 'number' ? obj.totalCount : 0;
   }
 }
 
@@ -335,7 +359,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
-    const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
+    const listPage = reactive(new MicroServiceListPage(props, context)) as MicroServiceListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });

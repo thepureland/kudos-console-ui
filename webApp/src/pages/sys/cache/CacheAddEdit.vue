@@ -190,7 +190,7 @@ interface FormModel {
 /** 缓存策略选项：first=code, second=label */
 type StrategyOption = { first: string; second: string };
 
-class AddEditPage extends BaseAddEditPage {
+class CacheAddEditPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.loadAtomicServices();
@@ -262,7 +262,7 @@ export default defineComponent({
   emits: ['update:modelValue', 'response'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     return useAddEditDialogSetup(props, context, {
-      createPage: (p, c) => new AddEditPage(p, c),
+      createPage: (p, c) => new CacheAddEditPage(p, c),
       i18nKeyPrefix: 'cacheAddEdit',
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;

@@ -8,11 +8,12 @@ import { i18n, loadMessagesForConfig, loadMessagesForValidationPage } from "../.
 /** 后端 getValidationRule 常见规则类型，用于识别「直接返回规则对象」的响应 */
 const VALIDATION_RULE_TYPES = new Set(['NotBlank', 'NotNull', 'NotEmpty', 'Null', 'Length', 'Pattern', 'Email', 'Min', 'Max', 'Remote', 'Compare', 'CodePointLength'])
 
-/** 判断是否为后端 getValidationRule 直接返回的校验规则对象 */
+/** 判断是否为后端 getValidationRule 直接返回的校验规则对象（排除 { code: 200, data } 这类包装格式） */
 function isDirectValidationRulesObject(obj: unknown): obj is Record<string, unknown> {
     if (obj == null || typeof obj !== 'object' || Array.isArray(obj)) return false
     const o = obj as Record<string, unknown>
-    if (o.code !== undefined && o.code !== null) return false
+    // 仅当顶层 code 像 HTTP 状态（数字/字符串）时视为包装格式；若 code 为对象则是字段规则，不排除
+    if (o.code !== undefined && o.code !== null && typeof o.code !== 'object') return false
     for (const key of Object.keys(o)) {
         const val = o[key]
         if (val != null && typeof val === 'object' && !Array.isArray(val)) {
@@ -21,6 +22,20 @@ function isDirectValidationRulesObject(obj: unknown): obj is Record<string, unkn
         }
     }
     return false
+}
+
+/** 判断保存接口的 result 是否表示业务成功：仅当 code 为 200/0 或能解析出保存后的 id 时视为成功 */
+function isSuccessfulSaveResponse(result: unknown): boolean {
+    if (result == null) return false
+    const o = result as Record<string, unknown>
+    const code = o?.code
+    const codeNum = code === undefined || code === null
+        ? null
+        : typeof code === 'number' ? code : (typeof code === 'string' ? parseInt(String(code), 10) : NaN)
+    if (codeNum !== null && !Number.isNaN(codeNum)) {
+        return codeNum === 200 || codeNum === 0
+    }
+    return getSavedIdFromResponse(result) != null
 }
 
 /** 从保存接口的 result（直接格式）中解析出主键 id（支持 { data: [entity], totalCount }、单实体、数组、或直接为 id） */
@@ -105,8 +120,21 @@ export abstract class BaseAddEditPage extends BasePage {
         return first || 'sys'
     }
 
+    /** 新增用 save（POST），编辑用 update（PUT），子类可重写 */
     protected getSubmitUrl(): string {
-        return this.getRootActionPath() + "/saveOrUpdate"
+        const base = this.getRootActionPath()
+        return this.isEditMode() ? `${base}/update` : `${base}/save`
+    }
+
+    /** 新增用 post，编辑用 put，与 getSubmitUrl 对应 */
+    protected getSubmitMethod(): 'post' | 'put' {
+        return this.isEditMode() ? 'put' : 'post'
+    }
+
+    /** 是否为编辑模式（有 rid 视为编辑） */
+    protected isEditMode(): boolean {
+        const rid = this.props?.rid != null ? String(this.props.rid).trim() : ''
+        return rid !== ''
     }
 
     protected getRowObjectLoadUrl(): string {
@@ -219,7 +247,7 @@ export abstract class BaseAddEditPage extends BasePage {
             return
         }
 
-        // 后端 getValidationRule 仅支持直接返回规则对象：{ fieldName: { NotBlank: [...] }, ... }，不包装 code/data
+        // 后端 getValidationRule 仅支持直接返回规则对象：{ fieldName: { NotBlank: [...] }, ... }，不包装
         if (isDirectValidationRulesObject(result)) {
             this.state.rules = new ValidationRuleAdapter(
                 result,
@@ -265,9 +293,9 @@ export abstract class BaseAddEditPage extends BasePage {
                 }
                 const params = this.createSubmitParams()
                 if (!params) return
-                backendRequest({ url: this.getSubmitUrl(), method: 'post', params })
+                backendRequest({ url: this.getSubmitUrl(), method: this.getSubmitMethod(), params })
                     .then((result) => {
-                        if (result != null) {
+                        if (result != null && isSuccessfulSaveResponse(result)) {
                             ElMessage.success(i18n.global.t('addEditPage.saveSuccess') as string)
                             const form = this.getFormInstance()
                             if (form?.resetFields) form.resetFields()
@@ -276,7 +304,12 @@ export abstract class BaseAddEditPage extends BasePage {
                             this.context.emit('response', params)
                             nextTick(() => this.doClose())
                         } else {
-                            ElMessage.error(i18n.global.t('addEditPage.saveFailed') as string)
+                            const msg = result != null && typeof result === 'object' && 'message' in result && typeof (result as Record<string, unknown>).message === 'string'
+                                ? (result as Record<string, unknown>).message as string
+                                : (result != null && typeof result === 'object' && 'msg' in result && typeof (result as Record<string, unknown>).msg === 'string'
+                                    ? (result as Record<string, unknown>).msg as string
+                                    : (i18n.global.t('addEditPage.saveFailed') as string))
+                            ElMessage.error(msg)
                         }
                     })
                     .catch((e) => {

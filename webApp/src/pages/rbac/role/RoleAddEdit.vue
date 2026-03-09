@@ -129,20 +129,6 @@ class AddEditPage extends TenantSupportAddEditPage {
   protected getLoadFailedMessageKey(): string {
     return 'roleAddEdit.messages.loadFailed';
   }
-
-  protected async initValidationRule(): Promise<void> {
-    await super.initValidationRule();
-    const requiredRules = this.createRequiredRules(
-      {
-        roleCode: 'roleAddEdit.validation.requiredRoleCode',
-        roleName: 'roleAddEdit.validation.requiredRoleName',
-        subSysOrTenant: 'roleAddEdit.validation.requiredSubSysOrTenant',
-      },
-      { subSysOrTenant: 'change' }
-    );
-    const rules = (this.state.rules as Record<string, unknown>) || {};
-    this.state.rules = { ...rules, ...requiredRules };
-  }
 }
 
 export default defineComponent({

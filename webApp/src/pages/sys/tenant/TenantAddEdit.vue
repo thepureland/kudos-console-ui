@@ -92,7 +92,7 @@ interface FormModel {
   remark: string | null;
 }
 
-class AddEditPage extends BaseAddEditPage {
+class TenantAddEditPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.loadAtomicServices();
@@ -110,20 +110,6 @@ class AddEditPage extends BaseAddEditPage {
 
   protected getRootActionPath(): string {
     return 'sys/tenant';
-  }
-
-  /** 必填项使用基类 i18n 必填规则并合并 */
-  protected async initValidationRule(): Promise<void> {
-    await super.initValidationRule();
-    const requiredRules = this.createRequiredRules(
-      {
-        name: 'tenantAddEdit.validation.requiredName',
-        subSysDictCode: 'tenantAddEdit.validation.requiredSubSysDictCode',
-      },
-      { subSysDictCode: 'change' }
-    );
-    const rules = (this.state.rules as Record<string, unknown>) || {};
-    this.state.rules = { ...rules, ...requiredRules };
   }
 
   protected getLoadFailedMessageKey(): string {
@@ -150,7 +136,7 @@ export default defineComponent({
   emits: ['update:modelValue', 'response'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     return useAddEditDialogSetup(props, context, {
-      createPage: (p, c) => new AddEditPage(p, c),
+      createPage: (p, c) => new TenantAddEditPage(p, c),
       i18nKeyPrefix: 'tenantAddEdit',
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;

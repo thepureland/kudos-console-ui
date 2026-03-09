@@ -785,7 +785,7 @@ export default {
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', subSystemOnly: '仅子系统', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
   systemDetail: {
-    title: '子系统信息详情',
+    title: '系统信息详情',
     sections: {
       basicInfo: '基本信息',
       audit: '审计信息',
@@ -808,14 +808,14 @@ export default {
     empty: '—',
   },
   systemAddEdit: {
-    titleAdd: '新增子系统',
-    titleEdit: '编辑子系统',
+    titleAdd: '新增系统',
+    titleEdit: '编辑系统',
     sections: { basicInfo: '基本信息', other: '其他' },
     labels: { code: '编码', name: '名称', parentCode: '父级编码', subSystem: '子系统', remark: '备注' },
     placeholders: {
       code: '请输入编码',
       name: '请输入名称',
-      parentCode: '选填，父级子系统编码',
+      parentCode: '选填，父级系统编码',
       remark: '选填，最多 200 字',
     },
     switch: { yes: '是', no: '否' },
@@ -866,7 +866,7 @@ export default {
       code: '请输入编码',
       name: '请输入名称',
       parentCode: '选填，父级微服务编码',
-      context: '选填，上下文路径',
+      context: '请输入上下文路径',
       remark: '选填，最多 200 字',
     },
     switch: { yes: '是', no: '否' },

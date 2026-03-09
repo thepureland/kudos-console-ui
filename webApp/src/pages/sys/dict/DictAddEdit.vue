@@ -120,7 +120,7 @@ interface CascaderNode {
   data?: { id?: string; code?: string };
 }
 
-class AddEditPage extends BaseAddEditPage {
+class DictAddEditPage extends BaseAddEditPage {
   private defaultModule: string = '';
   private defaultDictType: string = '';
 
@@ -157,19 +157,6 @@ class AddEditPage extends BaseAddEditPage {
 
   protected getRootActionPath(): string {
     return 'sys/dict';
-  }
-
-  /** 字典模块无 getValidationRule 接口，仅使用前端 i18n 必填规则 */
-  protected async initValidationRule(): Promise<void> {
-    const requiredRules = this.createRequiredRules(
-      {
-        parent: 'dictAddEdit.validation.requiredParent',
-        code: 'dictAddEdit.validation.requiredCode',
-        name: 'dictAddEdit.validation.requiredName',
-      },
-      { parent: 'change' }
-    );
-    this.state.rules = { ...requiredRules };
   }
 
   protected getRowObjectLoadUrl(): string {
@@ -299,7 +286,7 @@ export default defineComponent({
   emits: ['update:modelValue', 'response'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     return useAddEditDialogSetup(props, context, {
-      createPage: (p, c) => new AddEditPage(p, c),
+      createPage: (p, c) => new DictAddEditPage(p, c),
       i18nKeyPrefix: 'dictAddEdit',
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;
