@@ -264,7 +264,7 @@ function tr(key: string): string {
   return i18n.global.t(key) as string;
 }
 
-class ListPage extends BaseListPage {
+class ResourceListPage extends BaseListPage {
   private tree: { value?: { remove: (obj: { id: string }) => void } };
 
   constructor(
@@ -512,7 +512,7 @@ export default defineComponent({
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
-    const listPage = reactive(new ListPage(props, context, tree)) as ListPage & { state: Record<string, unknown> };
+    const listPage = reactive(new ResourceListPage(props, context, tree)) as ResourceListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });

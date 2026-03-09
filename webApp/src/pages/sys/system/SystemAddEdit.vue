@@ -1,4 +1,4 @@
-<!-- 子系统新增/编辑 -->
+<!-- 系统新增/编辑 -->
 <template>
   <el-dialog
     v-model="visible"
@@ -108,7 +108,7 @@ interface FormModel {
   remark: string | null;
 }
 
-class AddEditPage extends BaseAddEditPage {
+class SystemAddEditPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
   }
@@ -126,7 +126,7 @@ class AddEditPage extends BaseAddEditPage {
   }
 
   protected getRootActionPath(): string {
-    return 'sys/subsys';
+    return 'sys/system';
   }
 
   /** 与详情一致：使用 getDetail 接口按 id 拉取单条，Mock 已有此路径 */
@@ -136,20 +136,6 @@ class AddEditPage extends BaseAddEditPage {
 
   protected getLoadFailedMessageKey(): string {
     return 'systemAddEdit.messages.loadFailed';
-  }
-
-  /** 必填项使用基类 i18n 必填规则并合并 */
-  protected async initValidationRule(): Promise<void> {
-    await super.initValidationRule();
-    const requiredRules = this.createRequiredRules(
-      {
-        code: 'systemAddEdit.validation.requiredCode',
-        name: 'systemAddEdit.validation.requiredName',
-      },
-      { code: 'change', name: 'change' }
-    );
-    const rules = (this.state.rules as Record<string, unknown>) || {};
-    this.state.rules = { ...rules, ...requiredRules };
   }
 }
 
@@ -172,7 +158,7 @@ export default defineComponent({
   emits: ['update:modelValue', 'response'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     return useAddEditDialogSetup(props, context, {
-      createPage: (p, c) => new AddEditPage(p, c),
+      createPage: (p, c) => new SystemAddEditPage(p, c),
       i18nKeyPrefix: 'systemAddEdit',
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;
@@ -189,5 +175,5 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 仅子系统页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
+/* 仅系统页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
 </style>

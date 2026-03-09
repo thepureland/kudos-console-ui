@@ -207,21 +207,6 @@ class AddEditPage extends OrgSupportAddEditPage {
     }
     return params;
   }
-
-  protected async initValidationRule(): Promise<void> {
-    await super.initValidationRule();
-    const requiredRules = this.createRequiredRules(
-      {
-        username: 'accountAddEdit.validation.requiredUsername',
-        subSysOrTenant: 'accountAddEdit.validation.requiredSubSysOrTenant',
-        parent: 'accountAddEdit.validation.requiredParent',
-        userTypeDictCode: 'accountAddEdit.validation.requiredUserType',
-      },
-      { subSysOrTenant: 'change', userTypeDictCode: 'change' }
-    );
-    const rules = (this.state.rules as Record<string, unknown>) || {};
-    this.state.rules = { ...rules, ...requiredRules };
-  }
 }
 
 export default defineComponent({

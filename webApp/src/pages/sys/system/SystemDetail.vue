@@ -1,4 +1,4 @@
-<!-- 子系统详情 -->
+<!-- 系统详情 -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -56,7 +56,7 @@ const ROW_FIELDS: FieldConfig[][] = [
   ],
 ];
 
-class DetailPage extends BaseDetailPage {
+class SystemDetailPage extends BaseDetailPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     if (props.rid) {
@@ -65,7 +65,7 @@ class DetailPage extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'sys/subsys';
+    return 'sys/system';
   }
 
   protected createDetailLoadParams(): { id: string } {
@@ -103,7 +103,7 @@ export default defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    const page = reactive(new DetailPage(props, context)) as DetailPage & {
+    const page = reactive(new SystemDetailPage(props, context)) as SystemDetailPage & {
       state: { detail: Record<string, unknown> | null };
       transAtomicService: (code: string) => string;
       transDict: (module: string, code: string, value: string) => string;

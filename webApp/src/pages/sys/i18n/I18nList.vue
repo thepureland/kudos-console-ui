@@ -321,7 +321,7 @@ const ALL_COLUMN_KEYS = ['atomicServiceCode', 'active', 'builtIn'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
-class ListPage extends BaseListPage {
+class I18nListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.loadAtomicServices();
@@ -375,7 +375,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
-    const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
+    const listPage = reactive(new I18nListPage(props, context)) as I18nListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });

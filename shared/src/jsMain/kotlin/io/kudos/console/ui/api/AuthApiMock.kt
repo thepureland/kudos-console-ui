@@ -2184,7 +2184,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dataSource/saveOrUpdate", "/api/sys/dataSource/saveOrUpdate", "/api/admin/sys/dataSource/saveOrUpdate" -> {
+        "/sys/dataSource/saveOrUpdate", "/api/sys/dataSource/saveOrUpdate", "/api/admin/sys/dataSource/saveOrUpdate",
+        "/sys/dataSource/save", "/api/sys/dataSource/save", "/api/admin/sys/dataSource/save",
+        "/sys/dataSource/update", "/api/sys/dataSource/update", "/api/admin/sys/dataSource/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2209,7 +2211,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/param/saveOrUpdate", "/api/sys/param/saveOrUpdate", "/api/admin/sys/param/saveOrUpdate" -> {
+        "/sys/param/saveOrUpdate", "/api/sys/param/saveOrUpdate", "/api/admin/sys/param/saveOrUpdate",
+        "/sys/param/save", "/api/sys/param/save", "/api/admin/sys/param/save",
+        "/sys/param/update", "/api/sys/param/update", "/api/admin/sys/param/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2234,7 +2238,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/saveOrUpdate", "/api/sys/resource/saveOrUpdate", "/api/admin/sys/resource/saveOrUpdate" -> {
+        "/sys/resource/saveOrUpdate", "/api/sys/resource/saveOrUpdate", "/api/admin/sys/resource/saveOrUpdate",
+        "/sys/resource/save", "/api/sys/resource/save", "/api/admin/sys/resource/save",
+        "/sys/resource/update", "/api/sys/resource/update", "/api/admin/sys/resource/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2309,7 +2315,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/domain/saveOrUpdate", "/api/sys/domain/saveOrUpdate", "/api/admin/sys/domain/saveOrUpdate" -> {
+        "/sys/domain/saveOrUpdate", "/api/sys/domain/saveOrUpdate", "/api/admin/sys/domain/saveOrUpdate",
+        "/sys/domain/save", "/api/sys/domain/save", "/api/admin/sys/domain/save",
+        "/sys/domain/update", "/api/sys/domain/update", "/api/admin/sys/domain/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2320,7 +2328,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/saveOrUpdate", "/api/sys/dict/saveOrUpdate", "/api/admin/sys/dict/saveOrUpdate" -> {
+        "/sys/dict/saveOrUpdate", "/api/sys/dict/saveOrUpdate", "/api/admin/sys/dict/saveOrUpdate",
+        "/sys/dict/save", "/api/sys/dict/save", "/api/admin/sys/dict/save",
+        "/sys/dict/update", "/api/sys/dict/update", "/api/admin/sys/dict/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2350,7 +2360,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/tenant/saveOrUpdate", "/api/sys/tenant/saveOrUpdate" -> {
+        "/sys/tenant/saveOrUpdate", "/api/sys/tenant/saveOrUpdate", "/api/admin/sys/tenant/saveOrUpdate",
+        "/sys/tenant/save", "/api/sys/tenant/save", "/api/admin/sys/tenant/save",
+        "/sys/tenant/update", "/api/sys/tenant/update", "/api/admin/sys/tenant/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2375,7 +2387,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/i18n/saveOrUpdate", "/api/sys/i18n/saveOrUpdate", "/api/admin/sys/i18n/saveOrUpdate" -> {
+        "/sys/i18n/saveOrUpdate", "/api/sys/i18n/saveOrUpdate", "/api/admin/sys/i18n/saveOrUpdate",
+        "/sys/i18n/save", "/api/sys/i18n/save", "/api/admin/sys/i18n/save",
+        "/sys/i18n/update", "/api/sys/i18n/update", "/api/admin/sys/i18n/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2432,7 +2446,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/account/saveOrUpdate", "/api/user/account/saveOrUpdate", "/api/admin/user/account/saveOrUpdate" -> {
+        "/user/account/saveOrUpdate", "/api/user/account/saveOrUpdate", "/api/admin/user/account/saveOrUpdate",
+        "/user/account/save", "/api/user/account/save", "/api/admin/user/account/save",
+        "/user/account/update", "/api/user/account/update", "/api/admin/user/account/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2457,7 +2473,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/group/saveOrUpdate", "/api/rbac/group/saveOrUpdate", "/api/admin/rbac/group/saveOrUpdate" -> {
+        "/rbac/group/saveOrUpdate", "/api/rbac/group/saveOrUpdate", "/api/admin/rbac/group/saveOrUpdate",
+        "/rbac/group/save", "/api/rbac/group/save", "/api/admin/rbac/group/save",
+        "/rbac/group/update", "/api/rbac/group/update", "/api/admin/rbac/group/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2482,7 +2500,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/role/saveOrUpdate", "/api/rbac/role/saveOrUpdate", "/api/admin/rbac/role/saveOrUpdate" -> {
+        "/rbac/role/saveOrUpdate", "/api/rbac/role/saveOrUpdate", "/api/admin/rbac/role/saveOrUpdate",
+        "/rbac/role/save", "/api/rbac/role/save", "/api/admin/rbac/role/save",
+        "/rbac/role/update", "/api/rbac/role/update", "/api/admin/rbac/role/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2514,7 +2534,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/organization/saveOrUpdate", "/api/user/organization/saveOrUpdate", "/api/admin/user/organization/saveOrUpdate" -> {
+        "/user/organization/saveOrUpdate", "/api/user/organization/saveOrUpdate", "/api/admin/user/organization/saveOrUpdate",
+        "/user/organization/save", "/api/user/organization/save", "/api/admin/user/organization/save",
+        "/user/organization/update", "/api/user/organization/update", "/api/admin/user/organization/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2530,7 +2552,17 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildSubsysSearchTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/system/search", "sys/system/search", "/api/sys/system/search", "/api/admin/sys/system/search" -> {
+            val requestJson = requestBodyText(request.body)
+            val body = buildSubsysSearchTreeResponse(requestJson)
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/subsys/getDetail", "/api/sys/subsys/getDetail", "/api/admin/sys/subsys/getDetail" -> {
+            val id = request.url.parameters["id"] ?: ""
+            val body = buildSubsysGetDetailResponse(id)
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/system/getDetail", "/api/sys/system/getDetail", "/api/admin/sys/system/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildSubsysGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
@@ -2539,7 +2571,14 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/subsys/saveOrUpdate", "/api/sys/subsys/saveOrUpdate", "/api/admin/sys/subsys/saveOrUpdate" -> {
+        "/sys/system/getValidationRule", "/api/sys/system/getValidationRule", "/api/admin/sys/system/getValidationRule" -> {
+            val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path]
+                ?: """{"code":{"NotBlank":[{"message":"sys.valid-msg.default.NotBlank"}]},"name":{"NotBlank":[{"message":"sys.valid-msg.default.NotBlank"}]}}"""
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/subsys/saveOrUpdate", "/api/sys/subsys/saveOrUpdate", "/api/admin/sys/subsys/saveOrUpdate",
+        "/sys/subsys/save", "/api/sys/subsys/save", "/api/admin/sys/subsys/save",
+        "/sys/subsys/update", "/api/sys/subsys/update", "/api/admin/sys/subsys/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()
@@ -2550,21 +2589,37 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/microservice/searchTree", "sys/microservice/searchTree", "/api/sys/microservice/searchTree", "/api/admin/sys/microservice/searchTree" -> {
+        "/sys/system/saveOrUpdate", "/api/sys/system/saveOrUpdate", "/api/admin/sys/system/saveOrUpdate",
+        "/sys/system/save", "/api/sys/system/save", "/api/admin/sys/system/save",
+        "/sys/system/update", "/api/sys/system/update", "/api/admin/sys/system/update" -> {
+            val requestJson = requestBodyText(request.body)
+            val params = parseJsonObjectOrEmpty(requestJson)
+            val id = parseOptionalStringParam(params, "id")?.trim()
+            val savedId = if (id.isNullOrEmpty()) "sys_${(1..999999999).random()}" else id
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", JsonPrimitive(savedId))
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
+        "/sys/microService/searchTree", "sys/microService/searchTree", "/api/sys/microService/searchTree", "/api/admin/sys/microService/searchTree",
+        "/sys/microService/search", "sys/microService/search", "/api/sys/microService/search", "/api/admin/sys/microService/search" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildMicroserviceSearchTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/microservice/getDetail", "/api/sys/microservice/getDetail", "/api/admin/sys/microservice/getDetail" -> {
+        "/sys/microService/getDetail", "/api/sys/microService/getDetail", "/api/admin/sys/microService/getDetail" -> {
             val id = request.url.parameters["id"] ?: ""
             val body = buildMicroserviceGetDetailResponse(id)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/microservice/getValidationRule", "/api/sys/microservice/getValidationRule", "/api/admin/sys/microservice/getValidationRule" -> {
+        "/sys/microService/getValidationRule", "/api/sys/microService/getValidationRule", "/api/admin/sys/microService/getValidationRule" -> {
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/microservice/saveOrUpdate", "/api/sys/microservice/saveOrUpdate", "/api/admin/sys/microservice/saveOrUpdate" -> {
+        "/sys/microService/saveOrUpdate", "/api/sys/microService/saveOrUpdate", "/api/admin/sys/microService/saveOrUpdate",
+        "/sys/microService/save", "/api/sys/microService/save", "/api/admin/sys/microService/save",
+        "/sys/microService/update", "/api/sys/microService/update", "/api/admin/sys/microService/update" -> {
             val requestJson = requestBodyText(request.body)
             val params = parseJsonObjectOrEmpty(requestJson)
             val id = parseOptionalStringParam(params, "id")?.trim()

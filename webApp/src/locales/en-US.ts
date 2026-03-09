@@ -785,7 +785,7 @@ export default {
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', subSystemOnly: 'Subsystem Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
   systemDetail: {
-    title: 'Subsystem Detail',
+    title: 'System Detail',
     sections: {
       basicInfo: 'Basic Info',
       audit: 'Audit Info',
@@ -808,14 +808,14 @@ export default {
     empty: '—',
   },
   systemAddEdit: {
-    titleAdd: 'Add Subsystem',
-    titleEdit: 'Edit Subsystem',
+    titleAdd: 'Add System',
+    titleEdit: 'Edit System',
     sections: { basicInfo: 'Basic Info', other: 'Other' },
     labels: { code: 'Code', name: 'Name', parentCode: 'Parent Code', subSystem: 'Subsystem', remark: 'Remark' },
     placeholders: {
       code: 'Enter code',
       name: 'Enter name',
-      parentCode: 'Optional, parent subsystem code',
+      parentCode: 'Optional, parent system code',
       remark: 'Optional, max 200 characters',
     },
     switch: { yes: 'Yes', no: 'No' },
@@ -866,7 +866,7 @@ export default {
       code: 'Enter code',
       name: 'Enter name',
       parentCode: 'Optional, parent microservice code',
-      context: 'Optional, context path',
+      context: 'Enter context path',
       remark: 'Optional, max 200 characters',
     },
     switch: { yes: 'Yes', no: 'No' },

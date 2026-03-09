@@ -1,5 +1,5 @@
 <!--
- * 子系统列表：支持按编码、名称、仅启用、仅子系统筛选，表格为树形结构（按 parentCode），支持列可见性、操作列折角、可拖拽排序列，多语言。
+ * 系统列表：支持按编码、名称、仅启用、仅子系统筛选，表格为树形结构（按 parentCode），支持列可见性、操作列折角、可拖拽排序列，多语言。
  *
  * @author: K
  * @author: AI: Cursor
@@ -269,7 +269,7 @@ const ALL_COLUMN_KEYS = ['subSystem', 'active', 'builtIn', 'remark'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
-class ListPage extends BaseListPage {
+class SystemListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.convertThis();
@@ -287,11 +287,11 @@ class ListPage extends BaseListPage {
   }
 
   protected getRootActionPath(): string {
-    return 'sys/subsys';
+    return 'sys/system';
   }
 
   protected getSearchUrl(): string {
-    return this.getRootActionPath() + '/searchTree';
+    return this.getRootActionPath() + '/search';
   }
 
   protected createSearchParams(): Record<string, unknown> {
@@ -308,15 +308,43 @@ class ListPage extends BaseListPage {
     return ['code', 'name'];
   }
 
-  /** 与缓存等列表一致：支持 { data: 树数组, totalCount } 或直接数组 */
+  /** 将扁平列表按 parentCode 挂成树（父节点为 code === item.parentCode 的节点） */
+  protected flatListToTree(flat: Record<string, unknown>[]): Record<string, unknown>[] {
+    if (!flat.length) return [];
+    const list = flat.map((row) => ({ ...row, children: [] as Record<string, unknown>[] }));
+    const byCode = new Map<string, Record<string, unknown>>();
+    list.forEach((row) => {
+      const k = row.code != null ? String(row.code) : (row.id != null ? String(row.id) : '');
+      if (k !== '') byCode.set(k, row);
+    });
+    const roots: Record<string, unknown>[] = [];
+    list.forEach((row) => {
+      const parentCode = row.parentCode != null ? String(row.parentCode).trim() : '';
+      if (!parentCode) {
+        roots.push(row);
+        return;
+      }
+      const parent = byCode.get(parentCode) as Record<string, unknown> | undefined;
+      const children = parent?.children as Record<string, unknown>[] | undefined;
+      if (parent && Array.isArray(children)) children.push(row);
+      else roots.push(row);
+    });
+    return roots;
+  }
+
+  /** 支持 { data: 树数组, totalCount } 或直接数组；若为扁平列表则按 parentCode 转成树 */
   protected postSearchSuccessfully(data: unknown): void {
+    let raw: unknown[] = [];
     if (data != null && typeof data === 'object' && Array.isArray((data as { data?: unknown }).data)) {
       const obj = data as { data: unknown[]; totalCount?: number };
-      this.state.tableData = obj.data;
+      raw = obj.data;
       if (typeof obj.totalCount === 'number') this.state.pagination.total = obj.totalCount;
-      return;
+    } else if (Array.isArray(data)) {
+      raw = data;
     }
-    this.state.tableData = Array.isArray(data) ? data : [];
+    const rows = raw as Record<string, unknown>[];
+    const hasChildren = rows.some((r) => Array.isArray((r as Record<string, unknown>).children));
+    this.state.tableData = hasChildren ? rows : this.flatListToTree(rows);
   }
 
   /** 树接口可能直接返回数组或仅 { data }，与基类仅认 { data, totalCount } 对齐：此处均视为成功并填表 */
@@ -338,7 +366,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
-    const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
+    const listPage = reactive(new SystemListPage(props, context)) as SystemListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });

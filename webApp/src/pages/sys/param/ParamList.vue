@@ -236,7 +236,7 @@ import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTa
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 
-class ListPage extends BaseListPage {
+class ParamListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.convertThis();
@@ -301,7 +301,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
-    const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
+    const listPage = reactive(new ParamListPage(props, context)) as ParamListPage & { state: Record<string, unknown> };
     const {
       listLayoutRefs,
       onTableWrapMounted: layoutOnTableWrapMounted,

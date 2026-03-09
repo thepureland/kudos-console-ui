@@ -19,10 +19,10 @@ export abstract class BaseListPage extends BasePage {
     private tableMaxHeightFallback = 520
     private tableMaxHeightMin = 280
     private tableBottomSafeGap = 20
-    /** 初始搜索条件/分页/排序，用于关闭页面时重置（默认行为：不保留上次结果） */
-    private _initialSearchParams: Record<string, unknown> | null = null
-    private _initialPagination: Record<string, unknown> | null = null
-    private _initialSort: Record<string, unknown> | null = null
+    /** 初始搜索条件/分页/排序，用于关闭页面时重置（默认行为：不保留上次结果）；命名避免 _ 前缀以免被 setup return 暴露时触发 Vue 保留前缀警告 */
+    private initialSearchParamsSnapshot: Record<string, unknown> | null = null
+    private initialPaginationSnapshot: Record<string, unknown> | null = null
+    private initialSortSnapshot: Record<string, unknown> | null = null
 
     /** @internal 子类通过 super(props, context) 调用 */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
@@ -32,21 +32,21 @@ export abstract class BaseListPage extends BasePage {
 
     /** 保存当前搜索条件、分页、排序为「初始状态」，离开页面时重置用 */
     private snapshotInitialListState(): void {
-        if (this.state.searchParams) this._initialSearchParams = JSON.parse(JSON.stringify(this.state.searchParams))
-        if (this.state.pagination) this._initialPagination = { ...this.state.pagination }
-        if (this.state.sort) this._initialSort = { ...this.state.sort }
+        if (this.state.searchParams) this.initialSearchParamsSnapshot = JSON.parse(JSON.stringify(this.state.searchParams))
+        if (this.state.pagination) this.initialPaginationSnapshot = { ...this.state.pagination }
+        if (this.state.sort) this.initialSortSnapshot = { ...this.state.sort }
     }
 
     /** 关闭/离开页面时重置搜索条件与表格数据（keep-alive 下由 useListPageLayout 的 onDeactivated 调用） */
     public resetSearchAndTableOnLeave(): void {
-        if (this._initialSearchParams && this.state.searchParams) {
-            Object.assign(this.state.searchParams, this._initialSearchParams)
+        if (this.initialSearchParamsSnapshot && this.state.searchParams) {
+            Object.assign(this.state.searchParams, this.initialSearchParamsSnapshot)
         }
-        if (this._initialPagination && this.state.pagination) {
-            Object.assign(this.state.pagination, this._initialPagination)
+        if (this.initialPaginationSnapshot && this.state.pagination) {
+            Object.assign(this.state.pagination, this.initialPaginationSnapshot)
         }
-        if (this._initialSort && this.state.sort) {
-            Object.assign(this.state.sort, this._initialSort)
+        if (this.initialSortSnapshot && this.state.sort) {
+            Object.assign(this.state.sort, this.initialSortSnapshot)
         }
         this.state.tableData = []
     }

@@ -341,7 +341,7 @@ function tr(key: string): string {
 }
 
 /** 数据源列表页业务逻辑：继承租户支持列表，支持搜索、重置密码、测试数据回退 */
-class ListPage extends TenantSupportListPage {
+class DataSourceListPage extends TenantSupportListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.convertThis();
@@ -439,7 +439,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
-    const listPage = reactive(new ListPage(props, context)) as ListPage & { state: Record<string, unknown> };
+    const listPage = reactive(new DataSourceListPage(props, context)) as DataSourceListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;

@@ -21,6 +21,7 @@ private fun shouldUseMock(): Boolean {
 internal fun createHttpClient(): HttpClient =
     if (shouldUseMock()) {
         HttpClient(createMockEngine()) {
+            expectSuccess = true
             install(ContentNegotiation) {
                 json(Json {
                     ignoreUnknownKeys = true
@@ -34,6 +35,7 @@ internal fun createHttpClient(): HttpClient =
         }
     } else {
         HttpClient(Js) {
+            expectSuccess = true
             install(ContentNegotiation) {
                 json(Json {
                     ignoreUnknownKeys = true

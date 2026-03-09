@@ -54,7 +54,7 @@
 import {defineComponent, reactive, toRefs} from "vue"
 import { BaseDetailPage } from '../../../components/pages/BaseDetailPage'
 
-class DetailPage extends BaseDetailPage {
+class DictItemDetailPage extends BaseDetailPage {
 
   constructor(props, context) {
     super(props, context)
@@ -74,7 +74,7 @@ export default defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props, context) {
-    const page = reactive(new DetailPage(props, context))
+    const page = reactive(new DictItemDetailPage(props, context))
     return {
       ...toRefs(page),
       ...toRefs(page.state)

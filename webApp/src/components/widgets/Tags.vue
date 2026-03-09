@@ -200,7 +200,7 @@ const pathToIcon: Record<string, string> = {
   '/sys/domain': 'Document',
   '/sys/tenant': 'Document',
   '/sys/subsys': 'Document',
-  '/sys/microservice': 'Setting',
+  '/sys/microService': 'Setting',
   '/sys/datasource': 'Collection',
   '/sys/resource': 'Document',
   '/sys/i18n': 'Setting',

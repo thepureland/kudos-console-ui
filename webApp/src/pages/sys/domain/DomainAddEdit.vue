@@ -87,7 +87,7 @@ interface FormModel {
   subSysDictCode?: string | null;
 }
 
-class AddEditPage extends TenantSupportAddEditPage {
+class DomainAddEditPage extends TenantSupportAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
   }
@@ -108,20 +108,6 @@ class AddEditPage extends TenantSupportAddEditPage {
 
   protected getRootActionPath(): string {
     return 'sys/domain';
-  }
-
-  /** 必填项与后端 getValidationRule 合并，前端 i18n 规则覆盖 message 以保证多语言 */
-  protected async initValidationRule(): Promise<void> {
-    await super.initValidationRule();
-    const requiredRules = this.createRequiredRules(
-      {
-        domain: 'domainAddEdit.validation.requiredDomain',
-        subSysOrTenant: 'domainAddEdit.validation.requiredSubSysOrTenant',
-      },
-      { subSysOrTenant: 'change' }
-    );
-    const rules = (this.state.rules as Record<string, unknown>) || {};
-    this.state.rules = { ...rules, ...requiredRules };
   }
 
   protected getLoadFailedMessageKey(): string {
@@ -149,7 +135,7 @@ export default defineComponent({
   emits: ['update:modelValue', 'response'],
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     return useAddEditDialogSetup(props, context, {
-      createPage: (p, c) => new AddEditPage(p, c),
+      createPage: (p, c) => new DomainAddEditPage(p, c),
       i18nKeyPrefix: 'domainAddEdit',
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;
