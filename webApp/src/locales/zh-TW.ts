@@ -587,7 +587,7 @@ export default {
   tenantList: {
     placeholders: { name: '租戶名稱', subSys: '子系統' },
     common: { yes: '是', no: '否' },
-    columns: { index: '行序', name: '租戶名稱', subSys: '子系統', active: '啟用', createTime: '建立時間', operation: '操作' },
+    columns: { index: '行序', name: '租戶名稱', subSys: '子系統', active: '啟用', builtIn: '內建', timezone: '時區', defaultLanguageCode: '預設語言', remark: '備註', createTime: '建立時間', operation: '操作' },
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
   tenantDetail: {
@@ -596,6 +596,7 @@ export default {
     fields: {
       id: '租戶ID',
       name: '租戶名稱',
+      subSystemCodes: '子系統',
       subSysDictCode: '子系統',
       remark: '備註',
       createTime: '建立時間',
@@ -611,9 +612,10 @@ export default {
     titleAdd: '新增租戶資訊',
     titleEdit: '編輯租戶資訊',
     sections: { basicInfo: '基本資訊', other: '其他' },
-    labels: { name: '租戶名稱', subSysDictCode: '子系統', remark: '備註' },
+    labels: { name: '租戶名稱', subSystemCodes: '子系統', subSysDictCode: '子系統', remark: '備註' },
     placeholders: {
       name: '請輸入租戶名稱',
+      subSystemCodes: '請選擇子系統',
       subSysDictCode: '請選擇子系統',
       remark: '選填，最多 200 字',
     },

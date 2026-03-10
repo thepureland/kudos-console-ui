@@ -109,25 +109,25 @@
           />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
-              v-if="key === 'subSysDictCode' && isColumnVisible('subSysDictCode')"
-              prop="subSysDictCode"
-              :min-width="columnWidths['subSysDictCode'] ?? 120"
+              v-if="key === 'subSystemCodes' && isColumnVisible('subSystemCodes')"
+              prop="subSystemCodes"
+              :min-width="columnWidths['subSystemCodes'] ?? 120"
               sortable="custom"
             >
               <template #header>
                 <div
                   class="column-header-draggable"
-                  data-column-key="subSysDictCode"
-                  :class="{ 'is-dragging': columnDragKey === 'subSysDictCode', 'is-drop-target': columnDropTargetKey === 'subSysDictCode' }"
+                  data-column-key="subSystemCodes"
+                  :class="{ 'is-dragging': columnDragKey === 'subSystemCodes', 'is-drop-target': columnDropTargetKey === 'subSystemCodes' }"
                   draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'subSysDictCode')"
-                  @dragover="onHeaderDragOver($event, 'subSysDictCode')"
-                  @drop="onHeaderDrop($event, 'subSysDictCode')"
+                  @dragstart="onHeaderDragStart($event, 'subSystemCodes')"
+                  @dragover="onHeaderDragOver($event, 'subSystemCodes')"
+                  @drop="onHeaderDrop($event, 'subSystemCodes')"
                   @dragend="onHeaderDragEnd"
                 >{{ t('tenantList.columns.subSys') }}</div>
               </template>
               <template #default="scope">
-                {{ transAtomicService(scope.row.subSysDictCode) }}
+                {{ formatSubSystemCodes(scope.row.subSystemCodes) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -155,6 +155,94 @@
                   :inactive-value="false"
                   @change="updateActive(scope.row)"
                 />
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-else-if="key === 'builtIn' && isColumnVisible('builtIn')"
+              prop="builtIn"
+              :min-width="columnWidths['builtIn'] ?? 80"
+              sortable="custom"
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="builtIn"
+                  :class="{ 'is-dragging': columnDragKey === 'builtIn', 'is-drop-target': columnDropTargetKey === 'builtIn' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'builtIn')"
+                  @dragover="onHeaderDragOver($event, 'builtIn')"
+                  @drop="onHeaderDrop($event, 'builtIn')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('tenantList.columns.builtIn') }}</div>
+              </template>
+              <template #default="scope">
+                {{ scope.row.builtIn ? t('tenantList.common.yes') : t('tenantList.common.no') }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-else-if="key === 'timezone' && isColumnVisible('timezone')"
+              prop="timezone"
+              :min-width="columnWidths['timezone'] ?? 120"
+              sortable="custom"
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="timezone"
+                  :class="{ 'is-dragging': columnDragKey === 'timezone', 'is-drop-target': columnDropTargetKey === 'timezone' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'timezone')"
+                  @dragover="onHeaderDragOver($event, 'timezone')"
+                  @drop="onHeaderDrop($event, 'timezone')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('tenantList.columns.timezone') }}</div>
+              </template>
+              <template #default="scope">
+                {{ scope.row.timezone ?? '—' }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-else-if="key === 'defaultLanguageCode' && isColumnVisible('defaultLanguageCode')"
+              prop="defaultLanguageCode"
+              :min-width="columnWidths['defaultLanguageCode'] ?? 120"
+              sortable="custom"
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="defaultLanguageCode"
+                  :class="{ 'is-dragging': columnDragKey === 'defaultLanguageCode', 'is-drop-target': columnDropTargetKey === 'defaultLanguageCode' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'defaultLanguageCode')"
+                  @dragover="onHeaderDragOver($event, 'defaultLanguageCode')"
+                  @drop="onHeaderDrop($event, 'defaultLanguageCode')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('tenantList.columns.defaultLanguageCode') }}</div>
+              </template>
+              <template #default="scope">
+                {{ scope.row.defaultLanguageCode ?? '—' }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-else-if="key === 'remark' && isColumnVisible('remark')"
+              prop="remark"
+              :min-width="columnWidths['remark'] ?? 140"
+              sortable="custom"
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="remark"
+                  :class="{ 'is-dragging': columnDragKey === 'remark', 'is-drop-target': columnDropTargetKey === 'remark' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'remark')"
+                  @dragover="onHeaderDragOver($event, 'remark')"
+                  @drop="onHeaderDrop($event, 'remark')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('tenantList.columns.remark') }}</div>
+              </template>
+              <template #default="scope">
+                {{ scope.row.remark ?? '—' }}
               </template>
             </el-table-column>
             <el-table-column
@@ -241,6 +329,7 @@ import TenantAddEdit from './TenantAddEdit.vue';
 import TenantDetail from './TenantDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
+import { backendRequest } from '../../../utils/backendRequest';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
@@ -253,17 +342,28 @@ const TENANT_LIST_STATE_STORAGE_KEY = 'tenantList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'tenantList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'tenantList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSysDictCode', 'active', 'createTime'];
+const ALL_COLUMN_KEYS = ['subSystemCodes', 'active', 'builtIn', 'timezone', 'defaultLanguageCode', 'remark', 'createTime'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
 class TenantListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
-    this.loadAtomicServices().then(() => {
-      this.state.subSysDictOptions = this.getAtomicServices();
-    });
+    this.loadSubSystems();
     this.convertThis();
+  }
+
+  /** 租户模块子系统下拉：调用 sys/system/getAllActiveSubSystemCodes，结果为启用子系统编码列表 */
+  private async loadSubSystems(): Promise<void> {
+    try {
+      const result = await backendRequest({ url: 'sys/system/getAllActiveSubSystemCodes' });
+      const codes = Array.isArray(result) ? (result as unknown[]).map((x) => String(x ?? '')) : [];
+      this.state.subSysDictOptions = codes
+        .filter((c) => c !== '')
+        .map((code) => ({ code, name: code }));
+    } catch {
+      this.state.subSysDictOptions = [];
+    }
   }
 
   protected initState(): Record<string, unknown> {
@@ -326,17 +426,29 @@ export default defineComponent({
 
     const RESERVED_WIDTH_LEFT = 39 + 50 + 200;
     const RESERVED_WIDTH_RIGHT = 140;
+    function formatSubSystemCodes(val: unknown): string {
+      if (Array.isArray(val)) return val.map((c) => listPage.transAtomicService(c)).filter(Boolean).join(', ');
+      return listPage.transAtomicService(val as string | null | undefined);
+    }
     const autoWidthColumns = computed(() =>
       orderedColumnKeys.value.map((key) => ({
         key,
-        getLabel: () => t('tenantList.columns.' + (key === 'subSysDictCode' ? 'subSys' : key)),
+        getLabel: () => t('tenantList.columns.' + (key === 'subSystemCodes' ? 'subSys' : key)),
         sortable: true,
         getCellText:
-          key === 'subSysDictCode'
-            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
-            : key === 'createTime'
-              ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
-              : () => '',
+          key === 'subSystemCodes'
+            ? (row: Record<string, unknown>) => formatSubSystemCodes(row.subSystemCodes)
+            : key === 'builtIn'
+              ? (row: Record<string, unknown>) => (row.builtIn ? t('tenantList.common.yes') : t('tenantList.common.no'))
+              : key === 'timezone'
+                ? (row: Record<string, unknown>) => String(row.timezone ?? '—')
+                : key === 'defaultLanguageCode'
+                  ? (row: Record<string, unknown>) => String(row.defaultLanguageCode ?? '—')
+                  : key === 'remark'
+                    ? (row: Record<string, unknown>) => String(row.remark ?? '—')
+                    : key === 'createTime'
+                    ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
+                    : () => '',
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
@@ -360,7 +472,7 @@ export default defineComponent({
       { key: INDEX_COLUMN_KEY, label: t('tenantList.columns.index') },
       ...orderedColumnKeys.value.map((key) => ({
         key,
-        label: t('tenantList.columns.' + (key === 'subSysDictCode' ? 'subSys' : key)),
+        label: t('tenantList.columns.' + (key === 'subSystemCodes' ? 'subSys' : key)),
       })),
     ]);
     function isColumnVisible(key: string): boolean {
@@ -383,6 +495,7 @@ export default defineComponent({
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,
+      formatSubSystemCodes,
       listLayoutRefs,
       tableRef,
       visibleColumnKeys,

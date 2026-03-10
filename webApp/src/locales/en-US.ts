@@ -587,7 +587,7 @@ export default {
   tenantList: {
     placeholders: { name: 'Tenant Name', subSys: 'Subsystem' },
     common: { yes: 'Yes', no: 'No' },
-    columns: { index: 'Row No.', name: 'Tenant Name', subSys: 'Subsystem', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
+    columns: { index: 'Row No.', name: 'Tenant Name', subSys: 'Subsystem', active: 'Active', builtIn: 'Built-in', timezone: 'Timezone', defaultLanguageCode: 'Default Language', remark: 'Remark', createTime: 'Create Time', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
   tenantDetail: {
@@ -596,6 +596,7 @@ export default {
     fields: {
       id: 'Tenant ID',
       name: 'Tenant Name',
+      subSystemCodes: 'Subsystem',
       subSysDictCode: 'Subsystem',
       remark: 'Remark',
       createTime: 'Create Time',
@@ -611,9 +612,10 @@ export default {
     titleAdd: 'Add Tenant',
     titleEdit: 'Edit Tenant',
     sections: { basicInfo: 'Basic Info', other: 'Other' },
-    labels: { name: 'Tenant Name', subSysDictCode: 'Subsystem', remark: 'Remark' },
+    labels: { name: 'Tenant Name', subSystemCodes: 'Subsystem', subSysDictCode: 'Subsystem', remark: 'Remark' },
     placeholders: {
       name: 'Enter tenant name',
+      subSystemCodes: 'Select subsystem',
       subSysDictCode: 'Select subsystem',
       remark: 'Optional, max 200 characters',
     },
