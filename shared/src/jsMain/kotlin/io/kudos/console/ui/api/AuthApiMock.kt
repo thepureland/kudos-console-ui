@@ -2156,7 +2156,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
                 respond(body, HttpStatusCode.OK, headers)
             }
         }
-        "/sys/cache/search", "/api/sys/cache/search", "/api/admin/sys/cache/search" -> {
+        "/sys/cache/search", "/api/sys/cache/search", "/api/admin/sys/cache/search",
+        "/sys/cache/pagingSearch", "/api/sys/cache/pagingSearch", "/api/admin/sys/cache/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildCacheSearchResponse(path, requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2170,7 +2171,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dataSource/search", "/api/sys/dataSource/search", "/api/admin/sys/dataSource/search" -> {
+        "/sys/dataSource/search", "/api/sys/dataSource/search", "/api/admin/sys/dataSource/search",
+        "/sys/dataSource/pagingSearch", "/api/sys/dataSource/pagingSearch", "/api/admin/sys/dataSource/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDataSourceSearchResponse(path, requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2197,7 +2199,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/param/search", "/api/sys/param/search", "/api/admin/sys/param/search" -> {
+        "/sys/param/search", "/api/sys/param/search", "/api/admin/sys/param/search",
+        "/sys/param/pagingSearch", "/api/sys/param/pagingSearch", "/api/admin/sys/param/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildParamSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2224,7 +2227,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/search", "/api/sys/resource/search", "/api/admin/sys/resource/search" -> {
+        "/sys/resource/search", "/api/sys/resource/search", "/api/admin/sys/resource/search",
+        "/sys/resource/pagingSearch", "/api/sys/resource/pagingSearch", "/api/admin/sys/resource/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildResourceSearchResponse(path, requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2301,7 +2305,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildDictLoadTreeNodesResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/domain/search", "/api/sys/domain/search", "/api/admin/sys/domain/search" -> {
+        "/sys/domain/search", "/api/sys/domain/search", "/api/admin/sys/domain/search",
+        "/sys/domain/pagingSearch", "/api/sys/domain/pagingSearch", "/api/admin/sys/domain/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDomainSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2346,7 +2351,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildBatchGetDictItemMapResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/tenant/search", "/api/sys/tenant/search", "/api/admin/sys/tenant/search" -> {
+        "/sys/tenant/search", "/api/sys/tenant/search", "/api/admin/sys/tenant/search",
+        "/sys/tenant/pagingSearch", "/api/sys/tenant/pagingSearch", "/api/admin/sys/tenant/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildTenantSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2373,7 +2379,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/i18n/search", "/api/sys/i18n/search", "/api/admin/sys/i18n/search" -> {
+        "/sys/i18n/search", "/api/sys/i18n/search", "/api/admin/sys/i18n/search",
+        "/sys/i18n/pagingSearch", "/api/sys/i18n/pagingSearch", "/api/admin/sys/i18n/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildI18nSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2432,7 +2439,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/user/account/search", "/api/user/account/search", "/api/admin/user/account/search" -> {
+        "/user/account/search", "/api/user/account/search", "/api/admin/user/account/search",
+        "/user/account/pagingSearch", "/api/user/account/pagingSearch", "/api/admin/user/account/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildAccountSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2459,7 +2467,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/group/search", "/api/rbac/group/search", "/api/admin/rbac/group/search" -> {
+        "/rbac/group/search", "/api/rbac/group/search", "/api/admin/rbac/group/search",
+        "/rbac/group/pagingSearch", "/api/rbac/group/pagingSearch", "/api/admin/rbac/group/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildUserGroupSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2486,7 +2495,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/rbac/role/search", "/api/rbac/role/search", "/api/admin/rbac/role/search" -> {
+        "/rbac/role/search", "/api/rbac/role/search", "/api/admin/rbac/role/search",
+        "/rbac/role/pagingSearch", "/api/rbac/role/pagingSearch", "/api/admin/rbac/role/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildRoleSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2552,7 +2562,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildSubsysSearchTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/system/search", "sys/system/search", "/api/sys/system/search", "/api/admin/sys/system/search" -> {
+        "/sys/system/search", "sys/system/search", "/api/sys/system/search", "/api/admin/sys/system/search",
+        "/sys/system/pagingSearch", "sys/system/pagingSearch", "/api/sys/system/pagingSearch", "/api/admin/sys/system/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildSubsysSearchTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2603,7 +2614,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/microService/searchTree", "sys/microService/searchTree", "/api/sys/microService/searchTree", "/api/admin/sys/microService/searchTree",
-        "/sys/microService/search", "sys/microService/search", "/api/sys/microService/search", "/api/admin/sys/microService/search" -> {
+        "/sys/microService/search", "sys/microService/search", "/api/sys/microService/search", "/api/admin/sys/microService/search",
+        "/sys/microService/pagingSearch", "sys/microService/pagingSearch", "/api/sys/microService/pagingSearch", "/api/admin/sys/microService/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildMicroserviceSearchTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2630,7 +2642,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/search", "/api/sys/dict/search", "/api/admin/sys/dict/search" -> {
+        "/sys/dict/search", "/api/sys/dict/search", "/api/admin/sys/dict/search",
+        "/sys/dict/pagingSearch", "/api/sys/dict/pagingSearch", "/api/admin/sys/dict/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDictSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)

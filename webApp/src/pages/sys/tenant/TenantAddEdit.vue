@@ -34,21 +34,22 @@
             </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item :label="t('tenantAddEdit.labels.subSysDictCode')" prop="subSysDictCode" class="is-required">
+        <el-form-item :label="t('tenantAddEdit.labels.subSystemCodes')" prop="subSystemCodes" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
               <el-select
-                v-model="formModel.subSysDictCode"
-                :placeholder="t('tenantAddEdit.placeholders.subSysDictCode')"
+                v-model="formModel.subSystemCodes"
+                :placeholder="t('tenantAddEdit.placeholders.subSystemCodes')"
+                multiple
                 clearable
                 filterable
-                class="form-select-full"
+                class="form-select-full tenant-subsystem-multi-select"
               >
                 <el-option
-                  v-for="item in atomicServiceList"
-                  :key="item.code"
-                  :value="item.code"
-                  :label="item.name"
+                  v-for="code in subSystemCodesOptions || []"
+                  :key="code"
+                  :value="code"
+                  :label="code"
                 />
               </el-select>
             </el-col>
@@ -84,27 +85,31 @@
 import { defineComponent } from 'vue';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
 import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
+import { backendRequest } from '../../../utils/backendRequest';
 import '../../../styles/add-edit-dialog-common.css';
 
 interface FormModel {
   name: string | null;
-  subSysDictCode: string | null;
+  /** 选中的子系统编码（多选） */
+  subSystemCodes: string[];
   remark: string | null;
 }
 
 class TenantAddEditPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
-    this.loadAtomicServices();
+    this.loadSubSystems();
   }
 
   protected initState(): Record<string, unknown> {
     return {
       formModel: {
         name: null,
-        subSysDictCode: null,
+        subSystemCodes: [],
         remark: null,
       } as FormModel,
+      /** 子系统下拉选项：启用子系统编码列表 */
+      subSystemCodesOptions: [] as string[],
     };
   }
 
@@ -114,6 +119,28 @@ class TenantAddEditPage extends BaseAddEditPage {
 
   protected getLoadFailedMessageKey(): string {
     return 'tenantAddEdit.messages.loadFailed';
+  }
+
+  /** 租户新增/编辑子系统下拉：调用 sys/system/getAllActiveSubSystemCodes，结果为启用子系统编码列表 */
+  private async loadSubSystems(): Promise<void> {
+    try {
+      const result = await backendRequest({ url: 'sys/system/getAllActiveSubSystemCodes' });
+      const codes = Array.isArray(result) ? (result as unknown[]).map((x) => String(x ?? '')) : [];
+      (this.state as Record<string, unknown>).subSystemCodesOptions = codes.filter((c) => c !== '');
+    } catch {
+      (this.state as Record<string, unknown>).subSystemCodesOptions = [];
+    }
+  }
+
+  /** 回填时兼容后端返回 subSystemCodes（数组）或 subSysDictCode（单值） */
+  protected fillForm(rowObject: Record<string, unknown>): void {
+    super.fillForm(rowObject);
+    const fm = this.state.formModel as FormModel;
+    if (Array.isArray(rowObject.subSystemCodes)) {
+      fm.subSystemCodes = (rowObject.subSystemCodes as unknown[]).map((x) => String(x ?? '')).filter((c) => c !== '');
+    } else if (rowObject.subSysDictCode != null && rowObject.subSysDictCode !== '') {
+      fm.subSystemCodes = [String(rowObject.subSysDictCode)];
+    }
   }
 }
 
@@ -141,7 +168,7 @@ export default defineComponent({
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;
         if (model.name != null && String(model.name).trim() !== '') return true;
-        if (model.subSysDictCode != null && model.subSysDictCode !== '') return true;
+        if (Array.isArray(model.subSystemCodes) && model.subSystemCodes.length > 0) return true;
         if (model.remark != null && String(model.remark).trim() !== '') return true;
         return false;
       },

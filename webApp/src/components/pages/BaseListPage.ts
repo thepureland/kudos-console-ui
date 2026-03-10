@@ -101,7 +101,7 @@ export abstract class BaseListPage extends BasePage {
 
     /** 获取列表查询接口地址。 */
     protected getSearchUrl(): string {
-        return this.getRootActionPath() + "/search"
+        return this.getRootActionPath() + "/pagingSearch"
     }
 
     /** 获取单条删除接口地址。 */

@@ -37,7 +37,7 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'tenantDetail.fields.name', key: 'name' },
   ],
   [
-    { labelKey: 'tenantDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+    { labelKey: 'tenantDetail.fields.subSystemCodes', key: 'subSystemCodes' },
   ],
   [
     { labelKey: 'tenantDetail.fields.createTime', key: 'createTime', type: 'date' },
@@ -68,13 +68,9 @@ class TenantDetailPage extends BaseDetailPage {
     return 'sys/tenant';
   }
 
-  /** 用 search 接口按 id 取一条，与列表同源 */
+  /** 详情接口：sys/tenant/getDetail，按 id 取一条 */
   protected getDetailLoadUrl(): string {
-    return 'sys/tenant/search';
-  }
-
-  protected createDetailLoadParams(): Record<string, unknown> {
-    return { id: String(this.state.rid || this.props.rid || ''), pageNo: 1, pageSize: 1 };
+    return this.getRootActionPath() + '/getDetail';
   }
 
   protected async preLoad(): Promise<void> {
@@ -83,11 +79,9 @@ class TenantDetailPage extends BaseDetailPage {
 
   protected async loadData(): Promise<void> {
     const params = this.createDetailLoadParams();
-    const result = await backendRequest({ url: this.getDetailLoadUrl(), method: 'post', params });
-    if (result != null && typeof result === 'object' && 'first' in result) {
-      const list = (result as { first: unknown }).first;
-      const row = Array.isArray(list) && list.length > 0 ? list[0] : null;
-      this.postLoadDataSuccessfully(row);
+    const result = await backendRequest({ url: this.getDetailLoadUrl(), params });
+    if (result != null && typeof result === 'object' && !Array.isArray(result)) {
+      this.postLoadDataSuccessfully(result as Record<string, unknown>);
     } else {
       ElMessage.error('数据加载失败！');
     }
@@ -132,10 +126,19 @@ export default defineComponent({
       formatDate: (value: unknown) => string;
     };
 
-    const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
+    const { rowsWithSections, formatFieldValue: baseFormatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
       emptyKey: 'tenantDetail.empty',
       yesNoKey: 'tenantList.common',
     });
+    function formatFieldValue(field: FieldConfig): string {
+      if (field.key === 'subSystemCodes') {
+        const val = page.state.detail?.[field.key];
+        if (Array.isArray(val)) return val.map((c) => page.transAtomicService(String(c ?? ''))).filter(Boolean).join(', ');
+        if (val != null && val !== '') return page.transAtomicService(String(val));
+        return '';
+      }
+      return baseFormatFieldValue(field);
+    }
 
     watch(
       () => props.rid,

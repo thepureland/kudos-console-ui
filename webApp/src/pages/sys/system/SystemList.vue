@@ -290,10 +290,6 @@ class SystemListPage extends BaseListPage {
     return 'sys/system';
   }
 
-  protected getSearchUrl(): string {
-    return this.getRootActionPath() + '/search';
-  }
-
   protected createSearchParams(): Record<string, unknown> {
     const params = super.createSearchParams() as Record<string, unknown>;
     const sp = this.state.searchParams as Record<string, unknown>;
