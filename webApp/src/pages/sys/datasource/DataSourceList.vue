@@ -46,21 +46,18 @@
           />
         </div>
         <div class="toolbar-cell toolbar-microservice">
-          <el-select
-            v-model="searchParams.microserviceCode"
+          <el-tree-select
+            v-model="searchParams.microServiceCode"
+            :data="microserviceTree"
             :placeholder="t('dataSourceList.placeholders.microservice')"
             clearable
             filterable
+            :render-after-expand="false"
+            default-expand-all
             class="microservice-select"
+            style="width: 100%"
             @change="search"
-          >
-            <el-option
-              v-for="item in microserviceOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
+          />
         </div>
         <div class="toolbar-extra">
           <el-checkbox v-model="searchParams.active" class="active-only-checkbox" @change="search">
@@ -124,24 +121,24 @@
           <el-table-column :label="t('dataSourceList.columns.name')" prop="name" min-width="120" fixed="left" class-name="col-fixed-name" />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
-              v-if="key === 'subSysDictCode' && isColumnVisible('subSysDictCode')"
-              prop="subSysDictCode"
-              :min-width="columnWidths['subSysDictCode'] ?? 120"
+              v-if="key === 'subSystemCode' && isColumnVisible('subSystemCode')"
+              prop="subSystemCode"
+              :min-width="columnWidths['subSystemCode'] ?? 120"
             >
               <template #header>
                 <div
                   class="column-header-draggable"
-                  data-column-key="subSysDictCode"
-                  :class="{ 'is-dragging': columnDragKey === 'subSysDictCode', 'is-drop-target': columnDropTargetKey === 'subSysDictCode' }"
+                  data-column-key="subSystemCode"
+                  :class="{ 'is-dragging': columnDragKey === 'subSystemCode', 'is-drop-target': columnDropTargetKey === 'subSystemCode' }"
                   draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'subSysDictCode')"
-                  @dragover="onHeaderDragOver($event, 'subSysDictCode')"
-                  @drop="onHeaderDrop($event, 'subSysDictCode')"
+                  @dragstart="onHeaderDragStart($event, 'subSystemCode')"
+                  @dragover="onHeaderDragOver($event, 'subSystemCode')"
+                  @drop="onHeaderDrop($event, 'subSystemCode')"
                   @dragend="onHeaderDragEnd"
                 >{{ t('dataSourceList.columns.subSys') }}</div>
               </template>
               <template #default="scope">
-                {{ transAtomicService(scope.row.subSysDictCode) }}
+                {{ transAtomicService(scope.row.subSystemCode) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -318,7 +315,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Delete, Edit, Lock, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
@@ -340,18 +337,28 @@ function tr(key: string): string {
   return i18n.global.t(key) as string;
 }
 
-/** 数据源列表页业务逻辑：继承租户支持列表，支持搜索、重置密码、测试数据回退 */
+/** 数据源列表页业务逻辑：继承租户支持列表，支持搜索、重置密码、测试数据回退。租户下拉为两级联动：第一级子系统（getAllActiveSubSystemCodes），第二级租户（getTenantsBySubSystemCode）。 */
 class DataSourceListPage extends TenantSupportListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.convertThis();
   }
 
+  /** 第一级使用子系统接口，第二级再按子系统加载租户 */
+  protected getFirstLevelApiUrl(): string | null {
+    return 'sys/system/getAllActiveSubSystemCodes';
+  }
+
+  /** 仅允许选第二级（租户），不允许只选第一级（子系统） */
+  protected isCheckStrictly(): boolean {
+    return false;
+  }
+
   protected initState(): Record<string, unknown> {
     return {
       searchParams: {
         name: null as string | null,
-        microserviceCode: null as string | null,
+        microServiceCode: null as string | null,
         active: true,
         // subSysOrTenant 由 TenantSupportListPage.initTenantVars 在构造函数中注入
       },
@@ -370,7 +377,7 @@ class DataSourceListPage extends TenantSupportListPage {
     if (params && this.state.searchParams) {
       const sp = this.state.searchParams as Record<string, unknown>;
       (params as Record<string, unknown>).active = sp.active === true ? true : null;
-      (params as Record<string, unknown>).microserviceCode = sp.microserviceCode ?? null;
+      (params as Record<string, unknown>).microServiceCode = sp.microServiceCode ?? null;
     }
     return params;
   }
@@ -418,7 +425,7 @@ const DATA_SOURCE_LIST_STATE_STORAGE_KEY = 'dataSourceList.queryState.v2';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'dataSourceList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'dataSourceList.columnOrder.v2';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSysDictCode', 'tenantName', 'microservice', 'url', 'username', 'active'];
+const ALL_COLUMN_KEYS = ['subSystemCode', 'tenantName', 'microservice', 'url', 'username', 'active'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
@@ -486,12 +493,45 @@ export default defineComponent({
       get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),
     });
-    /** 微服务下拉选项（可与后端接口对接后替换） */
-    const microserviceOptions = ref<Array<{ value: string; label: string }>>([
-      { value: 'ams-sys', label: '系统服务' },
-      { value: 'ams-log', label: '日志服务' },
-      { value: 'ams-job', label: '任务服务' },
-    ]);
+    /** 微服务树：来自 sys/microService/getFullMicroServiceTree，供 el-tree-select 树形展示。接口返回 IdAndNameTreeNode：{ id, name, parentId?, orderNum?, children } */
+    type MicroServiceTreeNode = { id: string; name: string; parentId?: string | null; orderNum?: number | null; children?: MicroServiceTreeNode[] };
+    type TreeSelectNode = { value: string; label: string; children?: TreeSelectNode[] };
+    const microserviceTree = ref<TreeSelectNode[]>([]);
+    /** 扁平列表，用于表格列「微服务」根据 code 显示 name */
+    const microserviceOptions = ref<Array<{ value: string; label: string }>>([]);
+    function toTreeSelectNode(node: MicroServiceTreeNode): TreeSelectNode {
+      const children = Array.isArray(node.children) && node.children.length > 0
+        ? node.children.map(toTreeSelectNode)
+        : undefined;
+      return {
+        value: String(node.id),
+        label: node.name ?? String(node.id),
+        ...(children ? { children } : {}),
+      };
+    }
+    function flattenMicroServiceTree(nodes: MicroServiceTreeNode[]): Array<{ value: string; label: string }> {
+      if (!Array.isArray(nodes) || nodes.length === 0) return [];
+      const list: Array<{ value: string; label: string }> = [];
+      for (const node of nodes) {
+        list.push({ value: String(node.id), label: node.name ?? String(node.id) });
+        if (Array.isArray(node.children) && node.children.length > 0) {
+          list.push(...flattenMicroServiceTree(node.children));
+        }
+      }
+      return list;
+    }
+    onMounted(() => {
+      backendRequest({ url: 'sys/microService/getFullMicroServiceTree', method: 'get' })
+        .then((result) => {
+          const raw = (Array.isArray(result) ? result : []) as MicroServiceTreeNode[];
+          microserviceTree.value = raw.map(toTreeSelectNode);
+          microserviceOptions.value = flattenMicroServiceTree(raw);
+        })
+        .catch(() => {
+          microserviceTree.value = [];
+          microserviceOptions.value = [];
+        });
+    });
     /** 表格微服务列展示：兼容多种后端字段与 microservice 展示，优先显示选项 label */
     function getMicroserviceDisplayText(row: Record<string, unknown>): string {
       const raw = row.microservice ?? row.microserviceCode ?? row.microServiceCode;
@@ -501,7 +541,7 @@ export default defineComponent({
       return label ?? code;
     }
     const columnKeyToLabel: Record<string, () => string> = {
-      subSysDictCode: () => t('dataSourceList.columns.subSys'),
+      subSystemCode: () => t('dataSourceList.columns.subSys'),
       tenantName: () => t('dataSourceList.columns.tenantName'),
       microservice: () => t('dataSourceList.columns.microservice'),
       url: () => t('dataSourceList.columns.url'),
@@ -520,8 +560,8 @@ export default defineComponent({
         getLabel: () => columnKeyToLabel[key]?.() ?? key,
         sortable: false,
         getCellText:
-          key === 'subSysDictCode'
-            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
+          key === 'subSystemCode'
+            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSystemCode)
             : key === 'tenantName'
               ? (row: Record<string, unknown>) => String(row.tenantName ?? '')
               : key === 'microservice'
@@ -570,6 +610,7 @@ export default defineComponent({
       namePlaceholder,
       updateNameInputWidth,
       microserviceOptions,
+      microserviceTree,
       getMicroserviceDisplayText,
       listLayoutRefs,
       tableRef,

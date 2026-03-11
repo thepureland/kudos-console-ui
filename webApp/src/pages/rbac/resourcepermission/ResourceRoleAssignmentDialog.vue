@@ -52,7 +52,7 @@ class Page extends BasePage {
   private async loadData() {
     const params = {
       resourceId: this.props.rid,
-      subSysDictCode: this.props.subSysDictCode,
+      subSystemCode: this.props.subSystemCode,
       tenantId: this.props.tenantId
     }
     const url = this.getRootActionPath() + "/getResourceRoles"
@@ -71,7 +71,7 @@ class Page extends BasePage {
   private async doSave() {
     const params = {
       resourceId: this.props.rid,
-      subSysDictCode: this.props.subSysDictCode,
+      subSystemCode: this.props.subSystemCode,
       tenantId: this.props.tenantId,
       roleIds: this.state.checkedRoles
     }
@@ -101,7 +101,7 @@ export default defineComponent({
   props: {
     modelValue: Boolean,
     rid: String,
-    subSysDictCode: String,
+    subSystemCode: String,
     tenantId: String
   },
   emits: ['update:modelValue'],

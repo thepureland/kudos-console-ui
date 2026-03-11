@@ -4,7 +4,7 @@
     :model-value="visible"
     title-key="paramDetail.title"
     empty-key="paramDetail.empty"
-    width="65%"
+    width="67%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
     :format-field-value="formatFieldValue"

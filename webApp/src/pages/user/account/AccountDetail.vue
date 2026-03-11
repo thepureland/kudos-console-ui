@@ -4,7 +4,7 @@
     :model-value="visible"
     title-key="accountDetail.title"
     empty-key="accountDetail.empty"
-    width="65%"
+    width="67%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
     :format-field-value="formatFieldValue"
@@ -75,7 +75,7 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'accountDetail.fields.updateUser', key: 'updateUser' },
   ],
   [
-    { labelKey: 'accountDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+    { labelKey: 'accountDetail.fields.subSystemCode', key: 'subSystemCode', type: 'atomicService' },
     { labelKey: 'accountDetail.fields.tenantId', key: 'tenantId' },
   ],
   [

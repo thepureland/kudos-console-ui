@@ -160,9 +160,9 @@ class AddEditPage extends OrgSupportAddEditPage {
       this.state.formModel.parent = [];
       return;
     }
-    const subSysDictCode = arr[0];
+    const subSystemCode = arr[0];
     const tenantId = arr.length > 1 ? arr[1] : null;
-    const params = { subSysDictCode, tenantId } as { subSysDictCode: string; tenantId: string | null };
+    const params = { subSystemCode, tenantId } as { subSystemCode: string; tenantId: string | null };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
     if (Array.isArray(result)) {
       this.state.organizationTree = result;
@@ -173,9 +173,9 @@ class AddEditPage extends OrgSupportAddEditPage {
     this.state.formModel.parent = [];
   }
 
-  /** 编辑时根据回填的 subSysDictCode/tenantId 加载组织树 */
-  async loadOrganizationTreeForEdit(subSysDictCode: string, tenantId: string | null): Promise<void> {
-    const params = { subSysDictCode, tenantId };
+  /** 编辑时根据回填的 subSystemCode/tenantId 加载组织树 */
+  async loadOrganizationTreeForEdit(subSystemCode: string, tenantId: string | null): Promise<void> {
+    const params = { subSystemCode, tenantId };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
     if (Array.isArray(result)) {
       this.state.organizationTree = result;
@@ -190,7 +190,7 @@ class AddEditPage extends OrgSupportAddEditPage {
     if (parentIds.length === 0 && rowObject.parentId != null) {
       parentIds = [String(rowObject.parentId)];
     }
-    const subSys = rowObject.subSysDictCode as string | undefined;
+    const subSys = rowObject.subSystemCode as string | undefined;
     const tenantId = (rowObject.tenantId as string | undefined) ?? null;
     this.state.formModel.parent = parentIds;
     if (subSys) {
@@ -207,7 +207,7 @@ class AddEditPage extends OrgSupportAddEditPage {
     const fm = this.state.formModel as { subSysOrTenant?: string[]; parent?: string[] };
     const subSysOrTenant = fm.subSysOrTenant;
     if (subSysOrTenant?.length) {
-      params.subSysDictCode = subSysOrTenant[0];
+      params.subSystemCode = subSysOrTenant[0];
       params.tenantId = subSysOrTenant.length > 1 ? subSysOrTenant[1] : null;
     }
     const parent = fm.parent;

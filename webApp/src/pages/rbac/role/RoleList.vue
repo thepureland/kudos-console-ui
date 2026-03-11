@@ -133,25 +133,25 @@
               </template>
             </el-table-column>
             <el-table-column
-              v-else-if="key === 'subSysDictCode' && isColumnVisible('subSysDictCode')"
-              prop="subSysDictCode"
-              :min-width="columnWidths['subSysDictCode'] ?? 100"
+              v-else-if="key === 'subSystemCode' && isColumnVisible('subSystemCode')"
+              prop="subSystemCode"
+              :min-width="columnWidths['subSystemCode'] ?? 100"
               sortable="custom"
             >
               <template #header>
                 <div
                   class="column-header-draggable"
-                  data-column-key="subSysDictCode"
-                  :class="{ 'is-dragging': columnDragKey === 'subSysDictCode', 'is-drop-target': columnDropTargetKey === 'subSysDictCode' }"
+                  data-column-key="subSystemCode"
+                  :class="{ 'is-dragging': columnDragKey === 'subSystemCode', 'is-drop-target': columnDropTargetKey === 'subSystemCode' }"
                   draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'subSysDictCode')"
-                  @dragover="onHeaderDragOver($event, 'subSysDictCode')"
-                  @drop="onHeaderDrop($event, 'subSysDictCode')"
+                  @dragstart="onHeaderDragStart($event, 'subSystemCode')"
+                  @dragover="onHeaderDragOver($event, 'subSystemCode')"
+                  @drop="onHeaderDrop($event, 'subSystemCode')"
                   @dragend="onHeaderDragEnd"
-                >{{ t('roleList.columns.subSysDictCode') }}</div>
+                >{{ t('roleList.columns.subSystemCode') }}</div>
               </template>
               <template #default="scope">
-                {{ transAtomicService(scope.row.subSysDictCode) }}
+                {{ transAtomicService(scope.row.subSystemCode) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -300,7 +300,7 @@
       v-if="userAssignmentDialogVisible"
       v-model="userAssignmentDialogVisible"
       :rid="rid"
-      :sub-sys-dict-code="subSysDictCode"
+      :sub-sys-dict-code="subSystemCode"
       :tenant-id="tenantId"
     />
     <user-list-dialog v-if="userListDialogVisible" v-model="userListDialogVisible" :rid="rid" />
@@ -329,7 +329,7 @@ const ROLE_LIST_STATE_STORAGE_KEY = 'roleList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'roleList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'roleList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['roleName', 'subSysDictCode', 'remark', 'active', 'createTime'];
+const ALL_COLUMN_KEYS = ['roleName', 'subSystemCode', 'remark', 'active', 'createTime'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
@@ -394,7 +394,7 @@ class ListPage extends TenantSupportListPage {
   assign(commandValue: { item: number; row: Record<string, unknown> }): void {
     const { item, row } = commandValue;
     this.state.rid = this.getRowId(row);
-    this.state.subSysDictCode = row.subSysDictCode;
+    this.state.subSystemCode = row.subSystemCode;
     this.state.tenantId = row.tenantId;
     if (item === 1) {
       this.state.userAssignmentDialogVisible = true;
@@ -446,10 +446,10 @@ export default defineComponent({
       orderedColumnKeys.value.map((key) => ({
         key,
         getLabel: () => t('roleList.columns.' + key),
-        sortable: key === 'roleName' || key === 'subSysDictCode' || key === 'createTime',
+        sortable: key === 'roleName' || key === 'subSystemCode' || key === 'createTime',
         getCellText:
-          key === 'subSysDictCode'
-            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
+          key === 'subSystemCode'
+            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSystemCode)
             : key === 'roleName'
               ? (row: Record<string, unknown>) => String(row.roleName ?? '')
               : key === 'remark'

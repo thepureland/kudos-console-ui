@@ -4,7 +4,7 @@
     :model-value="visible"
     title-key="resourceDetail.title"
     empty-key="resourceDetail.empty"
-    width="65%"
+    width="67%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
     :format-field-value="formatFieldValue"
@@ -45,7 +45,7 @@ const ROW_FIELDS: FieldConfig[][] = [
   ],
   [
     { labelKey: 'resourceDetail.fields.parentId', key: 'parentId' },
-    { labelKey: 'resourceDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+    { labelKey: 'resourceDetail.fields.subSystemCode', key: 'subSystemCode', type: 'atomicService' },
   ],
   [
     { labelKey: 'resourceDetail.fields.ownerId', key: 'ownerId' },

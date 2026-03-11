@@ -205,7 +205,7 @@ private fun applySort(rows: List<JsonObject>, orderProperty: String?, orderDirec
 }
 
 private data class DataSourceSearchParams(
-    val subSysDictCode: String?,
+    val subSystemCode: String?,
     val tenantId: String?,
     val microserviceCode: String?,
     val name: String,
@@ -215,14 +215,14 @@ private data class DataSourceSearchParams(
 )
 
 private fun parseDataSourceSearchParams(params: JsonObject): DataSourceSearchParams {
-    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val subSystemCode = primitiveString(params, "subSystemCode")?.takeIf { it.isNotBlank() }
     val tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
-    val microserviceCode = primitiveString(params, "microserviceCode")?.takeIf { it.isNotBlank() }
+    val microserviceCode = primitiveString(params, "microServiceCode")?.takeIf { it.isNotBlank() }
     val name = parseOptionalStringParam(params, "name").orEmpty()
     val active = parseOptionalBooleanParam(params, "active")
     val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
     val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, MAX_PAGE_SIZE)
-    return DataSourceSearchParams(subSysDictCode, tenantId, microserviceCode, name, active, pageNo, pageSize)
+    return DataSourceSearchParams(subSystemCode, tenantId, microserviceCode, name, active, pageNo, pageSize)
 }
 
 private fun buildDataSourceSearchResponse(path: String, requestJson: String): String {
@@ -234,12 +234,14 @@ private fun buildDataSourceSearchResponse(path: String, requestJson: String): St
     val params = parseDataSourceSearchParams(paramsObj)
 
     val filtered = allRows.filter { row ->
-        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowSubSys = primitiveString(row, "subSystemCode")?.takeIf { it.isNotBlank() }
+            ?: primitiveString(row, "subSystemCode").orEmpty()
         val rowTenantId = primitiveString(row, "tenantId").orEmpty()
-        val rowMicroservice = primitiveString(row, "microservice").orEmpty()
+        val rowMicroservice = primitiveString(row, "microServiceCode")?.takeIf { it.isNotBlank() }
+            ?: primitiveString(row, "microservice").orEmpty()
         val rowName = primitiveString(row, "name").orEmpty()
         val rowActive = primitiveBoolean(row, "active")
-        (params.subSysDictCode == null || params.subSysDictCode == rowSubSys) &&
+        (params.subSystemCode == null || params.subSystemCode == rowSubSys) &&
             (params.tenantId == null || params.tenantId == rowTenantId) &&
             (params.microserviceCode == null || params.microserviceCode == rowMicroservice) &&
             (params.name.isEmpty() || rowName.contains(params.name, ignoreCase = true)) &&
@@ -633,7 +635,7 @@ private fun buildParamGetDetailResponse(requestId: String): String {
 }
 
 private data class ResourceSearchParams(
-    val subSysDictCode: String,
+    val subSystemCode: String,
     val resourceTypeDictCode: String,
     val name: String,
     val active: Boolean?,
@@ -644,11 +646,11 @@ private data class ResourceSearchParams(
 )
 
 private val RESOURCE_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
-    "name", "url", "icon", "seqNo", "active", "subSysDictCode", "resourceTypeDictCode",
+    "name", "url", "icon", "seqNo", "active", "subSystemCode", "resourceTypeDictCode",
 )
 
 private fun parseResourceSearchParams(params: JsonObject): ResourceSearchParams {
-    val subSysDictCode = parseOptionalStringParam(params, "subSysDictCode")?.trim() ?: ""
+    val subSystemCode = parseOptionalStringParam(params, "subSystemCode")?.trim() ?: ""
     val resourceTypeDictCode = parseOptionalStringParam(params, "resourceTypeDictCode")?.trim() ?: ""
     val name = parseOptionalStringParam(params, "name")?.trim() ?: ""
     val active = parseOptionalBooleanParam(params, "active")
@@ -657,7 +659,7 @@ private fun parseResourceSearchParams(params: JsonObject): ResourceSearchParams 
     val pageSize = pageSizeRaw.coerceAtMost(MAX_PAGE_SIZE)
     val sortPair = parseSortParamForResource(params)
     return ResourceSearchParams(
-        subSysDictCode = subSysDictCode,
+        subSystemCode = subSystemCode,
         resourceTypeDictCode = resourceTypeDictCode,
         name = name,
         active = active,
@@ -693,11 +695,11 @@ private fun buildResourceSearchResponse(path: String, requestJson: String): Stri
     val params = parseResourceSearchParams(paramsObj)
 
     var filtered = allRows.filter { row ->
-        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowSubSys = primitiveString(row, "subSystemCode").orEmpty()
         val rowType = primitiveString(row, "resourceTypeDictCode").orEmpty()
         val rowName = primitiveString(row, "name").orEmpty()
         val rowActive = primitiveBoolean(row, "active")
-        (params.subSysDictCode.isEmpty() || rowSubSys == params.subSysDictCode) &&
+        (params.subSystemCode.isEmpty() || rowSubSys == params.subSystemCode) &&
             (params.resourceTypeDictCode.isEmpty() || rowType == params.resourceTypeDictCode) &&
             (params.name.isEmpty() || rowName.contains(params.name, ignoreCase = true)) &&
             (params.active == null || rowActive == params.active)
@@ -731,7 +733,7 @@ private fun buildResourceGetDetailResponse(requestId: String): String {
     val row = allRows.firstOrNull { primitiveString(it, "id") == requestId }
         ?: return "{\"code\":404,\"data\":null}"
     val resourceType = primitiveString(row, "resourceTypeDictCode").orEmpty()
-    val subSys = primitiveString(row, "subSysDictCode").orEmpty()
+    val subSys = primitiveString(row, "subSystemCode").orEmpty()
     val parentId = primitiveString(row, "parentId")?.takeIf { it.isNotBlank() }
     val parentIds = JsonArray(
         listOf(JsonPrimitive(resourceType), JsonPrimitive(subSys)) +
@@ -751,7 +753,7 @@ private fun buildResourceGetDetailResponse(requestId: String): String {
 private data class DomainSearchParams(
     val id: String,
     val domain: String,
-    val subSysDictCode: String?,
+    val subSystemCode: String?,
     val tenantId: String?,
     val active: Boolean?,
     val pageNo: Int,
@@ -761,13 +763,13 @@ private data class DomainSearchParams(
 )
 
 private val DOMAIN_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
-    "domain", "subSysDictCode", "tenantName", "active", "remark", "createTime",
+    "domain", "subSystemCode", "tenantName", "active", "remark", "createTime",
 )
 
 private fun parseDomainSearchParams(params: JsonObject): DomainSearchParams {
     val id = parseOptionalStringParam(params, "id")?.trim() ?: ""
     val domain = parseOptionalStringParam(params, "domain")?.trim() ?: ""
-    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val subSystemCode = primitiveString(params, "subSystemCode")?.takeIf { it.isNotBlank() }
     val tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
     val active = parseOptionalBooleanParam(params, "active")
     val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
@@ -776,7 +778,7 @@ private fun parseDomainSearchParams(params: JsonObject): DomainSearchParams {
     return DomainSearchParams(
         id = id,
         domain = domain,
-        subSysDictCode = subSysDictCode,
+        subSystemCode = subSystemCode,
         tenantId = tenantId,
         active = active,
         pageNo = pageNo,
@@ -804,7 +806,7 @@ private fun parseSortParamWithAllowed(params: JsonObject, allowed: Set<String>):
 
 private data class TenantSearchParams(
     val name: String,
-    val subSysDictCode: String?,
+    val subSystemCode: String?,
     val active: Boolean?,
     val pageNo: Int,
     val pageSize: Int,
@@ -813,14 +815,14 @@ private data class TenantSearchParams(
 )
 
 private val TENANT_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
-    "name", "subSysDictCode", "active", "createTime",
+    "name", "subSystemCode", "active", "createTime",
 )
 
-/** Mock 账号列表搜索：根据 username/subSysDictCode/tenantId/organizationId 筛选，排序分页。 */
+/** Mock 账号列表搜索：根据 username/subSystemCode/tenantId/organizationId 筛选，排序分页。 */
 private fun buildAccountSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val username = parseOptionalStringParam(params, "username")?.trim() ?: ""
-    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val subSystemCode = primitiveString(params, "subSystemCode")?.takeIf { it.isNotBlank() }
     val tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
     val organizationId = primitiveString(params, "organizationId")?.takeIf { it.isNotBlank() }
     val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
@@ -830,7 +832,7 @@ private fun buildAccountSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("acc_1"))
             put("username", JsonPrimitive("admin"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("default"))
             put("tenantName", JsonPrimitive("默认租户"))
             put("organizationId", JsonPrimitive("org_1"))
@@ -842,7 +844,7 @@ private fun buildAccountSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("acc_2"))
             put("username", JsonPrimitive("user1"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t1"))
             put("tenantName", JsonPrimitive("租户1"))
             put("organizationId", JsonPrimitive("org_2"))
@@ -854,7 +856,7 @@ private fun buildAccountSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("acc_3"))
             put("username", JsonPrimitive("user2"))
-            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonPrimitive("1"))
             put("tenantName", JsonPrimitive("租户A1"))
             put("organizationId", JsonPrimitive("org_3"))
@@ -866,10 +868,10 @@ private fun buildAccountSearchResponse(requestJson: String): String {
     )
     var filtered = mockRows.filter { row ->
         val rowUsername = primitiveString(row, "username").orEmpty()
-        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowSubSys = primitiveString(row, "subSystemCode").orEmpty()
         val rowOrgId = primitiveString(row, "organizationId").orEmpty()
         (username.isEmpty() || rowUsername.contains(username, ignoreCase = true)) &&
-            (subSysDictCode == null || subSysDictCode == rowSubSys) &&
+            (subSystemCode == null || subSystemCode == rowSubSys) &&
             (tenantId == null || true) &&
             (organizationId == null || organizationId == rowOrgId)
     }
@@ -894,7 +896,7 @@ private fun buildAccountGetDetailResponse(requestId: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("acc_1"))
             put("username", JsonPrimitive("admin"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t6"))
             put("organizationId", JsonPrimitive("org_1"))
             put("parentIds", JsonArray(listOf(JsonPrimitive("org_1"))))
@@ -906,7 +908,7 @@ private fun buildAccountGetDetailResponse(requestId: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("acc_2"))
             put("username", JsonPrimitive("user1"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("default"))
             put("organizationId", JsonPrimitive("org_2"))
             put("parentIds", JsonArray(listOf(JsonPrimitive("org_1"), JsonPrimitive("org_2"))))
@@ -918,7 +920,7 @@ private fun buildAccountGetDetailResponse(requestId: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("acc_3"))
             put("username", JsonPrimitive("user2"))
-            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonPrimitive("t5"))
             put("organizationId", JsonPrimitive("org_3"))
             put("parentIds", JsonArray(listOf(JsonPrimitive("org_1"), JsonPrimitive("org_3"))))
@@ -958,7 +960,7 @@ private fun buildAccountGetDetailResponse(requestId: String): String {
 }
 
 /** Mock 组织机构树：返回 id/name/children 结构。 */
-private fun buildOrganizationLoadTreeResponse(subSysDictCode: String?, tenantId: String?): String {
+private fun buildOrganizationLoadTreeResponse(subSystemCode: String?, tenantId: String?): String {
     val nodes = listOf(
         buildJsonObject {
             put("id", JsonPrimitive("org_1"))
@@ -985,13 +987,13 @@ private fun buildOrganizationLoadTreeResponse(subSysDictCode: String?, tenantId:
 }
 
 private val ROLE_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
-    "roleCode", "roleName", "subSysDictCode", "active", "createTime",
+    "roleCode", "roleName", "subSystemCode", "active", "createTime",
 )
 
-/** Mock 角色列表搜索：根据 subSysDictCode/tenantId/roleCode/roleName/active 筛选，排序分页。 */
+/** Mock 角色列表搜索：根据 subSystemCode/tenantId/roleCode/roleName/active 筛选，排序分页。 */
 private fun buildRoleSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
-    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val subSystemCode = primitiveString(params, "subSystemCode")?.takeIf { it.isNotBlank() }
     val tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
     val roleCode = parseOptionalStringParam(params, "roleCode")?.trim() ?: ""
     val roleName = parseOptionalStringParam(params, "roleName")?.trim() ?: ""
@@ -1004,7 +1006,7 @@ private fun buildRoleSearchResponse(requestJson: String): String {
             put("id", JsonPrimitive("role_1"))
             put("roleCode", JsonPrimitive("ADMIN"))
             put("roleName", JsonPrimitive("管理员"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonNull)
             put("remark", JsonPrimitive("系统管理员角色"))
             put("active", JsonPrimitive(true))
@@ -1014,7 +1016,7 @@ private fun buildRoleSearchResponse(requestJson: String): String {
             put("id", JsonPrimitive("role_2"))
             put("roleCode", JsonPrimitive("USER"))
             put("roleName", JsonPrimitive("普通用户"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t1"))
             put("remark", JsonPrimitive("租户普通用户"))
             put("active", JsonPrimitive(true))
@@ -1024,7 +1026,7 @@ private fun buildRoleSearchResponse(requestJson: String): String {
             put("id", JsonPrimitive("role_3"))
             put("roleCode", JsonPrimitive("GUEST"))
             put("roleName", JsonPrimitive("访客"))
-            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonNull)
             put("remark", JsonPrimitive("只读访客"))
             put("active", JsonPrimitive(false))
@@ -1032,12 +1034,12 @@ private fun buildRoleSearchResponse(requestJson: String): String {
         },
     )
     var filtered = mockRows.filter { row ->
-        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowSubSys = primitiveString(row, "subSystemCode").orEmpty()
         val rowTenantId = primitiveString(row, "tenantId").orEmpty()
         val rowCode = primitiveString(row, "roleCode").orEmpty()
         val rowName = primitiveString(row, "roleName").orEmpty()
         val rowActive = primitiveBoolean(row, "active")
-        (subSysDictCode == null || subSysDictCode == rowSubSys) &&
+        (subSystemCode == null || subSystemCode == rowSubSys) &&
             (tenantId == null || tenantId == rowTenantId) &&
             (roleCode.isEmpty() || rowCode.contains(roleCode, ignoreCase = true)) &&
             (roleName.isEmpty() || rowName.contains(roleName, ignoreCase = true)) &&
@@ -1065,7 +1067,7 @@ private fun buildRoleGetDetailResponse(requestId: String): String {
             put("id", JsonPrimitive("role_1"))
             put("roleCode", JsonPrimitive("ADMIN"))
             put("roleName", JsonPrimitive("管理员"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonNull)
             put("remark", JsonPrimitive("系统管理员角色"))
             put("active", JsonPrimitive(true))
@@ -1075,7 +1077,7 @@ private fun buildRoleGetDetailResponse(requestId: String): String {
             put("id", JsonPrimitive("role_2"))
             put("roleCode", JsonPrimitive("USER"))
             put("roleName", JsonPrimitive("普通用户"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t1"))
             put("remark", JsonPrimitive("租户普通用户"))
             put("active", JsonPrimitive(true))
@@ -1085,7 +1087,7 @@ private fun buildRoleGetDetailResponse(requestId: String): String {
             put("id", JsonPrimitive("role_3"))
             put("roleCode", JsonPrimitive("GUEST"))
             put("roleName", JsonPrimitive("访客"))
-            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonNull)
             put("remark", JsonPrimitive("只读访客"))
             put("active", JsonPrimitive(false))
@@ -1203,7 +1205,7 @@ private fun buildUserGroupGetDetailResponse(requestId: String): String {
         ?: return "{\"code\":404,\"data\":null}"
     row = buildJsonObject {
         row.forEach { (k, v) -> put(k, v) }
-        put("subSysDictCode", JsonPrimitive("console"))
+        put("subSystemCode", JsonPrimitive("console"))
         put("ownerId", JsonPrimitive(""))
         put("updateTime", JsonArray(listOf(JsonPrimitive(2024), JsonPrimitive(1), JsonPrimitive(1), JsonPrimitive(0), JsonPrimitive(0), JsonPrimitive(0))))
         put("createUser", JsonPrimitive(""))
@@ -1217,11 +1219,11 @@ private fun buildUserGroupGetDetailResponse(requestId: String): String {
     return body
 }
 
-/** Mock 组织列表树 searchTree：与角色列表一致从 body 解析 subSysDictCode/tenantId，按 tenantId 过滤返回不同树；无 tenantId 时返回空。 */
+/** Mock 组织列表树 searchTree：与角色列表一致从 body 解析 subSystemCode/tenantId，按 tenantId 过滤返回不同树；无 tenantId 时返回空。 */
 private fun buildOrganizationSearchTreeResponse(requestJson: String, tenantIdFromQuery: String? = null): String {
     val params = parseJsonObjectOrEmpty(requestJson)
-    // 与 buildRoleSearchResponse 一致：先取 body 的 tenantId / subSysDictCode
-    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    // 与 buildRoleSearchResponse 一致：先取 body 的 tenantId / subSystemCode
+    val subSystemCode = primitiveString(params, "subSystemCode")?.takeIf { it.isNotBlank() }
     var tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
     if (tenantId.isNullOrBlank()) {
         tenantId = (params["subSysOrTenant"] as? JsonArray)?.getOrNull(1)?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
@@ -1312,7 +1314,7 @@ private fun buildOrganizationGetDetailResponse(requestId: String): String {
         put("seqNo", JsonPrimitive(suffix.toIntOrNull() ?: 0))
         put("active", JsonPrimitive(suffix != "4"))
         put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
-        put("subSysDictCode", JsonPrimitive("console"))
+        put("subSystemCode", JsonPrimitive("console"))
         put("tenantId", JsonPrimitive("t6"))
         put("tenantName", JsonPrimitive("租户1"))
         put("parentId", if (isRoot) JsonNull else JsonPrimitive("org_1"))
@@ -1678,12 +1680,12 @@ private fun buildI18nSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** Mock 租户列表搜索：根据 id/name/subSysDictCode/active 筛选，排序分页。 */
+/** Mock 租户列表搜索：根据 id/name/subSystemCode/active 筛选，排序分页。 */
 private fun buildTenantSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val id = parseOptionalStringParam(params, "id")?.trim() ?: ""
     val name = parseOptionalStringParam(params, "name")?.trim() ?: ""
-    val subSysDictCode = primitiveString(params, "subSysDictCode")?.takeIf { it.isNotBlank() }
+    val subSystemCode = primitiveString(params, "subSystemCode")?.takeIf { it.isNotBlank() }
     val active = parseOptionalBooleanParam(params, "active")
     val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
     val pageSize = (primitiveInt(params, "pageSize") ?: 10).coerceIn(1, MAX_PAGE_SIZE)
@@ -1692,21 +1694,21 @@ private fun buildTenantSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("tenant_1"))
             put("name", JsonPrimitive("默认租户"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("tenant_2"))
             put("name", JsonPrimitive("租户A"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("tenant_3"))
             put("name", JsonPrimitive("租户B"))
-            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("subSystemCode", JsonPrimitive("service_a"))
             put("active", JsonPrimitive(false))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
         },
@@ -1714,11 +1716,11 @@ private fun buildTenantSearchResponse(requestJson: String): String {
     var filtered = mockRows.filter { row ->
         val rowId = primitiveString(row, "id").orEmpty()
         val rowName = primitiveString(row, "name").orEmpty()
-        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowSubSys = primitiveString(row, "subSystemCode").orEmpty()
         val rowActive = primitiveBoolean(row, "active")
         (id.isEmpty() || rowId == id) &&
             (name.isEmpty() || rowName.contains(name, ignoreCase = true)) &&
-            (subSysDictCode == null || subSysDictCode == rowSubSys) &&
+            (subSystemCode == null || subSystemCode == rowSubSys) &&
             (active == null || rowActive == active)
     }
     filtered = applySort(filtered, sortPair.first, sortPair.second)
@@ -1742,7 +1744,7 @@ private fun buildTenantGetResponse(id: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("tenant_1"))
             put("name", JsonPrimitive("默认租户"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("remark", JsonPrimitive(""))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
@@ -1750,7 +1752,7 @@ private fun buildTenantGetResponse(id: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("tenant_2"))
             put("name", JsonPrimitive("租户A"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("remark", JsonPrimitive("备注A"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
@@ -1758,7 +1760,7 @@ private fun buildTenantGetResponse(id: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("tenant_3"))
             put("name", JsonPrimitive("租户B"))
-            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("subSystemCode", JsonPrimitive("service_a"))
             put("remark", JsonPrimitive("备注B"))
             put("active", JsonPrimitive(false))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
@@ -1768,7 +1770,7 @@ private fun buildTenantGetResponse(id: String): String {
         ?: buildJsonObject {
             put("id", JsonPrimitive(id))
             put("name", JsonPrimitive(""))
-            put("subSysDictCode", JsonPrimitive(""))
+            put("subSystemCode", JsonPrimitive(""))
             put("remark", JsonPrimitive(""))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive(""))
@@ -1780,14 +1782,14 @@ private fun buildTenantGetResponse(id: String): String {
     return body
 }
 
-/** Mock 域名列表搜索：根据 domain/subSysDictCode/tenantId/active 筛选，排序分页。tenantId 与 getAllActiveTenants 一致。 */
+/** Mock 域名列表搜索：根据 domain/subSystemCode/tenantId/active 筛选，排序分页。tenantId 与 getAllActiveTenants 一致。 */
 private fun buildDomainSearchResponse(requestJson: String): String {
     val params = parseDomainSearchParams(parseJsonObjectOrEmpty(requestJson))
     val mockRows = listOf(
         buildJsonObject {
             put("id", JsonPrimitive("domain_1"))
             put("domain", JsonPrimitive("console.example.com"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t6"))
             put("tenantName", JsonPrimitive("租户6"))
             put("active", JsonPrimitive(true))
@@ -1797,7 +1799,7 @@ private fun buildDomainSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("domain_2"))
             put("domain", JsonPrimitive("api.example.com"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonNull)
             put("tenantName", JsonPrimitive(""))
             put("active", JsonPrimitive(true))
@@ -1807,7 +1809,7 @@ private fun buildDomainSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("domain_3"))
             put("domain", JsonPrimitive("service-a.example.com"))
-            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonPrimitive("t5"))
             put("tenantName", JsonPrimitive("租户5"))
             put("active", JsonPrimitive(false))
@@ -1818,12 +1820,12 @@ private fun buildDomainSearchResponse(requestJson: String): String {
     var filtered = mockRows.filter { row ->
         val rowId = primitiveString(row, "id").orEmpty()
         val rowDomain = primitiveString(row, "domain").orEmpty()
-        val rowSubSys = primitiveString(row, "subSysDictCode").orEmpty()
+        val rowSubSys = primitiveString(row, "subSystemCode").orEmpty()
         val rowTenantId = primitiveString(row, "tenantId").orEmpty()
         val rowActive = primitiveBoolean(row, "active")
         (params.id.isEmpty() || rowId == params.id) &&
             (params.domain.isEmpty() || rowDomain.contains(params.domain, ignoreCase = true)) &&
-            (params.subSysDictCode == null || params.subSysDictCode == rowSubSys) &&
+            (params.subSystemCode == null || params.subSystemCode == rowSubSys) &&
             (params.tenantId == null || params.tenantId == rowTenantId) &&
             (params.active == null || rowActive == params.active)
     }
@@ -1848,7 +1850,7 @@ private fun buildDomainGetResponse(id: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("domain_1"))
             put("domain", JsonPrimitive("console.example.com"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t6"))
             put("tenantName", JsonPrimitive("租户6"))
             put("active", JsonPrimitive(true))
@@ -1858,7 +1860,7 @@ private fun buildDomainGetResponse(id: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("domain_2"))
             put("domain", JsonPrimitive("api.example.com"))
-            put("subSysDictCode", JsonPrimitive("console"))
+            put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonNull)
             put("tenantName", JsonPrimitive(""))
             put("active", JsonPrimitive(true))
@@ -1868,7 +1870,7 @@ private fun buildDomainGetResponse(id: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("domain_3"))
             put("domain", JsonPrimitive("service-a.example.com"))
-            put("subSysDictCode", JsonPrimitive("service_a"))
+            put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonPrimitive("t5"))
             put("tenantName", JsonPrimitive("租户5"))
             put("active", JsonPrimitive(false))
@@ -1880,7 +1882,7 @@ private fun buildDomainGetResponse(id: String): String {
         ?: buildJsonObject {
         put("id", JsonPrimitive(id))
         put("domain", JsonPrimitive(""))
-        put("subSysDictCode", JsonPrimitive(""))
+        put("subSystemCode", JsonPrimitive(""))
         put("tenantId", JsonNull)
         put("tenantName", JsonPrimitive(""))
         put("active", JsonPrimitive(true))
@@ -2255,8 +2257,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/loadTreeNodes", "/api/sys/resource/loadTreeNodes", "/api/admin/sys/resource/loadTreeNodes" -> {
-            val requestJson = requestBodyText(request.body)
+        "/sys/resource/getSimpleMenus", "/api/sys/resource/getSimpleMenus", "/api/admin/sys/resource/getSimpleMenus" -> {
+            val level = request.queryParameters["level"]?.singleOrNull()?.toIntOrNull() ?: 0
+            val requestJson = "{\"level\":$level}"
             val body = buildResourceLoadTreeNodesResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
@@ -2524,7 +2527,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/user/organization/loadTree", "/api/user/organization/loadTree", "/api/admin/user/organization/loadTree" -> {
-            val subSys = request.url.parameters["subSysDictCode"]
+            val subSys = request.url.parameters["subSystemCode"]
             val tenant = request.url.parameters["tenantId"]
             val body = buildOrganizationLoadTreeResponse(subSys, tenant)
             respond(body, HttpStatusCode.OK, headers)

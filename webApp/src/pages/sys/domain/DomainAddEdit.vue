@@ -84,7 +84,7 @@ interface FormModel {
   domain: string | null;
   remark: string | null;
   subSysOrTenant: string[] | null;
-  subSysDictCode?: string | null;
+  subSystemCode?: string | null;
 }
 
 class DomainAddEditPage extends TenantSupportAddEditPage {
@@ -92,9 +92,12 @@ class DomainAddEditPage extends TenantSupportAddEditPage {
     super(props, context);
   }
 
-  /** 允许只选子系统不选租户，级联需 checkStrictly 才能回填仅子系统的值 */
+  protected getFirstLevelApiUrl(): string | null {
+    return 'sys/system/getAllActiveSubSystemCodes';
+  }
+
   protected isCheckStrictly(): boolean {
-    return true;
+    return false;
   }
 
   protected initState(): Record<string, unknown> {
@@ -112,6 +115,35 @@ class DomainAddEditPage extends TenantSupportAddEditPage {
 
   protected getLoadFailedMessageKey(): string {
     return 'domainAddEdit.messages.loadFailed';
+  }
+
+  /** 提交前将 subSysOrTenant 拆成 systemCode、tenantId 写入 formModel（域名接口使用 systemCode 而非 subSystemCode） */
+  protected beforeValidate(): void {
+    const subSysOrTenant = this.state.formModel.subSysOrTenant;
+    if (!subSysOrTenant || subSysOrTenant.length === 0) return;
+    (this.state.formModel as Record<string, unknown>).systemCode = subSysOrTenant[0];
+    if (subSysOrTenant.length > 1) {
+      this.state.formModel.tenantId = subSysOrTenant[1];
+    }
+  }
+
+  /** 提交时不带 subSysOrTenant、subSystemCode，只带 systemCode、tenantId 等后端字段 */
+  protected createSubmitParams(): Record<string, unknown> {
+    const params = super.createSubmitParams() as Record<string, unknown>;
+    delete params.subSysOrTenant;
+    delete params.subSystemCode;
+    return params;
+  }
+
+  /** 回填时用 systemCode（或 subSystemCode）与 tenantId 组成 subSysOrTenant 供级联显示 */
+  protected fillForm(rowObject: Record<string, unknown>): void {
+    super.fillForm(rowObject);
+    const subSys = rowObject.systemCode ?? rowObject.subSystemCode ?? (this.state.formModel as Record<string, unknown>)?.subSystemCode;
+    if (subSys == null || subSys === '') return;
+    const arr: string[] = [String(subSys)];
+    const tid = rowObject.tenantId ?? (this.state.formModel as Record<string, unknown>)?.tenantId;
+    if (tid != null && tid !== '') arr.push(String(tid));
+    (this.state.formModel as Record<string, unknown>).subSysOrTenant = arr;
   }
 }
 

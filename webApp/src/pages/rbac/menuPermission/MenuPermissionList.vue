@@ -45,7 +45,7 @@
       </div>
 
       <menu-role-assign-dialog v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit"
-                               :rid="rid" :subSysDictCode="subSysDictCode" :tenantId="tenantId"/>
+                               :rid="rid" :subSystemCode="subSystemCode" :tenantId="tenantId"/>
 
     </el-card>
 

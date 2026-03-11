@@ -104,25 +104,25 @@
           />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
-              v-if="key === 'subSysDictCode' && isColumnVisible('subSysDictCode')"
-              prop="subSysDictCode"
-              :min-width="columnWidths['subSysDictCode'] ?? 120"
+              v-if="key === 'systemCode' && isColumnVisible('systemCode')"
+              prop="systemCode"
+              :min-width="columnWidths['systemCode'] ?? 120"
               sortable="custom"
             >
               <template #header>
                 <div
                   class="column-header-draggable"
-                  data-column-key="subSysDictCode"
-                  :class="{ 'is-dragging': columnDragKey === 'subSysDictCode', 'is-drop-target': columnDropTargetKey === 'subSysDictCode' }"
+                  data-column-key="systemCode"
+                  :class="{ 'is-dragging': columnDragKey === 'systemCode', 'is-drop-target': columnDropTargetKey === 'systemCode' }"
                   draggable="true"
-                  @dragstart="onHeaderDragStart($event, 'subSysDictCode')"
-                  @dragover="onHeaderDragOver($event, 'subSysDictCode')"
-                  @drop="onHeaderDrop($event, 'subSysDictCode')"
+                  @dragstart="onHeaderDragStart($event, 'systemCode')"
+                  @dragover="onHeaderDragOver($event, 'systemCode')"
+                  @drop="onHeaderDrop($event, 'systemCode')"
                   @dragend="onHeaderDragEnd"
                 >{{ t('domainList.columns.subSys') }}</div>
               </template>
               <template #default="scope">
-                {{ transAtomicService(scope.row.subSysDictCode) }}
+                {{ transAtomicService(scope.row.systemCode) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -285,7 +285,7 @@ const DOMAIN_LIST_STATE_STORAGE_KEY = 'domainList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'domainList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'domainList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSysDictCode', 'tenantName', 'active', 'remark', 'createTime'];
+const ALL_COLUMN_KEYS = ['systemCode', 'tenantName', 'active', 'remark', 'createTime'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
@@ -293,6 +293,14 @@ class DomainListPage extends TenantSupportListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.convertThis();
+  }
+
+  protected getFirstLevelApiUrl(): string | null {
+    return 'sys/system/getAllActiveSubSystemCodes';
+  }
+
+  protected isCheckStrictly(): boolean {
+    return false;
   }
 
   protected initState(): Record<string, unknown> {
@@ -315,6 +323,7 @@ class DomainListPage extends TenantSupportListPage {
     const sp = this.state.searchParams as Record<string, unknown>;
     params.domain = sp.domain ?? null;
     params.active = sp.active === true ? true : null;
+    delete params.subSysOrTenant;
     return params;
   }
 
@@ -352,15 +361,15 @@ export default defineComponent({
 
     const RESERVED_WIDTH_LEFT = 289;
     const RESERVED_WIDTH_RIGHT = 140;
-    const getDomainColumnLabel = (key: string) => t('domainList.columns.' + (key === 'subSysDictCode' ? 'subSys' : key === 'tenantName' ? 'tenant' : key));
+    const getDomainColumnLabel = (key: string) => t('domainList.columns.' + (key === 'systemCode' ? 'subSys' : key === 'tenantName' ? 'tenant' : key));
     const autoWidthColumns = computed(() =>
       orderedColumnKeys.value.map((key) => ({
         key,
         getLabel: () => getDomainColumnLabel(key),
         sortable: true,
         getCellText:
-          key === 'subSysDictCode'
-            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
+          key === 'systemCode'
+            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.systemCode)
             : key === 'tenantName'
               ? (row: Record<string, unknown>) => String(row.tenantName ?? '')
               : key === 'remark'
@@ -389,7 +398,7 @@ export default defineComponent({
     });
     const columnVisibilityOptions = computed(() => [
       { key: INDEX_COLUMN_KEY, label: t('domainList.columns.index') },
-      ...orderedColumnKeys.value.map((key) => ({ key, label: t('domainList.columns.' + (key === 'subSysDictCode' ? 'subSys' : key === 'tenantName' ? 'tenant' : key)) })),
+      ...orderedColumnKeys.value.map((key) => ({ key, label: t('domainList.columns.' + (key === 'systemCode' ? 'subSys' : key === 'tenantName' ? 'tenant' : key)) })),
     ]);
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);

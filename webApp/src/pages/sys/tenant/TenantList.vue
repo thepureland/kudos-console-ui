@@ -30,7 +30,7 @@
         </div>
         <div class="toolbar-cell toolbar-subsys">
           <el-select
-            v-model="searchParams.subSysDictCode"
+            v-model="searchParams.subSystemCode"
             :placeholder="t('tenantList.placeholders.subSys')"
             clearable
             class="search-select-input"
@@ -370,7 +370,7 @@ class TenantListPage extends BaseListPage {
     return {
       searchParams: {
         name: null as string | null,
-        subSysDictCode: null as string | null,
+        subSystemCode: null as string | null,
         active: true,
       },
       /** 子系统下拉选项（响应式，loadDicts 完成后更新以便下拉能刷新） */
@@ -387,13 +387,13 @@ class TenantListPage extends BaseListPage {
     if (!params) return null;
     const sp = this.state.searchParams as Record<string, unknown>;
     params.name = sp.name ?? null;
-    params.subSysDictCode = sp.subSysDictCode ?? null;
+    params.subSystemCode = sp.subSystemCode ?? null;
     params.active = sp.active === true ? true : null;
     return params;
   }
 
   protected getAfterAddSearchParamKeys(): string[] {
-    return ['name', 'subSysDictCode'];
+    return ['name', 'subSystemCode'];
   }
 }
 

@@ -4,7 +4,7 @@
     :model-value="visible"
     title-key="domainDetail.title"
     empty-key="domainDetail.empty"
-    width="65%"
+    width="67%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
     :format-field-value="formatFieldValue"
@@ -37,7 +37,7 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'domainDetail.fields.domain', key: 'domain' },
   ],
   [
-    { labelKey: 'domainDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+    { labelKey: 'domainDetail.fields.subSystemCode', key: 'subSystemCode', type: 'atomicService' },
     { labelKey: 'domainDetail.fields.tenantId', key: 'tenantId' },
   ],
   [
@@ -76,22 +76,15 @@ class DomainDetailPage extends BaseDetailPage {
     return 'sys/domain';
   }
 
-  /** 用 search 接口按 id 取一条，与列表同源 */
-  protected getDetailLoadUrl(): string {
-    return 'sys/domain/search';
-  }
-
   protected createDetailLoadParams(): Record<string, unknown> {
     return { id: String(this.state.rid || this.props.rid || ''), pageNo: 1, pageSize: 1 };
   }
 
   protected async loadData(): Promise<void> {
     const params = this.createDetailLoadParams();
-    const result = await backendRequest({ url: this.getDetailLoadUrl(), method: 'post', params });
-    if (result != null && typeof result === 'object' && 'first' in result) {
-      const list = (result as { first: unknown }).first;
-      const row = Array.isArray(list) && list.length > 0 ? list[0] : null;
-      this.postLoadDataSuccessfully(row);
+    const result = await backendRequest({ url: this.getDetailLoadUrl(), method: 'get', params });
+    if (result != null && typeof result === 'object' && !Array.isArray(result)) {
+      this.postLoadDataSuccessfully(result as Record<string, unknown>);
     } else {
       ElMessage.error('数据加载失败！');
     }

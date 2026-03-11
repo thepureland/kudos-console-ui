@@ -6,7 +6,7 @@
  -->
 
 <template>
-  <el-dialog title="字典项信息详情" v-model="visible" width="40%" center @close="close">
+  <el-dialog title="字典项信息详情" v-model="visible" width="41.2%" center @close="close">
     <el-row :gutter="10">
       <el-col :span="3">字典项ID：</el-col>
       <el-col :span="9">{{detail.id}}</el-col>

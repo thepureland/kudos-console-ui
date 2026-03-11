@@ -16,14 +16,14 @@
 
     <el-row :gutter="20" class="toolbar">
       <el-col :span="2">
-        <el-cascader :options="subSysOrTenants" v-model="searchParams.subSysOrTenant"
-                     :props="cascaderProps" :placeholder="t('organizationList.placeholders.subSysTenant')" class="border_red"/>
-      </el-col>
-      <el-col :span="2">
         <el-select v-model="searchParams.resourceTypeDictCode" placeholder="资源类型" clearable class="border_red">
           <el-option v-for="item in getDictItems('kuark:sys', 'resource_type')"
                      :key="item.first" :value="item.first" :label="t(item.second)"/>
         </el-select>
+      </el-col>
+      <el-col :span="2">
+        <el-cascader :options="subSysOrTenants" v-model="searchParams.subSysOrTenant"
+                     :props="cascaderProps" :placeholder="t('organizationList.placeholders.subSysTenant')" class="border_red"/>
       </el-col>
       <el-col :span="2">
         <el-input v-model="searchParams.name" placeholder="资源名称" @change="search" clearable/>
@@ -95,7 +95,7 @@ class ListPage extends TenantSupportListPage {
       },
       searchParams: {
         parentId: null,
-        subSysDictCode: null,
+        subSystemCode: null,
         resourceTypeDictCode: null,
         name: null,
         level: null
@@ -140,9 +140,9 @@ class ListPage extends TenantSupportListPage {
     }
   }
 
-  private async loadMenus(subSysDictCode) {
+  private async loadMenus(subSystemCode) {
     const params = {
-      subSysDictCode: subSysDictCode
+      subSystemCode: subSystemCode
     }
     // @ts-ignore
     const result = await backendRequest({url: "sys/resource/getSimpleMenus", params})
@@ -184,17 +184,17 @@ class ListPage extends TenantSupportListPage {
     if (node.level != 0) {
       if (node.level == 1) {
         this.state.searchParams.resourceTypeDictCode = node.data.id
-        this.state.searchParams.subSysDictCode = null
+        this.state.searchParams.subSystemCode = null
         this.state.searchParams.parentId = null
         this.state.searchParams.name = null
       } else if (node.level == 2) {
         this.state.searchParams.resourceTypeDictCode = node.parent.data.id
-        this.state.searchParams.subSysDictCode = node.data.id
+        this.state.searchParams.subSystemCode = node.data.id
         this.state.searchParams.parentId = null
         this.state.searchParams.name = null
       } else {
         this.state.searchParams.resourceTypeDictCode = this.getResourceTypeByNode(node)
-        this.state.searchParams.subSysDictCode = this.getSubSysByNode(node)
+        this.state.searchParams.subSystemCode = this.getSubSysByNode(node)
         this.state.searchParams.parentId = node.data.id
         if (!expand) {
           this.state.searchParams.name = node.data.name

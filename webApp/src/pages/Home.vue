@@ -68,10 +68,12 @@ const route = useRoute();
 const currentMenuPath = computed(() => store.state.currentMenuPath);
 const currentComponent = computed(() => getComponentForPath(currentMenuPath.value));
 
-/** 根据路由同步 store.currentMenuPath，使直接访问/刷新 /sys/subsys 等时内容区与侧栏/标签一致；点菜单不改地址栏 */
+/** 根据路由同步 store.currentMenuPath，使直接访问/刷新 /sys/subsys 等时内容区与侧栏/标签一致；点菜单不改地址栏。
+ * 当 URL 为默认页 /home 时不覆盖 store，以保留刷新后从 localStorage 恢复的 currentMenuPath（避免刷新总回首页）。 */
 function syncStoreFromRoute() {
   const path = route.path || '/home';
   const menuPath = path.startsWith('/') ? path : '/' + path;
+  if (menuPath === '/home') return;
   if (VALID_MENU_PATHS.has(menuPath) && currentMenuPath.value !== menuPath) {
     store.commit('setCurrentMenuPath', menuPath);
   }

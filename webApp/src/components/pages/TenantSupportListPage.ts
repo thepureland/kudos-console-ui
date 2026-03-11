@@ -2,6 +2,7 @@ import { ElMessage } from "element-plus"
 import { BaseListPage } from "./BaseListPage"
 import { Pair } from "../model/Pair"
 import { backendRequest } from "../../utils/backendRequest"
+import type { SysMicroServiceCacheItem } from "./BasePage"
 
 /**
  * 多租户支持的列表页面处理抽象父类
@@ -11,11 +12,48 @@ import { backendRequest } from "../../utils/backendRequest"
  */
 export abstract class TenantSupportListPage extends BaseListPage {
 
-    /** @internal 初始化租户相关 state 并加载原子服务与租户级联数据 */
+    /** @internal 初始化租户相关 state 并加载第一级（子系统或原子服务）与租户级联数据 */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         this.initTenantVars()
-        this.loadAtomicServices().then(() => this.loadTenants())
+        const firstLevelUrl = this.getFirstLevelApiUrl()
+        if (firstLevelUrl != null) {
+            this.loadFirstLevel(firstLevelUrl).then(() => {
+                this.state.subSysOrTenants = []
+            })
+        } else {
+            this.loadAtomicServices().then(() => this.loadTenants())
+        }
+    }
+
+    /** 第一级使用子系统接口时返回 URL（如 sys/system/getAllActiveSubSystemCodes），返回 null 则使用原子服务。子类可重写。 */
+    protected getFirstLevelApiUrl(): string | null {
+        return null
+    }
+
+    /** 从指定接口加载第一级列表（子系统编码等），结果写入 state.firstLevelList 与 atomicServiceList，供 loadTenants 与表格展示使用 */
+    private async loadFirstLevel(url: string): Promise<void> {
+        try {
+            const result = await backendRequest({ url, method: "get" })
+            const raw = Array.isArray(result) ? (result as unknown[]).map((x) => String(x ?? "")) : []
+            const list = raw.filter((c) => c !== "").map((code) => ({ code, name: code }))
+            this.state.firstLevelList = list
+            const asCache: SysMicroServiceCacheItem[] = list.map(({ code, name }) => ({
+                id: code,
+                code,
+                name,
+                context: null as string | null,
+                atomicService: true,
+                parentCode: null as string | null,
+                remark: null as string | null,
+                active: true,
+                builtIn: true,
+            }))
+            this.atomicServiceList = asCache
+            this.state.atomicServiceList = asCache
+        } catch {
+            this.state.firstLevelList = []
+        }
     }
 
     /** 初始化 searchParams.subSysOrTenant、cascaderProps 等租户筛选相关 state */
@@ -26,14 +64,42 @@ export abstract class TenantSupportListPage extends BaseListPage {
             this.state.searchParams = searchParams
         }
         searchParams.subSysOrTenant = null
-        this.state.subSysDictCode = null
+        this.state.subSystemCode = null
         this.state.tenantId = null
         this.state.subSysOrTenants = null
+        this.state.firstLevelList = null
         const self = this
+        const useLazy = self.getFirstLevelApiUrl() != null
         this.state.cascaderProps = {
             multiple: false,
             checkStrictly: self.isCheckStrictly(),
-            expandTrigger: "hover"
+            expandTrigger: "hover",
+            ...(useLazy ? { lazy: true, lazyLoad: (node: { level: number; value: string; data?: { value?: string } }, resolve: (children: Array<{ value: string; label: string; leaf: boolean }>) => void) => self.lazyLoadTenants(node, resolve) } : {}),
+        }
+    }
+
+    /** 懒加载：level 0 且无节点数据时返回第一级（子系统）；level 0 且有 node 数据或 level 1 时按子系统编码请求 getTenantsBySubSystemCode 返回第二级（租户） */
+    private async lazyLoadTenants(node: { level: number; value: string; data?: { value?: string } }, resolve: (children: Array<{ value: string; label: string; leaf?: boolean }>) => void) {
+        const subSystemCode = (node.data?.value ?? node.value) as string
+        const isRootRequest = node.level === 0 && !subSystemCode
+        if (isRootRequest) {
+            const firstLevel = (this.state.firstLevelList as Array<{ code: string; name: string }> | null) ?? []
+            resolve(firstLevel.map((sub) => ({ value: sub.code, label: sub.name, leaf: false })))
+            return
+        }
+        const needChildren = node.level === 0 || node.level === 1
+        if (!needChildren || !subSystemCode) {
+            resolve([])
+            return
+        }
+        try {
+            const result = await backendRequest({ url: "sys/tenant/getTenantsBySubSystemCode", method: "get", params: { subSystemCode } })
+            const children = Array.isArray(result)
+                ? (result as Array<{ id: string; name: string }>).map((item) => ({ value: item.id, label: item.name, leaf: true }))
+                : []
+            resolve(children)
+        } catch {
+            resolve([])
         }
     }
 
@@ -47,22 +113,22 @@ export abstract class TenantSupportListPage extends BaseListPage {
         return false
     }
 
-    /** 在父类 createSearchParams 基础上注入 subSysDictCode、tenantId（与角色列表一致，便于 Mock/后端按租户过滤） */
+    /** 在父类 createSearchParams 基础上注入 subSystemCode、tenantId（与角色列表一致，便于 Mock/后端按租户过滤） */
     protected createSearchParams() {
         const pair = this.parseSubSysOrTenant()
         if (pair == null) {
             return null
         } else {
             const params = super.createSearchParams()
-            this.state.subSysDictCode = pair.first
+            this.state.subSystemCode = pair.first
             this.state.tenantId = pair.second
-            params.subSysDictCode = pair.first
+            params.subSystemCode = pair.first
             params.tenantId = pair.second
             return params
         }
     }
 
-    /** 从 searchParams.subSysOrTenant 解析出 (subSysDictCode, tenantId)；必选时须选到第二层（租户）才通过 */
+    /** 从 searchParams.subSysOrTenant 解析出 (subSystemCode, tenantId)；必选时须选到第二层（租户）才通过 */
     protected parseSubSysOrTenant(): Pair | null {
         const subSysOrTenant = this.state.searchParams.subSysOrTenant
         if (this.isRequireSubSysOrTenantForSearch() && (subSysOrTenant == null || subSysOrTenant.length < 2)) {
@@ -83,9 +149,9 @@ export abstract class TenantSupportListPage extends BaseListPage {
 
     /** 新增成功后回填 searchParams.subSysOrTenant 再执行父类 doAfterAdd */
     protected doAfterAdd(params: any) {
-        const subSysDictCode = params.subSysDictCode
+        const subSystemCode = params.subSystemCode
         const tenantId = params.tenantId
-        const subSysOrTenant = [subSysDictCode]
+        const subSysOrTenant = [subSystemCode]
         if (tenantId) {
             subSysOrTenant.push(tenantId)
         }
@@ -94,11 +160,11 @@ export abstract class TenantSupportListPage extends BaseListPage {
         super.doAfterAdd(params)
     }
 
-    /** 按子系统拉取启用租户（getTenantsBySubSystemCode），写入 state.subSysOrTenants 供级联使用 */
+    /** 按第一级（原子服务）拉取全部启用租户，写入 state.subSysOrTenants；使用 getFirstLevelApiUrl 时改为 setFirstLevelOptionsOnly + lazyLoad */
     private async loadTenants() {
         const options: Array<{ value: string; label: string; children?: Array<{ value: string; label: string }> }> = []
-        const subSyses = this.getAtomicServices()
-        for (const subSys of subSyses) {
+        const firstLevel = this.getAtomicServices().map((s) => ({ code: s.code, name: s.name }))
+        for (const subSys of firstLevel) {
             const subSysOption: { value: string; label: string; children?: Array<{ value: string; label: string }> } = { value: subSys.code, label: subSys.name }
             options.push(subSysOption)
             try {

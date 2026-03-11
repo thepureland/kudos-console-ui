@@ -132,14 +132,14 @@ class TenantAddEditPage extends BaseAddEditPage {
     }
   }
 
-  /** 回填时兼容后端返回 subSystemCodes（数组）或 subSysDictCode（单值） */
+  /** 回填时兼容后端返回 subSystemCodes（数组）或 subSystemCode（单值） */
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
     const fm = this.state.formModel as FormModel;
     if (Array.isArray(rowObject.subSystemCodes)) {
       fm.subSystemCodes = (rowObject.subSystemCodes as unknown[]).map((x) => String(x ?? '')).filter((c) => c !== '');
-    } else if (rowObject.subSysDictCode != null && rowObject.subSysDictCode !== '') {
-      fm.subSystemCodes = [String(rowObject.subSysDictCode)];
+    } else if (rowObject.subSystemCode != null && rowObject.subSystemCode !== '') {
+      fm.subSystemCodes = [String(rowObject.subSystemCode)];
     }
   }
 }

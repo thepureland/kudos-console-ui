@@ -3,7 +3,7 @@
   "data": {
     "id": "cache-1",
     "name": "userCache",
-    "subSysDictCode": "console",
+    "subSystemCode": "console",
     "strategyDictCode": "caffeine",
     "writeOnBoot": true,
     "writeInTime": false,

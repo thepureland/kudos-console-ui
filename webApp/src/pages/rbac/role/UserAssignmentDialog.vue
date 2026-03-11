@@ -59,7 +59,7 @@ class UserAssignmentDialog extends BaseDetailPage {
   protected createDetailLoadParams(): any {
     return {
       roleId: this.props.rid,
-      subSysDictCode: this.props.subSysDictCode,
+      subSystemCode: this.props.subSystemCode,
       tenantId: this.props.tenantId
     }
   }
@@ -111,7 +111,7 @@ export default defineComponent({
   props: {
     modelValue: Boolean,
     rid: String,
-    subSysDictCode: String,
+    subSystemCode: String,
     tenantId: String
   },
   emits: ['update:modelValue'],

@@ -5,7 +5,7 @@
       {
         "id": "1",
         "name": "主数据源",
-        "subSysDictCode": "console",
+        "subSystemCode": "console",
         "tenantId": "default",
         "tenantName": "默认租户",
         "microservice": "sys",
@@ -16,7 +16,7 @@
       {
         "id": "2",
         "name": "从库数据源",
-        "subSysDictCode": "console",
+        "subSystemCode": "console",
         "tenantId": "default",
         "tenantName": "默认租户",
         "microservice": "sys",
@@ -27,7 +27,7 @@
       {
         "id": "3",
         "name": "console-租户二",
-        "subSysDictCode": "console",
+        "subSystemCode": "console",
         "tenantId": "tenant_2",
         "tenantName": "租户二",
         "microservice": "sys",
@@ -38,7 +38,7 @@
       {
         "id": "4",
         "name": "日志库",
-        "subSysDictCode": "service_a",
+        "subSystemCode": "service_a",
         "tenantId": "1",
         "tenantName": "租户A1",
         "microservice": "ams-log",
