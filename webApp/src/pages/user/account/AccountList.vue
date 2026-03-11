@@ -117,25 +117,25 @@
                 />
                 <template v-for="key in orderedColumnKeys" :key="key">
                   <el-table-column
-                    v-if="key === 'subSysDictCode' && isColumnVisible('subSysDictCode')"
-                    prop="subSysDictCode"
-                    :min-width="columnWidths['subSysDictCode'] ?? 120"
+                    v-if="key === 'subSystemCode' && isColumnVisible('subSystemCode')"
+                    prop="subSystemCode"
+                    :min-width="columnWidths['subSystemCode'] ?? 120"
                     sortable="custom"
                   >
                     <template #header>
                       <div
                         class="column-header-draggable"
-                        data-column-key="subSysDictCode"
-                        :class="{ 'is-dragging': columnDragKey === 'subSysDictCode', 'is-drop-target': columnDropTargetKey === 'subSysDictCode' }"
+                        data-column-key="subSystemCode"
+                        :class="{ 'is-dragging': columnDragKey === 'subSystemCode', 'is-drop-target': columnDropTargetKey === 'subSystemCode' }"
                         draggable="true"
-                        @dragstart="onHeaderDragStart($event, 'subSysDictCode')"
-                        @dragover="onHeaderDragOver($event, 'subSysDictCode')"
-                        @drop="onHeaderDrop($event, 'subSysDictCode')"
+                        @dragstart="onHeaderDragStart($event, 'subSystemCode')"
+                        @dragover="onHeaderDragOver($event, 'subSystemCode')"
+                        @drop="onHeaderDrop($event, 'subSystemCode')"
                         @dragend="onHeaderDragEnd"
                       >{{ t('accountList.columns.subSys') }}</div>
                     </template>
                     <template #default="scope">
-                      {{ transAtomicService(scope.row.subSysDictCode) }}
+                      {{ transAtomicService(scope.row.subSystemCode) }}
                     </template>
                   </el-table-column>
                   <el-table-column
@@ -326,7 +326,7 @@ const ACCOUNT_LIST_STATE_STORAGE_KEY = 'accountList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'accountList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'accountList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSysDictCode', 'tenantId', 'userStatusDictCode', 'userTypeDictCode', 'lastLoginTime', 'createTime'];
+const ALL_COLUMN_KEYS = ['subSystemCode', 'tenantId', 'userStatusDictCode', 'userTypeDictCode', 'lastLoginTime', 'createTime'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
@@ -391,7 +391,7 @@ class ListPage extends TenantSupportListPage {
   private async loadTree(pair: Pair | null): Promise<void> {
     if (!pair) return;
     const params = {
-      subSysDictCode: pair.first,
+      subSystemCode: pair.first,
       tenantId: pair.second,
     };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
@@ -433,7 +433,7 @@ export default defineComponent({
     const RESERVED_WIDTH_LEFT = 39 + 50 + 120;
     const RESERVED_WIDTH_RIGHT = 140;
     const columnKeyToLabelKey: Record<string, string> = {
-      subSysDictCode: 'subSys',
+      subSystemCode: 'subSys',
       tenantId: 'tenant',
       userStatusDictCode: 'userStatus',
       userTypeDictCode: 'userType',
@@ -452,8 +452,8 @@ export default defineComponent({
         getLabel: () => t('accountList.columns.' + (columnKeyToLabelKey[key] ?? key)),
         sortable: true,
         getCellText:
-          key === 'subSysDictCode'
-            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
+          key === 'subSystemCode'
+            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSystemCode)
             : key === 'tenantId'
               ? (row: Record<string, unknown>) => String(row.tenantName ?? '—')
               : key === 'userStatusDictCode'

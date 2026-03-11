@@ -4,7 +4,7 @@
     :model-value="visible"
     title-key="roleDetail.title"
     empty-key="roleDetail.empty"
-    width="65%"
+    width="67%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
     :format-field-value="formatFieldValue"
@@ -46,7 +46,7 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'roleDetail.fields.updateUser', key: 'updateUser' },
   ],
   [
-    { labelKey: 'roleDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+    { labelKey: 'roleDetail.fields.subSystemCode', key: 'subSystemCode', type: 'atomicService' },
     { labelKey: 'roleDetail.fields.tenantId', key: 'tenantId' },
   ],
   [

@@ -13,9 +13,9 @@
       <el-table-column type="selection" width="39"/>
       <el-table-column type="index" width="50"/>
       <el-table-column label="用户名" prop="username"/>
-      <el-table-column label="子系统" prop="subSysDictCode">
+      <el-table-column label="子系统" prop="subSystemCode">
         <template #default="scope">
-          {{ transAtomicService(scope.row.subSysDictCode) }}
+          {{ transAtomicService(scope.row.subSystemCode) }}
         </template>
       </el-table-column>
       <el-table-column label="用户状态" prop="userStatusDictCode">

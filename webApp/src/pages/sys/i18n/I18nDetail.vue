@@ -4,7 +4,7 @@
     :model-value="visible"
     title-key="i18nDetail.title"
     empty-key="i18nDetail.empty"
-    width="65%"
+    width="67%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
     :format-field-value="formatFieldValue"

@@ -13,6 +13,7 @@
           <div class="resource-tree-wrap">
             <el-tree
               ref="tree"
+              :key="(searchParams.subSystemCode as string) || 'no-sub'"
               :props="resourceTreeProps"
               :load="loadTree"
               :expand-on-click-node="false"
@@ -38,6 +39,22 @@
             <template #toolbar>
               <div class="toolbar-cell toolbar-subsys">
                 <el-select
+                  v-model="searchParams.subSystemCode"
+                  :placeholder="t('resourceList.placeholders.subSys')"
+                  clearable
+                  class="search-select-input"
+                  @change="search"
+                >
+                  <el-option
+                    v-for="item in getAtomicServices()"
+                    :key="item.code"
+                    :value="item.code"
+                    :label="item.name"
+                  />
+                </el-select>
+              </div>
+              <div class="toolbar-cell toolbar-subsys">
+                <el-select
                   v-model="searchParams.resourceTypeDictCode"
                   :placeholder="t('resourceList.placeholders.resourceType')"
                   clearable
@@ -49,22 +66,6 @@
                     :key="item.first"
                     :value="item.first"
                     :label="t(item.second)"
-                  />
-                </el-select>
-              </div>
-              <div class="toolbar-cell toolbar-subsys">
-                <el-select
-                  v-model="searchParams.subSysDictCode"
-                  :placeholder="t('resourceList.placeholders.subSys')"
-                  clearable
-                  class="search-select-input"
-                  @change="search"
-                >
-                  <el-option
-                    v-for="item in getAtomicServices()"
-                    :key="item.code"
-                    :value="item.code"
-                    :label="item.name"
                   />
                 </el-select>
               </div>
@@ -130,13 +131,13 @@
                 <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
                 <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" />
                 <el-table-column
-                  v-if="isColumnVisible('subSysDictCode')"
+                  v-if="isColumnVisible('subSystemCode')"
                   :label="t('resourceList.columns.subSys')"
-                  prop="subSysDictCode"
-                  :min-width="columnWidths['subSysDictCode'] ?? 100"
+                  prop="subSystemCode"
+                  :min-width="columnWidths['subSystemCode'] ?? 100"
                 >
                   <template #default="scope">
-                    {{ transAtomicService(scope.row.subSysDictCode) }}
+                    {{ transAtomicService(scope.row.subSystemCode) }}
                   </template>
                 </el-table-column>
                 <el-table-column
@@ -284,7 +285,7 @@ class ResourceListPage extends BaseListPage {
       resourceTreeProps: { label: 'name' },
       searchParams: {
         parentId: null as string | null,
-        subSysDictCode: null as string | null,
+        subSystemCode: null as string | null,
         resourceTypeDictCode: null as string | null,
         name: null as string | null,
         active: true,
@@ -315,7 +316,7 @@ class ResourceListPage extends BaseListPage {
   }
 
   protected getAfterAddSearchParamKeys(): string[] {
-    return ['name', 'parentId', 'subSysDictCode', 'resourceTypeDictCode'];
+    return ['name', 'parentId', 'subSystemCode', 'resourceTypeDictCode'];
   }
 
   protected doAfterAdd(params?: unknown): void {
@@ -342,11 +343,16 @@ class ResourceListPage extends BaseListPage {
     if (node.level === 0) {
       this.state.rootNode = node;
       this.state.rootResolve = resolve;
+      const subSystemCode = (this.state.searchParams as Record<string, unknown>).subSystemCode;
+      if (!subSystemCode) {
+        resolve([]);
+        return;
+      }
     }
     this.setParamsForTree(node, true);
     const params = this.createSearchParams();
     try {
-      const result = await backendRequest({ url: 'sys/resource/loadTreeNodes', method: 'post', params });
+      const result = await backendRequest({ url: 'sys/resource/getSimpleMenus', method: 'get', params });
       if (Array.isArray(result)) resolve(result);
       else ElMessage.error(tr('resourceList.messages.loadTreeFailed'));
     } catch {
@@ -409,17 +415,17 @@ class ResourceListPage extends BaseListPage {
     }
     if (node.level === 1) {
       next.resourceTypeDictCode = (node.data as { id?: string }).id ?? null;
-      next.subSysDictCode = null;
+      next.subSystemCode = null;
       next.parentId = null;
       next.name = null;
     } else if (node.level === 2) {
       next.resourceTypeDictCode = node.parent?.data?.id ?? null;
-      next.subSysDictCode = (node.data as { id?: string }).id ?? null;
+      next.subSystemCode = (node.data as { id?: string }).id ?? null;
       next.parentId = null;
       next.name = null;
     } else {
       next.resourceTypeDictCode = this.getResourceTypeByNode(node as { level: number; parent?: { data: { id?: string } } });
-      next.subSysDictCode = this.getSubSysByNode(node as { level: number; parent?: { data: { id?: string } } });
+      next.subSystemCode = this.getSubSysByNode(node as { level: number; parent?: { data: { id?: string } } });
       next.parentId = (node.data as { id?: string }).id ?? null;
       next.name = !expand ? (node.data as { name?: string }).name ?? null : (sp.name as string | null) ?? null;
     }
@@ -501,7 +507,7 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'resourceList.operationColumnPinned'
 const RESOURCE_LIST_STATE_STORAGE_KEY = 'resourceList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'resourceList.visibleColumns';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSysDictCode', 'resourceTypeDictCode', 'name', 'url', 'icon', 'seqNo', 'active'];
+const ALL_COLUMN_KEYS = ['subSystemCode', 'resourceTypeDictCode', 'name', 'url', 'icon', 'seqNo', 'active'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
@@ -519,7 +525,7 @@ export default defineComponent({
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
 
     const columnKeyToLabel: Record<string, () => string> = {
-      subSysDictCode: () => t('resourceList.columns.subSys'),
+      subSystemCode: () => t('resourceList.columns.subSys'),
       resourceTypeDictCode: () => t('resourceList.columns.resourceType'),
       name: () => t('resourceList.columns.name'),
       url: () => t('resourceList.columns.url'),
@@ -544,8 +550,8 @@ export default defineComponent({
         getLabel: () => columnKeyToLabel[key]?.() ?? key,
         sortable: key === 'name' || key === 'url' || key === 'icon' || key === 'seqNo',
         getCellText:
-          key === 'subSysDictCode'
-            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSysDictCode)
+          key === 'subSystemCode'
+            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSystemCode)
             : key === 'resourceTypeDictCode'
               ? (row: Record<string, unknown>) => formatDictCell('kuark:sys', 'resource_type', row.resourceTypeDictCode)
               : key === 'name'

@@ -4,7 +4,7 @@
     :model-value="visible"
     title-key="cacheDetail.title"
     empty-key="cacheDetail.empty"
-    width="65%"
+    width="67%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
     :format-field-value="formatFieldValue"

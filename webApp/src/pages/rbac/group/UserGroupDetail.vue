@@ -4,7 +4,7 @@
     :model-value="visible"
     title-key="userGroupDetail.title"
     empty-key="userGroupDetail.empty"
-    width="65%"
+    width="67%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
     :format-field-value="formatFieldValue"
@@ -47,7 +47,7 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'userGroupDetail.fields.updateUser', key: 'updateUser' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.subSysDictCode', key: 'subSysDictCode', type: 'atomicService' },
+    { labelKey: 'userGroupDetail.fields.subSystemCode', key: 'subSystemCode', type: 'atomicService' },
     { labelKey: 'userGroupDetail.fields.ownerId', key: 'ownerId' },
   ],
   [

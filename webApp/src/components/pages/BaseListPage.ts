@@ -515,8 +515,9 @@ export abstract class BaseListPage extends BasePage {
             id: this.getRowId(row),
             active: row.active
         }
-        if (row.subSysDictCode) {
-            params["subSysDictCode"] = row.subSysDictCode
+        const subSystemCode = row.subSystemCode ?? row.subSystemCode
+        if (subSystemCode) {
+            params["subSystemCode"] = subSystemCode
         }
         const result = await backendRequest({url: this.getUpdateActiveUrl(), params})
         if (result !== true && result?.data !== true) {

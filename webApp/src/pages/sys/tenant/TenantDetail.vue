@@ -4,7 +4,7 @@
     :model-value="visible"
     title-key="tenantDetail.title"
     empty-key="tenantDetail.empty"
-    width="65%"
+    width="67%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
     :format-field-value="formatFieldValue"
