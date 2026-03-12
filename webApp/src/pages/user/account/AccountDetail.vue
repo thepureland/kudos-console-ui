@@ -39,11 +39,11 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'accountDetail.fields.username', key: 'username' },
   ],
   [
-    { labelKey: 'accountDetail.fields.userStatusDictCode', key: 'userStatusDictCode', type: 'dict', dictModule: 'kuark:user', dictCode: 'user_status' },
+    { labelKey: 'accountDetail.fields.userStatusDictCode', key: 'userStatusDictCode', type: 'dict', dictModule: 'user', dictCode: 'user_status' },
     { labelKey: 'accountDetail.fields.userStatusReason', key: 'userStatusReason' },
   ],
   [
-    { labelKey: 'accountDetail.fields.userTypeDictCode', key: 'userTypeDictCode', type: 'dict', dictModule: 'kuark:user', dictCode: 'user_type' },
+    { labelKey: 'accountDetail.fields.userTypeDictCode', key: 'userTypeDictCode', type: 'dict', dictModule: 'user', dictCode: 'user_type' },
     { labelKey: 'accountDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
   ],
   [
@@ -56,7 +56,7 @@ const ROW_FIELDS: FieldConfig[][] = [
   ],
   [
     { labelKey: 'accountDetail.fields.lastLoginIp', key: 'lastLoginIp' },
-    { labelKey: 'accountDetail.fields.lastLoginTerminalDictCode', key: 'lastLoginTerminalDictCode', type: 'dict', dictModule: 'kuark:user', dictCode: 'user_terminal' },
+    { labelKey: 'accountDetail.fields.lastLoginTerminalDictCode', key: 'lastLoginTerminalDictCode', type: 'dict', dictModule: 'user', dictCode: 'user_terminal' },
   ],
   [
     { labelKey: 'accountDetail.fields.totalOnlineTime', key: 'totalOnlineTime' },
@@ -103,8 +103,8 @@ class DetailPage extends BaseDetailPage {
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
     await this.loadDictsBatch([
-      { dictTypes: ['sys'], atomicServiceCode: 'kuark:sys' },
-      { dictTypes: ['user_status', 'user_type', 'user_terminal'], atomicServiceCode: 'kuark:user' },
+      { dictTypes: ['sys'], atomicServiceCode: 'sys' },
+      { dictTypes: ['user_status', 'user_type', 'user_terminal'], atomicServiceCode: 'user' },
     ]);
   }
 }

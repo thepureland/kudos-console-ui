@@ -41,7 +41,7 @@ const ROW_FIELDS: FieldConfig[][] = [
   ],
   [
     { labelKey: 'resourceDetail.fields.icon', key: 'icon' },
-    { labelKey: 'resourceDetail.fields.resourceTypeDictCode', key: 'resourceTypeDictCode', type: 'dict', dictModule: 'kuark:sys', dictCode: 'resource_type' },
+    { labelKey: 'resourceDetail.fields.resourceTypeDictCode', key: 'resourceTypeDictCode', type: 'dict', dictModule: 'sys', dictCode: 'resource_type' },
   ],
   [
     { labelKey: 'resourceDetail.fields.parentId', key: 'parentId' },
@@ -77,7 +77,7 @@ class ResourceDetailPage extends BaseDetailPage {
 
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
-    await this.loadDicts(['resource_type'], 'kuark:sys');
+    await this.loadDicts(['resource_type'], 'sys');
   }
 
   protected getRootActionPath(): string {

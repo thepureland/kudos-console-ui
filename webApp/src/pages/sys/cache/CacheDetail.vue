@@ -37,7 +37,7 @@ const ROW_FIELDS: FieldConfig[][] = [
   ],
   [
     { labelKey: 'cacheDetail.fields.atomicServiceCode', key: 'atomicServiceCode', type: 'atomicService' },
-    { labelKey: 'cacheDetail.fields.strategyDictCode', key: 'strategyDictCode', type: 'dict', dictModule: 'kuark:sys', dictCode: 'cache_strategy' },
+    { labelKey: 'cacheDetail.fields.strategyDictCode', key: 'strategyDictCode', type: 'dict', dictModule: 'sys', dictCode: 'cache_strategy' },
   ],
   [
     { labelKey: 'cacheDetail.fields.active', key: 'active', type: 'boolean' },

@@ -20,12 +20,12 @@
       </el-table-column>
       <el-table-column label="用户状态" prop="userStatusDictCode">
         <template #default="scope">
-          {{ t(transDict("kuark:user", "user_status", scope.row.userStatusDictCode)) }}
+          {{ t(transDict("user", "user_status", scope.row.userStatusDictCode)) }}
         </template>
       </el-table-column>
       <el-table-column label="用户类型" prop="userTypeDictCode">
         <template #default="scope">
-          {{ t(transDict("kuark:user", "user_type", scope.row.userTypeDictCode)) }}
+          {{ t(transDict("user", "user_type", scope.row.userTypeDictCode)) }}
         </template>
       </el-table-column>
       <el-table-column label="最后一次登陆时间">
@@ -65,7 +65,7 @@ class UserListDialog extends BaseListPage {
 
   constructor(props, context) {
     super(props, context)
-    this.loadDicts(["user_status", "user_type"], "kuark:user")
+    this.loadDicts(["user_status", "user_type"], "user")
     this.search()
   }
 

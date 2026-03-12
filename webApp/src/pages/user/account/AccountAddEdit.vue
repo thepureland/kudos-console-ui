@@ -51,7 +51,7 @@
         </el-form-item>
         <el-form-item :label="t('accountAddEdit.labels.userTypeDictCode')" prop="userTypeDictCode" class="is-required">
           <el-select v-model="formModel.userTypeDictCode" :placeholder="t('accountAddEdit.placeholders.userTypeDictCode')" clearable filterable class="form-select-full">
-            <el-option v-for="item in getDictItems('kuark:user', 'user_type')" :key="item.first" :value="item.first" :label="t(item.second)" />
+            <el-option v-for="item in getDictItems('user', 'user_type')" :key="item.first" :value="item.first" :label="t(item.second)" />
           </el-select>
         </el-form-item>
       </section>
@@ -87,7 +87,7 @@ class AddEditPage extends OrgSupportAddEditPage {
     parentCascader: { value?: { getCheckedNodes: () => unknown[] } }
   ) {
     super(props, context, parentCascader);
-    this.loadDicts(['user_type'], 'kuark:user');
+    this.loadDicts(['user_type'], 'user');
   }
 
   /** 租户级联与列表页一致：非严格模式，选叶子节点后自动收起 */

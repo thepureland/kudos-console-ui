@@ -178,7 +178,7 @@
                       >{{ t('accountList.columns.userStatus') }}</div>
                     </template>
                     <template #default="scope">
-                      {{ formatDictCell('kuark:user', 'user_status', scope.row.userStatusDictCode) }}
+                      {{ formatDictCell('user', 'user_status', scope.row.userStatusDictCode) }}
                     </template>
                   </el-table-column>
                   <el-table-column
@@ -200,7 +200,7 @@
                       >{{ t('accountList.columns.userType') }}</div>
                     </template>
                     <template #default="scope">
-                      {{ formatDictCell('kuark:user', 'user_type', scope.row.userTypeDictCode) }}
+                      {{ formatDictCell('user', 'user_type', scope.row.userTypeDictCode) }}
                     </template>
                   </el-table-column>
                   <el-table-column
@@ -333,7 +333,7 @@ const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 class ListPage extends TenantSupportListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
-    this.loadDicts(['user_status', 'user_type'], 'kuark:user');
+    this.loadDicts(['user_status', 'user_type'], 'user');
     this.convertThis();
   }
 
@@ -457,9 +457,9 @@ export default defineComponent({
             : key === 'tenantId'
               ? (row: Record<string, unknown>) => String(row.tenantName ?? '—')
               : key === 'userStatusDictCode'
-              ? (row: Record<string, unknown>) => formatDictCell('kuark:user', 'user_status', row.userStatusDictCode)
+              ? (row: Record<string, unknown>) => formatDictCell('user', 'user_status', row.userStatusDictCode)
               : key === 'userTypeDictCode'
-                ? (row: Record<string, unknown>) => formatDictCell('kuark:user', 'user_type', row.userTypeDictCode)
+                ? (row: Record<string, unknown>) => formatDictCell('user', 'user_type', row.userTypeDictCode)
                 : key === 'lastLoginTime'
                   ? (row: Record<string, unknown>) => listPage.formatDate(row.lastLoginTime)
                   : key === 'createTime'

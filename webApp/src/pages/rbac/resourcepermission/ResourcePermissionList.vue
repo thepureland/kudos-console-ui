@@ -17,7 +17,7 @@
     <el-row :gutter="20" class="toolbar">
       <el-col :span="2">
         <el-select v-model="searchParams.resourceTypeDictCode" placeholder="资源类型" clearable class="border_red">
-          <el-option v-for="item in getDictItems('kuark:sys', 'resource_type')"
+          <el-option v-for="item in getDictItems('sys', 'resource_type')"
                      :key="item.first" :value="item.first" :label="t(item.second)"/>
         </el-select>
       </el-col>
@@ -85,7 +85,7 @@ class ListPage extends TenantSupportListPage {
   constructor(props, context, tree) {
     super(props, context)
     this.tree = tree
-    this.loadDicts(["resource_type"], "kuark:sys")
+    this.loadDicts(["resource_type"], "sys")
   }
 
   protected initState(): any {
@@ -145,7 +145,7 @@ class ListPage extends TenantSupportListPage {
       subSystemCode: subSystemCode
     }
     // @ts-ignore
-    const result = await backendRequest({url: "sys/resource/getSimpleMenus", params})
+    const result = await backendRequest({ url: "sys/resource/loadDirectChildrenForTree", method: "post", params })
     if (Array.isArray(result)) {
       this.state.menus = result
     } else {
@@ -169,7 +169,7 @@ class ListPage extends TenantSupportListPage {
     params.id = nodeData.id
     params.resourceTypeDictCode = this.getResourceTypeByNode(node)
     // @ts-ignore
-    const result = await backendRequest({url: "sys/resource/searchOnClick", method: "post", params});
+    const result = await backendRequest({url: "sys/resource/pagingSearch", method: "post", params});
     if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
       this.state.tableData = (result as { data: unknown[] }).data ?? []
       this.state.pagination.total = (result as { totalCount: number }).totalCount ?? 0
@@ -217,7 +217,7 @@ class ListPage extends TenantSupportListPage {
     return node.data.id
   }
 
-  private async searchByTree() {
+  private async pagingSearch() {
     const params = this.createSearchParams()
     params["pageNo"] = this.state.pagination.pageNo
     params["pageSize"] = this.state.pagination.pageSize

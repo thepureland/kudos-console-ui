@@ -8,12 +8,11 @@
 <template>
   <div class="resource-list-page list-page-common">
     <el-card class="resource-list-card">
-      <el-row :gutter="6" class="resource-list-row">
-        <el-col :span="3" class="resource-tree-col">
+      <div ref="splitContainerRef" class="resource-list-split">
+        <div class="resource-tree-col" :style="{ width: treePanelWidthPercent + '%' }">
           <div class="resource-tree-wrap">
             <el-tree
               ref="tree"
-              :key="(searchParams.subSystemCode as string) || 'no-sub'"
               :props="resourceTreeProps"
               :load="loadTree"
               :expand-on-click-node="false"
@@ -22,10 +21,15 @@
               lazy
               @node-expand="expandTreeNode"
               @node-click="(nodeData, node) => clickTreeNode(nodeData, node)"
-            />
+            >
+              <template #default="{ node, data }">
+                <span>{{ getTreeNodeLabel(data) }}</span>
+              </template>
+            </el-tree>
           </div>
-        </el-col>
-        <el-col :span="21" class="resource-table-col">
+        </div>
+        <div class="resource-list-resizer" @mousedown="startTreeResize" />
+        <div class="resource-table-col">
           <list-page-layout
             :table-wrap-ref="listLayoutRefs.tableWrapRef"
             :list-page="listPage"
@@ -62,10 +66,10 @@
                   @change="search"
                 >
                   <el-option
-                    v-for="item in getDictItems('kuark:sys', 'resource_type')"
+                    v-for="item in resourceTypeOptions"
                     :key="item.first"
                     :value="item.first"
-                    :label="t(item.second)"
+                    :label="getResourceTypeLabel(item.first)"
                   />
                 </el-select>
               </div>
@@ -147,7 +151,7 @@
                   :min-width="columnWidths['resourceTypeDictCode'] ?? 100"
                 >
                   <template #default="scope">
-                    {{ formatDictCell('kuark:sys', 'resource_type', scope.row.resourceTypeDictCode) }}
+                    {{ getResourceTypeLabel(scope.row.resourceTypeDictCode) }}
                   </template>
                 </el-table-column>
                 <el-table-column
@@ -172,10 +176,10 @@
                   sortable="custom"
                 />
                 <el-table-column
-                  v-if="isColumnVisible('seqNo')"
+                  v-if="isColumnVisible('orderNum')"
                   :label="t('resourceList.columns.seqNo')"
-                  prop="seqNo"
-                  :min-width="columnWidths['seqNo'] ?? 80"
+                  prop="orderNum"
+                  :min-width="columnWidths['orderNum'] ?? 80"
                   sortable="custom"
                 />
                 <el-table-column
@@ -234,8 +238,8 @@
               />
             </template>
           </list-page-layout>
-        </el-col>
-      </el-row>
+        </div>
+      </div>
 
       <resource-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
       <resource-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
@@ -245,7 +249,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, onBeforeUnmount, provide } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, watch, nextTick, onBeforeUnmount, provide } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
@@ -258,8 +262,15 @@ import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
-import { Pair } from '../../../components/model/Pair';
 import { backendRequest } from '../../../utils/backendRequest';
+import { loadMessagesForConfig } from '../../../i18n';
+
+const MENU_I18N_CONFIG = [{ i18nTypeDictCode: 'view', namespaces: ['menu'], atomicServiceCode: 'sys' as const }];
+/** 本页切换语言时需重新加载的 i18n（与 getI18nConfig 一致），保证 t('resource_type.*') 等随新 locale 生效 */
+const RESOURCE_LIST_I18N_CONFIG = [
+  { i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' },
+  ...MENU_I18N_CONFIG,
+];
 
 function tr(key: string): string {
   return i18n.global.t(key) as string;
@@ -276,13 +287,41 @@ class ResourceListPage extends BaseListPage {
     super(props, context);
     this.tree = tree;
     this.convertThis();
-    this.loadAtomicServices();
-    this.loadDicts(['resource_type'], 'kuark:sys');
+    this.loadSubSystems();
+    this.loadDicts(['resource_type'], 'sys').then(() => {
+      (this.state as Record<string, unknown>).resourceTypeOptions = this.getDictItems('sys', 'resource_type');
+    });
+  }
+
+  /** 子系统下拉与表格展示：使用 sys/system/getAllActiveSubSystemCodes，与数据源/域名等页一致 */
+  private async loadSubSystems(): Promise<void> {
+    try {
+      const result = await backendRequest({ url: 'sys/system/getAllActiveSubSystemCodes', method: 'get' });
+      const raw = Array.isArray(result) ? (result as unknown[]).map((x) => String(x ?? '')) : [];
+      const list = raw.filter((c) => c !== '').map((code) => ({ code, name: code }));
+      const asCache = list.map(({ code, name }) => ({
+        id: code,
+        code,
+        name,
+        context: null as string | null,
+        atomicService: true,
+        parentCode: null as string | null,
+        remark: null as string | null,
+        active: true,
+        builtIn: true,
+      }));
+      this.atomicServiceList = asCache;
+      this.state.atomicServiceList = asCache;
+    } catch {
+      this.atomicServiceList = [];
+      this.state.atomicServiceList = [];
+    }
   }
 
   protected initState(): Record<string, unknown> {
     return {
       resourceTreeProps: { label: 'name' },
+      resourceTypeOptions: [] as Array<{ first: string; second: string }>,
       searchParams: {
         parentId: null as string | null,
         subSystemCode: null as string | null,
@@ -301,6 +340,29 @@ class ResourceListPage extends BaseListPage {
     return 'sys/resource';
   }
 
+  /** 重置搜索条件时保留「仅启用」为打勾，其它条件清空 */
+  protected override doResetSearchFields(): void {
+    this.state.pagination.pageNo = 1;
+    const searchParams = this.state.searchParams as Record<string, unknown>;
+    if (searchParams) {
+      for (const paramName in searchParams) {
+        if (paramName === 'active') {
+          searchParams[paramName] = true;
+          continue;
+        }
+        searchParams[paramName] = null;
+      }
+    }
+  }
+
+  /** 本页需加载的国际化：ListPage + AddEditPage（弹窗共用）；menu 与 Sidebar 一致供树第三层及以下菜单文案 */
+  protected getI18nConfig() {
+    return [
+      { i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' },
+      ...MENU_I18N_CONFIG,
+    ];
+  }
+
   protected createSearchParams(): Record<string, unknown> | null {
     const params = super.createSearchParams();
     if (!params) return null;
@@ -310,9 +372,61 @@ class ResourceListPage extends BaseListPage {
     return params;
   }
 
+  /**
+   * 由树触发的 pagingSearch 参数：不传 name、pageNo、pageSize、level。
+   * 用于展开树节点、点击树节点时请求表格数据。
+   */
+  private buildPagingSearchParamsForTree(): Record<string, unknown> {
+    const sp = this.state.searchParams as Record<string, unknown>;
+    const params: Record<string, unknown> = {
+      subSystemCode: sp?.subSystemCode ?? null,
+      resourceTypeDictCode: sp?.resourceTypeDictCode ?? null,
+      parentId: sp?.parentId ?? null,
+      active: sp?.active === true ? true : null,
+    };
+    const sort = this.state.sort as { orderProperty?: string; orderDirection?: string };
+    if (sort?.orderProperty) {
+      params.orders = [{ property: sort.orderProperty, direction: sort.orderDirection ?? 'ASC' }];
+    }
+    return params;
+  }
+
+  /**
+   * 由搜索栏触发的 pagingSearch 参数：不传 level、parentId。
+   * 用于点击搜索/重置、分页、排序时请求表格数据。
+   */
+  private buildPagingSearchParamsForSearchBar(): Record<string, unknown> {
+    const sp = this.state.searchParams as Record<string, unknown>;
+    const params: Record<string, unknown> = {
+      name: sp?.name ?? null,
+      subSystemCode: sp?.subSystemCode ?? null,
+      resourceTypeDictCode: sp?.resourceTypeDictCode ?? null,
+      active: sp?.active === true ? true : null,
+      pageNo: this.state.pagination?.pageNo ?? 1,
+      pageSize: this.state.pagination?.pageSize ?? 10,
+    };
+    const sort = this.state.sort as { orderProperty?: string; orderDirection?: string };
+    if (sort?.orderProperty) {
+      params.orders = [{ property: sort.orderProperty, direction: sort.orderDirection ?? 'ASC' }];
+    }
+    return params;
+  }
+
   protected async doSearch(): Promise<void> {
     (this.state as Record<string, unknown>).searchSource = 'button';
-    await super.doSearch();
+    const params = this.buildPagingSearchParamsForSearchBar();
+    if (!params) return;
+    try {
+      const result = await backendRequest({ url: 'sys/resource/pagingSearch', method: 'post', params });
+      const isSuccess = result != null && typeof result === 'object' && 'data' in result && typeof (result as { totalCount?: number }).totalCount === 'number';
+      if (isSuccess) {
+        this.postSearchSuccessfully(result as { data: unknown[]; totalCount: number });
+      } else {
+        ElMessage.error(tr('resourceList.messages.loadFailed'));
+      }
+    } catch {
+      ElMessage.error(tr('resourceList.messages.loadFailed'));
+    }
   }
 
   protected getAfterAddSearchParamKeys(): string[] {
@@ -339,25 +453,69 @@ class ResourceListPage extends BaseListPage {
 
   public loadTree: (node: unknown, resolve: (data: unknown) => void) => void;
 
-  private async doLoadTree(node: { level: number; data: unknown }, resolve: (data: unknown) => void): Promise<void> {
+  /**
+   * 按四种情况分别构造 loadDirectChildrenForTree 的请求参数：
+   * 1. 页面打开时（level=0）：加载资源类型，只传 level=0、active
+   * 2. 资源类型展开时（level=1）：加载子系统，只传 active、level=1
+   * 3. 子系统展开时（level=2）：加载第一层资源，传 active、level=2、subSystemCode、resourceTypeDictCode
+   * 4. 其他情况（level>2）：传 active、level、parentId
+   */
+  private buildTreeRequestParams(node: { level: number; data: { id?: string }; parent?: { data: { id?: string } } }): Record<string, unknown> {
+    const active = (this.state.searchParams as Record<string, unknown>)?.active ?? true;
+    if (node.level === 0) {
+      return { level: 0, active };
+    }
+    if (node.level === 1) {
+      return { active, level: 1 };
+    }
+    if (node.level === 2) {
+      return {
+        active,
+        level: 2,
+        subSystemCode: node.data?.id ?? null,
+        resourceTypeDictCode: node.parent?.data?.id ?? null,
+      };
+    }
+    return {
+      active,
+      level: node.level,
+      parentId: node.data?.id ?? null,
+    };
+  }
+
+  private async doLoadTree(node: { level: number; data: unknown; parent?: { data: { id?: string } } }, resolve: (data: unknown) => void): Promise<void> {
     if (node.level === 0) {
       this.state.rootNode = node;
       this.state.rootResolve = resolve;
-      const subSystemCode = (this.state.searchParams as Record<string, unknown>).subSystemCode;
-      if (!subSystemCode) {
-        resolve([]);
-        return;
-      }
     }
-    this.setParamsForTree(node, true);
-    const params = this.createSearchParams();
+    this.setParamsForTree(node as { level: number; data: { id?: string; name?: string }; parent?: { data: { id?: string } } }, true);
+    const treeParams = this.buildTreeRequestParams(node as { level: number; data: { id?: string }; parent?: { data: { id?: string } } });
+    if (node.level >= 2) await loadMessagesForConfig(MENU_I18N_CONFIG);
     try {
-      const result = await backendRequest({ url: 'sys/resource/getSimpleMenus', method: 'get', params });
-      if (Array.isArray(result)) resolve(result);
-      else ElMessage.error(tr('resourceList.messages.loadTreeFailed'));
+      const result = await backendRequest({ url: 'sys/resource/loadDirectChildrenForTree', method: 'post', params: treeParams });
+      const rawList = Array.isArray(result) ? result : (result != null && typeof result === 'object' && 'data' in result ? (result as { data: unknown }).data : null);
+      const list = Array.isArray(rawList) ? rawList : [];
+      const resolved = this.applyTreeNodeI18n(list, node.level);
+      resolve(resolved);
     } catch {
       ElMessage.error(tr('resourceList.messages.loadTreeFailed'));
     }
+  }
+
+  /** 树节点国际化：存 nameKey 供模板随 locale 用 t(nameKey) 渲染；第一层=resource_type.*，第二层不设，其余层=titleKey 或 name（当为 i18n key 时） */
+  private applyTreeNodeI18n(nodes: unknown[], parentLevel: number): Record<string, unknown>[] {
+    return nodes.map((n) => {
+      const item = (n && typeof n === 'object' ? { ...(n as Record<string, unknown>) } : { id: '', name: '' }) as Record<string, unknown>;
+      const id = String(item.id ?? item.value ?? '').trim();
+      const name = item.name != null ? String(item.name) : '';
+      const titleKey = item.titleKey != null ? String(item.titleKey) : '';
+      if (parentLevel === 0) {
+        item.nameKey = id ? 'resource_type.' + id : '';
+      } else if (parentLevel >= 2) {
+        item.nameKey = titleKey || (name && name.includes('.') ? name : '');
+      }
+      return item;
+    });
   }
 
   public expandTreeNode: (nodeData: unknown, node: { level: number }) => void;
@@ -372,7 +530,7 @@ class ResourceListPage extends BaseListPage {
     }
     this.resetSearchFields();
     this.setParamsForTree(node as { level: number; data: unknown }, true);
-    this.searchByTree();
+    this.pagingSearch();
   }
 
   public clickTreeNode: (nodeData: { id: string; name?: string }, node: { level: number; data: unknown; parent?: { data: unknown } }) => void;
@@ -387,12 +545,14 @@ class ResourceListPage extends BaseListPage {
     }
     this.resetSearchFields();
     this.setParamsForTree(node as { level: number; data: unknown }, false);
-    const params = this.createSearchParams() as Record<string, unknown>;
-    if (!params) return;
-    params.id = nodeData.id;
-    params.resourceTypeDictCode = this.getResourceTypeByNode(node);
+    const params = {
+      ...this.buildPagingSearchParamsForTree(),
+      id: nodeData.id,
+      resourceTypeDictCode: this.getResourceTypeByNode(node),
+      parentId: null,
+    };
     try {
-      const result = await backendRequest({ url: 'sys/resource/searchOnClick', method: 'post', params });
+      const result = await backendRequest({ url: 'sys/resource/pagingSearch', method: 'post', params });
       if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
         this.state.tableData = (result as { data: unknown[] }).data ?? [];
         (this.state.pagination as Record<string, number>).total = (result as { totalCount: number }).totalCount ?? 0;
@@ -419,6 +579,17 @@ class ResourceListPage extends BaseListPage {
       next.parentId = null;
       next.name = null;
     } else if (node.level === 2) {
+      if (expand) {
+        Object.assign(sp, {
+          level: node.level,
+          resourceTypeDictCode: node.parent?.data?.id ?? null,
+          subSystemCode: (node.data as { id?: string }).id ?? null,
+          parentId: null,
+          name: null,
+        });
+        (this.state as Record<string, unknown>).searchParams = sp;
+        return;
+      }
       next.resourceTypeDictCode = node.parent?.data?.id ?? null;
       next.subSystemCode = (node.data as { id?: string }).id ?? null;
       next.parentId = null;
@@ -444,15 +615,10 @@ class ResourceListPage extends BaseListPage {
     return (n as { data?: { id?: string } }).data?.id ?? null;
   }
 
-  private async searchByTree(): Promise<void> {
-    const params = this.createSearchParams() as Record<string, unknown>;
-    if (!params) return;
-    params.pageNo = this.state.pagination?.pageNo ?? 1;
-    params.pageSize = this.state.pagination?.pageSize ?? 10;
-    const sort = this.state.sort as { orderProperty?: string; orderDirection?: string };
-    if (sort?.orderProperty) params.orders = [{ property: sort.orderProperty, direction: sort.orderDirection ?? 'ASC' }];
+  private async pagingSearch(): Promise<void> {
+    const params = this.buildPagingSearchParamsForTree();
     try {
-      const result = await backendRequest({ url: 'sys/resource/searchByTree', method: 'post', params });
+      const result = await backendRequest({ url: 'sys/resource/pagingSearch', method: 'post', params });
       if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
         this.state.tableData = (result as { data: unknown[] }).data ?? [];
         (this.state.pagination as Record<string, number>).total = (result as { totalCount: number }).totalCount ?? 0;
@@ -507,7 +673,7 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'resourceList.operationColumnPinned'
 const RESOURCE_LIST_STATE_STORAGE_KEY = 'resourceList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'resourceList.visibleColumns';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSystemCode', 'resourceTypeDictCode', 'name', 'url', 'icon', 'seqNo', 'active'];
+const ALL_COLUMN_KEYS = ['subSystemCode', 'resourceTypeDictCode', 'name', 'url', 'icon', 'orderNum', 'active'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
@@ -516,7 +682,12 @@ export default defineComponent({
   components: { ResourceAddEdit, ResourceDetail, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
-    const { t } = useI18n();
+    const { t, te } = useI18n();
+    // 监听全局 locale（setLocale 修改的是 i18n.global.locale），切换语言时重载本页 i18n，使 t('resource_type.*') 等随新语言生效
+    watch(
+      () => i18n.global.locale.value,
+      () => loadMessagesForConfig(RESOURCE_LIST_I18N_CONFIG),
+    );
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new ResourceListPage(props, context, tree)) as ResourceListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
@@ -530,7 +701,7 @@ export default defineComponent({
       name: () => t('resourceList.columns.name'),
       url: () => t('resourceList.columns.url'),
       icon: () => t('resourceList.columns.icon'),
-      seqNo: () => t('resourceList.columns.seqNo'),
+      orderNum: () => t('resourceList.columns.seqNo'),
       active: () => t('resourceList.columns.active'),
     };
     const columnVisibilityOptions = computed(() => [
@@ -544,24 +715,38 @@ export default defineComponent({
       const key = listPage.transDict(module, dictType, code);
       return key ? t(key) : '—';
     }
+    /** 资源类型列/下拉：使用 locale resource_type.* 做国际化，无对应 key 时回退到字典/原码；随 locale 切换更新 */
+    function getResourceTypeLabel(code: unknown): string {
+      const c = String(code ?? '').trim();
+      if (!c) return '—';
+      const i18nKey = 'resource_type.' + c;
+      const translated = t(i18nKey);
+      return translated !== i18nKey ? translated : (listPage.transDict('sys', 'resource_type', c) || c);
+    }
+    /** 树节点文案：有 nameKey 则 t(nameKey) 以随 locale 更新，否则用 name（第二层等） */
+    function getTreeNodeLabel(data: Record<string, unknown>): string {
+      const key = data.nameKey != null ? String(data.nameKey) : '';
+      if (key && te(key)) return t(key);
+      return (data.name != null ? String(data.name) : '') || (data.title != null ? String(data.title) : '') || (data.titleKey != null ? String(data.titleKey) : '');
+    }
     const autoWidthColumns = computed(() =>
       ALL_COLUMN_KEYS.map((key) => ({
         key,
         getLabel: () => columnKeyToLabel[key]?.() ?? key,
-        sortable: key === 'name' || key === 'url' || key === 'icon' || key === 'seqNo',
+        sortable: key === 'name' || key === 'url' || key === 'icon' || key === 'orderNum',
         getCellText:
           key === 'subSystemCode'
             ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSystemCode)
             : key === 'resourceTypeDictCode'
-              ? (row: Record<string, unknown>) => formatDictCell('kuark:sys', 'resource_type', row.resourceTypeDictCode)
+              ? (row: Record<string, unknown>) => getResourceTypeLabel(row.resourceTypeDictCode)
               : key === 'name'
                 ? (row: Record<string, unknown>) => String(row.name ?? '')
                 : key === 'url'
                   ? (row: Record<string, unknown>) => String(row.url ?? '')
                   : key === 'icon'
                     ? (row: Record<string, unknown>) => String(row.icon ?? '')
-                    : key === 'seqNo'
-                      ? (row: Record<string, unknown>) => String(row.seqNo ?? '')
+                    : key === 'orderNum'
+                      ? (row: Record<string, unknown>) => String(row.orderNum ?? '')
                       : () => '',
       }))
     );
@@ -591,15 +776,42 @@ export default defineComponent({
     });
     onBeforeUnmount(() => {
       listPage.persistListState();
+      document.removeEventListener('mousemove', onTreeResizeMove);
+      document.removeEventListener('mouseup', onTreeResizeEnd);
     });
+
+    const splitContainerRef = ref<HTMLElement | null>(null);
+    const treePanelWidthPercent = ref(15.75);
+    function startTreeResize(e: MouseEvent) {
+      e.preventDefault();
+      document.addEventListener('mousemove', onTreeResizeMove);
+      document.addEventListener('mouseup', onTreeResizeEnd);
+    }
+    function onTreeResizeMove(e: MouseEvent) {
+      const el = splitContainerRef.value;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const pct = (x / rect.width) * 100;
+      treePanelWidthPercent.value = Math.min(50, Math.max(15, pct));
+    }
+    function onTreeResizeEnd() {
+      document.removeEventListener('mousemove', onTreeResizeMove);
+      document.removeEventListener('mouseup', onTreeResizeEnd);
+    }
 
     return {
       listPage,
+      splitContainerRef,
+      treePanelWidthPercent,
+      startTreeResize,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,
       formatDictCell,
+      getResourceTypeLabel,
+      getTreeNodeLabel,
       tree,
       listLayoutRefs,
       tableRef,
@@ -630,15 +842,29 @@ export default defineComponent({
   flex-direction: column;
   padding: 8px 5px 5px 5px; /* 上内边距 8px（5+3） */
 }
-.resource-list-page .resource-list-row {
+.resource-list-page .resource-list-split {
   flex: 1;
   min-height: 0;
+  display: flex;
+  align-items: stretch;
 }
 .resource-list-page .resource-tree-col {
-  padding-left: 0;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 120px;
+}
+/* 可拖拽分隔线 */
+.resource-list-page .resource-list-resizer {
+  flex-shrink: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: var(--el-border-color-lighter);
+  transition: background 0.15s;
+}
+.resource-list-page .resource-list-resizer:hover {
+  background: var(--el-color-primary-light-5);
 }
 /* 树区：左边栏视觉（右边线 + 浅底）+ 可滚动 */
 .resource-list-page .resource-tree-wrap {
@@ -650,6 +876,8 @@ export default defineComponent({
   background: var(--el-fill-color-lighter);
 }
 .resource-list-page .resource-table-col {
+  flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;

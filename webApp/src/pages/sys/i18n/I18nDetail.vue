@@ -36,7 +36,7 @@ const ROW_FIELDS: FieldConfig[][] = [
   ],
   [
     { labelKey: 'i18nDetail.fields.locale', key: 'locale' },
-    { labelKey: 'i18nDetail.fields.i18nTypeDictCode', key: 'i18nTypeDictCode', type: 'dict', dictModule: 'kuark:sys', dictCode: 'i18n_type' },
+    { labelKey: 'i18nDetail.fields.i18nTypeDictCode', key: 'i18nTypeDictCode', type: 'dict', dictModule: 'sys', dictCode: 'i18n_type' },
     { labelKey: 'i18nDetail.fields.atomicServiceCode', key: 'atomicServiceCode', type: 'atomicService' },
   ],
   [

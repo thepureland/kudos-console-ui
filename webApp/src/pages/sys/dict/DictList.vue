@@ -386,7 +386,7 @@ class DictListPage extends BaseListPage {
     if ((this.state as Record<string, unknown>).searchSource === 'button') {
       this.search();
     } else {
-      this.searchByTree();
+      this.pagingSearch();
     }
   }
 
@@ -396,7 +396,7 @@ class DictListPage extends BaseListPage {
       if ((this.state as Record<string, unknown>).searchSource === 'button') {
         this.search();
       } else {
-        this.searchByTree();
+        this.pagingSearch();
       }
     }
   }
@@ -514,7 +514,7 @@ class DictListPage extends BaseListPage {
   private doExpandTreeNode(nodeData: unknown, node: { data?: unknown }): void {
     if (node.data) {
       this.setParamsForTree(node as Parameters<InstanceType<typeof DictListPage>['setParamsForTree']>[0], true);
-      this.searchByTree();
+      this.pagingSearch();
     }
   }
 
@@ -542,7 +542,7 @@ class DictListPage extends BaseListPage {
     return (item) => item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0;
   }
 
-  private async searchByTree(): Promise<void> {
+  private async pagingSearch(): Promise<void> {
     (this.state as Record<string, unknown>).searchSource = 'tree';
     const sp = this.state.searchParams as Record<string, unknown>;
     const params: Record<string, unknown> = {
@@ -557,7 +557,7 @@ class DictListPage extends BaseListPage {
       params.orders = [{ property: this.state.sort.orderProperty, direction: this.state.sort.orderDirection }];
     }
     try {
-      const result = await backendRequest({ url: 'sys/dict/searchByTree', method: 'post', params });
+      const result = await backendRequest({ url: 'sys/dict/pagingSearch', method: 'post', params });
       if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
         this.state.tableData = (result as { data: unknown[] }).data ?? [];
         this.state.pagination.total = (result as { totalCount: number }).totalCount ?? 0;

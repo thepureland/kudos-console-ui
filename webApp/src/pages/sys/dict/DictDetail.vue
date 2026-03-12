@@ -100,7 +100,7 @@ class DictDetailPage extends BaseDetailPage {
   }
 
   protected async preLoad(): Promise<void> {
-    await this.loadDicts(['module'], 'kuark:sys');
+    await this.loadDicts(['module'], 'sys');
   }
 
   protected getRootActionPath(): string {
