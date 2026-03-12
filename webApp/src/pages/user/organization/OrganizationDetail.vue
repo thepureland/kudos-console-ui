@@ -37,7 +37,7 @@ const ROW_FIELDS: FieldConfig[][] = [
   ],
   [
     { labelKey: 'organizationDetail.fields.abbrName', key: 'abbrName' },
-    { labelKey: 'organizationDetail.fields.orgTypeDictCode', key: 'orgTypeDictCode', type: 'dict', dictModule: 'kuark:user', dictCode: 'organization_type' },
+    { labelKey: 'organizationDetail.fields.orgTypeDictCode', key: 'orgTypeDictCode', type: 'dict', dictModule: 'user', dictCode: 'organization_type' },
   ],
   [
     { labelKey: 'organizationDetail.fields.createTime', key: 'createTime', type: 'date' },
@@ -79,7 +79,7 @@ class DetailPage extends BaseDetailPage {
 
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
-    await this.loadDicts(['organization_type'], 'kuark:user');
+    await this.loadDicts(['organization_type'], 'user');
   }
 }
 

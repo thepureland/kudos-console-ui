@@ -2051,36 +2051,36 @@ private fun buildAtomicServicesResponse(): String {
 
 /** 预置字典项 mock：module---dictType -> code->name。name 均为国际化 key，前端用 t(name) 展示。 */
 private val MOCK_DICT_ITEM_MAP = mapOf(
-    "kuark:sys---resource_type" to mapOf(
+    "sys---resource_type" to mapOf(
         "menu" to "resource_type.menu",
         "button" to "resource_type.button",
     ),
-    "kuark:sys---cache_strategy" to mapOf(
+    "sys---cache_strategy" to mapOf(
         "SINGLE_LOCAL" to "cache_strategy.SINGLE_LOCAL",
         "REMOTE" to "cache_strategy.REMOTE",
         "LOCAL_REMOTE" to "cache_strategy.LOCAL_REMOTE",
     ),
-    "kuark:sys---module" to mapOf(
-        "kuark:sys" to "module.kuark_sys",
-        "kuark:user" to "module.kuark_user",
-        "kuark:log" to "module.kuark_log",
-        "kuark:job" to "module.kuark_job",
+    "sys---module" to mapOf(
+        "sys" to "module.kuark_sys",
+        "user" to "module.kuark_user",
+        "log" to "module.kuark_log",
+        "job" to "module.kuark_job",
     ),
-    "kuark:user---user_status" to mapOf(
+    "user---user_status" to mapOf(
         "NORMAL" to "user_status.NORMAL",
         "LOCKED" to "user_status.LOCKED",
         "DISABLED" to "user_status.DISABLED",
     ),
-    "kuark:user---user_type" to mapOf(
+    "user---user_type" to mapOf(
         "ADMIN" to "user_type.ADMIN",
         "USER" to "user_type.USER",
     ),
-    "kuark:sys---locale" to mapOf(
+    "sys---locale" to mapOf(
         "zh-CN" to "locale.zh_CN",
         "zh-TW" to "locale.zh_TW",
         "en-US" to "locale.en_US",
     ),
-    "kuark:sys---i18n_type" to mapOf(
+    "sys---i18n_type" to mapOf(
         "dict" to "i18n_type.dict",
         "dict_item" to "i18n_type.dict_item",
         "view" to "i18n_type.view",
@@ -2090,7 +2090,7 @@ private val MOCK_DICT_ITEM_MAP = mapOf(
         "dept" to "organization_type.dept",
         "group" to "organization_type.group",
     ),
-    "kuark:user---organization_type" to mapOf(
+    "user---organization_type" to mapOf(
         "company" to "organization_type.company",
         "dept" to "organization_type.dept",
         "group" to "organization_type.group",
@@ -2257,13 +2257,12 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/getSimpleMenus", "/api/sys/resource/getSimpleMenus", "/api/admin/sys/resource/getSimpleMenus" -> {
-            val level = request.queryParameters["level"]?.singleOrNull()?.toIntOrNull() ?: 0
-            val requestJson = "{\"level\":$level}"
+        "/sys/resource/loadDirectChildrenForTree", "/api/sys/resource/loadDirectChildrenForTree", "/api/admin/sys/resource/loadDirectChildrenForTree" -> {
+            val requestJson = requestBodyText(request.body)
             val body = buildResourceLoadTreeNodesResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/resource/searchByTree", "/api/sys/resource/searchByTree", "/api/admin/sys/resource/searchByTree" -> {
+        "/sys/resource/pagingSearch", "/api/sys/resource/pagingSearch", "/api/admin/sys/resource/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildResourceSearchResponse("/sys/resource/search", requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2651,7 +2650,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildDictSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/searchByTree", "/api/sys/dict/searchByTree", "/api/admin/sys/dict/searchByTree" -> {
+        "/sys/dict/pagingSearch", "/api/sys/dict/pagingSearch", "/api/admin/sys/dict/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDictSearchByTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)

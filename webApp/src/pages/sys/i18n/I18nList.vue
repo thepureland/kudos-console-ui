@@ -325,9 +325,9 @@ class I18nListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.loadAtomicServices();
-    this.loadDicts(['locale', 'i18n_type'], 'kuark:sys').then(() => {
-      this.state.localeOptions = this.getDictItems('kuark:sys', 'locale');
-      this.state.i18nTypeDictOptions = this.getDictItems('kuark:sys', 'i18n_type');
+    this.loadDicts(['locale', 'i18n_type'], 'sys').then(() => {
+      this.state.localeOptions = this.getDictItems('sys', 'locale');
+      this.state.i18nTypeDictOptions = this.getDictItems('sys', 'i18n_type');
     });
     this.convertThis();
   }

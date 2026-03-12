@@ -278,7 +278,7 @@ class ListPage extends TenantSupportListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
     this.convertThis();
-    this.loadDicts(['organization_type'], 'kuark:user');
+    this.loadDicts(['organization_type'], 'user');
   }
 
   protected initState(): Record<string, unknown> {
@@ -384,7 +384,7 @@ export default defineComponent({
 
     /** 组织类型列：transDict 可能返回 i18n key（含.）或原始 code；空则不再 t('') 避免 intlify 报错 */
     function formatOrgTypeLabel(code: string | null | undefined): string {
-      const val = listPage.transDict('kuark:user', 'organization_type', code ?? '');
+      const val = listPage.transDict('user', 'organization_type', code ?? '');
       if (!val) return '';
       return val.includes('.') ? t(val) : t('organization_type.' + val);
     }

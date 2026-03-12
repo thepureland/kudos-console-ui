@@ -255,7 +255,7 @@
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item
-                        v-for="item in getDictItems('kuark:sys', 'resource_type')"
+                        v-for="item in getDictItems('sys', 'resource_type')"
                         :key="String(item.first)"
                         :command="commandValue(item, scope.row)"
                       >
@@ -336,7 +336,7 @@ const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 class ListPage extends TenantSupportListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
-    this.loadDicts(['resource_type'], 'kuark:sys');
+    this.loadDicts(['resource_type'], 'sys');
     this.convertThis();
   }
 
