@@ -51,14 +51,14 @@
 
   </el-dialog>
 
-  <account-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid"/>
+  <account-detail-page v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid"/>
 
 </template>
 
 <script lang='ts'>
 import {defineComponent, reactive, toRefs} from "vue"
 import { BaseListPage } from '../../../components/pages/BaseListPage'
-import AccountDetail from '../../user/account/AccountDetail.vue'
+import AccountDetailPage from '../../user/account/AccountDetailPage.vue'
 import { Pair } from '../../../components/model/Pair'
 
 class UserListDialog extends BaseListPage {
@@ -101,7 +101,7 @@ export default defineComponent({
     rid: String
   },
   emits: ['update:modelValue'],
-  components: {AccountDetail},
+  components: { AccountDetailPage },
   setup(props, context) {
     const listPage = reactive(new UserListDialog(props, context))
     return {

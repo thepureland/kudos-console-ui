@@ -176,8 +176,8 @@ export default {
     sections: {
       basicInfo: 'Basic Info',
       config: 'Config',
-      otherInfo: 'Other Info',
       audit: 'Audit Info',
+      otherInfo: 'Other Info',
     },
     fields: {
       id: 'Cache ID',

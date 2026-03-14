@@ -2,20 +2,20 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import Home from '../pages/Home.vue';
 import Welcome from '../pages/Welcome.vue';
 import Placeholder from '../pages/Placeholder.vue';
-import CacheList from '../pages/sys/cache/CacheList.vue';
-import DataSourceList from '../pages/sys/datasource/DataSourceList.vue';
-import DictList from '../pages/sys/dict/DictList.vue';
-import ParamList from '../pages/sys/param/ParamList.vue';
-import ResourceList from '../pages/sys/resource/ResourceList.vue';
-import DomainList from '../pages/sys/domain/DomainList.vue';
-import TenantList from '../pages/sys/tenant/TenantList.vue';
-import SystemList from '../pages/sys/system/SystemList.vue';
-import MicroServiceList from '../pages/sys/microservice/MicroServiceList.vue';
-import I18NList from '../pages/sys/i18n/I18nList.vue';
-import AccountList from '../pages/user/account/AccountList.vue';
-import OrganizationList from '../pages/user/organization/OrganizationList.vue';
-import RoleList from '../pages/rbac/role/RoleList.vue';
-import UserGroupList from '../pages/rbac/group/UserGroupList.vue';
+import CacheListPage from '../pages/sys/cache/CacheListPage.vue';
+import DataSourceListPage from '../pages/sys/datasource/DataSourceListPage.vue';
+import DictListPage from '../pages/sys/dict/DictListPage.vue';
+import ParamListPage from '../pages/sys/param/ParamListPage.vue';
+import ResourceListPage from '../pages/sys/resource/ResourceListPage.vue';
+import DomainListPage from '../pages/sys/domain/DomainListPage.vue';
+import TenantListPage from '../pages/sys/tenant/TenantListPage.vue';
+import SystemListPage from '../pages/sys/system/SystemListPage.vue';
+import MicroServiceListPage from '../pages/sys/microservice/MicroServiceListPage.vue';
+import I18nListPage from '../pages/sys/i18n/I18nListPage.vue';
+import AccountListPage from '../pages/user/account/AccountListPage.vue';
+import OrganizationListPage from '../pages/user/organization/OrganizationListPage.vue';
+import RoleListPage from '../pages/rbac/role/RoleListPage.vue';
+import UserGroupListPage from '../pages/rbac/group/UserGroupListPage.vue';
 import Login from '../components/Login/Login.vue';
 import NotFound from '../pages/404.vue';
 
@@ -27,20 +27,20 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: 'home', name: 'home', component: Welcome, meta: { titleKey: 'route.home', icon: 'HomeFilled' } },
       { path: 'sys/basic', name: 'sys-basic', redirect: '/sys/cache' },
-      { path: 'sys/cache', name: 'sys-cache', component: CacheList, meta: { titleKey: 'route.sysCache', icon: 'Coin' } },
-      { path: 'sys/dict', name: 'sys-dict', component: DictList, meta: { titleKey: 'route.sysDict', icon: 'Collection' } },
-      { path: 'sys/param', name: 'sys-param', component: ParamList, meta: { titleKey: 'route.sysParam', icon: 'Document' } },
-      { path: 'sys/domain', name: 'sys-domain', component: DomainList, meta: { titleKey: 'route.sysDomain', icon: 'Document' } },
-      { path: 'sys/tenant', name: 'sys-tenant', component: TenantList, meta: { titleKey: 'route.sysTenant', icon: 'Document' } },
-      { path: 'sys/subsys', name: 'sys-subsys', component: SystemList, meta: { titleKey: 'route.sysSubsys', icon: 'Document' } },
-      { path: 'sys/microservice', name: 'sys-microservice', component: MicroServiceList, meta: { titleKey: 'route.sysMicroservice', icon: 'Setting' } },
-      { path: 'sys/datasource', name: 'sys-datasource', component: DataSourceList, meta: { titleKey: 'route.sysDatasource', icon: 'Collection' } },
-      { path: 'sys/resource', name: 'sys-resource', component: ResourceList, meta: { titleKey: 'route.sysResource', icon: 'Document' } },
-      { path: 'sys/i18n', name: 'sys-i18n', component: I18NList, meta: { titleKey: 'route.sysI18n', icon: 'Setting' } },
-      { path: 'user/account', name: 'user-account', component: AccountList, meta: { titleKey: 'route.userAccount', icon: 'UserFilled' } },
-      { path: 'user/organization', name: 'user-organization', component: OrganizationList, meta: { titleKey: 'route.userOrganization', icon: 'OfficeBuilding' } },
-      { path: 'rbac/role', name: 'rbac-role', component: RoleList, meta: { titleKey: 'route.rbacRole', icon: 'Key' } },
-      { path: 'rbac/group', name: 'rbac-group', component: UserGroupList, meta: { titleKey: 'route.rbacGroup', icon: 'User' } },
+      { path: 'sys/cache', name: 'sys-cache', component: CacheListPage, meta: { titleKey: 'route.sysCache', icon: 'Coin' } },
+      { path: 'sys/dict', name: 'sys-dict', component: DictListPage, meta: { titleKey: 'route.sysDict', icon: 'Collection' } },
+      { path: 'sys/param', name: 'sys-param', component: ParamListPage, meta: { titleKey: 'route.sysParam', icon: 'Document' } },
+      { path: 'sys/domain', name: 'sys-domain', component: DomainListPage, meta: { titleKey: 'route.sysDomain', icon: 'Document' } },
+      { path: 'sys/tenant', name: 'sys-tenant', component: TenantListPage, meta: { titleKey: 'route.sysTenant', icon: 'Document' } },
+      { path: 'sys/subsys', name: 'sys-subsys', component: SystemListPage, meta: { titleKey: 'route.sysSubsys', icon: 'Document' } },
+      { path: 'sys/microservice', name: 'sys-microservice', component: MicroServiceListPage, meta: { titleKey: 'route.sysMicroservice', icon: 'Setting' } },
+      { path: 'sys/datasource', name: 'sys-datasource', component: DataSourceListPage, meta: { titleKey: 'route.sysDatasource', icon: 'Collection' } },
+      { path: 'sys/resource', name: 'sys-resource', component: ResourceListPage, meta: { titleKey: 'route.sysResource', icon: 'Document' } },
+      { path: 'sys/i18n', name: 'sys-i18n', component: I18nListPage, meta: { titleKey: 'route.sysI18n', icon: 'Setting' } },
+      { path: 'user/account', name: 'user-account', component: AccountListPage, meta: { titleKey: 'route.userAccount', icon: 'UserFilled' } },
+      { path: 'user/organization', name: 'user-organization', component: OrganizationListPage, meta: { titleKey: 'route.userOrganization', icon: 'OfficeBuilding' } },
+      { path: 'rbac/role', name: 'rbac-role', component: RoleListPage, meta: { titleKey: 'route.rbacRole', icon: 'Key' } },
+      { path: 'rbac/group', name: 'rbac-group', component: UserGroupListPage, meta: { titleKey: 'route.rbacGroup', icon: 'User' } },
       { path: 'tabs', name: 'tabs', component: Placeholder, meta: { titleKey: 'route.tabs', icon: 'Bell' } },
     ],
   },

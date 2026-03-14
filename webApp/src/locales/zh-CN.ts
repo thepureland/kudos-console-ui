@@ -176,8 +176,8 @@ export default {
     sections: {
       basicInfo: '基本信息',
       config: '配置',
-      otherInfo: '其他信息',
       audit: '审计信息',
+      otherInfo: '其他信息',
     },
     fields: {
       id: '缓存ID',

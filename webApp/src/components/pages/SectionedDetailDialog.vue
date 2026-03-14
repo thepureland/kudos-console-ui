@@ -138,7 +138,7 @@ export default defineComponent({
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
-/* 左侧竖线同 CacheAddEdit.vue .form-section__title，保留 section 淡灰背景 */
+/* 左侧竖线同 CacheFormPage.vue .form-section__title，保留 section 淡灰背景 */
 .detail-section-title {
   font-size: 13px;
   font-weight: 600;

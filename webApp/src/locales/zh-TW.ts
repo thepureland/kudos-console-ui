@@ -176,8 +176,8 @@ export default {
     sections: {
       basicInfo: '基本資訊',
       config: '配置',
-      otherInfo: '其他資訊',
       audit: '審計資訊',
+      otherInfo: '其他資訊',
     },
     fields: {
       id: '快取ID',

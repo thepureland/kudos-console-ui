@@ -1,6 +1,6 @@
 /**
  * 路径到组件的映射，用于菜单点击时按状态切换内容（不改变地址栏）
- * 约定：path /a/b 默认对应 pages/a/b/${PascalCase(b)}List.vue；例外见 PATH_OVERRIDES
+ * 约定：path /a/b 默认对应 pages/a/b/${PascalCase(b)}ListPage.vue；例外见 PATH_OVERRIDES
  */
 import { defineAsyncComponent, type Component } from 'vue';
 
@@ -18,7 +18,7 @@ const PAGE_MODULES = import.meta.glob<{ default: Component }>('../pages/**/*.vue
 
 /**
  * 从 glob 推导 path → 组件文件路径（相对 pages）。
- * 凡符合 pages/{s1}/{s2}/*List.vue 的，path 为 /s1/s2（小写），文件路径保留实际大小写（如 MicroServiceList.vue）。
+ * 凡符合 pages/{s1}/{s2}/*ListPage.vue 的，path 为 /s1/s2（小写），文件路径保留实际大小写（如 MicroServiceListPage.vue）。
  */
 function deriveConventionPathToFile(): Record<string, string> {
   const prefix = '../pages/';
@@ -30,9 +30,9 @@ function deriveConventionPathToFile(): Record<string, string> {
     const parts = inner.split('/');
     if (parts.length !== 3) continue;
     const [s1, s2, fileName] = parts;
-    if (!fileName.endsWith('List')) continue;
+    if (!fileName.endsWith('ListPage')) continue;
     const path = `/${s1.toLowerCase()}/${s2.toLowerCase()}`;
-    const relativePath = key.slice(prefix.length); // 保留 glob 实际路径与大小写（如 MicroServiceList.vue）
+    const relativePath = key.slice(prefix.length); // 保留 glob 实际路径与大小写（如 MicroServiceListPage.vue）
     pathToFile[path] = relativePath;
   }
   return pathToFile;
