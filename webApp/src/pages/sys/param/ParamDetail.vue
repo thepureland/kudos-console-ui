@@ -4,7 +4,7 @@
     :model-value="visible"
     title-key="paramDetail.title"
     empty-key="paramDetail.empty"
-    width="67%"
+    width="70%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
     :format-field-value="formatFieldValue"
@@ -21,8 +21,6 @@ import {
   type SectionConfig,
   useSectionedDetail,
 } from '../../../components/pages/sectionedDetail';
-import { backendRequest } from '../../../utils/backendRequest';
-import { ElMessage } from 'element-plus';
 
 /** 分组：从第几行开始显示分组标题（其他信息放最后） */
 const SECTION_MAP: SectionConfig[] = [
@@ -77,25 +75,8 @@ class ParamDetailPage extends BaseDetailPage {
     return 'sys/param';
   }
 
-  /** 用 search 接口按 id 取一条，与列表同源 */
-  protected getDetailLoadUrl(): string {
-    return 'sys/param/search';
-  }
-
   protected createDetailLoadParams(): Record<string, unknown> {
-    return { id: String(this.state.rid || this.props.rid || ''), pageNo: 1, pageSize: 1 };
-  }
-
-  protected async loadData(): Promise<void> {
-    const params = this.createDetailLoadParams();
-    const result = await backendRequest({ url: this.getDetailLoadUrl(), method: 'post', params });
-    if (result != null && typeof result === 'object' && 'first' in result) {
-      const list = (result as { first: unknown }).first;
-      const row = Array.isArray(list) && list.length > 0 ? list[0] : null;
-      this.postLoadDataSuccessfully(row);
-    } else {
-      ElMessage.error('数据加载失败！');
-    }
+    return { id: String(this.state.rid || this.props.rid || '') };
   }
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {

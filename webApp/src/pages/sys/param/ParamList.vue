@@ -21,7 +21,7 @@
       <template #toolbar>
         <div class="toolbar-cell toolbar-name">
           <el-select
-            v-model="searchParams.module"
+            v-model="searchParams.atomicServiceCode"
             :placeholder="t('paramList.placeholders.module')"
             class="search-name-input"
             clearable
@@ -130,21 +130,21 @@
             :min-width="columnWidths['defaultValue'] ?? 120"
           />
           <el-table-column
-            v-if="isColumnVisible('module')"
-            :label="t('paramList.columns.module')"
-            prop="module"
-            :min-width="columnWidths['module'] ?? 100"
+            v-if="isColumnVisible('atomicServiceCode')"
+            :label="t('paramList.columns.atomicServiceCode')"
+            prop="atomicServiceCode"
+            :min-width="columnWidths['atomicServiceCode'] ?? 100"
             sortable="custom"
           >
             <template #default="scope">
-              {{ transAtomicService(scope.row.module) }}
+              {{ transAtomicService(scope.row.atomicServiceCode) }}
             </template>
           </el-table-column>
           <el-table-column
-            v-if="isColumnVisible('seqNo')"
-            :label="t('paramList.columns.seqNo')"
-            prop="seqNo"
-            :min-width="columnWidths['seqNo'] ?? 80"
+            v-if="isColumnVisible('orderNum')"
+            :label="t('paramList.columns.orderNum')"
+            prop="orderNum"
+            :min-width="columnWidths['orderNum'] ?? 80"
             sortable="custom"
           />
           <el-table-column
@@ -246,7 +246,7 @@ class ParamListPage extends BaseListPage {
   protected initState(): Record<string, unknown> {
     return {
       searchParams: {
-        module: null as string | null,
+        atomicServiceCode: null as string | null,
         paramName: null as string | null,
         paramValue: null as string | null,
         active: true,
@@ -269,7 +269,7 @@ class ParamListPage extends BaseListPage {
   }
 
   protected getAfterAddSearchParamKeys(): string[] {
-    return ['module', 'paramName', 'paramValue'];
+    return ['atomicServiceCode', 'paramName', 'paramValue'];
   }
 }
 
@@ -278,7 +278,7 @@ const PARAM_LIST_STATE_STORAGE_KEY = 'paramList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'paramList.visibleColumns';
 /** 可配置可见性的列（顺序列、备注列等）；paramName 固定左侧不参与 */
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['paramValue', 'defaultValue', 'module', 'seqNo', 'remark', 'active'];
+const ALL_COLUMN_KEYS = ['paramValue', 'defaultValue', 'atomicServiceCode', 'orderNum', 'remark', 'active'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
@@ -323,8 +323,8 @@ export default defineComponent({
     const autoWidthColumns = computed(() => [
       { key: 'paramValue', getLabel: () => t('paramList.columns.paramValue'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.paramValue ?? '') },
       { key: 'defaultValue', getLabel: () => t('paramList.columns.defaultValue'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.defaultValue ?? '') },
-      { key: 'module', getLabel: () => t('paramList.columns.module'), sortable: true, getCellText: (row: Record<string, unknown>) => listPage.transAtomicService(row.module) },
-      { key: 'seqNo', getLabel: () => t('paramList.columns.seqNo'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.seqNo ?? '') },
+      { key: 'atomicServiceCode', getLabel: () => t('paramList.columns.atomicServiceCode'), sortable: true, getCellText: (row: Record<string, unknown>) => listPage.transAtomicService(row.atomicServiceCode) },
+      { key: 'orderNum', getLabel: () => t('paramList.columns.orderNum'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.orderNum ?? '') },
       { key: 'remark', getLabel: () => t('paramList.columns.remark'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.remark ?? '') },
       { key: 'active', getLabel: () => t('paramList.columns.active'), sortable: false, getCellText: () => '' },
     ]);
