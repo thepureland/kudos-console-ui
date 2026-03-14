@@ -4,6 +4,8 @@ export type BackendRequestOptions = {
   url: string
   method?: string
   params?: Record<string, any> | any[] | null
+  /** 为 true 时 GET/DELETE 以外的方法也将 params 放在 URL query，不放在 body */
+  paramsInQuery?: boolean
 }
 
 /**
@@ -35,7 +37,8 @@ export async function backendRequest(options: BackendRequestOptions): Promise<an
   const method = (options.method ?? "get").toLowerCase();
   const paramsJson =
     options.params != null ? JSON.stringify(options.params) : null;
-  const raw = await api.request(options.url, method, paramsJson);
+  const paramsInQuery = options.paramsInQuery === true;
+  const raw = await api.request(options.url, method, paramsJson, paramsInQuery);
   const t2 = LOG_SLOW_REQUESTS ? now() : 0;
   let result: unknown
   if (typeof raw !== "string") {

@@ -8,8 +8,8 @@
 <template>
   <div class="dict-list-page list-page-common">
     <el-card class="dict-list-card">
-      <el-row :gutter="6" class="dict-list-row">
-        <el-col :span="3" class="resource-tree-col">
+      <div ref="splitContainerRef" class="dict-list-split">
+        <div class="resource-tree-col" :style="{ width: treePanelWidthPercent + '%' }">
           <div class="resource-tree-wrap">
             <el-tree
               ref="tree"
@@ -21,10 +21,15 @@
               lazy
               @node-expand="expandTreeNode"
               @node-click="(nodeData, node) => clickTreeNode(nodeData, node)"
-            />
+            >
+              <template #default="{ node, data }">
+                <span>{{ getTreeNodeLabel(data) }}</span>
+              </template>
+            </el-tree>
           </div>
-        </el-col>
-        <el-col :span="21" class="resource-table-col">
+        </div>
+        <div class="dict-list-resizer" @mousedown="startTreeResize" />
+        <div class="resource-table-col">
           <list-page-layout
             :table-wrap-ref="listLayoutRefs.tableWrapRef"
             :list-page="listPage"
@@ -54,15 +59,12 @@
                 </el-select>
               </div>
               <div class="toolbar-cell toolbar-subsys toolbar-dict-type">
-                <el-autocomplete
+                <el-input
                   v-model="searchParams.dictType"
                   :placeholder="t('dictList.placeholders.dictType')"
-                  :fetch-suggestions="filterDictType"
-                  :trigger-on-focus="false"
                   clearable
                   class="search-select-input"
-                  @change="search"
-                  @select="search"
+                  @keyup="(e) => e.key === 'Enter' && search()"
                 />
               </div>
               <div class="toolbar-cell toolbar-name">
@@ -72,7 +74,6 @@
                   clearable
                   class="search-name-input"
                   @keyup="(e) => e.key === 'Enter' && search()"
-                  @change="search"
                 />
               </div>
               <div class="toolbar-cell toolbar-name">
@@ -82,7 +83,6 @@
                   clearable
                   class="search-name-input"
                   @keyup="(e) => e.key === 'Enter' && search()"
-                  @change="search"
                 />
               </div>
               <div class="toolbar-cell toolbar-name">
@@ -92,7 +92,6 @@
                   clearable
                   class="search-name-input"
                   @keyup="(e) => e.key === 'Enter' && search()"
-                  @change="search"
                 />
               </div>
               <div class="toolbar-extra">
@@ -114,7 +113,11 @@
             <template #tableToolbar>
               <el-button type="success" @click="openAddDialog">
                 <el-icon><Plus /></el-icon>
-                {{ t('dictList.actions.add') }}
+                {{ t('dictList.actions.addDict') }}
+              </el-button>
+              <el-button type="success" @click="openAddItemDialog">
+                <el-icon><Plus /></el-icon>
+                {{ t('dictList.actions.addDictItem') }}
               </el-button>
               <el-button type="danger" @click="multiDelete">
                 <el-icon><Delete /></el-icon>
@@ -160,14 +163,14 @@
                   :min-width="columnWidths['dictName'] ?? 120"
                 />
                 <el-table-column
-                  v-if="isColumnVisible('module')"
-                  :label="t('dictList.columns.module')"
-                  prop="module"
-                  :min-width="columnWidths['module'] ?? 100"
+                  v-if="isColumnVisible('atomicServiceCode')"
+                  :label="t('dictList.columns.atomicServiceCode')"
+                  prop="atomicServiceCode"
+                  :min-width="columnWidths['atomicServiceCode'] ?? 100"
                   sortable="custom"
                 >
                   <template #default="scope">
-                    {{ transAtomicService(scope.row.module) }}
+                    {{ transAtomicService(scope.row.atomicServiceCode) }}
                   </template>
                 </el-table-column>
                 <el-table-column
@@ -191,20 +194,26 @@
                   sortable="custom"
                 />
                 <el-table-column
-                  v-if="isColumnVisible('seqNo') && !searchParams.isDict"
-                  :label="t('dictList.columns.seqNo')"
-                  prop="seqNo"
-                  :min-width="columnWidths['seqNo'] ?? 80"
+                  v-if="isColumnVisible('orderNum') && !searchParams.isDict"
+                  :label="t('dictList.columns.orderNum')"
+                  prop="orderNum"
+                  :min-width="columnWidths['orderNum'] ?? 80"
                   sortable="custom"
                 />
                 <el-table-column
-                  v-if="isColumnVisible('active') && !searchParams.isDict"
+                  v-if="isColumnVisible('remark') && searchParams.isDict"
+                  :label="t('dictList.columns.remark')"
+                  prop="remark"
+                  :min-width="columnWidths['remark'] ?? 120"
+                  show-overflow-tooltip
+                />
+                <el-table-column
+                  v-if="isColumnVisible('active')"
                   :label="t('dictList.columns.active')"
                   :min-width="columnWidths['active'] ?? 80"
                 >
                   <template #default="scope">
                     <el-switch
-                      v-if="scope.row.itemCode"
                       v-model="scope.row.active"
                       :active-value="true"
                       :inactive-value="false"
@@ -253,11 +262,13 @@
               />
             </template>
           </list-page-layout>
-        </el-col>
-      </el-row>
+        </div>
+      </div>
 
-      <dict-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" :module="searchParams.module" :dict-type="searchParams.dictType" />
-      <dict-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" :is-dict="isDict" />
+      <dict-add-edit v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAddDict" :atomic-service-code="searchParams.module" />
+      <dict-item-add-edit v-if="addItemDialogVisible" v-model="addItemDialogVisible" @response="afterAddDictItem" :module="searchParams.module" :dict-type="searchParams.dictType" />
+      <dict-add-edit v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
+      <dict-item-add-edit v-if="editItemDialogVisible" v-model="editItemDialogVisible" @response="afterEdit" :rid="rid" :module="searchParams.module" :dict-type="searchParams.dictType" />
       <dict-detail v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
       <dict-item-detail v-if="itemDetailDialogVisible" v-model="itemDetailDialogVisible" :rid="rid" />
     </el-card>
@@ -265,12 +276,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, provide } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, provide, watch } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { i18n } from '../../../i18n';
 import DictAddEdit from './DictAddEdit.vue';
+import DictItemAddEdit from './DictItemAddEdit.vue';
 import DictDetail from './DictDetail.vue';
 import DictItemDetail from './DictItemDetail.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
@@ -280,6 +292,7 @@ import { useTableColumnAutoWidth } from '../../../components/pages/useTableColum
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest } from '../../../utils/backendRequest';
+import { loadMessagesForConfig } from '../../../i18n';
 
 function tr(key: string): string {
   return i18n.global.t(key) as string;
@@ -296,7 +309,6 @@ class DictListPage extends BaseListPage {
     super(props, context);
     this.tree = tree;
     this.loadAtomicServices();
-    this.loadDictTypes();
     this.convertThis();
   }
 
@@ -315,40 +327,84 @@ class DictListPage extends BaseListPage {
         active: true,
         isDict: false,
       },
-      dictTypes: [] as Array<{ value: string }>,
       searchSource: null as string | null,
       isDict: false,
       rootNode: null,
       rootResolve: null,
       itemDetailDialogVisible: false,
+      addItemDialogVisible: false,
+      editItemDialogVisible: false,
+      /** 下次 search 时强制使用的 isDict（新增字典/字典项后刷新用），用后清空 */
+      pendingSearchIsDict: null as boolean | null,
+      /** 已加载过的 dict-item 国际化配置，用于切换语言时重载 */
+      dictI18nLoaded: [] as Array<{ atomicServiceCode: string; dictType: string }>,
     };
   }
 
+  /** dict=false（字典项）时请求走 sys/dictItem，否则 sys/dict */
   protected getRootActionPath(): string {
-    return 'sys/dict';
+    return (this.state.searchParams as Record<string, unknown>)?.isDict === true ? 'sys/dict' : 'sys/dictItem';
   }
 
   protected getUpdateActiveUrl(): string {
-    return 'sys/dictItem/updateActive';
+    return this.getRootActionPath() + '/updateActive';
+  }
+
+  public openAddItemDialog: () => void;
+
+  protected doOpenAddItemDialog(): void {
+    (this.state as Record<string, unknown>).addItemDialogVisible = true;
+  }
+
+  protected getSearchUrl(): string {
+    const base = this.getRootActionPath();
+    return base === 'sys/dict' ? base + '/pagingSearchDict' : base + '/pagingSearchDictItem';
   }
 
   protected createSearchParams(): Record<string, unknown> | null {
     const params = super.createSearchParams() as Record<string, unknown> | null;
     if (!params) return null;
     const sp = this.state.searchParams as Record<string, unknown>;
-    params.active = sp.active === true ? true : null;
-    if (params.dictType || params.dictName || params.itemCode || params.itemName) {
-      (this.state as Record<string, unknown>).isDict = false;
+    const pending = (this.state as Record<string, unknown>).pendingSearchIsDict as boolean | null | undefined;
+    if (pending !== null && pending !== undefined) {
+      sp.isDict = pending;
+      (this.state as Record<string, unknown>).pendingSearchIsDict = null;
     } else {
-      (this.state as Record<string, unknown>).isDict = true;
+      const hasItemCondition = sp.dictType || sp.dictName || sp.itemCode || sp.itemName;
+      sp.isDict = !hasItemCondition;
     }
-    (params as Record<string, unknown>).isDict = (this.state as Record<string, unknown>).isDict;
-    params.parentId = null;
+    params.active = sp.active === true ? true : null;
+    params.atomicServiceCode = sp.module ?? null;
+    delete params.module;
+    delete params.level;
+    delete params.isDict;
+    delete params.parentId;
     return params;
   }
 
   protected getAfterAddSearchParamKeys(): string[] {
-    return ['module', 'dictType'];
+    return ['module', 'dictType', 'itemCode'];
+  }
+
+  public afterAddDict: (params: unknown) => void;
+  public afterAddDictItem: (params: unknown) => void;
+
+  protected doAfterAddDict(params: unknown): void {
+    (this.state as Record<string, unknown>).pendingSearchIsDict = true;
+    this.doAfterAdd(params);
+    const sp = this.state.searchParams as Record<string, unknown>;
+    const p = params as Record<string, unknown> | undefined;
+    if (p?.atomicServiceCode != null) sp.module = p.atomicServiceCode;
+    else if (p?.module != null) sp.module = p.module;
+  }
+
+  protected doAfterAddDictItem(params: unknown): void {
+    (this.state as Record<string, unknown>).pendingSearchIsDict = false;
+    this.doAfterAdd(params);
+    const sp = this.state.searchParams as Record<string, unknown>;
+    const p = params as Record<string, unknown> | undefined;
+    if (p?.atomicServiceCode != null) sp.module = p.atomicServiceCode;
+    else if (p?.module != null) sp.module = p.module;
   }
 
   protected createDeleteParams(row: Record<string, unknown>): Record<string, unknown> {
@@ -364,6 +420,48 @@ class DictListPage extends BaseListPage {
       params[String(this.getRowId(row))] = (row as { itemId?: unknown }).itemId == null;
     }
     return params;
+  }
+
+  /** 按 dict 标识分别请求 sys/dict/batchDelete 与 sys/dictItem/batchDelete */
+  protected async doMultiDelete(): Promise<void> {
+    const t = i18n.global.t.bind(i18n.global);
+    const rows = this.state.selectedItems as Array<Record<string, unknown>> | undefined;
+    if (!rows || rows.length === 0) {
+      ElMessage.info(t('listPage.selectDataFirst') as string);
+      return;
+    }
+    const confirmResult = await ElMessageBox.confirm(
+      this.getBatchDeleteMessage(rows),
+      t('listPage.confirmTitle') as string,
+      { confirmButtonText: t('listPage.confirmButton') as string, cancelButtonText: t('listPage.cancelButton') as string, type: 'warning' }
+    ).catch((err: unknown) => err);
+    if (confirmResult !== 'confirm') return;
+
+    const dictRows = rows.filter((r) => (r as { itemId?: unknown }).itemId == null);
+    const itemRows = rows.filter((r) => (r as { itemId?: unknown }).itemId != null);
+    const dictIds = dictRows.map((r) => this.getRowId(r));
+    const itemIds = itemRows.map((r) => this.getRowId(r));
+
+    try {
+      if (dictIds.length > 0) {
+        const result = await backendRequest({ url: 'sys/dict/batchDelete', method: 'post', params: dictIds });
+        if (result !== true && result?.data !== true) {
+          ElMessage.error(t('listPage.deleteFailed') as string);
+          return;
+        }
+      }
+      if (itemIds.length > 0) {
+        const result = await backendRequest({ url: 'sys/dictItem/batchDelete', method: 'post', params: itemIds });
+        if (result !== true && result?.data !== true) {
+          ElMessage.error(t('listPage.deleteFailed') as string);
+          return;
+        }
+      }
+      ElMessage.success(t('listPage.deleteSuccess') as string);
+      this.doAfterDelete(this.getSelectedIds());
+    } catch {
+      ElMessage.error(t('listPage.deleteFailed') as string);
+    }
   }
 
   protected async doSearch(): Promise<void> {
@@ -416,28 +514,38 @@ class DictListPage extends BaseListPage {
   }
 
   protected getRowId(row: Record<string, unknown>): string | number {
-    return (row as { itemId?: unknown }).itemId == null ? (row as { dictId: string }).dictId : (row as { itemId: string }).itemId;
+    const isDict = (row as { itemId?: unknown }).itemId == null;
+    return isDict
+      ? (row as { id?: string; dictId?: string }).id ?? (row as { dictId: string }).dictId
+      : (row as { itemId: string }).itemId;
   }
 
   protected doHandleEdit(row: Record<string, unknown>): void {
-    super.doHandleEdit(row);
-    (this.state as Record<string, unknown>).isDict = (row as { itemId?: unknown }).itemId == null;
+    (this.state as Record<string, unknown>).rid = this.getRowId(row);
+    const sp = this.state.searchParams as Record<string, unknown>;
+    const isDict = sp?.isDict === true;
+    (this.state as Record<string, unknown>).isDict = isDict;
+    const state = this.state as Record<string, unknown>;
+    if (isDict) {
+      state.editItemDialogVisible = false;
+      state.editDialogVisible = true;
+    } else {
+      state.editDialogVisible = false;
+      state.editItemDialogVisible = true;
+    }
   }
 
   protected doHandleDetail(row: Record<string, unknown>): void {
-    if ((row as { itemId?: unknown }).itemId == null) {
-      (this.state as Record<string, unknown>).detailDialogVisible = true;
-    } else {
-      (this.state as Record<string, unknown>).itemDetailDialogVisible = true;
-    }
     (this.state as Record<string, unknown>).rid = this.getRowId(row);
-  }
-
-  public filterDictType: (queryString: string, cb: (list: Array<{ value: string }>) => void) => void;
-
-  private doFilterDictType(queryString: string, cb: (list: Array<{ value: string }>) => void): void {
-    const list = this.state.dictTypes as Array<{ value: string }>;
-    cb(queryString ? list.filter(this.createFilter(queryString)) : list);
+    const isDict = (this.state.searchParams as Record<string, unknown>)?.isDict === true;
+    const state = this.state as Record<string, unknown>;
+    if (isDict) {
+      state.itemDetailDialogVisible = false;
+      state.detailDialogVisible = true;
+    } else {
+      state.detailDialogVisible = false;
+      state.itemDetailDialogVisible = true;
+    }
   }
 
   private setParamsForTree(node: { level: number; data?: { code: string; id: string }; parent?: { data?: { code: string } } }, expand: boolean): void {
@@ -483,6 +591,14 @@ class DictListPage extends BaseListPage {
     return (n as { data: { code: string } }).data.code;
   }
 
+  /** 第三层及以下树节点名称：优先用 dict-item 国际化 t(dictType.itemCode)，否则用 itemName 或 code。需先 loadMessagesForConfig dict-item+dictType。 */
+  private static transDictItemName(dictType: string, itemCode: string, itemName: string): string {
+    if (!itemCode) return itemName || '';
+    const key = dictType + '.' + itemCode;
+    const translated = i18n.global.t(key) as string;
+    return (translated !== key ? translated : null) ?? itemName ?? itemCode;
+  }
+
   public loadTree: (node: unknown, resolve: (data: unknown[]) => void) => void;
 
   private async doLoadTree(node: { level: number; data?: { code: string; id: string } }, resolve: (data: unknown[]) => void): Promise<void> {
@@ -492,18 +608,89 @@ class DictListPage extends BaseListPage {
     }
     this.setParamsForTree(node as Parameters<InstanceType<typeof DictListPage>['setParamsForTree']>[0], true);
     const sp = this.state.searchParams as Record<string, unknown>;
-    const params = {
-      parentId: node.level === 0 ? null : node.level === 1 ? (node.data as { code: string }).code : (node.data as { id: string }).id,
-      firstLevel: node.level === 1,
-      active: sp.active === true ? true : null,
-    };
+    const activeOnly = sp.active === true;
+
     try {
-      const result = await backendRequest({ url: 'sys/dict/loadTreeNodes', method: 'post', params });
-      if (Array.isArray(result)) {
-        resolve(result);
-      } else {
-        ElMessage.error(tr('dictList.messages.loadTreeFailed'));
+      if (node.level === 0) {
+        if (this.getAtomicServices().length === 0) {
+          await this.loadAtomicServices();
+        }
+        const items = this.getAtomicServices();
+        const nodes = items.map((item: { code: string; name: string }) => ({
+          id: item.code,
+          code: item.code,
+          name: item.name,
+        }));
+        resolve(nodes);
+        return;
       }
+
+      if (node.level === 1) {
+        const atomicServiceCode = (node.data as { code: string }).code;
+        const result = await backendRequest({
+          url: 'sys/dict/getDictTypesByAtomicServiceCode',
+          method: 'get',
+          params: { atomicServiceCode, activeOnly },
+        });
+        const raw = result != null && typeof result === 'object' && !Array.isArray(result)
+          ? (result.data != null && typeof result.data === 'object' ? result.data : result)
+          : {};
+        const map = raw as Record<string, string>;
+        const nodes = Object.entries(map).map(([id, dictType]) => ({
+          id,
+          code: dictType,
+          name: dictType,
+        }));
+        resolve(nodes);
+        return;
+      }
+
+      if (node.level === 2) {
+        const atomicServiceCode = DictListPage.getAtomicServiceByNode(node as { level: number; parent?: { level: number; data?: { code: string } } });
+        const dictType = (node.data as { code: string }).code;
+        const loaded = this.state.dictI18nLoaded as Array<{ atomicServiceCode: string; dictType: string }>;
+        if (!loaded.some((c) => c.atomicServiceCode === atomicServiceCode && c.dictType === dictType)) {
+          loaded.push({ atomicServiceCode, dictType });
+        }
+        await loadMessagesForConfig([{ i18nTypeDictCode: 'dict-item', namespaces: [dictType], atomicServiceCode }]);
+        const result = await backendRequest({
+          url: 'sys/dictItem/getDirectChildrenOfDict',
+          method: 'get',
+          params: { atomicServiceCode, dictType, activeOnly },
+        });
+        const list = Array.isArray(result) ? result : (result?.data != null && Array.isArray(result.data) ? result.data : []);
+        const nodes = list.map((item: { id: string; itemCode?: string; itemName?: string }) => {
+          const code = item.itemCode ?? '';
+          return {
+            id: item.id,
+            code,
+            nameKey: dictType + '.' + code,
+            name: item.itemName ?? code,
+          };
+        });
+        resolve(nodes);
+        return;
+      }
+
+      const atomicServiceCode = DictListPage.getAtomicServiceByNode(node as { level: number; parent?: { level: number; data?: { code: string } } });
+      const dictType = DictListPage.getDictTypeByNode(node as { level: number; parent?: { level: number; data?: { code: string } } });
+      const itemCode = (node.data as { code: string }).code;
+      const result = await backendRequest({
+        url: 'sys/dictItem/getDirectChildrenOfItem',
+        method: 'get',
+        params: { atomicServiceCode, dictType, itemCode, activeOnly },
+      });
+      const list = Array.isArray(result) ? result : (result?.data != null && Array.isArray(result.data) ? result.data : []);
+      const nodes = list.map((item: { id: string; itemCode?: string; itemName?: string }) => {
+        const code = item.itemCode ?? '';
+        return {
+          id: item.id,
+          code,
+          nameKey: dictType + '.' + code,
+          name: item.itemName ?? code,
+        };
+      });
+      resolve(nodes);
     } catch {
       ElMessage.error(tr('dictList.messages.loadTreeFailed'));
     }
@@ -524,9 +711,10 @@ class DictListPage extends BaseListPage {
     if (node.level === 1) return;
     (this.state as Record<string, unknown>).searchSource = 'tree';
     this.setParamsForTree(node as Parameters<InstanceType<typeof DictListPage>['setParamsForTree']>[0], false);
-    const params = { id: nodeData.id, isDict: node.level === 2 };
+    const params = { id: nodeData.id };
+    const url = node.level === 2 ? 'sys/dict/getDict' : 'sys/dictItem/getDictItem';
     try {
-      const result = await backendRequest({ url: 'sys/dict/getDict', params });
+      const result = await backendRequest({ url, params });
       if (result != null && typeof result === 'object') {
         this.state.tableData = [result];
         this.state.pagination.total = 1;
@@ -538,26 +726,53 @@ class DictListPage extends BaseListPage {
     }
   }
 
-  private createFilter(queryString: string): (item: { value: string }) => boolean {
-    return (item) => item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0;
+  /**
+   * 树节点展开时 pagingSearchDict 的请求参数，按层级独立构造（不再传 dict，由 URL 区分）：
+   * 第一层：active、atomicServiceCode、pageNo、pageSize
+   * 第二层：active、atomicServiceCode、dictType、pageNo、pageSize
+   * 第三层及之后：active、parentId、pageNo、pageSize
+   */
+  private buildPagingSearchDictParams(): Record<string, unknown> {
+    const sp = this.state.searchParams as Record<string, unknown>;
+    const level = sp.level as number | undefined;
+    const active = sp.active === true ? true : null;
+    const pageNo = this.state.pagination?.pageNo ?? 1;
+    const pageSize = this.state.pagination?.pageSize ?? 10;
+    if (level === 1) {
+      return {
+        active,
+        atomicServiceCode: sp.module ?? null,
+        pageNo,
+        pageSize,
+      };
+    }
+    if (level === 2) {
+      return {
+        active,
+        atomicServiceCode: sp.module ?? null,
+        dictType: sp.dictType ?? null,
+        pageNo,
+        pageSize,
+      };
+    }
+    return {
+      active,
+      parentId: sp.parentId ?? null,
+      pageNo,
+      pageSize,
+    };
   }
 
   private async pagingSearch(): Promise<void> {
     (this.state as Record<string, unknown>).searchSource = 'tree';
-    const sp = this.state.searchParams as Record<string, unknown>;
-    const params: Record<string, unknown> = {
-      parentId: sp.parentId,
-      firstLevel: sp.level === 1,
-      pageNo: this.state.pagination.pageNo,
-      pageSize: this.state.pagination.pageSize,
-      active: sp.active === true ? true : null,
-      isDict: sp.isDict,
-    };
+    const params = this.buildPagingSearchDictParams();
     if (this.state.sort.orderProperty) {
-      params.orders = [{ property: this.state.sort.orderProperty, direction: this.state.sort.orderDirection }];
+      (params as Record<string, unknown>).orders = [{ property: this.state.sort.orderProperty, direction: this.state.sort.orderDirection }];
     }
+    const level = (this.state.searchParams as Record<string, unknown>).level as number | undefined;
+    const url = level === 1 ? 'sys/dict/pagingSearchDict' : 'sys/dictItem/pagingSearchDictItem';
     try {
-      const result = await backendRequest({ url: 'sys/dict/pagingSearch', method: 'post', params });
+      const result = await backendRequest({ url, method: 'post', params });
       if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
         this.state.tableData = (result as { data: unknown[] }).data ?? [];
         this.state.pagination.total = (result as { totalCount: number }).totalCount ?? 0;
@@ -566,19 +781,6 @@ class DictListPage extends BaseListPage {
       }
     } catch {
       ElMessage.error(tr('dictList.messages.loadFailed'));
-    }
-  }
-
-  private async loadDictTypes(): Promise<void> {
-    try {
-      const result = await backendRequest({ url: 'sys/dict/loadDictTypes' });
-      if (Array.isArray(result)) {
-        (this.state as Record<string, unknown>).dictTypes = result.map((val: string) => ({ value: val }));
-      } else {
-        ElMessage.error(tr('dictList.messages.loadDictTypesFailed'));
-      }
-    } catch {
-      ElMessage.error(tr('dictList.messages.loadDictTypesFailed'));
     }
   }
 
@@ -592,7 +794,9 @@ class DictListPage extends BaseListPage {
 
   private convertThis(): void {
     super.convertThis();
-    this.filterDictType = (q, cb) => this.doFilterDictType(q, cb);
+    this.afterAddDict = (params: unknown) => this.doAfterAddDict(params);
+    this.afterAddDictItem = (params: unknown) => this.doAfterAddDictItem(params);
+    this.openAddItemDialog = () => this.doOpenAddItemDialog();
     this.loadTree = (node, resolve) => this.doLoadTree(node as Parameters<InstanceType<typeof DictListPage>['doLoadTree']>[0], resolve as (data: unknown[]) => void);
     this.expandTreeNode = (nodeData, node) => this.doExpandTreeNode(nodeData, node);
     this.clickTreeNode = (nodeData, node) => this.doClickTreeNode(nodeData as Record<string, unknown>, node);
@@ -603,18 +807,36 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'dictList.operationColumnPinned';
 const DICT_LIST_STATE_STORAGE_KEY = 'dictList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'dictList.visibleColumns';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['dictType', 'dictName', 'module', 'itemCode', 'itemName', 'parentCode', 'seqNo', 'active'];
+const ALL_COLUMN_KEYS = ['dictType', 'dictName', 'atomicServiceCode', 'itemCode', 'itemName', 'parentCode', 'orderNum', 'remark', 'active'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
 export default defineComponent({
   name: 'DictList',
-  components: { DictAddEdit, DictDetail, DictItemDetail, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { DictAddEdit, DictItemAddEdit, DictDetail, DictItemDetail, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
-    const { t } = useI18n();
+    const { t, te } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new DictListPage(props, context, tree)) as DictListPage & { state: Record<string, unknown> };
+    // 切换语言时重载已加载的 dict-item 国际化，使树节点 t(nameKey) 随新语言生效
+    watch(
+      () => i18n.global.locale.value,
+      () => {
+        const loaded = listPage.state.dictI18nLoaded as Array<{ atomicServiceCode: string; dictType: string }>;
+        if (loaded?.length) {
+          loadMessagesForConfig(
+            loaded.map((c) => ({ i18nTypeDictCode: 'dict-item' as const, namespaces: [c.dictType], atomicServiceCode: c.atomicServiceCode }))
+          );
+        }
+      }
+    );
+    /** 树节点文案：有 nameKey 则 t(nameKey) 以随 locale 更新，否则用 name/code（level0/1 无 nameKey） */
+    function getTreeNodeLabel(data: Record<string, unknown>): string {
+      const key = data.nameKey != null ? String(data.nameKey) : '';
+      if (key && te(key)) return t(key);
+      return (data.name != null ? String(data.name) : '') || (data.code != null ? String(data.code) : '');
+    }
     const {
       listLayoutRefs,
       onTableWrapMounted: layoutOnTableWrapMounted,
@@ -635,12 +857,13 @@ export default defineComponent({
     const autoWidthColumns = computed(() => [
       { key: 'dictType', getLabel: () => t('dictList.columns.dictType'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.dictType ?? '') },
       { key: 'dictName', getLabel: () => t('dictList.columns.dictName'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.dictName ?? '') },
-      { key: 'module', getLabel: () => t('dictList.columns.module'), sortable: true, getCellText: (row: Record<string, unknown>) => listPage.transAtomicService(row.module) },
+      { key: 'atomicServiceCode', getLabel: () => t('dictList.columns.atomicServiceCode'), sortable: true, getCellText: (row: Record<string, unknown>) => listPage.transAtomicService(row.atomicServiceCode) },
       { key: 'itemCode', getLabel: () => t('dictList.columns.itemCode'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.itemCode ?? '') },
       { key: 'itemName', getLabel: () => t('dictList.columns.itemName'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.itemName ?? '') },
       { key: 'parentCode', getLabel: () => t('dictList.columns.parentCode'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.parentCode ?? '') },
-      { key: 'seqNo', getLabel: () => t('dictList.columns.seqNo'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.seqNo ?? '') },
-      { key: 'active', getLabel: () => t('dictList.columns.active'), sortable: false, getCellText: () => '' },
+      { key: 'orderNum', getLabel: () => t('dictList.columns.orderNum'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.orderNum ?? '') },
+      { key: 'remark', getLabel: () => t('dictList.columns.remark'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.remark ?? '') },
+      { key: 'active', getLabel: () => t('dictList.columns.active'), sortable: false, getCellText: (row: Record<string, unknown>) => '' },
     ]);
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
     const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
@@ -655,12 +878,36 @@ export default defineComponent({
       nextTick(runColumnAutoWidth);
     }
 
+    const splitContainerRef = ref<HTMLElement | null>(null);
+    const treePanelWidthPercent = ref(15.75);
+    function startTreeResize(e: MouseEvent) {
+      e.preventDefault();
+      document.addEventListener('mousemove', onTreeResizeMove);
+      document.addEventListener('mouseup', onTreeResizeEnd);
+    }
+    function onTreeResizeMove(e: MouseEvent) {
+      const el = splitContainerRef.value;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const pct = (x / rect.width) * 100;
+      treePanelWidthPercent.value = Math.min(50, Math.max(10, pct));
+    }
+    function onTreeResizeEnd() {
+      document.removeEventListener('mousemove', onTreeResizeMove);
+      document.removeEventListener('mouseup', onTreeResizeEnd);
+    }
+
     return {
       listPage,
+      splitContainerRef,
+      treePanelWidthPercent,
+      startTreeResize,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,
+      getTreeNodeLabel,
       tree,
       listLayoutRefs,
       visibleColumnKeys,
@@ -692,15 +939,29 @@ export default defineComponent({
   flex-direction: column;
   padding: 8px 5px 5px 5px; /* 上内边距 8px（5+3） */
 }
-.dict-list-page .dict-list-row {
+.dict-list-page .dict-list-split {
   flex: 1;
   min-height: 0;
+  display: flex;
+  align-items: stretch;
 }
 .dict-list-page .resource-tree-col {
+  flex-shrink: 0;
   padding-left: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 120px;
+}
+.dict-list-page .dict-list-resizer {
+  flex-shrink: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: var(--el-border-color-lighter);
+  transition: background 0.15s;
+}
+.dict-list-page .dict-list-resizer:hover {
+  background: var(--el-color-primary-light-5);
 }
 .dict-list-page .resource-tree-wrap {
   height: 100%;
@@ -714,6 +975,8 @@ export default defineComponent({
   height: 32px;
 }
 .dict-list-page .resource-table-col {
+  flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;

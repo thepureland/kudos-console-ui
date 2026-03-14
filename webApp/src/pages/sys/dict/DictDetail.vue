@@ -10,15 +10,15 @@
     :format-field-value="formatFieldValue"
     @update:model-value="(v) => { if (v === false) close(); }"
   >
-    <div v-if="(tableData?.length ?? 0) > 0" class="dict-detail-items-section">
+    <div v-if="itemsTotal > 0 || (tableData?.length ?? 0) > 0" class="dict-detail-items-section">
       <div class="dict-detail-items-title">
         <span class="dict-detail-items-title-text">{{ t('dictDetail.sections.dictItems') }}</span>
       </div>
       <el-table border stripe :data="tableData" max-height="400" :header-cell-style="{ textAlign: 'center' }">
-        <el-table-column type="index" width="50" :label="''" />
+        <el-table-column type="index" width="50" :label="''" :index="(idx: number) => (itemsPageNo - 1) * itemsPageSize + idx + 1" />
         <el-table-column prop="itemCode" width="150" :label="t('dictDetail.table.itemCode')" />
         <el-table-column prop="itemName" width="150" :label="t('dictDetail.table.itemName')" />
-        <el-table-column prop="seqNo" width="70" :label="t('dictDetail.table.seqNo')" />
+        <el-table-column prop="orderNum" width="70" :label="t('dictDetail.table.seqNo')" />
         <el-table-column prop="active" width="70" :label="t('dictDetail.table.active')">
           <template #default="scope">
             {{ scope.row.active ? t('dictList.common.yes') : t('dictList.common.no') }}
@@ -34,6 +34,16 @@
         </el-table-column>
         <el-table-column prop="remark" min-width="120" :label="t('dictDetail.table.remark')" show-overflow-tooltip />
       </el-table>
+      <el-pagination
+        class="dict-detail-items-pagination"
+        :current-page="itemsPageNo"
+        :page-size="itemsPageSize"
+        :total="itemsTotal"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="onItemsSizeChange"
+        @current-change="onItemsPageChange"
+      />
     </div>
   </SectionedDetailDialog>
 </template>
@@ -96,6 +106,9 @@ class DictDetailPage extends BaseDetailPage {
     return {
       ...super.initBaseState(),
       tableData: [] as Record<string, unknown>[],
+      itemsPageNo: 1,
+      itemsPageSize: 10,
+      itemsTotal: 0,
     };
   }
 
@@ -107,14 +120,14 @@ class DictDetailPage extends BaseDetailPage {
     return 'sys/dict';
   }
 
-  /** 字典详情用 getDict 接口（与 mock/后端一致），参数 id + isDict=true */
+  /** 字典详情用 getDict 接口（与 mock/后端一致），参数 id */
   protected getDetailLoadUrl(): string {
     return this.getRootActionPath() + '/getDict';
   }
 
   /** 始终用 state.rid 请求详情 */
   protected createDetailLoadParams(): Record<string, unknown> {
-    return { id: String(this.state.rid || this.props.rid || ''), isDict: true };
+    return { id: String(this.state.rid || this.props.rid || '') };
   }
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
@@ -138,13 +151,17 @@ class DictDetailPage extends BaseDetailPage {
   protected async loadOthers(): Promise<void> {
     const rid = String(this.state.rid || this.props.rid || '');
     if (!rid) return;
+    const st = this.state as Record<string, unknown>;
+    const pageNo = (st.itemsPageNo as number) ?? 1;
+    const pageSize = (st.itemsPageSize as number) ?? 10;
     const result = await backendRequest({
-      url: 'sys/dictItem/getDictItemsByDictId',
-      params: { dictId: rid },
+      url: 'sys/dictItem/pagingSearchDictItem',
+      method: 'post',
+      params: { dictId: rid, pageNo, pageSize },
     });
-    const list = Array.isArray(result) ? result : null;
-    if (list != null) {
-      (this.state as Record<string, unknown>).tableData = list;
+    if (result != null && typeof result === 'object' && 'data' in result && Array.isArray((result as { data?: unknown }).data)) {
+      st.tableData = (result as { data: Record<string, unknown>[] }).data ?? [];
+      st.itemsTotal = (result as { totalCount?: number }).totalCount ?? 0;
     } else {
       ElMessage.error((i18n.global.t('dictDetail.messages.loadItemsFailed') as string) || '字典项加载失败！');
     }
@@ -168,7 +185,13 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     const { t } = useI18n();
     const page = reactive(new DictDetailPage(props, context)) as DictDetailPage & {
-      state: { detail: Record<string, unknown> | null; tableData: Record<string, unknown>[] };
+      state: {
+        detail: Record<string, unknown> | null;
+        tableData: Record<string, unknown>[];
+        itemsPageNo: number;
+        itemsPageSize: number;
+        itemsTotal: number;
+      };
       formatDate: (value: unknown) => string;
       transAtomicService: (code: string) => string;
       transDict: (module: string, code: string, value: string) => string;
@@ -186,11 +209,24 @@ export default defineComponent({
         page.state.rid = id;
         if (oldRid !== undefined && id && id !== String(oldRid)) {
           page.state.detail = null;
-          (page.state as Record<string, unknown>).tableData = [];
+          const st = page.state as Record<string, unknown>;
+          st.tableData = [];
+          st.itemsPageNo = 1;
+          st.itemsTotal = 0;
           page.loadData().then(() => page.loadOthers());
         }
       }
     );
+
+    function onItemsSizeChange(newSize: number) {
+      (page.state as Record<string, unknown>).itemsPageSize = newSize;
+      (page.state as Record<string, unknown>).itemsPageNo = 1;
+      page.loadOthers();
+    }
+    function onItemsPageChange(newPage: number) {
+      (page.state as Record<string, unknown>).itemsPageNo = newPage;
+      page.loadOthers();
+    }
 
     return {
       ...toRefs(page),
@@ -198,6 +234,8 @@ export default defineComponent({
       t,
       rowsWithSections,
       formatFieldValue,
+      onItemsSizeChange,
+      onItemsPageChange,
     };
   },
 });
@@ -223,5 +261,10 @@ export default defineComponent({
 
 .dict-detail-items-title-text {
   letter-spacing: 0.3px;
+}
+
+.dict-detail-items-pagination {
+  margin-top: 12px;
+  justify-content: flex-end;
 }
 </style>

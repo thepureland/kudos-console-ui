@@ -74,10 +74,11 @@ class BackendApiExposed {
     /**
      * 发起请求，返回响应体字符串（TS 侧需 JSON.parse）。
      * @param url 相对路径，如 "sys/dictItem/getDictItemMap"
-     * @param method "get" | "post" | "delete"
-     * @param paramsJson GET/DELETE 时为 query 参数对象 JSON，POST 时为 body JSON；可为 null
+     * @param method "get" | "post" | "put" | "delete"
+     * @param paramsJson GET/DELETE 时为 query 参数；POST/PUT 默认 body，paramsInQuery=true 时为 query
+     * @param paramsInQuery 为 true 时 POST/PUT 也将 paramsJson 放到 URL query，不放到 body
      */
-    fun request(url: String, method: String, paramsJson: String?) = scope.promise {
+    fun request(url: String, method: String, paramsJson: String?, paramsInQuery: Boolean = false) = scope.promise {
         val t0 = perfNow()
         val path = fullPath(url)
         val t1 = perfNow()
@@ -102,16 +103,36 @@ class BackendApiExposed {
                 }.body<String>()
             }
             "post" -> {
-                client.post(path) {
-                    header(HttpHeaders.ContentType, ContentType.Application.Json)
-                    setBody(paramsJson ?: "{}")
-                }.body<String>()
+                if (paramsInQuery) {
+                    client.post(path) {
+                        url {
+                            appendJsonToUrlBuilder(paramsJson) { name, value ->
+                                parameters.append(name, value)
+                            }
+                        }
+                    }.body<String>()
+                } else {
+                    client.post(path) {
+                        header(HttpHeaders.ContentType, ContentType.Application.Json)
+                        setBody(paramsJson ?: "{}")
+                    }.body<String>()
+                }
             }
             "put" -> {
-                client.put(path) {
-                    header(HttpHeaders.ContentType, ContentType.Application.Json)
-                    setBody(paramsJson ?: "{}")
-                }.body<String>()
+                if (paramsInQuery) {
+                    client.put(path) {
+                        url {
+                            appendJsonToUrlBuilder(paramsJson) { name, value ->
+                                parameters.append(name, value)
+                            }
+                        }
+                    }.body<String>()
+                } else {
+                    client.put(path) {
+                        header(HttpHeaders.ContentType, ContentType.Application.Json)
+                        setBody(paramsJson ?: "{}")
+                    }.body<String>()
+                }
             }
             else -> client.get(path).body<String>()
         }

@@ -4,12 +4,12 @@ import { backendRequest } from "../../utils/backendRequest";
 
 const DICT_CACHE_KEY = "__kudosDictCache";
 
-const BATCH_GET_DICT_ITEM_MAP_URL = "sys/dict/batchGetDictItemMap";
+const BATCH_GET_DICT_ITEM_MAP_URL = "sys/dictItem/batchGetDictItemMap";
 
 /**
  * 字典服务：负责字典的加载、缓存与翻译。
  * 缓存 key 格式：原子服务编码---字典类型
- * 请求：POST /api/admin/sys/dict/batchGetDictItemMap，body 为 dictTypesByAtomicServiceCode: Map<原子服务编码, Collection<字典类型>>
+ * 请求：POST /api/admin/sys/dictItem/batchGetDictItemMap，body 为 dictTypesByAtomicServiceCode: Map<原子服务编码, Collection<字典类型>>
  * 返回：Map<原子服务编码, Map<字典类型, Record<编码, 译文或i18n key>>>
  * 字典项译文（当 value 为 i18n key 时）由各页 getI18nConfig() 指定从 batchGetI18ns 拉取，类型 dict-item、命名空间为字典类型编码（如 cache_strategy）。
  *

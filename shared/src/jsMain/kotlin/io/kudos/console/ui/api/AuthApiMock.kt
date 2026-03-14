@@ -2348,7 +2348,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             }.toString()
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/batchGetDictItemMap", "/api/sys/dict/batchGetDictItemMap", "/api/admin/sys/dict/batchGetDictItemMap" -> {
+        "/sys/dict/batchGetDictItemMap", "/api/sys/dict/batchGetDictItemMap", "/api/admin/sys/dict/batchGetDictItemMap",
+        "/sys/dictItem/batchGetDictItemMap", "/api/sys/dictItem/batchGetDictItemMap", "/api/admin/sys/dictItem/batchGetDictItemMap" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildBatchGetDictItemMapResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
@@ -2650,7 +2651,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildDictSearchResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
-        "/sys/dict/pagingSearch", "/api/sys/dict/pagingSearch", "/api/admin/sys/dict/pagingSearch" -> {
+        "/sys/dict/pagingSearchDict", "/api/sys/dict/pagingSearchDict", "/api/admin/sys/dict/pagingSearchDict" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildDictSearchByTreeResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)

@@ -216,14 +216,16 @@ export abstract class BaseListPage extends BasePage {
 
     public resetSearchFields: () => void
 
-    /** 重置搜索条件并回到第一页。 */
+    /** 重置搜索条件并回到第一页：恢复为初始状态（与离开页面时一致）。 */
     protected doResetSearchFields() {
-        this.state.pagination.pageNo = 1
-        const searchParams = this.state.searchParams
-        if (searchParams) {
-            for (const paramName in searchParams) {
-                searchParams[paramName] = null
-            }
+        if (this.initialSearchParamsSnapshot && this.state.searchParams) {
+            Object.assign(this.state.searchParams, this.initialSearchParamsSnapshot)
+        }
+        if (this.initialPaginationSnapshot && this.state.pagination) {
+            Object.assign(this.state.pagination, this.initialPaginationSnapshot)
+        }
+        if (this.initialSortSnapshot && this.state.sort) {
+            Object.assign(this.state.sort, this.initialSortSnapshot)
         }
     }
 
@@ -519,7 +521,7 @@ export abstract class BaseListPage extends BasePage {
         if (subSystemCode) {
             params["subSystemCode"] = subSystemCode
         }
-        const result = await backendRequest({url: this.getUpdateActiveUrl(), params})
+        const result = await backendRequest({url: this.getUpdateActiveUrl(), method: 'put', params, paramsInQuery: true})
         if (result !== true && result?.data !== true) {
             ElMessage.error(i18n.global.t('listPage.updateActiveFailed') as string)
         }
