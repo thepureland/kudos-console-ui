@@ -77,6 +77,11 @@ class UserListDialog extends BaseListPage {
     return "rbac/role"
   }
 
+  /** 用户状态、用户类型字典项译文从后端取 */
+  protected getI18nConfig() {
+    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['user_status', 'user_type'], atomicServiceCode: 'user' }]
+  }
+
   protected getSearchUrl(): String {
     return this.getRootActionPath() + "/searchAssignedUsers"
   }

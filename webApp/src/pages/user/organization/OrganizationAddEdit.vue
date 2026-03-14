@@ -139,6 +139,11 @@ class AddEditPage extends OrgSupportAddEditPage {
     return 'user/organization';
   }
 
+  /** 组织类型字典项译文从后端取（原子服务 share） */
+  protected getI18nConfig() {
+    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['organization_type'], atomicServiceCode: 'share' }];
+  }
+
   protected getRowObjectLoadUrl(): string {
     return this.getRootActionPath() + '/getDetail';
   }

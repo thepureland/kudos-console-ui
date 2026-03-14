@@ -925,22 +925,24 @@ export default {
     },
   },
   i18nList: {
-    placeholders: { key: 'Key', i18nTypeDictCode: 'I18n Type', atomicServiceCode: 'Atomic Service', locale: 'Locale' },
+    placeholders: { key: 'Key', namespace: 'Namespace', i18nTypeDictCode: 'I18n Type', atomicServiceCode: 'Atomic Service', locale: 'Locale' },
     common: { yes: 'Yes', no: 'No' },
-    columns: { index: 'Row No.', key: 'Key', value: 'Value', locale: 'Locale', i18nTypeDictCode: 'I18n Type', atomicServiceCode: 'Atomic Service', active: 'Active', builtIn: 'Built-in', operation: 'Operation' },
+    columns: { index: 'Row No.', key: 'Key', value: 'Value', locale: 'Locale', i18nTypeDictCode: 'I18n Type', namespace: 'Namespace', atomicServiceCode: 'Atomic Service', active: 'Active', builtIn: 'Built-in', remark: 'Remark', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
   i18nAddEdit: {
     titleAdd: 'Add I18n',
     titleEdit: 'Edit I18n',
-    sections: { basicInfo: 'Basic Info' },
-    labels: { key: 'Key', value: 'Value', locale: 'Locale', i18nTypeDictCode: 'I18n Type', atomicServiceCode: 'Atomic Service' },
+    sections: { basicInfo: 'Basic Info', other: 'Other' },
+    labels: { key: 'Key', value: 'Value', namespace: 'Namespace', locale: 'Locale', i18nTypeDictCode: 'I18n Type', atomicServiceCode: 'Atomic Service', remark: 'Remark' },
     placeholders: {
       key: 'Enter key',
       value: 'Enter value',
+      namespace: 'Enter namespace',
       locale: 'Select locale',
       i18nTypeDictCode: 'Select i18n type',
       atomicServiceCode: 'Select atomic service',
+      remark: 'Optional',
     },
     buttons: { cancel: 'Cancel', confirm: 'OK' },
     closeConfirm: { message: 'Unsaved changes. Close anyway?', title: 'Confirm' },
@@ -955,48 +957,9 @@ export default {
     empty: 'No data',
     sections: { basicInfo: 'Basic Info', audit: 'Audit Info', otherInfo: 'Other Info' },
     fields: {
-      id: 'ID', key: 'Key', value: 'Value', locale: 'Locale', i18nTypeDictCode: 'I18n Type', atomicServiceCode: 'Atomic Service',
+      id: 'ID', key: 'Key', value: 'Value', locale: 'Locale', i18nTypeDictCode: 'I18n Type', atomicServiceCode: 'Atomic Service', namespace: 'Namespace',
       createTime: 'Create Time', updateTime: 'Update Time', createUser: 'Created By', updateUser: 'Updated By',
       active: 'Active', builtIn: 'Built-in', remark: 'Remark',
     },
-  },
-  resource_type: {
-    menu: 'Menu',
-    button: 'Button',
-  },
-  module: {
-    kuark_sys: 'System',
-    kuark_user: 'User',
-    kuark_log: 'Log',
-    kuark_job: 'Job',
-  },
-  user_status: {
-    NORMAL: 'Normal',
-    LOCKED: 'Locked',
-    DISABLED: 'Disabled',
-  },
-  user_type: {
-    ADMIN: 'Admin',
-    USER: 'User',
-  },
-  locale: {
-    zh_CN: 'zh-CN',
-    zh_TW: 'zh-TW',
-    en_US: 'en-US',
-  },
-  i18n_type: {
-    dict: 'Dict Type',
-    dict_item: 'Dict Item',
-    view: 'View',
-  },
-  cache_strategy: {
-    SINGLE_LOCAL: 'Single Local',
-    REMOTE: 'Remote',
-    LOCAL_REMOTE: 'Local + Remote',
-  },
-  organization_type: {
-    company: 'Company',
-    dept: 'Department',
-    group: 'Group',
   },
 };

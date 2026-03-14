@@ -925,22 +925,24 @@ export default {
     },
   },
   i18nList: {
-    placeholders: { key: '键', i18nTypeDictCode: '国际化类型', atomicServiceCode: '原子服务', locale: '语言' },
+    placeholders: { key: '键', namespace: '命名空间', i18nTypeDictCode: '国际化类型', atomicServiceCode: '原子服务', locale: '语言' },
     common: { yes: '是', no: '否' },
-    columns: { index: '行序', key: '键', value: '值', locale: '语言', i18nTypeDictCode: '国际化类型', atomicServiceCode: '原子服务', active: '启用', builtIn: '内置', operation: '操作' },
+    columns: { index: '行序', key: '键', value: '值', locale: '语言', i18nTypeDictCode: '国际化类型', namespace: '命名空间', atomicServiceCode: '原子服务', active: '启用', builtIn: '内置', remark: '备注', operation: '操作' },
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
   i18nAddEdit: {
     titleAdd: '新增国际化',
     titleEdit: '编辑国际化',
-    sections: { basicInfo: '基本信息' },
-    labels: { key: '键', value: '值', locale: '语言', i18nTypeDictCode: '国际化类型', atomicServiceCode: '原子服务' },
+    sections: { basicInfo: '基本信息', other: '其他' },
+    labels: { key: '键', value: '值', namespace: '命名空间', locale: '语言', i18nTypeDictCode: '国际化类型', atomicServiceCode: '原子服务', remark: '备注' },
     placeholders: {
       key: '请输入键',
       value: '请输入值',
+      namespace: '请输入命名空间',
       locale: '请选择语言',
       i18nTypeDictCode: '请选择国际化类型',
       atomicServiceCode: '请选择原子服务',
+      remark: '选填',
     },
     buttons: { cancel: '取 消', confirm: '确 定' },
     closeConfirm: { message: '有未保存的修改，确定要关闭吗？', title: '提示' },
@@ -955,48 +957,9 @@ export default {
     empty: '暂无数据',
     sections: { basicInfo: '基本信息', audit: '审计信息', otherInfo: '其他信息' },
     fields: {
-      id: 'ID', key: '键', value: '值', locale: '语言', i18nTypeDictCode: '国际化类型', atomicServiceCode: '原子服务',
+      id: 'ID', key: '键', value: '值', locale: '语言', i18nTypeDictCode: '国际化类型', atomicServiceCode: '原子服务', namespace: '命名空间',
       createTime: '创建时间', updateTime: '更新时间', createUser: '创建人', updateUser: '更新人',
       active: '启用', builtIn: '内置', remark: '备注',
     },
-  },
-  resource_type: {
-    menu: '菜单',
-    button: '按钮',
-  },
-  module: {
-    kuark_sys: '系统',
-    kuark_user: '用户',
-    kuark_log: '日志',
-    kuark_job: '任务',
-  },
-  user_status: {
-    NORMAL: '正常',
-    LOCKED: '锁定',
-    DISABLED: '禁用',
-  },
-  user_type: {
-    ADMIN: '管理员',
-    USER: '普通用户',
-  },
-  locale: {
-    zh_CN: 'zh-CN',
-    zh_TW: 'zh-TW',
-    en_US: 'en-US',
-  },
-  i18n_type: {
-    dict: '字典类型',
-    dict_item: '字典项',
-    view: '视图',
-  },
-  cache_strategy: {
-    SINGLE_LOCAL: '单机本地',
-    REMOTE: '远程',
-    LOCAL_REMOTE: '本地+远程',
-  },
-  organization_type: {
-    company: '公司',
-    dept: '部门',
-    group: '集团',
   },
 };

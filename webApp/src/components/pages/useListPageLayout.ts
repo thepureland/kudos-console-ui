@@ -3,6 +3,7 @@ import { nextTick } from 'vue';
 import { useStore } from 'vuex';
 import type { BaseListPage } from './BaseListPage';
 import { useTableMaxHeight } from './useTableMaxHeight';
+import { i18n, loadMessagesForConfig } from '../../i18n';
 
 export interface ListPageColumnVisibilityOption {
   storageKey: string;
@@ -107,6 +108,16 @@ export function useListPageLayout(
       onAfterPersist?.();
     },
     { deep: true }
+  );
+
+  /** 语言切换时重载本页字典项等 i18n，使下拉 t(item.second) 随新语言生效 */
+  watch(
+    () => i18n.global.locale.value,
+    () => {
+      const config = (listPage as { getI18nConfig?: () => { i18nTypeDictCode: string; namespaces: string[]; atomicServiceCode: string }[] }).getI18nConfig?.();
+      if (config?.length) loadMessagesForConfig(config);
+    },
+    { immediate: false }
   );
 
   return {

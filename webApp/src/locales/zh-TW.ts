@@ -925,22 +925,24 @@ export default {
     },
   },
   i18nList: {
-    placeholders: { key: '鍵', i18nTypeDictCode: '國際化類型', atomicServiceCode: '原子服務', locale: '語言' },
+    placeholders: { key: '鍵', namespace: '命名空間', i18nTypeDictCode: '國際化類型', atomicServiceCode: '原子服務', locale: '語言' },
     common: { yes: '是', no: '否' },
-    columns: { index: '行序', key: '鍵', value: '值', locale: '語言', i18nTypeDictCode: '國際化類型', atomicServiceCode: '原子服務', active: '啟用', builtIn: '內建', operation: '操作' },
+    columns: { index: '行序', key: '鍵', value: '值', locale: '語言', i18nTypeDictCode: '國際化類型', namespace: '命名空間', atomicServiceCode: '原子服務', active: '啟用', builtIn: '內建', remark: '備註', operation: '操作' },
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
   i18nAddEdit: {
     titleAdd: '新增國際化',
     titleEdit: '編輯國際化',
-    sections: { basicInfo: '基本資訊' },
-    labels: { key: '鍵', value: '值', locale: '語言', i18nTypeDictCode: '國際化類型', atomicServiceCode: '原子服務' },
+    sections: { basicInfo: '基本資訊', other: '其他' },
+    labels: { key: '鍵', value: '值', namespace: '命名空間', locale: '語言', i18nTypeDictCode: '國際化類型', atomicServiceCode: '原子服務', remark: '備註' },
     placeholders: {
       key: '請輸入鍵',
       value: '請輸入值',
+      namespace: '請輸入命名空間',
       locale: '請選擇語言',
       i18nTypeDictCode: '請選擇國際化類型',
       atomicServiceCode: '請選擇原子服務',
+      remark: '選填',
     },
     buttons: { cancel: '取 消', confirm: '確 定' },
     closeConfirm: { message: '有未儲存的修改，確定要關閉嗎？', title: '提示' },
@@ -955,48 +957,9 @@ export default {
     empty: '暫無數據',
     sections: { basicInfo: '基本信息', audit: '審計信息', otherInfo: '其他信息' },
     fields: {
-      id: 'ID', key: '鍵', value: '值', locale: '語言', i18nTypeDictCode: '國際化類型', atomicServiceCode: '原子服務',
+      id: 'ID', key: '鍵', value: '值', locale: '語言', i18nTypeDictCode: '國際化類型', atomicServiceCode: '原子服務', namespace: '命名空間',
       createTime: '創建時間', updateTime: '更新時間', createUser: '創建人', updateUser: '更新人',
       active: '啟用', builtIn: '內建', remark: '備註',
     },
-  },
-  resource_type: {
-    menu: '選單',
-    button: '按鈕',
-  },
-  module: {
-    kuark_sys: '系統',
-    kuark_user: '用戶',
-    kuark_log: '日誌',
-    kuark_job: '任務',
-  },
-  user_status: {
-    NORMAL: '正常',
-    LOCKED: '鎖定',
-    DISABLED: '停用',
-  },
-  user_type: {
-    ADMIN: '管理員',
-    USER: '普通用戶',
-  },
-  locale: {
-    zh_CN: 'zh-CN',
-    zh_TW: 'zh-TW',
-    en_US: 'en-US',
-  },
-  i18n_type: {
-    dict: '字典類型',
-    dict_item: '字典項',
-    view: '視圖',
-  },
-  cache_strategy: {
-    SINGLE_LOCAL: '單機本地',
-    REMOTE: '遠程',
-    LOCAL_REMOTE: '本地+遠程',
-  },
-  organization_type: {
-    company: '公司',
-    dept: '部門',
-    group: '集團',
   },
 };

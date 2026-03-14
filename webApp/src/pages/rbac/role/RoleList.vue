@@ -358,6 +358,14 @@ class ListPage extends TenantSupportListPage {
     return 'rbac/role';
   }
 
+  /** 资源类型、用户状态、用户类型字典项译文从后端取（含 UserListDialog） */
+  protected getI18nConfig() {
+    return [
+      { i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' },
+      { i18nTypeDictCode: 'dict-item', namespaces: ['user_status', 'user_type'], atomicServiceCode: 'user' },
+    ];
+  }
+
   /** 租户级联只能选第二级（必须选到具体租户），不能只选子系统 */
   protected isCheckStrictly(): boolean {
     return false;

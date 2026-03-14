@@ -222,6 +222,11 @@ class CacheAddEditPage extends BaseAddEditPage {
     return 'sys/cache';
   }
 
+  /** 缓存策略字典项译文从后端取 */
+  protected getI18nConfig() {
+    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['cache_strategy'], atomicServiceCode: 'sys' }];
+  }
+
   /** 与详情页一致：使用 getDetail 接口按 id 拉取单条，Mock/后端均只处理此路径 */
   protected getRowObjectLoadUrl(): string {
     return this.getRootActionPath() + '/getDetail';

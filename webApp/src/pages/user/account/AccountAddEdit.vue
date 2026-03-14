@@ -130,6 +130,11 @@ class AddEditPage extends OrgSupportAddEditPage {
     return 'user/account';
   }
 
+  /** 用户类型字典项译文从后端取 */
+  protected getI18nConfig() {
+    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['user_type', 'user_status'], atomicServiceCode: 'user' }];
+  }
+
   protected getRowObjectLoadUrl(): string {
     return this.getRootActionPath() + '/getDetail';
   }

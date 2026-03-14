@@ -28,6 +28,16 @@
             @change="search"
           />
         </div>
+        <div class="toolbar-cell toolbar-namespace">
+          <el-input
+            v-model="searchParams.namespace"
+            :placeholder="t('i18nList.placeholders.namespace')"
+            clearable
+            class="search-name-input"
+            @keyup="(e) => e.key === 'Enter' && search()"
+            @change="search"
+          />
+        </div>
         <div class="toolbar-cell toolbar-i18n-type">
           <el-select
             v-model="searchParams.i18nTypeDictCode"
@@ -49,6 +59,7 @@
             v-model="searchParams.atomicServiceCode"
             :placeholder="t('i18nList.placeholders.atomicServiceCode')"
             clearable
+            filterable
             class="search-select-input"
             @change="search"
           >
@@ -65,6 +76,7 @@
             v-model="searchParams.locale"
             :placeholder="t('i18nList.placeholders.locale')"
             clearable
+            filterable
             class="search-select-input"
             @change="search"
           >
@@ -72,7 +84,7 @@
               v-for="item in (listPage.state.localeOptions || [])"
               :key="item.first"
               :value="item.first"
-              :label="t(item.second)"
+              :label="item.first"
             />
           </el-select>
         </div>
@@ -172,6 +184,14 @@
               })() }}
             </template>
           </el-table-column>
+          <el-table-column
+            :label="t('i18nList.columns.namespace')"
+            prop="namespace"
+            min-width="120"
+            fixed="left"
+            class-name="col-fixed-namespace"
+            show-overflow-tooltip
+          />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
               v-if="key === 'atomicServiceCode' && isColumnVisible('atomicServiceCode')"
@@ -242,6 +262,25 @@
               </template>
               <template #default="scope">
                 {{ formatBoolText(scope.row.builtIn) }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-else-if="key === 'remark' && isColumnVisible('remark')"
+              prop="remark"
+              :min-width="columnWidths['remark'] ?? 120"
+              show-overflow-tooltip
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="remark"
+                  :class="{ 'is-dragging': columnDragKey === 'remark', 'is-drop-target': columnDropTargetKey === 'remark' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'remark')"
+                  @dragover="onHeaderDragOver($event, 'remark')"
+                  @drop="onHeaderDrop($event, 'remark')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('i18nList.columns.remark') }}</div>
               </template>
             </el-table-column>
           </template>
@@ -317,7 +356,7 @@ const I18N_LIST_STATE_STORAGE_KEY = 'i18nList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'i18nList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'i18nList.columnOrder';
 const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['atomicServiceCode', 'active', 'builtIn'];
+const ALL_COLUMN_KEYS = ['atomicServiceCode', 'active', 'builtIn', 'remark'];
 const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
 const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
 
@@ -336,6 +375,7 @@ class I18nListPage extends BaseListPage {
     return {
       searchParams: {
         key: null as string | null,
+        namespace: null as string | null,
         i18nTypeDictCode: null as string | null,
         atomicServiceCode: null as string | null,
         locale: null as string | null,
@@ -352,11 +392,19 @@ class I18nListPage extends BaseListPage {
     return 'sys/i18n';
   }
 
+  /** 加载「国际化类型」「语言」字典项译文，供搜索栏下拉 t(item.second) 显示，全部从后端取 */
+  protected getI18nConfig() {
+    return [
+      { i18nTypeDictCode: 'dict-item', namespaces: ['i18n_type', 'locale'], atomicServiceCode: 'sys' },
+    ];
+  }
+
   protected createSearchParams(): Record<string, unknown> | null {
     const params = super.createSearchParams() as Record<string, unknown> | null;
     if (!params) return null;
     const sp = this.state.searchParams as Record<string, unknown>;
     params.key = sp.key ?? null;
+    params.namespace = sp.namespace ?? null;
     params.i18nTypeDictCode = sp.i18nTypeDictCode ?? null;
     params.atomicServiceCode = sp.atomicServiceCode ?? null;
     params.locale = sp.locale ?? null;
@@ -365,7 +413,7 @@ class I18nListPage extends BaseListPage {
   }
 
   protected getAfterAddSearchParamKeys(): string[] {
-    return ['key', 'locale', 'i18nTypeDictCode', 'atomicServiceCode'];
+    return ['key', 'namespace', 'locale', 'i18nTypeDictCode', 'atomicServiceCode'];
   }
 }
 
@@ -381,7 +429,7 @@ export default defineComponent({
     });
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
 
-    const FIXED_LEFT_BASE = 39 + 180 + 200 + 100 + 140;
+    const FIXED_LEFT_BASE = 39 + 180 + 200 + 100 + 140 + 120;
     const FIXED_LEFT_WITH_INDEX = FIXED_LEFT_BASE + 50;
     function forceFixedLeftWidth() {
       nextTick(() => {
@@ -410,7 +458,7 @@ export default defineComponent({
       onOrderChange: () => nextTick(forceFixedLeftWidth),
     });
 
-    const RESERVED_WIDTH_LEFT = 39 + 50 + 180 + 200 + 100 + 140;
+    const RESERVED_WIDTH_LEFT = 39 + 50 + 180 + 200 + 100 + 140 + 120;
     const RESERVED_WIDTH_RIGHT = 140;
     const autoWidthColumns = computed(() =>
       orderedColumnKeys.value.map((key) => ({
@@ -422,7 +470,9 @@ export default defineComponent({
             ? (row: Record<string, unknown>) => listPage.transAtomicService(row.atomicServiceCode)
             : key === 'builtIn'
               ? (row: Record<string, unknown>) => listPage.formatBoolean(row.builtIn, t('i18nList.common.yes'), t('i18nList.common.no'))
-              : () => '',
+              : key === 'remark'
+                ? (row: Record<string, unknown>) => String(row.remark ?? '')
+                : () => '',
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);

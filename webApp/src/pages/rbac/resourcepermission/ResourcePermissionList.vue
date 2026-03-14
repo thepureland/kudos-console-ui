@@ -110,6 +110,11 @@ class ListPage extends TenantSupportListPage {
     return "rbac/resourcepermission"
   }
 
+  /** 资源类型字典项译文从后端取 */
+  protected getI18nConfig() {
+    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' }]
+  }
+
   protected createSearchParams() {
     const params = super.createSearchParams()
     params.parentId = this.state.searchSource == "button" ? null : this.state.searchParams.parentId

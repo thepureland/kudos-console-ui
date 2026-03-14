@@ -294,6 +294,11 @@ class ListPage extends TenantSupportListPage {
     return 'user/organization';
   }
 
+  /** 组织类型字典项译文从后端取（表格列 transDict） */
+  protected getI18nConfig() {
+    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['organization_type'], atomicServiceCode: 'user' }];
+  }
+
   protected getSearchUrl(): string {
     return this.getRootActionPath() + '/searchTree';
   }

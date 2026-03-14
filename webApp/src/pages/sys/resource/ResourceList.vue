@@ -683,11 +683,6 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t, te } = useI18n();
-    // 监听全局 locale（setLocale 修改的是 i18n.global.locale），切换语言时重载本页 i18n，使 t('resource_type.*') 等随新语言生效
-    watch(
-      () => i18n.global.locale.value,
-      () => loadMessagesForConfig(RESOURCE_LIST_I18N_CONFIG),
-    );
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new ResourceListPage(props, context, tree)) as ResourceListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);

@@ -2,6 +2,7 @@ import { computed, inject, reactive, ref, toRefs, watch, nextTick, type Ref } fr
 import { useI18n } from 'vue-i18n';
 import type { BaseAddEditPage } from './BaseAddEditPage';
 import { useAddEditDialogCloseGuard } from './useAddEditDialogCloseGuard';
+import { i18n, loadMessagesForConfig } from '../../i18n';
 
 /** 列表页 provide 此 key（值为 Ref<Set<string>>），AddEdit 注入后作为校验 i18n 的列表页级缓存，避免多次打开弹窗重复请求 */
 export const ValidationI18nCacheKey = Symbol('ValidationI18nCache');
@@ -64,6 +65,16 @@ export function useAddEditDialogSetup(
     formHasContent,
   });
   registerOnEditFormLoaded();
+
+  /** 语言切换时重载本页字典项等 i18n，使下拉 t(item.second) 随新语言生效 */
+  watch(
+    () => i18n.global.locale.value,
+    () => {
+      const config = (page as { getI18nConfig?: () => { i18nTypeDictCode: string; namespaces: string[]; atomicServiceCode: string }[] }).getI18nConfig?.();
+      if (config?.length) loadMessagesForConfig(config);
+    },
+    { immediate: false }
+  );
 
   /** 模板中提交按钮调用，转发到 page.doSubmit */
   function handleSubmit(): void {

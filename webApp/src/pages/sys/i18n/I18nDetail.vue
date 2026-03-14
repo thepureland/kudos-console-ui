@@ -24,20 +24,25 @@ import {
 
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'i18nDetail.sections.basicInfo' },
-  { start: 2, titleKey: 'i18nDetail.sections.audit' },
-  { start: 4, titleKey: 'i18nDetail.sections.otherInfo' },
+  { start: 4, titleKey: 'i18nDetail.sections.audit' },
+  { start: 6, titleKey: 'i18nDetail.sections.otherInfo' },
 ];
 
 const ROW_FIELDS: FieldConfig[][] = [
   [
     { labelKey: 'i18nDetail.fields.id', key: 'id' },
+    { labelKey: 'i18nDetail.fields.locale', key: 'locale' },
+  ],
+  [
     { labelKey: 'i18nDetail.fields.key', key: 'key' },
     { labelKey: 'i18nDetail.fields.value', key: 'value' },
   ],
   [
-    { labelKey: 'i18nDetail.fields.locale', key: 'locale' },
-    { labelKey: 'i18nDetail.fields.i18nTypeDictCode', key: 'i18nTypeDictCode', type: 'dict', dictModule: 'sys', dictCode: 'i18n_type' },
     { labelKey: 'i18nDetail.fields.atomicServiceCode', key: 'atomicServiceCode', type: 'atomicService' },
+    { labelKey: 'i18nDetail.fields.i18nTypeDictCode', key: 'i18nTypeDictCode', type: 'dict', dictModule: 'sys', dictCode: 'i18n_type' },
+  ],
+  [
+    { labelKey: 'i18nDetail.fields.namespace', key: 'namespace' },
   ],
   [
     { labelKey: 'i18nDetail.fields.createTime', key: 'createTime', type: 'date' },

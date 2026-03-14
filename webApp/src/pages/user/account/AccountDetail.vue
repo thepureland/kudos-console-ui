@@ -22,6 +22,7 @@ import {
   useSectionedDetail,
 } from '../../../components/pages/sectionedDetail';
 import { Pair } from '../../../components/model/Pair';
+import { i18n, loadMessagesForConfig } from '../../../i18n';
 
 /** 与 CacheDetail 一致：每行最多 2 个字段，每行一条 detail-row 底部分隔线 */
 const SECTION_MAP: SectionConfig[] = [
@@ -96,6 +97,11 @@ class DetailPage extends BaseDetailPage {
     return 'user/account';
   }
 
+  /** 用户状态、用户类型等字典项译文从后端取 */
+  protected getI18nConfig() {
+    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['user_status', 'user_type', 'user_terminal'], atomicServiceCode: 'user' }];
+  }
+
   protected createDetailLoadParams(): { id: string } {
     return { id: String(this.state.rid || this.props.rid || '') };
   }
@@ -146,6 +152,15 @@ export default defineComponent({
           page.loadData();
         }
       }
+    );
+
+    watch(
+      () => i18n.global.locale.value,
+      () => {
+        const config = (page as { getI18nConfig?: () => { i18nTypeDictCode: string; namespaces: string[]; atomicServiceCode: string }[] }).getI18nConfig?.();
+        if (config?.length) loadMessagesForConfig(config);
+      },
+      { immediate: false }
     );
 
     const visible = computed(() => props.modelValue as boolean);
