@@ -460,7 +460,7 @@ export default {
   paramList: {
     placeholders: { module: '原子服务', paramName: '参数名称', paramValue: '参数值' },
     common: { yes: '是', no: '否', confirm: '确定', cancel: '取消' },
-    columns: { index: '行序', paramName: '参数名称', paramValue: '参数值', defaultValue: '参数默认值', module: '原子服务', seqNo: '顺序', remark: '备注', active: '启用', operation: '操作' },
+    columns: { index: '行序', paramName: '参数名称', paramValue: '参数值', defaultValue: '参数默认值', module: '原子服务', atomicServiceCode: '原子服务', seqNo: '顺序', orderNum: '顺序', remark: '备注', active: '启用', operation: '操作' },
     actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', activeOnly: '仅启用', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
   resourceList: {

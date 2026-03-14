@@ -460,7 +460,7 @@ export default {
   paramList: {
     placeholders: { module: '原子服務', paramName: '參數名稱', paramValue: '參數值' },
     common: { yes: '是', no: '否', confirm: '確定', cancel: '取消' },
-    columns: { index: '行序', paramName: '參數名稱', paramValue: '參數值', defaultValue: '參數預設值', module: '原子服務', seqNo: '順序', remark: '備註', active: '啟用', operation: '操作' },
+    columns: { index: '行序', paramName: '參數名稱', paramValue: '參數值', defaultValue: '參數預設值', module: '原子服務', atomicServiceCode: '原子服務', seqNo: '順序', orderNum: '順序', remark: '備註', active: '啟用', operation: '操作' },
     actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', activeOnly: '僅啟用', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
   resourceList: {

@@ -460,7 +460,7 @@ export default {
   paramList: {
     placeholders: { module: 'Atomic Service', paramName: 'Param Name', paramValue: 'Param Value' },
     common: { yes: 'Yes', no: 'No', confirm: 'Confirm', cancel: 'Cancel' },
-    columns: { index: 'Row No.', paramName: 'Param Name', paramValue: 'Param Value', defaultValue: 'Default Value', module: 'Atomic Service', seqNo: 'Order', remark: 'Remark', active: 'Active', operation: 'Operation' },
+    columns: { index: 'Row No.', paramName: 'Param Name', paramValue: 'Param Value', defaultValue: 'Default Value', module: 'Atomic Service', atomicServiceCode: 'Atomic Service', seqNo: 'Order', orderNum: 'Order', remark: 'Remark', active: 'Active', operation: 'Operation' },
     actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', activeOnly: 'Active Only', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
   resourceList: {

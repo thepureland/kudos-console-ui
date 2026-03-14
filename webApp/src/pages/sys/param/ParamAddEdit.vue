@@ -22,11 +22,11 @@
     >
       <section class="form-section">
         <div class="form-section__title">{{ t('paramAddEdit.sections.basicInfo') }}</div>
-        <el-form-item :label="t('paramAddEdit.labels.module')" prop="module" class="is-required">
+        <el-form-item :label="t('paramAddEdit.labels.module')" prop="atomicServiceCode" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
               <el-select
-                v-model="formModel.module"
+                v-model="formModel.atomicServiceCode"
                 :placeholder="t('paramAddEdit.placeholders.module')"
                 clearable
                 filterable
@@ -54,7 +54,7 @@
             </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item :label="t('paramAddEdit.labels.paramValue')" prop="paramValue">
+        <el-form-item :label="t('paramAddEdit.labels.paramValue')" prop="paramValue" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
               <el-input
@@ -78,11 +78,11 @@
             </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item :label="t('paramAddEdit.labels.seqNo')" prop="seqNo">
+        <el-form-item :label="t('paramAddEdit.labels.seqNo')" prop="orderNum">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
               <el-input-number
-                v-model="formModel.seqNo"
+                v-model="formModel.orderNum"
                 :min="1"
                 :max="999999999"
                 controls-position="right"
@@ -123,11 +123,11 @@ import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialo
 import '../../../styles/add-edit-dialog-common.css';
 
 interface FormModel {
-  module: string | null;
+  atomicServiceCode: string | null;
   paramName: string | null;
   paramValue: string | null;
   defaultValue: string | null;
-  seqNo: number;
+  orderNum: number;
   remark: string | null;
 }
 
@@ -140,11 +140,11 @@ class ParamAddEditPage extends BaseAddEditPage {
   protected initState(): Record<string, unknown> {
     return {
       formModel: {
-        module: null,
+        atomicServiceCode: null,
         paramName: null,
         paramValue: null,
         defaultValue: null,
-        seqNo: 1,
+        orderNum: 1,
         remark: null,
       } as FormModel,
     };
@@ -163,13 +163,13 @@ class ParamAddEditPage extends BaseAddEditPage {
     return 'paramAddEdit.messages.loadFailed';
   }
 
-  /** 回填时保证 seqNo 为 number，兼容 el-input-number */
+  /** 回填时保证 orderNum 为 number，兼容 el-input-number */
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
-    const seqNo = this.state.formModel?.seqNo;
-    if (seqNo !== undefined && seqNo !== null && typeof seqNo !== 'number') {
-      const n = Number(seqNo);
-      this.state.formModel.seqNo = Number.isNaN(n) ? 1 : Math.max(1, Math.min(999999999, n));
+    const orderNum = this.state.formModel?.orderNum;
+    if (orderNum !== undefined && orderNum !== null && typeof orderNum !== 'number') {
+      const n = Number(orderNum);
+      this.state.formModel.orderNum = Number.isNaN(n) ? 1 : Math.max(1, Math.min(999999999, n));
     }
   }
 }
@@ -197,12 +197,12 @@ export default defineComponent({
       i18nKeyPrefix: 'paramAddEdit',
       formHasContent(model: Record<string, unknown>) {
         if (!model) return false;
-        if (model.module != null && String(model.module).trim() !== '') return true;
+        if (model.atomicServiceCode != null && String(model.atomicServiceCode).trim() !== '') return true;
         if (model.paramName != null && String(model.paramName).trim() !== '') return true;
         if (model.paramValue != null && String(model.paramValue).trim() !== '') return true;
         if (model.defaultValue != null && String(model.defaultValue).trim() !== '') return true;
         if (model.remark != null && String(model.remark).trim() !== '') return true;
-        if (model.seqNo != null && model.seqNo !== 1) return true;
+        if (model.orderNum != null && model.orderNum !== 1) return true;
         return false;
       },
     });
