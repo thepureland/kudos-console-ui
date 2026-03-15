@@ -61,13 +61,6 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class DomainDetailPage extends BaseDetailPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    super(props, context);
-    if (props.rid) {
-      this.state.rid = props.rid as string;
-    }
-  }
-
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
   }

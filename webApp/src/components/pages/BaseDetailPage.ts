@@ -10,10 +10,11 @@ import { backendRequest } from "../../utils/backendRequest"
  */
 export abstract class BaseDetailPage extends BasePage {
 
-    /** @internal 若有 props.rid 则 preLoad 后 loadData/loadOthers，否则报错 */
+    /** @internal 若有 props.rid 则同步 state.rid、preLoad 后 loadData/loadOthers，否则报错 */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         if (props.rid) {
+            this.state.rid = String(props.rid)
             const promise = this.preLoad()
             if (promise) {
                 const self = this
@@ -55,10 +56,10 @@ export abstract class BaseDetailPage extends BasePage {
         return this.getRootActionPath() + "/getDetail"
     }
 
-    /** 详情请求参数，默认 { id: props.rid } */
+    /** 详情请求参数，默认 { id: state.rid 或 props.rid }，子类可重写以追加参数 */
     protected createDetailLoadParams(): any {
         return {
-            id: this.props.rid
+            id: String(this.state.rid || this.props.rid || '')
         }
     }
 

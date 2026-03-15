@@ -65,21 +65,8 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class CacheDetailPage extends BaseDetailPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    super(props, context);
-    // 明确用列表传入的 id 作为请求参数，避免异步时 props 时序问题
-    if (props.rid) {
-      this.state.rid = props.rid as string;
-    }
-  }
-
   protected getRootActionPath(): string {
     return 'sys/cache';
-  }
-
-  /** 始终用 state.rid（已与 props.rid 同步）请求详情，保证与列表点击行一致 */
-  protected createDetailLoadParams(): { id: string } {
-    return { id: String(this.state.rid || this.props.rid || '') };
   }
 }
 

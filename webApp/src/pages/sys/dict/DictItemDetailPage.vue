@@ -60,19 +60,8 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class DictItemDetailPage extends BaseDetailPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    super(props, context);
-    if (props.rid) {
-      this.state.rid = props.rid as string;
-    }
-  }
-
   protected getRootActionPath(): string {
     return 'sys/dictItem';
-  }
-
-  protected createDetailLoadParams(): { id: string } {
-    return { id: String(this.state.rid || this.props.rid || '') };
   }
 }
 
