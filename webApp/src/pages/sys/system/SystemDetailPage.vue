@@ -57,19 +57,8 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class SystemDetailPage extends BaseDetailPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    super(props, context);
-    if (props.rid) {
-      this.state.rid = props.rid as string;
-    }
-  }
-
   protected getRootActionPath(): string {
     return 'sys/system';
-  }
-
-  protected createDetailLoadParams(): { id: string } {
-    return { id: String(this.state.rid || this.props.rid || '') };
   }
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {

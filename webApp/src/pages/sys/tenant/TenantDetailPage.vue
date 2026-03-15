@@ -21,8 +21,6 @@ import {
   type SectionConfig,
   useSectionedDetail,
 } from '../../../components/pages/sectionedDetail';
-import { backendRequest } from '../../../utils/backendRequest';
-import { ElMessage } from 'element-plus';
 
 /** 分组：从第几行开始显示分组标题（其他信息放最后） */
 const SECTION_MAP: SectionConfig[] = [
@@ -57,34 +55,12 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class TenantDetailPage extends BaseDetailPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    super(props, context);
-    if (props.rid) {
-      this.state.rid = props.rid as string;
-    }
-  }
-
   protected getRootActionPath(): string {
     return 'sys/tenant';
   }
 
-  /** 详情接口：sys/tenant/getDetail，按 id 取一条 */
-  protected getDetailLoadUrl(): string {
-    return this.getRootActionPath() + '/getDetail';
-  }
-
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
-  }
-
-  protected async loadData(): Promise<void> {
-    const params = this.createDetailLoadParams();
-    const result = await backendRequest({ url: this.getDetailLoadUrl(), params });
-    if (result != null && typeof result === 'object' && !Array.isArray(result)) {
-      this.postLoadDataSuccessfully(result as Record<string, unknown>);
-    } else {
-      ElMessage.error('数据加载失败！');
-    }
   }
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {

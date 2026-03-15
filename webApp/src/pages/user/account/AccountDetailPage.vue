@@ -86,13 +86,6 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class AccountDetailPage extends BaseDetailPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    super(props, context);
-    if (props.rid) {
-      this.state.rid = props.rid as string;
-    }
-  }
-
   protected getRootActionPath(): string {
     return 'user/account';
   }
@@ -100,10 +93,6 @@ class AccountDetailPage extends BaseDetailPage {
   /** 用户状态、用户类型等字典项译文从后端取 */
   protected getI18nConfig() {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['user_status', 'user_type', 'user_terminal'], atomicServiceCode: 'user' }];
-  }
-
-  protected createDetailLoadParams(): { id: string } {
-    return { id: String(this.state.rid || this.props.rid || '') };
   }
 
   protected async preLoad(): Promise<void> {

@@ -491,10 +491,9 @@ class CacheListPage extends BaseListPage {
     ];
   }
 
-  /** 缓存行以 id 或 name（缓存名称）作为主键，编辑/详情/删除等均用此标识 */
+  /** 缓存行以 id 作为主键，编辑/详情/删除及管理操作均传 id */
   protected getRowId(row: Record<string, unknown>): string | number {
     if (row.id != null && row.id !== '') return row.id as string | number;
-    if (row.name != null && row.name !== '') return row.name as string | number;
     return '';
   }
 
@@ -539,7 +538,7 @@ class CacheListPage extends BaseListPage {
     state.keyDialogVisible = false;
     const row = state.currentRow as Record<string, unknown>;
     const operation = state.cacheOperation as string;
-    const params: Record<string, unknown> = { cacheName: row?.name };
+    const params: Record<string, unknown> = { id: row?.id };
     if (operation !== 'reloadAll' && operation !== 'clear') {
       params.key = key;
     }

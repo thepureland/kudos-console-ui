@@ -60,23 +60,12 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class ParamDetailPage extends BaseDetailPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    super(props, context);
-    if (props.rid) {
-      this.state.rid = props.rid as string;
-    }
-  }
-
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
   }
 
   protected getRootActionPath(): string {
     return 'sys/param';
-  }
-
-  protected createDetailLoadParams(): Record<string, unknown> {
-    return { id: String(this.state.rid || this.props.rid || '') };
   }
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {

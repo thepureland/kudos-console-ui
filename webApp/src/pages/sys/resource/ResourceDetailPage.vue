@@ -68,13 +68,6 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class ResourceDetailPage extends BaseDetailPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    super(props, context);
-    if (props.rid) {
-      this.state.rid = props.rid as string;
-    }
-  }
-
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
     await this.loadDicts(['resource_type'], 'sys');
@@ -82,10 +75,6 @@ class ResourceDetailPage extends BaseDetailPage {
 
   protected getRootActionPath(): string {
     return 'sys/resource';
-  }
-
-  protected createDetailLoadParams(): { id: string } {
-    return { id: String(this.state.rid || this.props.rid || '') };
   }
 }
 
