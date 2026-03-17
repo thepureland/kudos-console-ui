@@ -256,14 +256,21 @@
         <!-- 树列表无分页 -->
       </template>
     </list-page-layout>
-    <micro-service-form-page v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
-    <micro-service-form-page v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
+    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <div v-if="hasFormEverOpened" v-show="formVisible">
+      <micro-service-form-page
+        :model-value="formVisible"
+        :rid="formRid"
+        @update:modelValue="onFormClose"
+        @response="onFormResponse"
+      />
+    </div>
     <micro-service-detail-page v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, provide } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
@@ -361,6 +368,20 @@ export default defineComponent({
     const { t } = useI18n();
     const listPage = reactive(new MicroServiceListPage(props, context)) as MicroServiceListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    const state = listPage.state as Record<string, unknown>;
+    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
+    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
+    const hasFormEverOpened = ref(false);
+    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
+    const currentFormMode = ref<'add' | 'edit'>('add');
+    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
+    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
+    function onFormClose(v: boolean) {
+      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
+    }
+    function onFormResponse(payload: Record<string, unknown>) {
+      (currentFormMode.value === 'add' ? listPage.afterAdd : listPage.afterEdit).call(listPage, payload);
+    }
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
@@ -427,6 +448,11 @@ export default defineComponent({
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,
+      formVisible,
+      formRid,
+      hasFormEverOpened,
+      onFormClose,
+      onFormResponse,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,

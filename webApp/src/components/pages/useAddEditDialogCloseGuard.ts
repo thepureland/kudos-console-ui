@@ -32,14 +32,12 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
 
   const initialFormSnapshot = ref<Record<string, unknown> | null>(null);
 
-  /** 从 page.form 或 page.state.formModel 取当前表单数据 */
+  /** 从 page.state.formModel 取当前表单数据（与 resetFormForAdd 写入处一致，避免 el-form 内部拷贝导致脏检查误判） */
   function getCurrentModel(): Record<string, unknown> | undefined {
-    const form = page.form?.value as { model?: Record<string, unknown> } | undefined;
-    const model = form?.model ?? (page.state?.formModel as Record<string, unknown> | undefined);
-    return model;
+    return page.state?.formModel as Record<string, unknown> | undefined;
   }
 
-  /** 深度规范化：undefined、NaN→null，保证快照与比较时形状一致，避免误判为脏 */
+  /** 深度规范化：undefined、NaN→null，保证快照与比较时形状一致 */
   function deepNormalize(value: unknown): unknown {
     if (value === undefined || (typeof value === 'number' && Number.isNaN(value))) return null;
     if (value === null || typeof value !== 'object') return value;
@@ -71,11 +69,12 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
   function isFormDirty(): boolean {
     const cur = getCurrentModel();
     if (!cur) return false;
+    // 新增模式一律只用 formHasContent，不使用快照，避免先编辑再添加时快照/时序导致误报
+    if (!getIsEdit()) return formHasContent ? formHasContent(cur) : false;
     const snap = initialFormSnapshot.value;
     if (snap) {
       return JSON.stringify(deepNormalize(cur)) !== JSON.stringify(deepNormalize(snap));
     }
-    if (!getIsEdit()) return formHasContent ? formHasContent(cur) : false;
     return true;
   }
 
@@ -90,7 +89,7 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
     () => page.visible?.value,
     (val) => {
       if (val) {
-        if (!getIsEdit()) nextTick(takeSnapshot);
+        if (!getIsEdit()) clearSnapshot();
       } else {
         clearSnapshot();
       }

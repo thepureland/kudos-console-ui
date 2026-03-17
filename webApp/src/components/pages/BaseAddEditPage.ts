@@ -74,10 +74,18 @@ export abstract class BaseAddEditPage extends BasePage {
     /** 编辑数据加载并回填后由组件注册，用于立即拍快照等（如未保存提示） */
     public onEditFormLoaded: (() => void) | null = null
 
+    /** 表单首次获焦时由守卫注册，用于 v-show 下编辑模式仅在有交互时才做关闭未保存提示 */
+    public onFormInteraction: (() => void) | null = null
+
+    /** 添加模式的初始 formModel 快照，用于从编辑切回添加时重置表单，避免误判未保存 */
+    private initialFormModel: Record<string, unknown> = {}
+
     /** @internal 有 rid 时加载编辑数据并 initValidationRule，无 rid 时直接 render + initValidationRule */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         this.form = ref()
+        const fm = this.state.formModel
+        this.initialFormModel = fm && typeof fm === 'object' ? JSON.parse(JSON.stringify(fm)) : {}
         this.currentRid = props.rid ? String(props.rid) : ''
         if (props.rid) {
             this.loadRowObject().then(() => this.initValidationRule())
@@ -90,6 +98,18 @@ export abstract class BaseAddEditPage extends BasePage {
     /** 按当前 currentRid 重新加载编辑数据，供弹窗打开时或 rid 变化时调用 */
     public reloadRowData(): Promise<void> {
         return this.loadRowObject()
+    }
+
+    /** 将表单恢复为添加模式的初始空状态，用于先开编辑再开添加时清空上次编辑数据，避免关闭时误报未保存 */
+    public resetFormForAdd(): void {
+        const target = this.state.formModel as Record<string, unknown> | undefined
+        if (!target || typeof target !== 'object') return
+        const initial = this.initialFormModel
+        for (const k in initial) {
+            if (Object.prototype.hasOwnProperty.call(initial, k)) target[k] = initial[k]
+        }
+        const form = this.getFormInstance()
+        if (form?.resetFields) form.resetFields()
     }
 
     protected initBaseState(): any {

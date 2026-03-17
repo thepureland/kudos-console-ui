@@ -1,7 +1,7 @@
 <!-- 字典 新增/编辑 -->
 <template>
   <el-dialog
-    v-model="visible"
+    :model-value="props.modelValue"
     :title="dialogTitle"
     width="520px"
     center

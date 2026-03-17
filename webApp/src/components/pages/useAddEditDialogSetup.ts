@@ -28,7 +28,8 @@ export function useAddEditDialogSetup(
   const { createPage, i18nKeyPrefix, formHasContent } = options;
   const { t } = useI18n();
   const validationI18nCache = inject<Ref<Set<string>>>(ValidationI18nCacheKey, () => ref(new Set()), true);
-  const pageInstance = createPage({ ...props, validationI18nCache }, context);
+  (props as Record<string, unknown>).validationI18nCache = validationI18nCache;
+  const pageInstance = createPage(props, context);
   const formRef = pageInstance.form;
   const visibleRef = pageInstance.visible;
   const page = reactive(pageInstance) as BaseAddEditPage & { state: Record<string, unknown> };
@@ -39,9 +40,31 @@ export function useAddEditDialogSetup(
   );
 
   watch(
+    () => props.modelValue,
+    (val) => {
+      const v = page.visible as { value?: boolean } | undefined;
+      if (v && typeof v === 'object' && 'value' in v) v.value = !!val;
+    },
+    { immediate: true }
+  );
+
+  watch(
     () => props.rid,
     (newRid) => {
       page.currentRid = newRid ? String(newRid) : '';
+    },
+    { immediate: true }
+  );
+
+  watch(
+    () => [props.modelValue, props.rid] as const,
+    ([modelVal, r]) => {
+      if (modelVal === true && r != null && String(r).trim() !== '') {
+        page.currentRid = String(r);
+        nextTick(() => page.reloadRowData());
+      } else if (modelVal === true && (r == null || String(r).trim() === '')) {
+        nextTick(() => (page as BaseAddEditPage).resetFormForAdd());
+      }
     },
     { immediate: true }
   );

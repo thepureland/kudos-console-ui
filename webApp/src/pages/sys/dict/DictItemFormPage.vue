@@ -1,7 +1,7 @@
 <!-- 字典项 新增/编辑（内容复制自 DictFormPage.vue） -->
 <template>
   <el-dialog
-    v-model="visible"
+    :model-value="props.modelValue"
     :title="dialogTitle"
     width="520px"
     center

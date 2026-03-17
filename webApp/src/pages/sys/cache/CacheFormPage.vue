@@ -1,7 +1,7 @@
 <!-- 缓存新增/编辑 -->
 <template>
   <el-dialog
-    v-model="visible"
+    :model-value="props.modelValue"
     :title="dialogTitle"
     width="520px"
     center
@@ -15,6 +15,7 @@
       ref="form"
       :model="formModel"
       :rules="rules"
+      @focus.capture="onFormInteraction?.()"
       label-width="140px"
       label-position="right"
       :validate-on-rule-change="false"
@@ -171,6 +172,7 @@
 import { defineComponent } from 'vue';
 import { WarningFilled } from '@element-plus/icons-vue';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
+import type { SysMicroServiceCacheItem } from '../../../components/pages/BasePage';
 import { Pair } from '../../../components/model/Pair';
 import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import '../../../styles/add-edit-dialog-common.css';
@@ -193,7 +195,13 @@ type StrategyOption = { first: string; second: string };
 class CacheFormPage extends BaseAddEditPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
     super(props, context);
-    this.loadAtomicServices();
+    const list = (props as { atomicServiceList?: SysMicroServiceCacheItem[] }).atomicServiceList;
+    if (Array.isArray(list) && list.length > 0) {
+      this.atomicServiceList = list;
+      this.state.atomicServiceList = list;
+    } else {
+      this.loadAtomicServices();
+    }
     this.loadDicts(['cache_strategy'], 'sys').then(() => {
       this.state.strategyOptions = this.getDictItems('sys', 'cache_strategy').map(
         (p) => ({ first: p.first, second: p.second })
@@ -258,6 +266,11 @@ export default defineComponent({
     rid: {
       type: String,
       default: '',
+    },
+    /** 原子服务下拉列表，由列表页传入时与搜索栏共用数据，不单独加载 */
+    atomicServiceList: {
+      type: Array as () => { code: string; name: string }[],
+      default: () => [],
     },
     onSaved: {
       type: Function as (params: Record<string, unknown>) => void,
