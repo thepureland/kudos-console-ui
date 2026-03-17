@@ -71,7 +71,12 @@ export abstract class BasePage {
 
     /** 控制页面可见并触发渲染；子类可在数据加载后调用 */
     protected render() {
-        this.visible.value = true
+        const v = this.visible as unknown as { value?: boolean } | boolean
+        if (v && typeof v === 'object' && 'value' in v) {
+            v.value = true
+        } else {
+            ;(this as unknown as { visible: boolean }).visible = true
+        }
     }
 
     /** 子类重写以指定本页需加载的国际化（namespace + atomicServiceCode）；不重写则不加载 */
@@ -184,8 +189,12 @@ export abstract class BasePage {
 
     /** 隐藏 visible 并 emit update:modelValue false */
     protected doClose() {
-        const v = this.visible
-        if (v && typeof v === 'object' && 'value' in v) (v as { value: boolean }).value = false
+        const v = this.visible as unknown as { value?: boolean } | boolean
+        if (v && typeof v === 'object' && 'value' in v) {
+            v.value = false
+        } else {
+            ;(this as unknown as { visible: boolean }).visible = false
+        }
         this.context.emit('update:modelValue', false)
     }
 

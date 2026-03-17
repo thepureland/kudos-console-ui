@@ -217,8 +217,16 @@
       </template>
     </list-page-layout>
 
-    <param-form-page v-if="addDialogVisible" v-model="addDialogVisible" :on-saved="handleAddSaved" />
-    <param-form-page v-if="editDialogVisible" v-model="editDialogVisible" :on-saved="handleEditSaved" :rid="rid" />
+    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <div v-if="hasFormEverOpened" v-show="formVisible">
+      <param-form-page
+        :model-value="formVisible"
+        :rid="formRid"
+        :on-saved="handleFormSaved"
+        @update:modelValue="onFormClose"
+        @response="onFormResponse"
+      />
+    </div>
     <param-detail-page v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
@@ -302,6 +310,23 @@ export default defineComponent({
     provide(ValidationI18nCacheKey, ref(new Set<string>()));
     const { t } = useI18n();
     const listPage = reactive(new ParamListPage(props, context)) as ParamListPage & { state: Record<string, unknown> };
+    const state = listPage.state as Record<string, unknown>;
+    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
+    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
+    const hasFormEverOpened = ref(false);
+    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
+    const currentFormMode = ref<'add' | 'edit'>('add');
+    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
+    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
+    function onFormClose(v: boolean) {
+      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
+    }
+    function onFormResponse(payload: Record<string, unknown>) {
+      (currentFormMode.value === 'add' ? listPage.doAfterAdd : listPage.doAfterEdit).call(listPage, payload);
+    }
+    function handleFormSaved(params: Record<string, unknown>) {
+      (currentFormMode.value === 'add' ? listPage.doAfterAdd : listPage.doAfterEdit).call(listPage, params);
+    }
     const {
       listLayoutRefs,
       onTableWrapMounted: layoutOnTableWrapMounted,
@@ -342,13 +367,6 @@ export default defineComponent({
       nextTick(runColumnAutoWidth);
     }
 
-    function handleAddSaved(params: Record<string, unknown>) {
-      listPage.doAfterAdd(params);
-    }
-    function handleEditSaved(params: Record<string, unknown>) {
-      listPage.doAfterEdit(params);
-    }
-
     watch(
       () => (listPage.state as Record<string, unknown>).showOperationColumn,
       () => nextTick(forceFixedLeftWidth),
@@ -367,8 +385,12 @@ export default defineComponent({
       columnVisibilityOptions,
       isColumnVisible,
       columnWidths,
-      handleAddSaved,
-      handleEditSaved,
+      formVisible,
+      formRid,
+      hasFormEverOpened,
+      onFormClose,
+      onFormResponse,
+      handleFormSaved,
     };
   },
 });

@@ -411,9 +411,16 @@
         </template>
       </el-dialog>
 
-    <!-- 新增/编辑/详情弹窗，按需挂载 -->
-    <cache-form-page v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAdd" />
-    <cache-form-page v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
+    <!-- 添加/编辑共用一个表单组件，首次打开任一时挂载，getValidationRule 仅触发一次；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <div v-if="hasFormEverOpened" v-show="formVisible">
+      <cache-form-page
+        :model-value="formVisible"
+        :rid="formRid"
+        :atomic-service-list="listPage.getAtomicServices()"
+        @update:modelValue="onFormClose"
+        @response="onFormResponse"
+      />
+    </div>
     <cache-detail-page v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
@@ -654,6 +661,20 @@ export default defineComponent({
     const { t } = useI18n();
     const listPage = reactive(new CacheListPage(props, context)) as CacheListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
+    const state = listPage.state as Record<string, unknown>;
+    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
+    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
+    const hasFormEverOpened = ref(false);
+    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
+    const currentFormMode = ref<'add' | 'edit'>('add');
+    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
+    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
+    function onFormClose(v: boolean) {
+      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
+    }
+    function onFormResponse(payload: Record<string, unknown>) {
+      (currentFormMode.value === 'add' ? listPage.afterAdd : listPage.afterEdit).call(listPage, payload);
+    }
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const FIXED_LEFT_TOTAL_WIDTH = 439;
     const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
@@ -820,6 +841,11 @@ export default defineComponent({
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,
+      hasFormEverOpened,
+      formVisible,
+      formRid,
+      onFormClose,
+      onFormResponse,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,

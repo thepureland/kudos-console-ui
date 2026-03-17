@@ -265,10 +265,27 @@
         </div>
       </div>
 
-      <dict-form-page v-if="addDialogVisible" v-model="addDialogVisible" @response="afterAddDict" :atomic-service-code="searchParams.module" />
-      <dict-item-form-page v-if="addItemDialogVisible" v-model="addItemDialogVisible" @response="afterAddDictItem" :module="searchParams.module" :dict-type="searchParams.dictType" />
-      <dict-form-page v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit" :rid="rid" />
-      <dict-item-form-page v-if="editItemDialogVisible" v-model="editItemDialogVisible" @response="afterEdit" :rid="rid" :module="searchParams.module" :dict-type="searchParams.dictType" />
+      <!-- 字典添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+      <div v-if="hasFormEverOpened" v-show="formVisible">
+        <dict-form-page
+          :model-value="formVisible"
+          :rid="formRid"
+          :atomic-service-code="searchParams.module"
+          @update:modelValue="onFormClose"
+          @response="onFormResponse"
+        />
+      </div>
+      <!-- 字典项添加/编辑共用一个表单，首次打开任一时挂载，getValidationRule 仅触发一次 -->
+      <div v-if="hasItemFormEverOpened" v-show="itemFormVisible">
+        <dict-item-form-page
+          :model-value="itemFormVisible"
+          :rid="itemFormRid"
+          :module="searchParams.module"
+          :dict-type="searchParams.dictType"
+          @update:modelValue="onItemFormClose"
+          @response="onItemFormResponse"
+        />
+      </div>
       <dict-detail-page v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
       <dict-item-detail-page v-if="itemDetailDialogVisible" v-model="itemDetailDialogVisible" :rid="rid" />
     </el-card>
@@ -819,6 +836,33 @@ export default defineComponent({
     const { t, te } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new DictListPage(props, context, tree)) as DictListPage & { state: Record<string, unknown> };
+    const state = listPage.state as Record<string, unknown>;
+    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
+    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
+    const hasFormEverOpened = ref(false);
+    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
+    const currentFormMode = ref<'add' | 'edit'>('add');
+    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
+    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
+    function onFormClose(v: boolean) {
+      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
+    }
+    function onFormResponse(payload: Record<string, unknown>) {
+      (currentFormMode.value === 'add' ? listPage.afterAddDict : listPage.afterEdit).call(listPage, payload);
+    }
+    const itemFormVisible = computed(() => !!(state.addItemDialogVisible || state.editItemDialogVisible));
+    const itemFormRid = computed(() => (state.editItemDialogVisible ? String(state.rid ?? '') : ''));
+    const hasItemFormEverOpened = ref(false);
+    watch(itemFormVisible, (v) => { if (v) hasItemFormEverOpened.value = true; }, { immediate: true });
+    const currentItemFormMode = ref<'add' | 'edit'>('add');
+    watch(() => state.addItemDialogVisible, (v) => { if (v) currentItemFormMode.value = 'add'; }, { immediate: true });
+    watch(() => state.editItemDialogVisible, (v) => { if (v) currentItemFormMode.value = 'edit'; }, { immediate: true });
+    function onItemFormClose(v: boolean) {
+      if (!v) { state.addItemDialogVisible = false; state.editItemDialogVisible = false; }
+    }
+    function onItemFormResponse(payload: Record<string, unknown>) {
+      (currentItemFormMode.value === 'add' ? listPage.afterAddDictItem : listPage.afterEdit).call(listPage, payload);
+    }
     // 切换语言时重载已加载的 dict-item 国际化，使树节点 t(nameKey) 随新语言生效
     watch(
       () => i18n.global.locale.value,
@@ -904,6 +948,16 @@ export default defineComponent({
       treePanelWidthPercent,
       startTreeResize,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,
+      formVisible,
+      formRid,
+      hasFormEverOpened,
+      onFormClose,
+      onFormResponse,
+      itemFormVisible,
+      itemFormRid,
+      hasItemFormEverOpened,
+      onItemFormClose,
+      onItemFormResponse,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,
