@@ -171,7 +171,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('dataSourceAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />
@@ -191,7 +191,7 @@
 import { defineComponent, ref, onMounted } from 'vue';
 import { TenantSupportAddEditPage } from '../../../components/pages/TenantSupportAddEditPage';
 import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 import '../../../styles/add-edit-dialog-common.css';
 
 type MicroServiceTreeNode = { id: string; name: string; parentId?: string | null; orderNum?: number | null; children?: MicroServiceTreeNode[] };
@@ -263,11 +263,6 @@ class DataSourceFormPage extends TenantSupportAddEditPage {
     return 'sys/dataSource';
   }
 
-  /** 与详情一致：使用 getDetail 接口按 id 拉取单条，Mock 已有此路径 */
-  protected getRowObjectLoadUrl(): string {
-    return this.getRootActionPath() + '/getDetail';
-  }
-
   protected getLoadFailedMessageKey(): string {
     return 'dataSourceAddEdit.messages.loadFailed';
   }
@@ -320,7 +315,8 @@ export default defineComponent({
     onMounted(() => {
       backendRequest({ url: 'sys/microService/getFullMicroServiceTree', method: 'get' })
         .then((result) => {
-          const raw = (Array.isArray(result) ? result : []) as MicroServiceTreeNode[];
+          const payload = getApiResponseData<MicroServiceTreeNode[]>(result);
+          const raw = (Array.isArray(payload) ? payload : []) as MicroServiceTreeNode[];
           microserviceTree.value = raw.map(toTreeSelectNode);
         })
         .catch(() => { microserviceTree.value = []; });

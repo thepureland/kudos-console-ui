@@ -82,7 +82,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('dictAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />
@@ -103,7 +103,7 @@ import { defineComponent } from 'vue';
 import { ElMessage } from 'element-plus';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
 import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 import { i18n, loadMessagesForConfig } from '../../../i18n';
 import '../../../styles/add-edit-dialog-common.css';
 
@@ -246,9 +246,7 @@ class DictItemFormPage extends BaseAddEditPage {
           method: 'get',
           params: { atomicServiceCode, activeOnly },
         });
-        const raw = result != null && typeof result === 'object' && !Array.isArray(result)
-          ? (result.data != null && typeof result.data === 'object' ? result.data : result)
-          : {};
+        const raw = getApiResponseData(result) ?? {};
         const map = raw as Record<string, string>;
         const nodes = Object.entries(map).map(([id, dictType]) => {
           cache[id] = dictType;
@@ -267,7 +265,8 @@ class DictItemFormPage extends BaseAddEditPage {
           method: 'get',
           params: { atomicServiceCode, dictType, activeOnly },
         });
-        const list = Array.isArray(result) ? result : (result?.data != null && Array.isArray(result.data) ? result.data : []);
+        const payload = getApiResponseData<unknown[]>(result);
+        const list = Array.isArray(payload) ? payload : [];
         const nodes = list.map((item: { id: string; itemCode?: string; itemName?: string }) => {
           const code = item.itemCode ?? '';
           return {
@@ -290,7 +289,8 @@ class DictItemFormPage extends BaseAddEditPage {
         method: 'get',
         params: { atomicServiceCode, dictType, itemCode, activeOnly },
       });
-      const list = Array.isArray(result) ? result : (result?.data != null && Array.isArray(result.data) ? result.data : []);
+      const payload = getApiResponseData<unknown[]>(result);
+      const list = Array.isArray(payload) ? payload : [];
       const nodes = list.map((item: { id: string; itemCode?: string; itemName?: string }) => {
         const code = item.itemCode ?? '';
         return {

@@ -54,7 +54,7 @@
       <section class="form-section">
         <div class="form-section__title">{{ t('resourceAddEdit.sections.other') }}</div>
         <el-form-item :label="t('resourceAddEdit.labels.remark')" prop="remark">
-          <el-input v-model="formModel.remark" type="textarea" :rows="3" :placeholder="t('resourceAddEdit.placeholders.remark')" maxlength="200" show-word-limit resize="none" />
+          <el-input v-model="formModel.remark" type="textarea" :rows="3" :placeholder="t('resourceAddEdit.placeholders.remark')" :maxlength="remarkMaxLength" show-word-limit resize="none" />
         </el-form-item>
       </section>
     </el-form>
@@ -73,7 +73,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
 import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 import { loadMessagesForConfig } from '../../../i18n';
 import '../../../styles/add-edit-dialog-common.css';
 
@@ -181,17 +181,11 @@ class ResourceFormPage extends BaseAddEditPage {
     await this.buildParentCascaderOptions();
     const params = this.createRowObjectLoadParams();
     const result = await backendRequest({ url: this.getRowObjectLoadUrl(), params });
+    const payload = getApiResponseData(result);
     const rowData =
-      result != null && typeof result === 'object' && !Array.isArray(result) && 'id' in result
-        ? result
-        : result != null &&
-            typeof result === 'object' &&
-            !Array.isArray(result) &&
-            result.data != null &&
-            typeof result.data === 'object' &&
-            'id' in result.data
-          ? (result as { data: Record<string, unknown> }).data
-          : null;
+      payload != null && typeof payload === 'object' && !Array.isArray(payload) && 'id' in payload
+        ? payload
+        : null;
     if (rowData != null) {
       const rt = rowData.resourceTypeDictCode as string | undefined;
       const sub = rowData.subSystemCode as string | undefined;
@@ -245,7 +239,7 @@ class ResourceFormPage extends BaseAddEditPage {
     if (opts.length > 0) return;
     const params = { level: 0, parentId: null, active: true };
     const result = await backendRequest({ url: 'sys/resource/loadDirectChildrenForTree', method: 'post', params });
-    const rawList = Array.isArray(result) ? result : (result != null && typeof result === 'object' && 'data' in result ? (result as { data: unknown }).data : null);
+    const rawList = getApiResponseData(result);
     const list = Array.isArray(rawList) ? rawList : [];
     const { i18n } = await import('../../../i18n');
     const t = (k: string) => i18n.global.t(k) as string;
@@ -301,7 +295,7 @@ class ResourceFormPage extends BaseAddEditPage {
         };
       }
       const result = await backendRequest({ url: 'sys/resource/loadDirectChildrenForTree', method: 'post', params });
-      const rawList = Array.isArray(result) ? result : (result != null && typeof result === 'object' && 'data' in result ? (result as { data: unknown }).data : null);
+      const rawList = getApiResponseData(result);
       const list = Array.isArray(rawList) ? rawList : [];
       const { i18n } = await import('../../../i18n');
       const t = (k: string) => i18n.global.t(k) as string;
@@ -363,7 +357,7 @@ class ResourceFormPage extends BaseAddEditPage {
 
     if (expandingLevel >= 1) await loadMessagesForConfig(MENU_I18N_CONFIG);
     const result = await backendRequest({ url: 'sys/resource/loadDirectChildrenForTree', method: 'post', params });
-    const rawList = Array.isArray(result) ? result : (result != null && typeof result === 'object' && 'data' in result ? (result as { data: unknown }).data : null);
+    const rawList = getApiResponseData(result);
     const list = Array.isArray(rawList) ? rawList : [];
     const { i18n } = await import('../../../i18n');
     const t = (k: string) => i18n.global.t(k) as string;

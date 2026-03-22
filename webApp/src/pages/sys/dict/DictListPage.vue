@@ -155,12 +155,14 @@
                   prop="dictType"
                   :min-width="columnWidths['dictType'] ?? 120"
                   sortable="custom"
+                  show-overflow-tooltip
                 />
                 <el-table-column
                   v-if="isColumnVisible('dictName')"
                   :label="t('dictList.columns.dictName')"
                   prop="dictName"
                   :min-width="columnWidths['dictName'] ?? 120"
+                  show-overflow-tooltip
                 />
                 <el-table-column
                   v-if="isColumnVisible('atomicServiceCode')"
@@ -168,6 +170,7 @@
                   prop="atomicServiceCode"
                   :min-width="columnWidths['atomicServiceCode'] ?? 100"
                   sortable="custom"
+                  show-overflow-tooltip
                 >
                   <template #default="scope">
                     {{ transAtomicService(scope.row.atomicServiceCode) }}
@@ -179,12 +182,14 @@
                   prop="itemCode"
                   :min-width="columnWidths['itemCode'] ?? 100"
                   sortable="custom"
+                  show-overflow-tooltip
                 />
                 <el-table-column
                   v-if="isColumnVisible('itemName') && !searchParams.isDict"
                   :label="t('dictList.columns.itemName')"
                   prop="itemName"
                   :min-width="columnWidths['itemName'] ?? 120"
+                  show-overflow-tooltip
                 />
                 <el-table-column
                   v-if="isColumnVisible('parentCode') && !searchParams.isDict"
@@ -192,6 +197,7 @@
                   prop="parentCode"
                   :min-width="columnWidths['parentCode'] ?? 100"
                   sortable="custom"
+                  show-overflow-tooltip
                 />
                 <el-table-column
                   v-if="isColumnVisible('orderNum') && !searchParams.isDict"
@@ -199,6 +205,7 @@
                   prop="orderNum"
                   :min-width="columnWidths['orderNum'] ?? 80"
                   sortable="custom"
+                  show-overflow-tooltip
                 />
                 <el-table-column
                   v-if="isColumnVisible('remark') && searchParams.isDict"
@@ -211,6 +218,7 @@
                   v-if="isColumnVisible('active')"
                   :label="t('dictList.columns.active')"
                   :min-width="columnWidths['active'] ?? 80"
+                  show-overflow-tooltip
                 >
                   <template #default="scope">
                     <el-switch
@@ -305,10 +313,9 @@ import DictItemDetailPage from './DictItemDetailPage.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { loadMessagesForConfig } from '../../../i18n';
 
 function tr(key: string): string {
@@ -462,15 +469,15 @@ class DictListPage extends BaseListPage {
     try {
       if (dictIds.length > 0) {
         const result = await backendRequest({ url: 'sys/dict/batchDelete', method: 'post', params: dictIds });
-        if (result !== true && result?.data !== true) {
-          ElMessage.error(t('listPage.deleteFailed') as string);
+        if (!(isApiSuccessResponse(result) || result === true || result?.data === true)) {
+          ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string));
           return;
         }
       }
       if (itemIds.length > 0) {
         const result = await backendRequest({ url: 'sys/dictItem/batchDelete', method: 'post', params: itemIds });
-        if (result !== true && result?.data !== true) {
-          ElMessage.error(t('listPage.deleteFailed') as string);
+        if (!(isApiSuccessResponse(result) || result === true || result?.data === true)) {
+          ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string));
           return;
         }
       }
@@ -649,9 +656,7 @@ class DictListPage extends BaseListPage {
           method: 'get',
           params: { atomicServiceCode, activeOnly },
         });
-        const raw = result != null && typeof result === 'object' && !Array.isArray(result)
-          ? (result.data != null && typeof result.data === 'object' ? result.data : result)
-          : {};
+        const raw = getApiResponseData(result) ?? {};
         const map = raw as Record<string, string>;
         const nodes = Object.entries(map).map(([id, dictType]) => ({
           id,
@@ -675,7 +680,8 @@ class DictListPage extends BaseListPage {
           method: 'get',
           params: { atomicServiceCode, dictType, activeOnly },
         });
-        const list = Array.isArray(result) ? result : (result?.data != null && Array.isArray(result.data) ? result.data : []);
+        const payload = getApiResponseData<unknown[]>(result);
+        const list = Array.isArray(payload) ? payload : [];
         const nodes = list.map((item: { id: string; itemCode?: string; itemName?: string }) => {
           const code = item.itemCode ?? '';
           return {
@@ -697,7 +703,8 @@ class DictListPage extends BaseListPage {
         method: 'get',
         params: { atomicServiceCode, dictType, itemCode, activeOnly },
       });
-      const list = Array.isArray(result) ? result : (result?.data != null && Array.isArray(result.data) ? result.data : []);
+      const payload = getApiResponseData<unknown[]>(result);
+      const list = Array.isArray(payload) ? payload : [];
       const nodes = list.map((item: { id: string; itemCode?: string; itemName?: string }) => {
         const code = item.itemCode ?? '';
         return {
@@ -732,11 +739,12 @@ class DictListPage extends BaseListPage {
     const url = node.level === 2 ? 'sys/dict/getDict' : 'sys/dictItem/getDictItem';
     try {
       const result = await backendRequest({ url, params });
-      if (result != null && typeof result === 'object') {
-        this.state.tableData = [result];
+      const payload = getApiResponseData<Record<string, unknown>>(result);
+      if (payload != null && typeof payload === 'object') {
+        this.state.tableData = [payload];
         this.state.pagination.total = 1;
       } else {
-        ElMessage.error(tr('dictList.messages.loadFailed'));
+        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('dictList.messages.loadFailed'));
       }
     } catch {
       ElMessage.error(tr('dictList.messages.loadFailed'));
@@ -790,11 +798,12 @@ class DictListPage extends BaseListPage {
     const url = level === 1 ? 'sys/dict/pagingSearchDict' : 'sys/dictItem/pagingSearchDictItem';
     try {
       const result = await backendRequest({ url, method: 'post', params });
-      if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
-        this.state.tableData = (result as { data: unknown[] }).data ?? [];
-        this.state.pagination.total = (result as { totalCount: number }).totalCount ?? 0;
+      const payload = getApiResponseData<{ data?: unknown[]; totalCount?: number }>(result);
+      if (payload != null && typeof payload === 'object' && 'data' in payload && 'totalCount' in payload) {
+        this.state.tableData = payload.data ?? [];
+        this.state.pagination.total = payload.totalCount ?? 0;
       } else {
-        ElMessage.error(tr('dictList.messages.loadFailed'));
+        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('dictList.messages.loadFailed'));
       }
     } catch {
       ElMessage.error(tr('dictList.messages.loadFailed'));
@@ -910,16 +919,9 @@ export default defineComponent({
       { key: 'active', getLabel: () => t('dictList.columns.active'), sortable: false, getCellText: (row: Record<string, unknown>) => '' },
     ]);
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
 
     const splitContainerRef = ref<HTMLElement | null>(null);

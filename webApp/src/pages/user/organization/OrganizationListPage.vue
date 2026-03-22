@@ -92,12 +92,14 @@
             min-width="120"
             fixed="left"
             class-name="col-fixed-name"
+            show-overflow-tooltip
           />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
               v-if="key === 'abbrName' && isColumnVisible('abbrName')"
               prop="abbrName"
               :min-width="columnWidths['abbrName'] ?? 100"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -116,6 +118,7 @@
               v-else-if="key === 'orgTypeDictCode' && isColumnVisible('orgTypeDictCode')"
               prop="orgTypeDictCode"
               :min-width="columnWidths['orgTypeDictCode'] ?? 100"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -137,6 +140,7 @@
               v-else-if="key === 'seqNo' && isColumnVisible('seqNo')"
               prop="seqNo"
               :min-width="columnWidths['seqNo'] ?? 80"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -154,6 +158,7 @@
             <el-table-column
               v-else-if="key === 'active' && isColumnVisible('active')"
               :min-width="columnWidths['active'] ?? 80"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -179,6 +184,7 @@
             <el-table-column
               v-else-if="key === 'createTime' && isColumnVisible('createTime')"
               :min-width="columnWidths['createTime'] ?? 160"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -259,7 +265,6 @@ import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
 
@@ -396,16 +401,9 @@ export default defineComponent({
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
 
     /** 组织类型列：transDict 可能返回 i18n key（含.）或原始 code；空则不再 t('') 避免 intlify 报错 */

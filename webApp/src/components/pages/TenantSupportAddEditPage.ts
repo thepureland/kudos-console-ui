@@ -1,7 +1,7 @@
 import { nextTick } from "vue"
 import { ElMessage } from "element-plus"
 import { BaseAddEditPage } from "./BaseAddEditPage"
-import { backendRequest } from "../../utils/backendRequest"
+import { backendRequest, getApiResponseData } from "../../utils/backendRequest"
 import type { SysMicroServiceCacheItem } from "./BasePage"
 
 /**
@@ -35,7 +35,8 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
     private async loadFirstLevel(url: string): Promise<void> {
         try {
             const result = await backendRequest({ url, method: "get" })
-            const raw = Array.isArray(result) ? (result as unknown[]).map((x) => String(x ?? "")) : []
+            const payload = getApiResponseData<unknown[]>(result)
+            const raw = Array.isArray(payload) ? payload.map((x) => String(x ?? "")) : []
             const list = raw.filter((c) => c !== "").map((code) => ({ code, name: code }))
             this.state.firstLevelList = list
             const asCache: SysMicroServiceCacheItem[] = list.map(({ code, name }) => ({
@@ -72,8 +73,9 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         }
         try {
             const result = await backendRequest({ url: "sys/tenant/getTenantsBySubSystemCode", method: "get", params: { subSystemCode } })
-            const children = Array.isArray(result)
-                ? (result as Array<{ id: string; name: string }>).map((item) => ({ value: item.id, label: item.name, leaf: true }))
+            const payload = getApiResponseData<Array<{ id: string; name: string }>>(result)
+            const children = Array.isArray(payload)
+                ? payload.map((item) => ({ value: item.id, label: item.name, leaf: true }))
                 : []
             resolve(children)
         } catch {
@@ -144,8 +146,9 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
             options.push(subSysOption)
             try {
                 const result = await backendRequest({ url: "sys/tenant/getTenantsBySubSystemCode", method: "get", params: { subSystemCode: subSys.code } })
-                if (Array.isArray(result) && result.length > 0) {
-                    subSysOption.children = (result as Array<{ id: string; name: string }>).map((item) => ({ value: item.id, label: item.name }))
+                const payload = getApiResponseData<Array<{ id: string; name: string }>>(result)
+                if (Array.isArray(payload) && payload.length > 0) {
+                    subSysOption.children = payload.map((item) => ({ value: item.id, label: item.name }))
                 }
             } catch {
                 // 单子系统失败不阻塞其余

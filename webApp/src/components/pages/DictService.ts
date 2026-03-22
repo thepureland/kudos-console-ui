@@ -1,6 +1,6 @@
 import { ElMessage } from "element-plus";
 import { Pair } from "../model/Pair";
-import { backendRequest } from "../../utils/backendRequest";
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from "../../utils/backendRequest";
 
 const DICT_CACHE_KEY = "__kudosDictCache";
 
@@ -78,8 +78,8 @@ export class DictService {
                     }
                 }
             }
-        } else if (result && typeof result === "object" && (result as { code?: number }).code != null && (result as { code: number }).code !== 200) {
-            ElMessage.error("批量加载字典项失败！");
+        } else if (!isApiSuccessResponse(result)) {
+            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || "批量加载字典项失败！");
         }
     }
 
@@ -114,18 +114,18 @@ export class DictService {
                     }
                 }
             }
-        } else if (result && typeof result === "object" && (result as { code?: number }).code != null && (result as { code: number }).code !== 200) {
-            ElMessage.error("批量加载字典项失败！");
+        } else if (!isApiSuccessResponse(result)) {
+            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || "批量加载字典项失败！");
         }
     }
 
     /** 解析批量字典接口返回：可能为 { code, data } 或直接为 data */
     private normalizeBatchDictResponse(result: unknown): Record<string, Record<string, Record<string, string>>> | null {
-        if (result && typeof result === "object" && "data" in result) {
-            const d = (result as { data: unknown }).data;
-            if (d && typeof d === "object" && !("code" in d)) return d as Record<string, Record<string, Record<string, string>>>;
+        const payload = getApiResponseData(result)
+        if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+            return payload as Record<string, Record<string, Record<string, string>>>;
         }
-        if (result && typeof result === "object" && !("code" in result)) {
+        if (result && typeof result === "object" && !Array.isArray(result) && !("success" in result)) {
             return result as Record<string, Record<string, Record<string, string>>>;
         }
         return null;

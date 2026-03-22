@@ -33,7 +33,7 @@
 import {defineComponent, reactive, toRefs} from "vue"
 import { BaseDetailPage } from '../../../components/pages/BaseDetailPage'
 import {ElMessage} from "element-plus";
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
 class UserAssignmentDialog extends BaseDetailPage {
 
@@ -88,11 +88,11 @@ class UserAssignmentDialog extends BaseDetailPage {
     }
     // @ts-ignore
     const result = await backendRequest({url: this.getRootActionPath() + "/assignUser", method: "post", params})
-    if (result != null) {
+    if (isApiSuccessResponse(result) || result === true || result?.data === true) {
       ElMessage.success('保存成功！')
       this.context.emit('update:modelValue', false)
     } else {
-      ElMessage.error('保存失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '保存失败！')
     }
   }
 

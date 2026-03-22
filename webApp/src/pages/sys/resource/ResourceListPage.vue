@@ -139,6 +139,7 @@
                   :label="t('resourceList.columns.subSys')"
                   prop="subSystemCode"
                   :min-width="columnWidths['subSystemCode'] ?? 100"
+                  show-overflow-tooltip
                 >
                   <template #default="scope">
                     {{ transAtomicService(scope.row.subSystemCode) }}
@@ -149,6 +150,7 @@
                   :label="t('resourceList.columns.resourceType')"
                   prop="resourceTypeDictCode"
                   :min-width="columnWidths['resourceTypeDictCode'] ?? 100"
+                  show-overflow-tooltip
                 >
                   <template #default="scope">
                     {{ getResourceTypeLabel(scope.row.resourceTypeDictCode) }}
@@ -160,6 +162,7 @@
                   prop="name"
                   :min-width="columnWidths['name'] ?? 120"
                   sortable="custom"
+                  show-overflow-tooltip
                 />
                 <el-table-column
                   v-if="isColumnVisible('url')"
@@ -167,6 +170,7 @@
                   prop="url"
                   :min-width="columnWidths['url'] ?? 120"
                   sortable="custom"
+                  show-overflow-tooltip
                 />
                 <el-table-column
                   v-if="isColumnVisible('icon')"
@@ -174,6 +178,7 @@
                   prop="icon"
                   :min-width="columnWidths['icon'] ?? 100"
                   sortable="custom"
+                  show-overflow-tooltip
                 />
                 <el-table-column
                   v-if="isColumnVisible('orderNum')"
@@ -181,12 +186,14 @@
                   prop="orderNum"
                   :min-width="columnWidths['orderNum'] ?? 80"
                   sortable="custom"
+                  show-overflow-tooltip
                 />
                 <el-table-column
                   v-if="isColumnVisible('active')"
                   :label="t('resourceList.columns.active')"
                   prop="active"
                   :min-width="columnWidths['active'] ?? 80"
+                  show-overflow-tooltip
                 >
                   <template #default="scope">
                     <el-switch
@@ -268,8 +275,7 @@ import ResourceDetailPage from './ResourceDetailPage.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { loadMessagesForConfig } from '../../../i18n';
 
 const MENU_I18N_CONFIG = [{ i18nTypeDictCode: 'view', namespaces: ['menu'], atomicServiceCode: 'sys' as const }];
@@ -304,7 +310,8 @@ class ResourceListPage extends BaseListPage {
   private async loadSubSystems(): Promise<void> {
     try {
       const result = await backendRequest({ url: 'sys/system/getAllActiveSubSystemCodes', method: 'get' });
-      const raw = Array.isArray(result) ? (result as unknown[]).map((x) => String(x ?? '')) : [];
+      const payload = getApiResponseData<unknown[]>(result);
+      const raw = Array.isArray(payload) ? payload.map((x) => String(x ?? '')) : [];
       const list = raw.filter((c) => c !== '').map((code) => ({ code, name: code }));
       const asCache = list.map(({ code, name }) => ({
         id: code,
@@ -425,11 +432,12 @@ class ResourceListPage extends BaseListPage {
     if (!params) return;
     try {
       const result = await backendRequest({ url: 'sys/resource/pagingSearch', method: 'post', params });
-      const isSuccess = result != null && typeof result === 'object' && 'data' in result && typeof (result as { totalCount?: number }).totalCount === 'number';
+      const payload = getApiResponseData<{ data?: unknown[]; totalCount?: number }>(result);
+      const isSuccess = payload != null && typeof payload === 'object' && 'data' in payload && typeof payload.totalCount === 'number';
       if (isSuccess) {
-        this.postSearchSuccessfully(result as { data: unknown[]; totalCount: number });
+        this.postSearchSuccessfully(payload as { data: unknown[]; totalCount: number });
       } else {
-        ElMessage.error(tr('resourceList.messages.loadFailed'));
+        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('resourceList.messages.loadFailed'));
       }
     } catch {
       ElMessage.error(tr('resourceList.messages.loadFailed'));
@@ -500,7 +508,7 @@ class ResourceListPage extends BaseListPage {
     if (node.level >= 2) await loadMessagesForConfig(MENU_I18N_CONFIG);
     try {
       const result = await backendRequest({ url: 'sys/resource/loadDirectChildrenForTree', method: 'post', params: treeParams });
-      const rawList = Array.isArray(result) ? result : (result != null && typeof result === 'object' && 'data' in result ? (result as { data: unknown }).data : null);
+      const rawList = getApiResponseData(result);
       const list = Array.isArray(rawList) ? rawList : [];
       const resolved = this.applyTreeNodeI18n(list, node.level);
       resolve(resolved);
@@ -560,10 +568,11 @@ class ResourceListPage extends BaseListPage {
     };
     try {
       const result = await backendRequest({ url: 'sys/resource/pagingSearch', method: 'post', params });
-      if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
-        this.state.tableData = (result as { data: unknown[] }).data ?? [];
-        (this.state.pagination as Record<string, number>).total = (result as { totalCount: number }).totalCount ?? 0;
-      } else ElMessage.error(tr('resourceList.messages.loadFailed'));
+      const payload = getApiResponseData<{ data?: unknown[]; totalCount?: number }>(result);
+      if (payload != null && typeof payload === 'object' && 'data' in payload && 'totalCount' in payload) {
+        this.state.tableData = payload.data ?? [];
+        (this.state.pagination as Record<string, number>).total = payload.totalCount ?? 0;
+      } else ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('resourceList.messages.loadFailed'));
     } catch {
       ElMessage.error(tr('resourceList.messages.loadFailed'));
     }
@@ -626,10 +635,11 @@ class ResourceListPage extends BaseListPage {
     const params = this.buildPagingSearchParamsForTree();
     try {
       const result = await backendRequest({ url: 'sys/resource/pagingSearch', method: 'post', params });
-      if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
-        this.state.tableData = (result as { data: unknown[] }).data ?? [];
-        (this.state.pagination as Record<string, number>).total = (result as { totalCount: number }).totalCount ?? 0;
-      } else ElMessage.error(tr('resourceList.messages.loadFailed'));
+      const payload = getApiResponseData<{ data?: unknown[]; totalCount?: number }>(result);
+      if (payload != null && typeof payload === 'object' && 'data' in payload && 'totalCount' in payload) {
+        this.state.tableData = payload.data ?? [];
+        (this.state.pagination as Record<string, number>).total = payload.totalCount ?? 0;
+      } else ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('resourceList.messages.loadFailed'));
     } catch {
       ElMessage.error(tr('resourceList.messages.loadFailed'));
     }
@@ -767,16 +777,9 @@ export default defineComponent({
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],

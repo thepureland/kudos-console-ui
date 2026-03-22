@@ -1,6 +1,6 @@
 import { ElMessage, ElMessageBox } from "element-plus"
 import { BasePage } from "./BasePage"
-import { backendRequest } from "../../utils/backendRequest"
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from "../../utils/backendRequest"
 import { ColumnVisibilitySupport } from "../widgets/ColumnVisibilitySupport"
 import { i18n } from "../../i18n"
 
@@ -170,12 +170,14 @@ export abstract class BaseListPage extends BasePage {
         }
 
         const result = await backendRequest({url: this.getSearchUrl(), method: "post", params})
-        // 响应格式：{ data: 行数组, totalCount: 总条数 }
-        const isSuccess = Array.isArray(result?.data) && typeof result?.totalCount === "number"
+        const payload = getApiResponseData(result)
+        const isSuccess = isApiSuccessResponse(result)
+            ? this.isSearchPayload(payload)
+            : this.isSearchPayload(result)
         if (isSuccess) {
-            this.postSearchSuccessfully(result)
+            this.postSearchSuccessfully(isApiSuccessResponse(result) ? payload : result)
         } else {
-            ElMessage.error(i18n.global.t('listPage.queryFailed') as string)
+            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('listPage.queryFailed') as string))
         }
     }
 
@@ -187,6 +189,11 @@ export abstract class BaseListPage extends BasePage {
             return
         }
         this.state.tableData = Array.isArray(data) ? data : []
+    }
+
+    private isSearchPayload(data: unknown): boolean {
+        if (Array.isArray(data)) return true
+        return !!(data && typeof data === "object" && Array.isArray((data as { data?: unknown }).data))
     }
 
     public handleSizeChange: (newSize: number) => void
@@ -340,10 +347,10 @@ export abstract class BaseListPage extends BasePage {
         }
     }
 
-    /** 将当前列表查询态持久化到本地。 */
+    /** 将当前列表查询态持久化到本地。不持久化表格列宽（列宽统一不持久化）。 */
     public persistListState() {
         if (!this.listStateStorageKey || typeof window === "undefined") return
-        // 仅持久化列表查询态，避免把弹窗等瞬时 UI 状态写入本地
+        // 仅持久化列表查询态，避免把弹窗等瞬时 UI 状态写入本地；列宽不写入
         const payload = {
             searchParams: { ...(this.state.searchParams || {}) },
             sort: { ...(this.state.sort || {}) },
@@ -465,11 +472,11 @@ export abstract class BaseListPage extends BasePage {
         }
         const params = this.createDeleteParams(row)
         const result = await backendRequest({url: this.getDeleteUrl(), method: "delete", params: params})
-        if (result === true || result?.data === true) {
+        if (isApiSuccessResponse(result) || result === true || result?.data === true) {
             ElMessage.success(t('listPage.deleteSuccess') as string)
             this.doAfterDelete([params["id"]])
         } else {
-            ElMessage.error(t('listPage.deleteFailed') as string)
+            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string))
         }
     }
 
@@ -492,11 +499,11 @@ export abstract class BaseListPage extends BasePage {
             }
             const params = this.createBatchDeleteParams()
             const result = await backendRequest({url: this.getBatchDeleteUrl(), method: "post", params: params})
-            if (result === true || result?.data === true) {
+            if (isApiSuccessResponse(result) || result === true || result?.data === true) {
                 ElMessage.success(t('listPage.deleteSuccess') as string)
                 this.doAfterDelete(this.getSelectedIds())
             } else {
-                ElMessage.error(t('listPage.deleteFailed') as string)
+                ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string))
             }
         }
     }
@@ -522,8 +529,8 @@ export abstract class BaseListPage extends BasePage {
             params["subSystemCode"] = subSystemCode
         }
         const result = await backendRequest({url: this.getUpdateActiveUrl(), method: 'put', params, paramsInQuery: true})
-        if (result !== true && result?.data !== true) {
-            ElMessage.error(i18n.global.t('listPage.updateActiveFailed') as string)
+        if (!(isApiSuccessResponse(result) || result === true || result?.data === true)) {
+            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('listPage.updateActiveFailed') as string))
         }
     }
 

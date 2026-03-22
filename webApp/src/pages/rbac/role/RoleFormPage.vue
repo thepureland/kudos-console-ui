@@ -69,7 +69,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('roleAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />
@@ -120,10 +120,6 @@ class RoleFormPage extends TenantSupportAddEditPage {
 
   protected getRootActionPath(): string {
     return 'rbac/role';
-  }
-
-  protected getRowObjectLoadUrl(): string {
-    return this.getRootActionPath() + '/getDetail';
   }
 
   protected getLoadFailedMessageKey(): string {

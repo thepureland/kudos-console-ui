@@ -55,7 +55,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('userGroupAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />
@@ -100,10 +100,6 @@ class UserGroupFormPage extends BaseAddEditPage {
 
   protected getRootActionPath(): string {
     return 'rbac/group';
-  }
-
-  protected getRowObjectLoadUrl(): string {
-    return this.getRootActionPath() + '/getDetail';
   }
 
   protected getLoadFailedMessageKey(): string {

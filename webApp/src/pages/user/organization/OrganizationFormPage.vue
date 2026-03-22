@@ -64,7 +64,7 @@
       <section class="form-section">
         <div class="form-section__title">{{ t('organizationAddEdit.sections.other') }}</div>
         <el-form-item :label="t('organizationAddEdit.labels.remark')" prop="remark">
-          <el-input v-model="formModel.remark" type="textarea" :rows="3" :placeholder="t('organizationAddEdit.placeholders.remark')" maxlength="200" show-word-limit resize="none" />
+          <el-input v-model="formModel.remark" type="textarea" :rows="3" :placeholder="t('organizationAddEdit.placeholders.remark')" :maxlength="remarkMaxLength" show-word-limit resize="none" />
         </el-form-item>
       </section>
     </el-form>
@@ -83,7 +83,7 @@ import { ElMessage } from 'element-plus';
 import { OrgSupportAddEditPage } from '../../../components/pages/OrgSupportAddEditPage';
 import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import '../../../styles/add-edit-dialog-common.css';
 
 class OrganizationFormPage extends OrgSupportAddEditPage {
@@ -144,10 +144,6 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['organization_type'], atomicServiceCode: 'share' }];
   }
 
-  protected getRowObjectLoadUrl(): string {
-    return this.getRootActionPath() + '/getDetail';
-  }
-
   protected getLoadFailedMessageKey(): string {
     return 'organizationAddEdit.messages.loadFailed';
   }
@@ -169,10 +165,11 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     const tenantId = arr.length > 1 ? arr[1] : null;
     const params = { subSystemCode, tenantId } as { subSystemCode: string; tenantId: string | null };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
-    if (Array.isArray(result)) {
-      this.state.organizationTree = result;
+    const payload = getApiResponseData<Record<string, unknown>[]>(result);
+    if (Array.isArray(payload)) {
+      this.state.organizationTree = payload;
     } else {
-      ElMessage.error((result as { msg?: string })?.msg || '加载组织机构树失败！');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '加载组织机构树失败！');
       this.state.organizationTree = [];
     }
     this.state.formModel.parent = [];
@@ -182,8 +179,9 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
   async loadOrganizationTreeForEdit(subSystemCode: string, tenantId: string | null): Promise<void> {
     const params = { subSystemCode, tenantId };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
-    if (Array.isArray(result)) {
-      this.state.organizationTree = result;
+    const payload = getApiResponseData<Record<string, unknown>[]>(result);
+    if (Array.isArray(payload)) {
+      this.state.organizationTree = payload;
     } else {
       this.state.organizationTree = [];
     }

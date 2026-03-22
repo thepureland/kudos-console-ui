@@ -34,7 +34,7 @@
 import {defineComponent, reactive, ref, toRefs} from "vue"
 import {ElMessage, ElTree} from "element-plus";
 import { BasePage } from '../../../components/pages/BasePage';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
 class Page extends BasePage {
 
@@ -75,15 +75,16 @@ class Page extends BasePage {
     const url = this.getRootActionPath() + "/getMenuPermissions"
     // @ts-ignore
     const result = await backendRequest({url: url, params})
-    if (result != null && typeof result === 'object' && 'first' in result) {
-      this.state.menuData = (result as { first: unknown }).first
+    const payload = getApiResponseData<{ first?: unknown; second?: unknown }>(result)
+    if (payload != null && typeof payload === 'object' && 'first' in payload) {
+      this.state.menuData = payload.first
 
       // 勾选已经为角色分配的菜单，这里注意几个问题：
       // 1. el-tree在check-strictly设置为false时，父子互相关联
       // 2. 在1的情况下，已勾选的项在回显时，如果父节点是选中的，将造成子节点全部选中
       // 3. 为解决2的问题，想通过在设置勾选项前把check-strictly先设置为true，勾选后再设置为false的做法，是行不通的，会报错
       // 4. 想通过树节点来判断是否为叶子节点，会发现找不到它已经渲染完的时间点，所以这里直接从候选数据判断
-      const checkKeys = (result as { second: unknown }).second // 要勾选的结点key（有包括非叶子结点的）
+      const checkKeys = payload.second // 要勾选的结点key（有包括非叶子结点的）
       let checkLeafKeys = [] // 要勾选的叶子结点key
       for (let data of this.state.menuData) {
         this.filterLeaf(data, checkLeafKeys, checkKeys)
@@ -92,7 +93,7 @@ class Page extends BasePage {
 
       this.render()
     } else {
-      ElMessage.error('数据加载失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '数据加载失败！')
     }
   }
 
@@ -118,11 +119,11 @@ class Page extends BasePage {
     const url = this.getRootActionPath() + "/setRolePermissions"
     // @ts-ignore
     const result = await backendRequest({url: url, method: 'post', params})
-    if (result != null) {
+    if (isApiSuccessResponse(result) || result === true || result?.data === true) {
       ElMessage.info('授权成功！')
       this.close()
     } else {
-      ElMessage.info('授权失败！')
+      ElMessage.info(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '授权失败！')
     }
   }
 

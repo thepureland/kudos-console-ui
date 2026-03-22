@@ -61,8 +61,13 @@ export function useAddEditDialogSetup(
     ([modelVal, r]) => {
       if (modelVal === true && r != null && String(r).trim() !== '') {
         page.currentRid = String(r);
-        nextTick(() => page.reloadRowData());
+        nextTick(async () => {
+          // 复用同一个表单实例时，切到编辑模式需主动加载编辑校验规则
+          await (page as unknown as { initValidationRule?: () => Promise<void> }).initValidationRule?.();
+          await page.reloadRowData();
+        });
       } else if (modelVal === true && (r == null || String(r).trim() === '')) {
+        // 新增：仅重置表单。校验规则与 i18n 已在 createPage 时由构造函数 initValidationRule 拉取，此处不再重复请求
         nextTick(() => (page as BaseAddEditPage).resetFormForAdd());
       }
     },
@@ -76,7 +81,10 @@ export function useAddEditDialogSetup(
       const rid = props.rid ? String(props.rid) : '';
       if (!rid) return;
       page.currentRid = rid;
-      nextTick(() => page.reloadRowData());
+      nextTick(async () => {
+        await (page as unknown as { initValidationRule?: () => Promise<void> }).initValidationRule?.();
+        await page.reloadRowData();
+      });
     },
     { flush: 'post' }
   );
@@ -89,12 +97,13 @@ export function useAddEditDialogSetup(
   });
   registerOnEditFormLoaded();
 
-  /** 语言切换时重载本页字典项等 i18n，使下拉 t(item.second) 随新语言生效 */
+  /** 语言切换时重载本页字典项等 i18n，并重新请求后端校验规则（清除 BaseAddEditPage 内缓存） */
   watch(
     () => i18n.global.locale.value,
-    () => {
+    async () => {
       const config = (page as { getI18nConfig?: () => { i18nTypeDictCode: string; namespaces: string[]; atomicServiceCode: string }[] }).getI18nConfig?.();
-      if (config?.length) loadMessagesForConfig(config);
+      if (config?.length) await loadMessagesForConfig(config);
+      await (page as BaseAddEditPage).reloadValidationRulesForLocaleChange?.();
     },
     { immediate: false }
   );

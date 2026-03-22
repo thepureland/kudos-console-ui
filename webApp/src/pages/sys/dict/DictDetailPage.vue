@@ -16,20 +16,20 @@
       </div>
       <el-table border stripe :data="tableData" max-height="400" :header-cell-style="{ textAlign: 'center' }">
         <el-table-column type="index" width="50" :label="''" :index="(idx: number) => (itemsPageNo - 1) * itemsPageSize + idx + 1" />
-        <el-table-column prop="itemCode" width="150" :label="t('dictDetail.table.itemCode')" />
-        <el-table-column prop="itemName" width="150" :label="t('dictDetail.table.itemName')" />
-        <el-table-column prop="orderNum" width="70" :label="t('dictDetail.table.seqNo')" />
-        <el-table-column prop="active" width="70" :label="t('dictDetail.table.active')">
+        <el-table-column prop="itemCode" width="150" :label="t('dictDetail.table.itemCode')" show-overflow-tooltip />
+        <el-table-column prop="itemName" width="150" :label="t('dictDetail.table.itemName')" show-overflow-tooltip />
+        <el-table-column prop="orderNum" width="70" :label="t('dictDetail.table.seqNo')" show-overflow-tooltip />
+        <el-table-column prop="active" width="70" :label="t('dictDetail.table.active')" show-overflow-tooltip>
           <template #default="scope">
             {{ scope.row.active ? t('dictList.common.yes') : t('dictList.common.no') }}
           </template>
         </el-table-column>
-        <el-table-column prop="builtIn" width="70" :label="t('dictDetail.table.builtIn')">
+        <el-table-column prop="builtIn" width="70" :label="t('dictDetail.table.builtIn')" show-overflow-tooltip>
           <template #default="scope">
             {{ scope.row.builtIn ? t('dictList.common.yes') : t('dictList.common.no') }}
           </template>
         </el-table-column>
-        <el-table-column width="155" :label="t('dictDetail.table.createTime')">
+        <el-table-column width="155" :label="t('dictDetail.table.createTime')" show-overflow-tooltip>
           <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
         </el-table-column>
         <el-table-column prop="remark" min-width="120" :label="t('dictDetail.table.remark')" show-overflow-tooltip />
@@ -59,7 +59,7 @@ import {
   type SectionConfig,
   useSectionedDetail,
 } from '../../../components/pages/sectionedDetail';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { i18n } from '../../../i18n';
 
 /** 分组：基本信息、审计信息、其他信息 */
@@ -159,11 +159,12 @@ class DictDetailPage extends BaseDetailPage {
       method: 'post',
       params: { dictId: rid, pageNo, pageSize },
     });
-    if (result != null && typeof result === 'object' && 'data' in result && Array.isArray((result as { data?: unknown }).data)) {
-      st.tableData = (result as { data: Record<string, unknown>[] }).data ?? [];
-      st.itemsTotal = (result as { totalCount?: number }).totalCount ?? 0;
+    const payload = getApiResponseData<{ data?: Record<string, unknown>[]; totalCount?: number }>(result);
+    if (payload != null && typeof payload === 'object' && Array.isArray(payload.data)) {
+      st.tableData = payload.data ?? [];
+      st.itemsTotal = payload.totalCount ?? 0;
     } else {
-      ElMessage.error((i18n.global.t('dictDetail.messages.loadItemsFailed') as string) || '字典项加载失败！');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('dictDetail.messages.loadItemsFailed') as string) || '字典项加载失败！');
     }
   }
 }

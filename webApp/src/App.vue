@@ -13,7 +13,7 @@ import zhTw from 'element-plus/es/locale/lang/zh-tw';
 import en from 'element-plus/es/locale/lang/en';
 import Login from './components/Login/Login.vue';
 import { REQUIRE_AUTH } from './config/auth';
-import { i18n, loadAppMessages, APP_DEFAULT_I18N_CONFIG } from './i18n';
+import { i18n, ensureAppMessagesLoaded } from './i18n';
 import type { LocaleId } from './i18n';
 
 const store = useStore();
@@ -29,7 +29,6 @@ const elementPlusLocale = computed(() => {
 });
 
 onMounted(() => {
-  // 生产环境字典项译文由 /api/admin/sys/i18n/batchGetI18ns 提供，启动时拉取 dict_item 命名空间
-  loadAppMessages(APP_DEFAULT_I18N_CONFIG);
+  void ensureAppMessagesLoaded();
 });
 </script>

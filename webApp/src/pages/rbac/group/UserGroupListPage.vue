@@ -100,6 +100,7 @@
             sortable="custom"
             fixed="left"
             class-name="col-fixed-name"
+            show-overflow-tooltip
           />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
@@ -107,6 +108,7 @@
               prop="groupName"
               :min-width="columnWidths['groupName'] ?? 120"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -125,6 +127,7 @@
               v-else-if="key === 'remark' && isColumnVisible('remark')"
               prop="remark"
               :min-width="columnWidths['remark'] ?? 140"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -143,6 +146,7 @@
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
               :min-width="columnWidths['active'] ?? 80"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -170,6 +174,7 @@
               prop="createTime"
               :min-width="columnWidths['createTime'] ?? 160"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -259,7 +264,6 @@ import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'userGroupList.operationColumnPinned';
@@ -361,16 +365,9 @@ export default defineComponent({
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
 
     const visibleColumnKeys = computed<string[]>({

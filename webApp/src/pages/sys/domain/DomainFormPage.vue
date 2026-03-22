@@ -58,7 +58,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('domainAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />
@@ -111,6 +111,11 @@ class DomainFormPage extends TenantSupportAddEditPage {
 
   protected getRootActionPath(): string {
     return 'sys/domain';
+  }
+
+  /** 本模块编辑拉数仍使用 /get，非原 getDetail 路径 */
+  protected getRowObjectLoadUrl(): string {
+    return this.getRootActionPath() + '/get';
   }
 
   protected getLoadFailedMessageKey(): string {

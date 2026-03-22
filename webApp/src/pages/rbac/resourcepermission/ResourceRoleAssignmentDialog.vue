@@ -29,7 +29,7 @@
 import {defineComponent, reactive, ref, toRefs} from "vue"
 import {ElMessage, ElTree} from "element-plus";
 import { BasePage } from '../../../components/pages/BasePage';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
 class Page extends BasePage {
 
@@ -58,11 +58,12 @@ class Page extends BasePage {
     const url = this.getRootActionPath() + "/getResourceRoles"
     // @ts-ignore
     const result = await backendRequest({url: url, method: "post", params})
-    if (result != null && typeof result === 'object' && 'first' in result) {
-      this.state.roles = (result as { first: unknown }).first
-      this.state.checkedRoles = (result as { second: unknown }).second
+    const payload = getApiResponseData<{ first?: unknown; second?: unknown }>(result)
+    if (payload != null && typeof payload === 'object' && 'first' in payload) {
+      this.state.roles = payload.first
+      this.state.checkedRoles = payload.second
     } else {
-      ElMessage.error('数据加载失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '数据加载失败！')
     }
   }
 
@@ -78,12 +79,12 @@ class Page extends BasePage {
     const url = this.getRootActionPath() + "/reassignRolesForResource"
     // @ts-ignore
     const result = await backendRequest({url: url, method: "post", params})
-    if (result != null) {
+    if (isApiSuccessResponse(result) || result === true || result?.data === true) {
       ElMessage.info('授权成功！')
       this.close()
       this.context.emit('response')
     } else {
-      ElMessage.info('授权失败！')
+      ElMessage.info(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '授权失败！')
     }
   }
 

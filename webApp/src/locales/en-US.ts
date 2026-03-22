@@ -227,6 +227,8 @@ export default {
     tips: {
       restartRequired: 'Takes effect after application restart.',
       restartAndReload: 'Takes effect after restart and cache reload.',
+      immutableAfterSave: 'Cannot be changed after saving!',
+      readonly: 'Read-only',
     },
     buttons: { cancel: 'Cancel', confirm: 'OK' },
     closeConfirm: {

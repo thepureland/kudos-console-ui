@@ -16,17 +16,57 @@ export class ValidationRuleAdapter {
     private destRules: any = {}
     private trigger: string
 
-    /** 将后端返回的 message 转为展示文案：四段式 key 去掉首段后翻译，否则原样返回（后端文案） */
-    private static resolveMessage(raw: string | null | undefined): string {
+    /** 供 vue-i18n 命名插值与文案 {xxx} 替换的字段（与后端 ruleDetail 常见字段对齐） */
+    private static messageInterpolationKeys = [
+        'min', 'max', 'value', 'integer', 'fraction', 'regexp', 'size', 'step', 'type', 'inclusive',
+        'anotherProperty', 'logic', 'host', 'port', 'protocol',
+    ] as const
+
+    private static buildMessageInterpolationParams(detail: Record<string, unknown> | null | undefined): Record<string, unknown> | undefined {
+        if (!detail || typeof detail !== 'object') return undefined
+        const out: Record<string, unknown> = {}
+        for (const k of ValidationRuleAdapter.messageInterpolationKeys) {
+            if (detail[k] !== undefined && detail[k] !== null) out[k] = detail[k]
+        }
+        return Object.keys(out).length ? out : undefined
+    }
+
+    /**
+     * 将后端返回的 message 转为展示文案：四段式 key 去掉首段后翻译，否则原样返回（后端文案）。
+     * @param detail 首条 ruleDetail，用于 t(key, { min, max, ... })，避免占位符被 i18n 清空。
+     */
+    private static resolveMessage(raw: string | null | undefined, detail?: Record<string, unknown> | null): string {
         if (raw == null || typeof raw !== 'string' || raw === '') return ''
         const parts = raw.split('.')
         if (parts.length >= 4) {
             const keyWithoutAtomic = parts.slice(1).join('.')
             const t = i18n.global.t.bind(i18n.global)
-            const out = t(keyWithoutAtomic) as string
+            const params = ValidationRuleAdapter.buildMessageInterpolationParams(detail ?? null)
+            const out = (params ? t(keyWithoutAtomic, params) : t(keyWithoutAtomic)) as string
             return out !== keyWithoutAtomic ? out : raw
         }
         return raw
+    }
+
+    /**
+     * 将文案中的 {min}、{max}、{value} 等与 ruleDetail 同名字段替换（避免仅 t(key) 不传参时占位符被清空）。
+     */
+    private static interpolateMessagePlaceholders(template: string, detail: Record<string, unknown> | null | undefined): string {
+        if (!template || detail == null || typeof detail !== 'object') return template
+        let out = template
+        for (const k of ValidationRuleAdapter.messageInterpolationKeys) {
+            if (detail[k] === undefined || detail[k] === null) continue
+            const v = detail[k]
+            const str = typeof v === 'object' ? JSON.stringify(v) : String(v)
+            out = out.replace(new RegExp(`\\{${k}\\}`, 'g'), str)
+        }
+        return out
+    }
+
+    /** resolveMessage + 按首条 ruleDetail 替换占位符（非 i18n key 的直出文案、或翻译后仍含 {xxx} 时） */
+    private static resolveMessageWithDetail(raw: string | null | undefined, detail: Record<string, unknown> | null | undefined): string {
+        const resolved = ValidationRuleAdapter.resolveMessage(raw, detail ?? null)
+        return ValidationRuleAdapter.interpolateMessagePlaceholders(resolved, detail ?? undefined)
     }
 
     /**
@@ -72,7 +112,10 @@ export class ValidationRuleAdapter {
         if (!rule["message"]) {
             const firstDetail = ruleDetails[0]
             const raw = firstDetail && firstDetail["message"] != null ? firstDetail["message"] : null
-            rule["message"] = raw != null ? ValidationRuleAdapter.resolveMessage(raw) : this.getDefaultMessage()
+            rule["message"] =
+                raw != null
+                    ? ValidationRuleAdapter.resolveMessageWithDetail(raw, firstDetail as Record<string, unknown>)
+                    : this.getDefaultMessage()
         }
         this.destRules[propName].push(rule)
     }
@@ -105,6 +148,10 @@ export class ValidationRuleAdapter {
                 break
             case "Length":
                 this.length(propName, ruleDetails, rule)
+                break
+            // MaxLength：等价于仅指定 max 的 Length（字符串）
+            case "MaxLength":
+                this.maxLength(propName, ruleDetails, rule)
                 break
             case "Compare":
                 this.compare(propName, ruleDetails)
@@ -193,6 +240,10 @@ export class ValidationRuleAdapter {
             case "Size":
                 this.size(propName, ruleDetails, rule)
                 break
+            // MaxSize：等价于仅指定 max 的 Size
+            case "MaxSize":
+                this.maxSize(propName, ruleDetails, rule)
+                break
             case "DictEnumCode":
                 this.dictEnumCode(propName, ruleDetails, rule)
                 break
@@ -280,7 +331,12 @@ export class ValidationRuleAdapter {
                 if (result != null) {
                     resolve()
                 } else {
-                    reject(ValidationRuleAdapter.resolveMessage(ruleDetails[0]["message"]))
+                    reject(
+                        ValidationRuleAdapter.resolveMessageWithDetail(
+                            ruleDetails[0]["message"],
+                            ruleDetails[0] as Record<string, unknown>,
+                        ),
+                    )
                 }
             });
         }
@@ -289,6 +345,22 @@ export class ValidationRuleAdapter {
     /** 字符串长度约束，被校验对象类型必须为字符串 */
     private length(propName: string, ruleDetails: Array<any>, rule: any) {
         this.codePointLength(propName, ruleDetails, rule)
+    }
+
+    /**
+     * 最大长度约束（等价于仅指定 max 的 Length），被校验对象类型为字符串。
+     * ruleDetails[0].max：最大长度（含）。
+     */
+    private maxLength(propName: string, ruleDetails: Array<any>, rule: any) {
+        rule["type"] = "string"
+        const max = ruleDetails[0]["max"]
+        rule["validator"] = (rule: any, value: any) => {
+            if (value == null || value === "") return true
+            if (!this.isString(value)) return false
+            const n = Number(max)
+            if (max === undefined || max === null || Number.isNaN(n)) return true
+            return String(value).length <= n
+        }
     }
 
     /** 比较约束，支持数组类型，但是两个数组的大小必须一致 */
@@ -316,7 +388,12 @@ export class ValidationRuleAdapter {
                     const logic = ruleDetail["logic"]
                     const result = this.compareTwoValue(logic, value, anotherValue)
                     if (!result) {
-                        reject(ValidationRuleAdapter.resolveMessage(ruleDetail["message"]))
+                        reject(
+                            ValidationRuleAdapter.resolveMessageWithDetail(
+                                ruleDetail["message"],
+                                ruleDetail as Record<string, unknown>,
+                            ),
+                        )
                     } else {
                         resolve()
                     }
@@ -584,6 +661,32 @@ export class ValidationRuleAdapter {
                 }
                 return false
             }
+        }
+    }
+
+    /**
+     * 最大尺寸约束（等价于仅指定 max 的 Size）。
+     * 被校验对象：字符串、数组、TypedArray、Set、Map 等（与 Size 一致，仅校验上界）。
+     * ruleDetails[0].max：最大元素个数（含）。
+     */
+    private maxSize(propName: string, ruleDetails: Array<any>, rule: any) {
+        const max = ruleDetails[0]["max"]
+        rule["validator"] = (rule: any, value: any) => {
+            if (this.isEmpty(value)) {
+                return true
+            }
+            const n = Number(max)
+            if (max === undefined || max === null || Number.isNaN(n)) return true
+            if (this.isString(value) || value instanceof Array) {
+                return value.length <= n
+            }
+            if (value instanceof Set || value instanceof Map) {
+                return value.size <= n
+            }
+            if (typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView(value)) {
+                return value.length <= n
+            }
+            return false
         }
     }
 

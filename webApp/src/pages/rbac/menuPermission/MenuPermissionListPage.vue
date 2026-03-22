@@ -32,9 +32,9 @@
                 :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange" default-expand-all
                 row-key="id">
         <el-table-column type="index" min-width="50"/>
-        <el-table-column label="名称" prop="name" :min-width="columnWidths['name'] ?? 120"/>
-        <el-table-column label="URL" prop="url" :min-width="columnWidths['url'] ?? 120"/>
-        <el-table-column label="关联的角色" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140"/>
+        <el-table-column label="名称" prop="name" :min-width="columnWidths['name'] ?? 120" show-overflow-tooltip/>
+        <el-table-column label="URL" prop="url" :min-width="columnWidths['url'] ?? 120" show-overflow-tooltip/>
+        <el-table-column label="关联的角色" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140" show-overflow-tooltip/>
 
         <el-table-column label="操作" align="center">
           <template #default="scope">
@@ -53,11 +53,10 @@
 </template>
 
 <script lang='ts'>
-import { defineComponent, reactive, toRefs, computed, nextTick, onMounted, watch } from 'vue';
+import { defineComponent, reactive, toRefs, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import MenuRoleAssignDialog from './MenuRoleAssignDialog.vue';
 
 
@@ -98,18 +97,7 @@ export default defineComponent({
       { key: 'roleNames', getLabel: () => '关联的角色', getCellText: (row: Record<string, unknown>) => String(row.roleNames ?? '') },
     ]);
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: 50,
-      reservedWidthRight: 100,
-    });
-    function runAutoWidth() {
-      nextTick(runColumnAutoWidth);
-    }
-    onMounted(runAutoWidth);
-    watch(tableDataRef, runAutoWidth);
+    const columnWidths = ref<Record<string, number>>({});
     return {
       t,
       ...toRefs(listPage.state),

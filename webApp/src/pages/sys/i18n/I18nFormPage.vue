@@ -55,7 +55,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('i18nAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />
@@ -123,10 +123,6 @@ class I18nFormPage extends BaseAddEditPage {
     return [
       { i18nTypeDictCode: 'dict-item', namespaces: ['i18n_type', 'locale'], atomicServiceCode: 'sys' },
     ];
-  }
-
-  protected getRowObjectLoadUrl(): string {
-    return this.getRootActionPath() + '/getDetail';
   }
 
   protected getLoadFailedMessageKey(): string {
