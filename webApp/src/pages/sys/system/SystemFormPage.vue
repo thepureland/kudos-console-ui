@@ -78,7 +78,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('systemAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />
@@ -127,11 +127,6 @@ class SystemFormPage extends BaseAddEditPage {
 
   protected getRootActionPath(): string {
     return 'sys/system';
-  }
-
-  /** 与详情一致：使用 getDetail 接口按 id 拉取单条，Mock 已有此路径 */
-  protected getRowObjectLoadUrl(): string {
-    return this.getRootActionPath() + '/getDetail';
   }
 
   protected getLoadFailedMessageKey(): string {

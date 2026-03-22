@@ -1,6 +1,6 @@
 import { BasePage } from "./BasePage"
 import { ElMessage } from "element-plus"
-import { backendRequest } from "../../utils/backendRequest"
+import { backendRequest, getApiResponseData, isApiResponse, isApiSuccessResponse } from "../../utils/backendRequest"
 
 /**
  * 详情页面处理抽象父类
@@ -67,7 +67,10 @@ export abstract class BaseDetailPage extends BasePage {
     protected async loadData() {
         const params = this.createDetailLoadParams()
         const result = await backendRequest({ url: this.getDetailLoadUrl(), params })
-        if (result != null) {
+        const payload = getApiResponseData(result)
+        if (isApiSuccessResponse(result) && payload != null) {
+            this.postLoadDataSuccessfully(payload)
+        } else if (!isApiResponse(result) && result != null) {
             this.postLoadDataSuccessfully(result)
         } else {
             ElMessage.error('数据加载失败！')

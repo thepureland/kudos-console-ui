@@ -142,13 +142,14 @@
         >
           <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
           <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
-          <el-table-column :label="t('cacheList.columns.name')" prop="name" sortable="custom" min-width="350" fixed="left" class-name="col-fixed-name" />
+          <el-table-column :label="t('cacheList.columns.name')" prop="name" sortable="custom" min-width="250" fixed="left" class-name="col-fixed-name" show-overflow-tooltip />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
             v-if="key === 'atomicServiceCode' && isColumnVisible('atomicServiceCode')"
             prop="atomicServiceCode"
-            :min-width="columnWidths['atomicServiceCode'] ?? 120"
+            :min-width="columnWidths['atomicServiceCode'] ?? 95"
             sortable="custom"
+            show-overflow-tooltip
           >
             <template #header>
               <div
@@ -169,10 +170,11 @@
           <el-table-column
             v-else-if="key === 'strategyDictCode' && isColumnVisible('strategyDictCode')"
             prop="strategyDictCode"
-            :min-width="columnWidths['strategyDictCode'] ?? 140"
+            :min-width="columnWidths['strategyDictCode'] ?? 110"
             column-key="strategyDictCode"
             :filters="strategyFilters"
             :filtered-value="getFilteredValueForColumn(searchParams.strategyDictCode)"
+            show-overflow-tooltip
           >
             <template #header>
               <div
@@ -199,11 +201,12 @@
           <el-table-column
             v-else-if="key === 'hash' && isColumnVisible('hash')"
             prop="hash"
-            :min-width="columnWidths['hash'] ?? 90"
+            :min-width="columnWidths['hash'] ?? 100"
             column-key="hash"
             :filter-multiple="false"
             :filters="boolFilters"
             :filtered-value="getFilteredValueForColumn(searchParams.hash)"
+            show-overflow-tooltip
           >
             <template #header>
               <div
@@ -224,8 +227,10 @@
           <el-table-column
             v-else-if="key === 'active' && isColumnVisible('active')"
             prop="active"
-            :min-width="65"
+            :min-width="62"
             column-key="active"
+            class-name="col-cache-active-switch"
+            label-class-name="col-cache-active-switch"
             :filter-multiple="false"
             :filters="boolFilters"
             :filtered-value="getFilteredValueForColumn(searchParams.active)"
@@ -254,11 +259,12 @@
           <el-table-column
             v-else-if="key === 'writeOnBoot' && isColumnVisible('writeOnBoot')"
             prop="writeOnBoot"
-            :min-width="columnWidths['writeOnBoot'] ?? 120"
+            :min-width="columnWidths['writeOnBoot'] ?? 98"
             column-key="writeOnBoot"
             :filter-multiple="false"
             :filters="boolFilters"
             :filtered-value="getFilteredValueForColumn(searchParams.writeOnBoot)"
+            show-overflow-tooltip
           >
             <template #header>
               <div
@@ -279,11 +285,12 @@
           <el-table-column
             v-else-if="key === 'writeInTime' && isColumnVisible('writeInTime')"
             prop="writeInTime"
-            :min-width="columnWidths['writeInTime'] ?? 120"
+            :min-width="columnWidths['writeInTime'] ?? 90"
             column-key="writeInTime"
             :filter-multiple="false"
             :filters="boolFilters"
             :filtered-value="getFilteredValueForColumn(searchParams.writeInTime)"
+            show-overflow-tooltip
           >
             <template #header>
               <div
@@ -305,6 +312,7 @@
             v-else-if="key === 'ttl' && isColumnVisible('ttl')"
             prop="ttl"
             :min-width="columnWidths['ttl'] ?? 90"
+            show-overflow-tooltip
           >
             <template #header>
               <div
@@ -323,6 +331,7 @@
             v-else-if="key === 'remark' && isColumnVisible('remark')"
             prop="remark"
             :min-width="columnWidths['remark'] ?? 120"
+            show-overflow-tooltip
           >
             <template #header>
               <div
@@ -437,9 +446,8 @@ import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { Pair } from '../../../components/model/Pair';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseMessage, getUserFacingMessage, isApiSuccessResponse, resolveApiResponseMessage, resolveUserFacingMessage } from '../../../utils/backendRequest';
 import { i18n } from '../../../i18n';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 
@@ -509,7 +517,11 @@ class CacheListPage extends BaseListPage {
     const params = super.createSearchParams();
     if (params && this.state.searchParams) {
       const sp = this.state.searchParams as Record<string, unknown>;
-      (params as Record<string, unknown>).active = sp.active === true ? true : null;
+      const p = params as Record<string, unknown>;
+      p.active = sp.active === true ? true : null;
+      // pagingSearch 不传 writeOnBoot、writeInTime（后端不按此筛选）
+      delete p.writeOnBoot;
+      delete p.writeInTime;
     }
     return params;
   }
@@ -552,8 +564,12 @@ class CacheListPage extends BaseListPage {
     const url = `sys/cache/management/${operation}`;
     try {
       const result = await backendRequest({ url, params });
-      if (result != null) {
-        ElMessage.info(typeof result === 'string' ? result : (result as { data?: string })?.data ?? '');
+      if (isApiSuccessResponse(result) || typeof result === 'string') {
+        const message =
+          typeof result === 'string'
+            ? (await resolveUserFacingMessage(result) ?? getUserFacingMessage(result) ?? result)
+            : await resolveApiResponseMessage(result) ?? getApiResponseMessage(result) ?? ((result as { data?: string })?.data ?? '');
+        ElMessage.info(message);
       } else {
         ElMessage.error(tr('cacheList.messages.requestOperationFailed'));
       }
@@ -760,16 +776,9 @@ export default defineComponent({
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
     /** 栏位可见性勾选与 listPage 状态双向同步 */
     const visibleColumnKeys = computed<string[]>({
@@ -908,6 +917,17 @@ export default defineComponent({
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 22px;
+}
+
+/* 启用列为开关，不参与省略号，避免列窄时在开关右侧出现 … */
+:deep(.el-table th.col-cache-active-switch),
+:deep(.el-table td.col-cache-active-switch) {
+  overflow: visible;
+}
+:deep(.el-table th.col-cache-active-switch .cell),
+:deep(.el-table td.col-cache-active-switch .cell) {
+  overflow: visible;
+  text-overflow: clip;
 }
 
 :deep(.el-table__row) {

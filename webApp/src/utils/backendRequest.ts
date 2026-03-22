@@ -1,5 +1,23 @@
 import { AuthApiFactory } from "shared"
 
+export type ApiErrorDetail = {
+  code?: string | null
+  field?: string | null
+  target?: string | null
+  message: string
+  rejectedValue?: unknown
+}
+
+export type ApiResponse<T = unknown> = {
+  success: boolean
+  code: string
+  message: string
+  data?: T | null
+  timestamp?: number
+  errors?: ApiErrorDetail[] | null
+  traceId?: string | null
+}
+
 export type BackendRequestOptions = {
   url: string
   method?: string
@@ -28,6 +46,78 @@ const LOG_SLOW_REQUESTS = typeof import.meta !== "undefined" && import.meta.env?
 
 function now(): number {
   return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
+
+type BackendMessageTranslator = (message: string) => string
+type AsyncBackendMessageTranslator = (message: string) => Promise<string>
+
+function translateBackendMessage(message: string): string {
+  const text = String(message ?? "").trim()
+  if (text === "") return text
+  const maybeTranslator = (globalThis as { __kudosTranslateBackendMessage?: BackendMessageTranslator }).__kudosTranslateBackendMessage
+  return typeof maybeTranslator === "function" ? maybeTranslator(text) : text
+}
+
+export function getUserFacingMessage(message: unknown): string | null {
+  if (typeof message !== "string") return null
+  const text = String(message).trim()
+  if (text === "") return null
+  return translateBackendMessage(text)
+}
+
+export async function resolveUserFacingMessage(message: unknown): Promise<string | null> {
+  if (typeof message !== "string") return null
+  const text = String(message).trim()
+  if (text === "") return null
+  const maybeTranslator = (globalThis as { __kudosTranslateBackendMessageAsync?: AsyncBackendMessageTranslator }).__kudosTranslateBackendMessageAsync
+  if (typeof maybeTranslator === "function") return maybeTranslator(text)
+  return getUserFacingMessage(text)
+}
+
+export function isApiResponse(result: unknown): result is ApiResponse {
+  if (result == null || typeof result !== "object" || Array.isArray(result)) return false
+  const o = result as Record<string, unknown>
+  return typeof o.success === "boolean" && typeof o.code === "string" && typeof o.message === "string"
+}
+
+export function isApiSuccessResponse(result: unknown): boolean {
+  if (isApiResponse(result)) return result.success === true
+  if (result == null || typeof result !== "object" || Array.isArray(result)) return false
+  const o = result as Record<string, unknown>
+  const code = o.code
+  if (typeof code === "number") return code === 200 || code === 0
+  if (typeof code === "string") {
+    const n = Number.parseInt(code, 10)
+    if (!Number.isNaN(n)) return n === 200 || n === 0
+  }
+  return false
+}
+
+export function getApiResponseMessage(result: unknown): string | null {
+  if (isApiResponse(result)) return getUserFacingMessage(result.message)
+  if (result != null && typeof result === "object" && !Array.isArray(result)) {
+    const o = result as Record<string, unknown>
+    if (typeof o.message === "string") return getUserFacingMessage(o.message)
+    if (typeof o.msg === "string") return getUserFacingMessage(o.msg)
+  }
+  return null
+}
+
+export async function resolveApiResponseMessage(result: unknown): Promise<string | null> {
+  if (isApiResponse(result)) return resolveUserFacingMessage(result.message)
+  if (result != null && typeof result === "object" && !Array.isArray(result)) {
+    const o = result as Record<string, unknown>
+    if (typeof o.message === "string") return resolveUserFacingMessage(o.message)
+    if (typeof o.msg === "string") return resolveUserFacingMessage(o.msg)
+  }
+  return null
+}
+
+export function getApiResponseData<T = unknown>(result: unknown): T | null {
+  if (isApiResponse(result)) {
+    return (result.data ?? null) as T | null
+  }
+  return (result ?? null) as T | null
 }
 
 export async function backendRequest(options: BackendRequestOptions): Promise<any> {

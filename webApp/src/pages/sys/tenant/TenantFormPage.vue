@@ -65,7 +65,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('tenantAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />
@@ -85,7 +85,7 @@
 import { defineComponent } from 'vue';
 import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
 import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 import '../../../styles/add-edit-dialog-common.css';
 
 interface FormModel {
@@ -117,6 +117,11 @@ class TenantFormPage extends BaseAddEditPage {
     return 'sys/tenant';
   }
 
+  /** 本模块编辑拉数仍使用 /get，非原 getDetail 路径 */
+  protected getRowObjectLoadUrl(): string {
+    return this.getRootActionPath() + '/get';
+  }
+
   protected getLoadFailedMessageKey(): string {
     return 'tenantAddEdit.messages.loadFailed';
   }
@@ -125,7 +130,8 @@ class TenantFormPage extends BaseAddEditPage {
   private async loadSubSystems(): Promise<void> {
     try {
       const result = await backendRequest({ url: 'sys/system/getAllActiveSubSystemCodes' });
-      const codes = Array.isArray(result) ? (result as unknown[]).map((x) => String(x ?? '')) : [];
+      const payload = getApiResponseData<unknown[]>(result);
+      const codes = Array.isArray(payload) ? payload.map((x) => String(x ?? '')) : [];
       (this.state as Record<string, unknown>).subSystemCodesOptions = codes.filter((c) => c !== '');
     } catch {
       (this.state as Record<string, unknown>).subSystemCodesOptions = [];

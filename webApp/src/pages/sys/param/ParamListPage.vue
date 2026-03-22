@@ -116,18 +116,21 @@
             sortable="custom"
             fixed="left"
             class-name="col-fixed-name"
+            show-overflow-tooltip
           />
           <el-table-column
             v-if="isColumnVisible('paramValue')"
             :label="t('paramList.columns.paramValue')"
             prop="paramValue"
             :min-width="columnWidths['paramValue'] ?? 140"
+            show-overflow-tooltip
           />
           <el-table-column
             v-if="isColumnVisible('defaultValue')"
             :label="t('paramList.columns.defaultValue')"
             prop="defaultValue"
             :min-width="columnWidths['defaultValue'] ?? 120"
+            show-overflow-tooltip
           />
           <el-table-column
             v-if="isColumnVisible('atomicServiceCode')"
@@ -135,6 +138,7 @@
             prop="atomicServiceCode"
             :min-width="columnWidths['atomicServiceCode'] ?? 100"
             sortable="custom"
+            show-overflow-tooltip
           >
             <template #default="scope">
               {{ transAtomicService(scope.row.atomicServiceCode) }}
@@ -146,6 +150,7 @@
             prop="orderNum"
             :min-width="columnWidths['orderNum'] ?? 80"
             sortable="custom"
+            show-overflow-tooltip
           />
           <el-table-column
             v-if="isColumnVisible('remark')"
@@ -159,6 +164,7 @@
             :label="t('paramList.columns.active')"
             prop="active"
             :min-width="columnWidths['active'] ?? 80"
+            show-overflow-tooltip
           >
             <template #default="scope">
               <el-switch
@@ -241,7 +247,6 @@ import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 
 class ParamListPage extends BaseListPage {
@@ -354,17 +359,10 @@ export default defineComponent({
       { key: 'active', getLabel: () => t('paramList.columns.active'), sortable: false, getCellText: () => '' },
     ]);
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
 
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
 
     watch(

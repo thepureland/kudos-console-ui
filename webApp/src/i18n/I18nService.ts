@@ -22,6 +22,7 @@ const I18N_API_PATH = 'sys/i18n/batchGetI18ns';
 /** 应用启动时从 batchGetI18ns 拉取的默认命名空间（可为空；字典项译文在 DictService 加载字典时按 dict-item + 字典类型编码 拉取）。valid-msg/default/sys 为后端校验规则 message 的国际化应用级缓存。 */
 export const APP_DEFAULT_I18N_CONFIG: I18nLoadConfig[] = [
   { atomicServiceCode: 'sys', i18nTypeDictCode: 'valid-msg', namespaces: ['default'] },
+  { atomicServiceCode: 'sys', i18nTypeDictCode: 'error-msg', namespaces: ['default'] },
 ];
 
 /** 语言选项：id、地区旗帜、该语言下的名称（始终用母语显示，不受当前语言影响） */
@@ -142,6 +143,30 @@ export class I18nService {
     return merged;
   }
 
+  /** 为非 dict-item 文案额外挂一份 atomicServiceCode 前缀别名，使 t('sys.error-msg.default.200') 这类完整 key 也能命中。 */
+  private attachAtomicAliases(
+    messages: Record<string, unknown>,
+    atomicServiceCode: string
+  ): Record<string, unknown> {
+    const atomic = String(atomicServiceCode ?? '').trim();
+    if (atomic === '') return messages;
+    const aliasSource: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(messages)) {
+      if (key === 'dict-item') continue;
+      if (value != null && typeof value === 'object' && !Array.isArray(value)) {
+        aliasSource[key] = value;
+      }
+    }
+    if (Object.keys(aliasSource).length === 0) return messages;
+    return {
+      ...messages,
+      [atomic]: {
+        ...((messages[atomic] as Record<string, unknown> | undefined) ?? {}),
+        ...aliasSource,
+      },
+    };
+  }
+
   /** 生成请求的缓存 key（保证相同配置得到相同 key） */
   private toCacheKey(locale: string, atomic: string, namespacesByType: Record<string, string[]>): string {
     const parts = Object.entries(namespacesByType)
@@ -170,7 +195,7 @@ export class I18nService {
         | Record<string, Record<string, Record<string, string>>>
         | undefined;
       if (raw && typeof raw === 'object') {
-        const messages = this.mergeBatchResponse(raw);
+        const messages = this.attachAtomicAliases(this.mergeBatchResponse(raw), atomicServiceCode);
         if (Object.keys(messages).length > 0) {
           this.i18n.global.mergeLocaleMessage(locale, messages);
         }

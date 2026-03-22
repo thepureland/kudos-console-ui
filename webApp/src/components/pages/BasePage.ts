@@ -1,7 +1,7 @@
 import { reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Pair } from "../model/Pair";
-import { backendRequest } from "../../utils/backendRequest";
+import { backendRequest, getApiResponseData, isApiSuccessResponse } from "../../utils/backendRequest";
 import { i18n, loadMessagesForConfig } from "../../i18n";
 import type { I18nLoadConfig } from "../../i18n";
 import { DictService } from "./DictService";
@@ -127,7 +127,8 @@ export abstract class BasePage {
     protected async loadAtomicServices(): Promise<void> {
         const win = window as unknown as { __kudosAtomicServices?: SysMicroServiceCacheItem[] }
         const result = await backendRequest({ url: 'sys/microService/getAllActiveAtomicServiceCodes' })
-        const raw = Array.isArray(result) ? result : null
+        const payload = getApiResponseData<string[]>(result)
+        const raw = Array.isArray(payload) ? payload : null
         const list = raw?.length
             ? raw.map((code) => ({
                 id: code,
@@ -146,7 +147,7 @@ export abstract class BasePage {
             this.atomicServiceList = list
             this.state.atomicServiceList = list
         } else {
-            if (!win.__kudosAtomicServices?.length) {
+            if (!win.__kudosAtomicServices?.length && !isApiSuccessResponse(result)) {
                 ElMessage.error('原子服务列表加载失败')
             }
             const fallback = win.__kudosAtomicServices ?? []

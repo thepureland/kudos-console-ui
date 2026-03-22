@@ -100,7 +100,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('paramAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />
@@ -152,11 +152,6 @@ class ParamFormPage extends BaseAddEditPage {
 
   protected getRootActionPath(): string {
     return 'sys/param';
-  }
-
-  /** 与详情一致：Mock/后端使用 getDetail 按 id 拉取单条 */
-  protected getRowObjectLoadUrl(): string {
-    return this.getRootActionPath() + '/getDetail';
   }
 
   protected getLoadFailedMessageKey(): string {

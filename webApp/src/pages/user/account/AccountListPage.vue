@@ -114,6 +114,7 @@
                   min-width="120"
                   fixed="left"
                   class-name="col-fixed-name"
+                  show-overflow-tooltip
                 />
                 <template v-for="key in orderedColumnKeys" :key="key">
                   <el-table-column
@@ -121,6 +122,7 @@
                     prop="subSystemCode"
                     :min-width="columnWidths['subSystemCode'] ?? 120"
                     sortable="custom"
+                    show-overflow-tooltip
                   >
                     <template #header>
                       <div
@@ -142,6 +144,7 @@
                     v-else-if="key === 'tenantId' && isColumnVisible('tenantId')"
                     prop="tenantId"
                     :min-width="columnWidths['tenantId'] ?? 100"
+                    show-overflow-tooltip
                   >
                     <template #header>
                       <div
@@ -164,6 +167,7 @@
                     prop="userStatusDictCode"
                     :min-width="columnWidths['userStatusDictCode'] ?? 100"
                     sortable="custom"
+                    show-overflow-tooltip
                   >
                     <template #header>
                       <div
@@ -186,6 +190,7 @@
                     prop="userTypeDictCode"
                     :min-width="columnWidths['userTypeDictCode'] ?? 100"
                     sortable="custom"
+                    show-overflow-tooltip
                   >
                     <template #header>
                       <div
@@ -208,6 +213,7 @@
                     prop="lastLoginTime"
                     :min-width="columnWidths['lastLoginTime'] ?? 160"
                     sortable="custom"
+                    show-overflow-tooltip
                   >
                     <template #header>
                       <div
@@ -230,6 +236,7 @@
                     prop="createTime"
                     :min-width="columnWidths['createTime'] ?? 160"
                     sortable="custom"
+                    show-overflow-tooltip
                   >
                     <template #header>
                       <div
@@ -322,11 +329,10 @@ import { TenantSupportListPage } from '../../../components/pages/TenantSupportLi
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
 import { ElMessage } from 'element-plus';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'accountList.operationColumnPinned';
 const ACCOUNT_LIST_STATE_STORAGE_KEY = 'accountList.queryState';
@@ -407,10 +413,11 @@ class AccountListPage extends TenantSupportListPage {
       tenantId: pair.second,
     };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
-    if (Array.isArray(result)) {
-      (this.state as Record<string, unknown>).organizations = result;
+    const payload = getApiResponseData<Record<string, unknown>[]>(result);
+    if (Array.isArray(payload)) {
+      (this.state as Record<string, unknown>).organizations = payload;
     } else {
-      ElMessage.error('加载组织机构树失败！');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '加载组织机构树失败！');
     }
   }
 }
@@ -494,16 +501,9 @@ export default defineComponent({
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
 
     const visibleColumnKeys = computed<string[]>({

@@ -49,9 +49,9 @@
         <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                   :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
           <el-table-column type="index" min-width="50"/>
-          <el-table-column label="资源名称" prop="name" :min-width="columnWidths['name'] ?? 120" sortable="custom"/>
-          <el-table-column label="URL" prop="url" :min-width="columnWidths['url'] ?? 120" sortable="custom"/>
-          <el-table-column label="关联的角色" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140"/>
+          <el-table-column label="资源名称" prop="name" :min-width="columnWidths['name'] ?? 120" sortable="custom" show-overflow-tooltip/>
+          <el-table-column label="URL" prop="url" :min-width="columnWidths['url'] ?? 120" sortable="custom" show-overflow-tooltip/>
+          <el-table-column label="关联的角色" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140" show-overflow-tooltip/>
           <el-table-column label="操作" align="center">
             <template #default="scope">
               <edit @click="handleEdit(scope.row)" class="operate-column-icon"/>
@@ -69,14 +69,13 @@
 </template>
 
 <script lang='ts'>
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, onMounted, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Pair } from '../../../components/model/Pair';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
 class ResourcePermissionListPage extends TenantSupportListPage {
 
@@ -151,10 +150,11 @@ class ResourcePermissionListPage extends TenantSupportListPage {
     }
     // @ts-ignore
     const result = await backendRequest({ url: "sys/resource/loadDirectChildrenForTree", method: "post", params })
-    if (Array.isArray(result)) {
-      this.state.menus = result
+    const payload = getApiResponseData<any[]>(result)
+    if (Array.isArray(payload)) {
+      this.state.menus = payload
     } else {
-      ElMessage.error('资源树加载失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '资源树加载失败！')
     }
   }
 
@@ -175,11 +175,12 @@ class ResourcePermissionListPage extends TenantSupportListPage {
     params.resourceTypeDictCode = this.getResourceTypeByNode(node)
     // @ts-ignore
     const result = await backendRequest({url: "sys/resource/pagingSearch", method: "post", params});
-    if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
-      this.state.tableData = (result as { data: unknown[] }).data ?? []
-      this.state.pagination.total = (result as { totalCount: number }).totalCount ?? 0
+    const payload = getApiResponseData<{ data?: unknown[]; totalCount?: number }>(result)
+    if (payload != null && typeof payload === 'object' && 'data' in payload && 'totalCount' in payload) {
+      this.state.tableData = payload.data ?? []
+      this.state.pagination.total = payload.totalCount ?? 0
     } else {
-      ElMessage.error('数据加载失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '数据加载失败！')
     }
   }
 
@@ -234,11 +235,12 @@ class ResourcePermissionListPage extends TenantSupportListPage {
     }
     // @ts-ignore
     const result = await backendRequest({url: "rbac/resourcepermission/searchTree", method: "post", params})
-    if (result != null && typeof result === 'object' && 'data' in result && 'totalCount' in result) {
-      this.state.tableData = (result as { data: unknown[] }).data ?? []
-      this.state.pagination.total = (result as { totalCount: number }).totalCount ?? 0
+    const payload = getApiResponseData<{ data?: unknown[]; totalCount?: number }>(result)
+    if (payload != null && typeof payload === 'object' && 'data' in payload && 'totalCount' in payload) {
+      this.state.tableData = payload.data ?? []
+      this.state.pagination.total = payload.totalCount ?? 0
     } else {
-      ElMessage.error('数据加载失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '数据加载失败！')
     }
   }
 
@@ -270,18 +272,7 @@ export default defineComponent({
       { key: 'roleNames', getLabel: () => '关联的角色', getCellText: (row: Record<string, unknown>) => String(row.roleNames ?? '') },
     ]);
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: 50,
-      reservedWidthRight: 120,
-    });
-    function runAutoWidth() {
-      nextTick(runColumnAutoWidth);
-    }
-    onMounted(runAutoWidth);
-    watch(tableDataRef, runAutoWidth);
+    const columnWidths = ref<Record<string, number>>({});
     return {
       t,
       ...toRefs(listPage.state),

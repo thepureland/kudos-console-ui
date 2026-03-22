@@ -118,12 +118,13 @@
         >
           <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
           <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
-          <el-table-column :label="t('dataSourceList.columns.name')" prop="name" min-width="120" fixed="left" class-name="col-fixed-name" />
+          <el-table-column :label="t('dataSourceList.columns.name')" prop="name" min-width="120" fixed="left" class-name="col-fixed-name" show-overflow-tooltip />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
               v-if="key === 'subSystemCode' && isColumnVisible('subSystemCode')"
               prop="subSystemCode"
               :min-width="columnWidths['subSystemCode'] ?? 120"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -145,6 +146,7 @@
               v-else-if="key === 'tenantName' && isColumnVisible('tenantName')"
               prop="tenantName"
               :min-width="columnWidths['tenantName'] ?? 120"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -163,6 +165,7 @@
               v-else-if="key === 'microservice' && isColumnVisible('microservice')"
               prop="microservice"
               :min-width="columnWidths['microservice'] ?? 120"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -184,6 +187,7 @@
               v-else-if="key === 'url' && isColumnVisible('url')"
               prop="url"
               :min-width="columnWidths['url'] ?? 180"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -202,6 +206,7 @@
               v-else-if="key === 'username' && isColumnVisible('username')"
               prop="username"
               :min-width="columnWidths['username'] ?? 120"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -220,6 +225,7 @@
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
               :min-width="columnWidths['active'] ?? 80"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -334,9 +340,8 @@ import { TenantSupportListPage } from '../../../components/pages/TenantSupportLi
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { Pair } from '../../../components/model/Pair';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { i18n } from '../../../i18n';
 
 /** 在非 setup 中获取 i18n 文案 */
@@ -414,10 +419,10 @@ class DataSourceListPage extends TenantSupportListPage {
     const url = 'sys/dataSource/resetPassword';
     try {
       const result = await backendRequest({ url, params });
-      if (result != null) {
+      if (isApiSuccessResponse(result) || result === true || result?.data === true) {
         ElMessage.info(tr('dataSourceList.messages.resetPasswordSuccess'));
       } else {
-        ElMessage.error(tr('dataSourceList.messages.resetPasswordFailed'));
+        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('dataSourceList.messages.resetPasswordFailed'));
       }
     } catch {
       ElMessage.error(tr('dataSourceList.messages.resetPasswordFailed'));
@@ -544,7 +549,8 @@ export default defineComponent({
     onMounted(() => {
       backendRequest({ url: 'sys/microService/getFullMicroServiceTree', method: 'get' })
         .then((result) => {
-          const raw = (Array.isArray(result) ? result : []) as MicroServiceTreeNode[];
+          const payload = getApiResponseData<MicroServiceTreeNode[]>(result);
+          const raw = (Array.isArray(payload) ? payload : []) as MicroServiceTreeNode[];
           microserviceTree.value = raw.map(toTreeSelectNode);
           microserviceOptions.value = flattenMicroServiceTree(raw);
         })
@@ -595,16 +601,9 @@ export default defineComponent({
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);

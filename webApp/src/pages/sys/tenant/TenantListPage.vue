@@ -106,6 +106,7 @@
             min-width="160"
             fixed="left"
             class-name="col-fixed-name"
+            show-overflow-tooltip
           />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
@@ -113,6 +114,7 @@
               prop="subSystemCodes"
               :min-width="columnWidths['subSystemCodes'] ?? 120"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -135,6 +137,7 @@
               prop="active"
               :min-width="columnWidths['active'] ?? 80"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -162,6 +165,7 @@
               prop="builtIn"
               :min-width="columnWidths['builtIn'] ?? 80"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -184,6 +188,7 @@
               prop="timezone"
               :min-width="columnWidths['timezone'] ?? 120"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -206,6 +211,7 @@
               prop="defaultLanguageCode"
               :min-width="columnWidths['defaultLanguageCode'] ?? 120"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -228,6 +234,7 @@
               prop="remark"
               :min-width="columnWidths['remark'] ?? 140"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -250,6 +257,7 @@
               prop="createTime"
               :min-width="columnWidths['createTime'] ?? 160"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -336,11 +344,10 @@ import TenantFormPage from './TenantFormPage.vue';
 import TenantDetailPage from './TenantDetailPage.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
 
@@ -364,7 +371,8 @@ class TenantListPage extends BaseListPage {
   private async loadSubSystems(): Promise<void> {
     try {
       const result = await backendRequest({ url: 'sys/system/getAllActiveSubSystemCodes' });
-      const codes = Array.isArray(result) ? (result as unknown[]).map((x) => String(x ?? '')) : [];
+      const payload = getApiResponseData<unknown[]>(result);
+      const codes = Array.isArray(payload) ? payload.map((x) => String(x ?? '')) : [];
       this.state.subSysDictOptions = codes
         .filter((c) => c !== '')
         .map((code) => ({ code, name: code }));
@@ -473,16 +481,9 @@ export default defineComponent({
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
 
     const visibleColumnKeys = computed<string[]>({

@@ -1,6 +1,6 @@
 import { ElMessage } from "element-plus"
 import { TenantSupportAddEditPage } from "./TenantSupportAddEditPage"
-import { backendRequest } from "../../utils/backendRequest"
+import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from "../../utils/backendRequest"
 
 
 /**
@@ -87,10 +87,11 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
                 active: true
             }
             const result = await backendRequest({url: "user/organization/lazyLoadTree", method: "post", params})
-            if (Array.isArray(result)) {
-                resolve(result)
+            const payload = getApiResponseData<any[]>(result)
+            if (Array.isArray(payload)) {
+                resolve(payload)
             } else {
-                ElMessage.error('组织机构树加载失败！')
+                ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '组织机构树加载失败！')
             }
         }
     }

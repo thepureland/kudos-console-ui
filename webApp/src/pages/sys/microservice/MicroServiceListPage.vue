@@ -104,6 +104,7 @@
             min-width="140"
             fixed="left"
             class-name="col-fixed-code"
+            show-overflow-tooltip
           />
           <el-table-column
             :label="t('microServiceList.columns.name')"
@@ -111,12 +112,14 @@
             min-width="120"
             fixed="left"
             class-name="col-fixed-name"
+            show-overflow-tooltip
           />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
               v-if="key === 'atomicService' && isColumnVisible('atomicService')"
               prop="atomicService"
               :min-width="columnWidths['atomicService'] ?? 110"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -138,6 +141,7 @@
               v-else-if="key === 'context' && isColumnVisible('context')"
               prop="context"
               :min-width="columnWidths['context'] ?? 120"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -156,6 +160,7 @@
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
               :min-width="columnWidths['active'] ?? 80"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -182,6 +187,7 @@
               v-else-if="key === 'builtIn' && isColumnVisible('builtIn')"
               prop="builtIn"
               :min-width="columnWidths['builtIn'] ?? 80"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -203,6 +209,7 @@
               v-else-if="key === 'remark' && isColumnVisible('remark')"
               prop="remark"
               :min-width="columnWidths['remark'] ?? 140"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -277,7 +284,6 @@ import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import MicroServiceFormPage from './MicroServiceFormPage.vue';
 import MicroServiceDetailPage from './MicroServiceDetailPage.vue';
@@ -417,16 +423,9 @@ export default defineComponent({
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
 
     const visibleColumnKeys = computed<string[]>({

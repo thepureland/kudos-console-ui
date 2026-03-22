@@ -227,6 +227,8 @@ export default {
     tips: {
       restartRequired: '更改後僅當重啟應用才生效',
       restartAndReload: '更改後僅當重啟應用且重載快取才生效',
+      immutableAfterSave: '儲存後不可更改！',
+      readonly: '不可更改',
     },
     buttons: { cancel: '取 消', confirm: '確 定' },
     closeConfirm: {

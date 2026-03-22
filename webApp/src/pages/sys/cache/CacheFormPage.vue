@@ -26,7 +26,19 @@
         <el-form-item :label="t('cacheAddEdit.labels.name')" prop="name" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
+              <el-tooltip v-if="isEdit" :content="t('cacheAddEdit.tips.readonly')" placement="top" :enterable="false">
+                <div>
+                  <el-input
+                    v-model="formModel.name"
+                    :placeholder="t('cacheAddEdit.placeholders.name')"
+                    :disabled="true"
+                    clearable
+                    size="default"
+                  />
+                </div>
+              </el-tooltip>
               <el-input
+                v-else
                 v-model="formModel.name"
                 :placeholder="t('cacheAddEdit.placeholders.name')"
                 clearable
@@ -34,17 +46,37 @@
               />
             </el-col>
           </el-row>
-          <div v-if="isEdit" class="form-tip-below">
+          <div v-if="!isEdit" class="form-tip-below" style="margin-top: 1px;">
             <span class="form-tip form-tip--warn">
               <el-icon><WarningFilled /></el-icon>
-              {{ t('cacheAddEdit.tips.restartRequired') }}
+              {{ t('cacheAddEdit.tips.immutableAfterSave') }}
             </span>
           </div>
         </el-form-item>
         <el-form-item :label="t('cacheAddEdit.labels.atomicService')" prop="atomicServiceCode" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
+              <el-tooltip v-if="isEdit" :content="t('cacheAddEdit.tips.readonly')" placement="top" :enterable="false">
+                <div>
+                  <el-select
+                    v-model="formModel.atomicServiceCode"
+                    :placeholder="t('cacheAddEdit.placeholders.atomicService')"
+                    :disabled="true"
+                    clearable
+                    filterable
+                    class="form-select-full"
+                  >
+                    <el-option
+                      v-for="item in atomicServiceList"
+                      :key="item.code"
+                      :value="item.code"
+                      :label="item.name"
+                    />
+                  </el-select>
+                </div>
+              </el-tooltip>
               <el-select
+                v-else
                 v-model="formModel.atomicServiceCode"
                 :placeholder="t('cacheAddEdit.placeholders.atomicService')"
                 clearable
@@ -60,6 +92,12 @@
               </el-select>
             </el-col>
           </el-row>
+          <div v-if="!isEdit" class="form-tip-below" style="margin-top: 1px;">
+            <span class="form-tip form-tip--warn">
+              <el-icon><WarningFilled /></el-icon>
+              {{ t('cacheAddEdit.tips.immutableAfterSave') }}
+            </span>
+          </div>
         </el-form-item>
         <el-form-item :label="t('cacheAddEdit.labels.strategy')" prop="strategyDictCode" class="is-required">
           <el-row :gutter="12" class="form-item-row">
@@ -79,12 +117,6 @@
               </el-select>
             </el-col>
           </el-row>
-          <div v-if="isEdit" class="form-tip-below">
-            <span class="form-tip form-tip--warn">
-              <el-icon><WarningFilled /></el-icon>
-              {{ t('cacheAddEdit.tips.restartRequired') }}
-            </span>
-          </div>
         </el-form-item>
       </section>
 
@@ -137,7 +169,21 @@
       <section class="form-section">
         <div class="form-section__title">{{ t('cacheAddEdit.sections.other') }}</div>
         <el-form-item :label="t('cacheAddEdit.labels.hash')" prop="hash" class="form-item--inline">
+          <el-tooltip v-if="isEdit" :content="t('cacheAddEdit.tips.readonly')" placement="top" :enterable="false">
+            <div>
+              <el-switch
+                v-model="formModel.hash"
+                :disabled="true"
+                :active-value="true"
+                :inactive-value="false"
+                inline-prompt
+                :active-text="t('cacheAddEdit.switch.on')"
+                :inactive-text="t('cacheAddEdit.switch.off')"
+              />
+            </div>
+          </el-tooltip>
           <el-switch
+            v-else
             v-model="formModel.hash"
             :active-value="true"
             :inactive-value="false"
@@ -145,6 +191,10 @@
             :active-text="t('cacheAddEdit.switch.on')"
             :inactive-text="t('cacheAddEdit.switch.off')"
           />
+          <span v-if="!isEdit" class="form-tip form-tip--warn hash-immutable-tip">
+            <el-icon><WarningFilled /></el-icon>
+            {{ t('cacheAddEdit.tips.immutableAfterSave') }}
+          </span>
         </el-form-item>
         <el-form-item :label="t('cacheAddEdit.labels.remark')" prop="remark">
           <el-input
@@ -152,7 +202,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('cacheAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />
@@ -230,14 +280,17 @@ class CacheFormPage extends BaseAddEditPage {
     return 'sys/cache';
   }
 
+  /**
+   * 校验提示仅使用 valid-msg（default + 模块名 cache），不依赖后端 view 类型下的 sys.cache 命名空间。
+   * 不重写时会多一次 batchGetI18ns({ view: ['sys.cache'] })，与当前页无关。
+   */
+  protected getValidationI18nNamespace(): string | undefined {
+    return undefined;
+  }
+
   /** 缓存策略字典项译文从后端取 */
   protected getI18nConfig() {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['cache_strategy'], atomicServiceCode: 'sys' }];
-  }
-
-  /** 与详情页一致：使用 getDetail 接口按 id 拉取单条，Mock/后端均只处理此路径 */
-  protected getRowObjectLoadUrl(): string {
-    return this.getRootActionPath() + '/getDetail';
   }
 
   protected getLoadFailedMessageKey(): string {
@@ -299,4 +352,7 @@ export default defineComponent({
 
 <style scoped>
 /* 仅缓存页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
+.hash-immutable-tip {
+  margin-left: 10px;
+}
 </style>

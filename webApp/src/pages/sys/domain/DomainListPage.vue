@@ -101,6 +101,7 @@
             min-width="180"
             fixed="left"
             class-name="col-fixed-domain"
+            show-overflow-tooltip
           />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
@@ -108,6 +109,7 @@
               prop="systemCode"
               :min-width="columnWidths['systemCode'] ?? 120"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -130,6 +132,7 @@
               prop="tenantName"
               :min-width="columnWidths['tenantName'] ?? 120"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -149,6 +152,7 @@
               prop="active"
               :min-width="columnWidths['active'] ?? 80"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -176,6 +180,7 @@
               prop="remark"
               :min-width="columnWidths['remark'] ?? 120"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -195,6 +200,7 @@
               prop="createTime"
               :min-width="columnWidths['createTime'] ?? 160"
               sortable="custom"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -284,7 +290,6 @@ import { TenantSupportListPage } from '../../../components/pages/TenantSupportLi
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'domainList.operationColumnPinned';
@@ -401,16 +406,9 @@ export default defineComponent({
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
 
     const visibleColumnKeys = computed<string[]>({

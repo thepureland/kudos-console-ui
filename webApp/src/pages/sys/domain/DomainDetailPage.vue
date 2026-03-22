@@ -21,7 +21,7 @@ import {
   type SectionConfig,
   useSectionedDetail,
 } from '../../../components/pages/sectionedDetail';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { ElMessage } from 'element-plus';
 
 /** 分组：从第几行开始显示分组标题（其他信息放最后） */
@@ -76,10 +76,11 @@ class DomainDetailPage extends BaseDetailPage {
   protected async loadData(): Promise<void> {
     const params = this.createDetailLoadParams();
     const result = await backendRequest({ url: this.getDetailLoadUrl(), method: 'get', params });
-    if (result != null && typeof result === 'object' && !Array.isArray(result)) {
-      this.postLoadDataSuccessfully(result as Record<string, unknown>);
+    const payload = getApiResponseData<Record<string, unknown>>(result);
+    if (payload != null && typeof payload === 'object' && !Array.isArray(payload)) {
+      this.postLoadDataSuccessfully(payload);
     } else {
-      ElMessage.error('数据加载失败！');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '数据加载失败！');
     }
   }
 

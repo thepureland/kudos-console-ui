@@ -104,6 +104,7 @@
             min-width="140"
             fixed="left"
             class-name="col-fixed-code"
+            show-overflow-tooltip
           />
           <el-table-column
             :label="t('systemList.columns.name')"
@@ -111,12 +112,14 @@
             min-width="120"
             fixed="left"
             class-name="col-fixed-name"
+            show-overflow-tooltip
           />
           <template v-for="key in orderedColumnKeys" :key="key">
             <el-table-column
               v-if="key === 'subSystem' && isColumnVisible('subSystem')"
               prop="subSystem"
               :min-width="columnWidths['subSystem'] ?? 100"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -138,6 +141,7 @@
               v-else-if="key === 'active' && isColumnVisible('active')"
               prop="active"
               :min-width="columnWidths['active'] ?? 80"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -164,6 +168,7 @@
               v-else-if="key === 'builtIn' && isColumnVisible('builtIn')"
               prop="builtIn"
               :min-width="columnWidths['builtIn'] ?? 80"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -185,6 +190,7 @@
               v-else-if="key === 'remark' && isColumnVisible('remark')"
               prop="remark"
               :min-width="columnWidths['remark'] ?? 140"
+              show-overflow-tooltip
             >
               <template #header>
                 <div
@@ -259,9 +265,8 @@ import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { useTableColumnAutoWidth } from '../../../components/pages/useTableColumnAutoWidth';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
-import { backendRequest } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { i18n } from '../../../i18n';
 import { ElMessage } from 'element-plus';
 import SystemFormPage from './SystemFormPage.vue';
@@ -355,11 +360,12 @@ class SystemListPage extends BaseListPage {
     const params = this.createSearchParams();
     if (!params) return;
     const result = await backendRequest({ url: this.getSearchUrl(), method: 'post', params });
-    if (Array.isArray(result) || (result != null && Array.isArray((result as { data?: unknown }).data))) {
-      this.postSearchSuccessfully(result);
+    const payload = getApiResponseData(result);
+    if (Array.isArray(payload) || (payload != null && Array.isArray((payload as { data?: unknown }).data))) {
+      this.postSearchSuccessfully(payload);
       return;
     }
-    ElMessage.error(i18n.global.t('listPage.queryFailed') as string);
+    ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('listPage.queryFailed') as string));
   }
 }
 
@@ -418,16 +424,9 @@ export default defineComponent({
       }))
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const { columnWidths, run: runColumnAutoWidth } = useTableColumnAutoWidth({
-      containerRef: listLayoutRefs.tableWrapRef,
-      columns: autoWidthColumns,
-      tableData: tableDataRef,
-      reservedWidthLeft: RESERVED_WIDTH_LEFT,
-      reservedWidthRight: RESERVED_WIDTH_RIGHT,
-    });
+    const columnWidths = ref<Record<string, number>>({});
     function onTableWrapMounted() {
       layoutOnTableWrapMounted();
-      nextTick(runColumnAutoWidth);
     }
 
     const visibleColumnKeys = computed<string[]>({

@@ -86,7 +86,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import { AuthApiFactory } from 'shared';
 import { REQUIRE_AUTH } from '../../config/auth';
 import { resolvePath } from '../../config/menuPathToComponent';
-import { backendRequest } from '../../utils/backendRequest';
+import { backendRequest, getApiResponseData } from '../../utils/backendRequest';
 import { loadMessagesForConfig } from '../../i18n';
 
 interface MenuItem {
@@ -213,7 +213,7 @@ async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {
       url: 'sys/resource/getMenus',
       params: { subSystemCode: DEFAULT_SUB_SYSTEM_CODE },
     });
-    const raw = (result && typeof result === 'object' && 'data' in result ? (result as { data: unknown }).data : result) as MenuTreeNode[] | undefined;
+    const raw = getApiResponseData<MenuTreeNode[]>(result) ?? undefined;
     if (raw && Array.isArray(raw) && raw.length > 0) {
       return mapMenuTreeToItems(raw);
     }
@@ -258,8 +258,8 @@ async function loadMenuData() {
   // 3. 尝试 getAuthorisedMenus（后端权限菜单）
   try {
     const result = await backendRequest({ url: 'user/account/getAuthorisedMenus' });
-    if (Array.isArray(result) && result.length) {
-      const list = result as MenuItem[];
+    const list = getApiResponseData<MenuItem[]>(result);
+    if (Array.isArray(list) && list.length) {
       menuData.value = list;
       store.commit('setMenuData', list);
       return;

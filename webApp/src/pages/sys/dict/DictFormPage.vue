@@ -76,7 +76,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('dictAddEdit.placeholders.remark')"
-            maxlength="200"
+            :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
           />

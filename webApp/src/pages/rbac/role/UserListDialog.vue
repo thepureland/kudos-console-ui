@@ -12,28 +12,28 @@
               :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
       <el-table-column type="selection" width="39"/>
       <el-table-column type="index" width="50"/>
-      <el-table-column label="用户名" prop="username"/>
-      <el-table-column label="子系统" prop="subSystemCode">
+      <el-table-column label="用户名" prop="username" show-overflow-tooltip/>
+      <el-table-column label="子系统" prop="subSystemCode" show-overflow-tooltip>
         <template #default="scope">
           {{ transAtomicService(scope.row.subSystemCode) }}
         </template>
       </el-table-column>
-      <el-table-column label="用户状态" prop="userStatusDictCode">
+      <el-table-column label="用户状态" prop="userStatusDictCode" show-overflow-tooltip>
         <template #default="scope">
           {{ t(transDict("user", "user_status", scope.row.userStatusDictCode)) }}
         </template>
       </el-table-column>
-      <el-table-column label="用户类型" prop="userTypeDictCode">
+      <el-table-column label="用户类型" prop="userTypeDictCode" show-overflow-tooltip>
         <template #default="scope">
           {{ t(transDict("user", "user_type", scope.row.userTypeDictCode)) }}
         </template>
       </el-table-column>
-      <el-table-column label="最后一次登陆时间">
+      <el-table-column label="最后一次登陆时间" show-overflow-tooltip>
         <template #default="scope">
           {{ formatDate(scope.row.lastLoginTime) }}
         </template>
       </el-table-column>
-      <el-table-column label="创建时间">
+      <el-table-column label="创建时间" show-overflow-tooltip>
         <template #default="scope">
           {{ formatDate(scope.row.createTime) }}
         </template>
