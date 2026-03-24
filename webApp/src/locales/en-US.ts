@@ -96,6 +96,7 @@ export default {
   addEditPage: {
     validationFailed: 'Validation failed.',
     formNotReady: 'Form is not ready.',
+    noChangeToSave: 'No changes detected. Nothing to save.',
     saveSuccess: 'Saved successfully.',
     saveFailed: 'Save failed.',
     requestFailed: 'Request failed.',
