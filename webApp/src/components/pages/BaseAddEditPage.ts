@@ -93,6 +93,8 @@ export abstract class BaseAddEditPage extends BasePage {
 
     /** 添加模式的初始 formModel 快照，用于从编辑切回添加时重置表单，避免误判未保存 */
     private initialFormModel: Record<string, unknown> = {}
+    /** 编辑模式加载成功后的表单快照，用于提交前判断是否真的有修改 */
+    private initialEditFormSnapshot: Record<string, unknown> | null = null
 
     /** 新增/编辑校验规则是否已加载过（每种模式只请求一次 getCreateValidationRule / getUpdateValidationRule） */
     private _createValidationRuleLoaded: boolean = false
@@ -126,8 +128,41 @@ export abstract class BaseAddEditPage extends BasePage {
         for (const k in initial) {
             if (Object.prototype.hasOwnProperty.call(initial, k)) target[k] = initial[k]
         }
+        this.initialEditFormSnapshot = null
         const form = this.getFormInstance()
         if (form?.resetFields) form.resetFields()
+    }
+
+    /** 与关闭守卫保持一致：比较前先把 undefined / NaN 规整掉，避免误判“已修改”。 */
+    private deepNormalize(value: unknown): unknown {
+        if (value === undefined || (typeof value === 'number' && Number.isNaN(value))) return null
+        if (value === null || typeof value !== 'object') return value
+        if (Array.isArray(value)) return value.map((item) => this.deepNormalize(item))
+        const o: Record<string, unknown> = {}
+        for (const k in value as Record<string, unknown>) {
+            o[k] = this.deepNormalize((value as Record<string, unknown>)[k])
+        }
+        return o
+    }
+
+    /** 编辑数据回填完成后拍一次快照，后续点击保存时用它判断是否真的改过。 */
+    private takeEditSnapshot(): void {
+        const model = this.state.formModel as Record<string, unknown> | undefined
+        if (!model || typeof model !== 'object') {
+            this.initialEditFormSnapshot = null
+            return
+        }
+        const normalized = this.deepNormalize(model) as Record<string, unknown>
+        this.initialEditFormSnapshot = JSON.parse(JSON.stringify(normalized))
+    }
+
+    /** 仅编辑模式使用：当前表单与初始快照一致则视为“未修改”。 */
+    protected isEditFormDirty(): boolean {
+        if (!this.isEditMode()) return true
+        const model = this.state.formModel as Record<string, unknown> | undefined
+        if (!model || typeof model !== 'object') return false
+        if (this.initialEditFormSnapshot == null) return true
+        return JSON.stringify(this.deepNormalize(model)) !== JSON.stringify(this.initialEditFormSnapshot)
     }
 
     protected initBaseState(): any {
@@ -292,6 +327,7 @@ export abstract class BaseAddEditPage extends BasePage {
                 : null
         if (rowData != null) {
             this.fillForm(rowData)
+            this.takeEditSnapshot()
             super.render()
             this.onEditFormLoaded?.()
         } else {
@@ -405,6 +441,11 @@ export abstract class BaseAddEditPage extends BasePage {
             const formInstance = this.getFormInstance()
             if (!formInstance || typeof formInstance.validate !== 'function') {
                 ElMessage.error(i18n.global.t('addEditPage.formNotReady') as string)
+                return
+            }
+            // 编辑页未改任何字段时直接拦截，避免发起无意义的 update 请求。
+            if (this.isEditMode() && !this.isEditFormDirty()) {
+                ElMessage.info(i18n.global.t('addEditPage.noChangeToSave') as string)
                 return
             }
             this.beforeValidate()

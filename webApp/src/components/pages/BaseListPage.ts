@@ -72,6 +72,7 @@ export abstract class BaseListPage extends BasePage {
             editDialogVisible: false,
             detailDialogVisible: false,
             showOperationColumn: false,
+            emptyShakeVersion: 0,
             rid: '',
             selectedItems: []
         }
@@ -176,6 +177,9 @@ export abstract class BaseListPage extends BasePage {
             : this.isSearchPayload(result)
         if (isSuccess) {
             this.postSearchSuccessfully(isApiSuccessResponse(result) ? payload : result)
+            if (Array.isArray(this.state.tableData) && this.state.tableData.length === 0) {
+                this.state.emptyShakeVersion = Number(this.state.emptyShakeVersion ?? 0) + 1
+            }
         } else {
             ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('listPage.queryFailed') as string))
         }

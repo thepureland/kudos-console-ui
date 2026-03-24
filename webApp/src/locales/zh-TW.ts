@@ -96,6 +96,7 @@ export default {
   addEditPage: {
     validationFailed: '驗證未通過',
     formNotReady: '表單未就緒',
+    noChangeToSave: '資料未修改，無需保存！',
     saveSuccess: '保存成功！',
     saveFailed: '保存失敗！',
     requestFailed: '請求失敗',

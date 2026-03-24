@@ -60,7 +60,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { defineComponent, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import type { Ref } from 'vue';
 import OperationColumnFoldToggle from '../widgets/OperationColumnFoldToggle.vue';
 import { useOperationColumnFold } from './useOperationColumnFold';
@@ -110,6 +110,7 @@ export default defineComponent({
     const showOperationColumn = computed(
       () => Boolean(listPage.state?.showOperationColumn)
     );
+    const emptyShakeVersion = computed(() => Number(listPage.state?.emptyShakeVersion ?? 0));
 
     function toggleColumnVisibilityPanel() {
       (listPage as { toggleColumnVisibilityPanel: () => void }).toggleColumnVisibilityPanel?.();
@@ -135,6 +136,24 @@ export default defineComponent({
     onBeforeUnmount(() => {
       document.removeEventListener('mousedown', handleGlobalPointerDown);
     });
+
+    watch(
+      emptyShakeVersion,
+      (version) => {
+        if (version <= 0) return;
+        nextTick(() => {
+          const host = props.tableWrapRef?.value;
+          if (!host) return;
+          const targets = host.querySelectorAll('.el-table__empty-block, .el-table__empty-text');
+          targets.forEach((el) => {
+            const node = el as HTMLElement;
+            node.classList.remove('is-empty-shaking');
+            void node.offsetWidth;
+            node.classList.add('is-empty-shaking');
+          });
+        });
+      }
+    );
 
     return {
       assignTableWrapRef,
@@ -251,6 +270,14 @@ export default defineComponent({
   flex: 0 0 auto;
 }
 
+/* 查询后无结果时，由脚本临时加类触发一次抖动；初始未查询状态不动画。 */
+.list-page-table-slot :deep(.el-table__empty-block.is-empty-shaking),
+.list-page-table-slot :deep(.el-table__empty-text.is-empty-shaking) {
+  animation: list-empty-shake 0.9s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.08s 1 both;
+  transform-origin: center center;
+  will-change: transform;
+}
+
 .list-page-column-panel {
   position: absolute;
   top: 22px;
@@ -263,5 +290,30 @@ export default defineComponent({
   border-radius: 6px;
   background: var(--el-bg-color-overlay);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+@keyframes list-empty-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  12% {
+    transform: translateX(-8px);
+  }
+  24% {
+    transform: translateX(8px);
+  }
+  36% {
+    transform: translateX(-6px);
+  }
+  48% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  72% {
+    transform: translateX(3px);
+  }
 }
 </style>
