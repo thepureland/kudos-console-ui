@@ -411,11 +411,15 @@
 
     <!-- 缓存操作 key 输入弹窗：重载/驱逐/检查存在/查看 value 等需输入 key 时使用 -->
     <el-dialog v-model="keyDialogVisible" :title="t('cacheList.dialog.keyTitle')" min-width="20%">
-        <el-input v-model="cacheKey" />
+        <el-input
+          ref="cacheKeyInputRef"
+          v-model="cacheKey"
+          @keydown.enter.prevent="submitCacheOperationFromInput"
+        />
         <template #footer>
           <span class="dialog-footer">
             <el-button @click="keyDialogVisible = false; cacheKey = null">{{ t('cacheList.common.cancel') }}</el-button>
-            <el-button type="primary" @click="commitCacheOperation(cacheKey)">{{ t('cacheList.common.confirm') }}</el-button>
+            <el-button type="primary" @click="submitCacheOperationFromInput">{{ t('cacheList.common.confirm') }}</el-button>
           </span>
         </template>
       </el-dialog>
@@ -447,7 +451,7 @@ import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { Pair } from '../../../components/model/Pair';
-import { backendRequest, getApiResponseMessage, getUserFacingMessage, isApiSuccessResponse, resolveApiResponseMessage, resolveUserFacingMessage } from '../../../utils/backendRequest';
+import { backendRequest, getApiFailureMessage, getApiResponseMessage, getThrownErrorMessage, getUserFacingMessage, isApiSuccessResponse, resolveApiFailureMessage, resolveApiResponseMessage, resolveThrownErrorMessage, resolveUserFacingMessage } from '../../../utils/backendRequest';
 import { i18n } from '../../../i18n';
 import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 
@@ -503,6 +507,7 @@ class CacheListPage extends BaseListPage {
   protected getI18nConfig() {
     return [
       { i18nTypeDictCode: 'dict-item', namespaces: ['cache_strategy'], atomicServiceCode: 'sys' },
+      { i18nTypeDictCode: 'error-msg', namespaces: ['cache'], atomicServiceCode: 'sys' },
     ];
   }
 
@@ -557,24 +562,40 @@ class CacheListPage extends BaseListPage {
     state.keyDialogVisible = false;
     const row = state.currentRow as Record<string, unknown>;
     const operation = state.cacheOperation as string;
+    // 踢除单 key / 踢除全部按后端约定使用 DELETE，其余缓存管理操作沿用默认方法。
+    const method = operation === 'evict' || operation === 'evictAll' ? 'delete' : undefined;
     const params: Record<string, unknown> = { id: row?.id };
-    if (operation !== 'reloadAll' && operation !== 'clear') {
+    if (operation !== 'reloadAll' && operation !== 'evictAll') {
       params.key = key;
     }
     const url = `sys/cache/management/${operation}`;
     try {
-      const result = await backendRequest({ url, params });
-      if (isApiSuccessResponse(result) || typeof result === 'string') {
-        const message =
-          typeof result === 'string'
-            ? (await resolveUserFacingMessage(result) ?? getUserFacingMessage(result) ?? result)
-            : await resolveApiResponseMessage(result) ?? getApiResponseMessage(result) ?? ((result as { data?: string })?.data ?? '');
+      const result = await backendRequest({ url, method, params });
+      if (isApiSuccessResponse(result)) {
+        let message: string;
+        if (operation === 'existsKey') {
+          const exists = (result as { data?: unknown })?.data === true;
+          message = exists ? '指定的缓存key存在' : '指定的缓存key不存在';
+        } else {
+          message =
+            await resolveApiResponseMessage(result) ?? getApiResponseMessage(result) ?? ((result as { data?: string })?.data ?? '');
+        }
         ElMessage.info(message);
       } else {
-        ElMessage.error(tr('cacheList.messages.requestOperationFailed'));
+        ElMessage.error(
+          await resolveApiFailureMessage(result)
+          || getApiFailureMessage(result)
+          || await resolveApiResponseMessage(result)
+          || getApiResponseMessage(result)
+          || tr('cacheList.messages.requestOperationFailed')
+        );
       }
-    } catch {
-      ElMessage.error(tr('cacheList.messages.requestOperationFailed'));
+    } catch (error) {
+      ElMessage.error(
+        await resolveThrownErrorMessage(error)
+        || getThrownErrorMessage(error)
+        || tr('cacheList.messages.requestOperationFailed')
+      );
     }
   }
 
@@ -606,7 +627,7 @@ class CacheListPage extends BaseListPage {
   private clear(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
-    s.cacheOperation = 'clear';
+    s.cacheOperation = 'evictAll';
     this.commitCacheOperation(null);
   }
 
@@ -614,7 +635,7 @@ class CacheListPage extends BaseListPage {
   private isExists(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
-    s.cacheOperation = 'isExists';
+    s.cacheOperation = 'existsKey';
     s.keyDialogVisible = true;
   }
 
@@ -622,7 +643,7 @@ class CacheListPage extends BaseListPage {
   private valueInfo(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
-    s.cacheOperation = 'valueInfo';
+    s.cacheOperation = 'getValueJson';
     s.keyDialogVisible = true;
   }
 
@@ -678,6 +699,7 @@ export default defineComponent({
     const listPage = reactive(new CacheListPage(props, context)) as CacheListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const state = listPage.state as Record<string, unknown>;
+    const cacheKeyInputRef = ref<{ $el?: HTMLElement; input?: HTMLInputElement; select?: () => void; focus?: () => void } | null>(null);
     const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
     const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
     const hasFormEverOpened = ref(false);
@@ -691,6 +713,32 @@ export default defineComponent({
     function onFormResponse(payload: Record<string, unknown>) {
       (currentFormMode.value === 'add' ? listPage.afterAdd : listPage.afterEdit).call(listPage, payload);
     }
+    function submitCacheOperationFromInput() {
+      const value = state.cacheKey;
+      if (value == null || String(value).trim() === '') return;
+      listPage.commitCacheOperation(String(value));
+    }
+    watch(
+      () => state.keyDialogVisible,
+      (visible) => {
+        if (!visible) return;
+        nextTick(() => {
+          const input = cacheKeyInputRef.value;
+          input?.focus?.();
+          window.setTimeout(() => {
+            const nativeInput =
+              input?.input
+              ?? input?.$el?.querySelector?.('input')
+              ?? null;
+            nativeInput?.focus?.();
+            const value = state.cacheKey;
+            if (value != null && String(value).trim() !== '') {
+              nativeInput?.select?.();
+            }
+          }, 0);
+        });
+      }
+    );
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const FIXED_LEFT_TOTAL_WIDTH = 439;
     const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
@@ -855,6 +903,8 @@ export default defineComponent({
       formRid,
       onFormClose,
       onFormResponse,
+      cacheKeyInputRef,
+      submitCacheOperationFromInput,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,

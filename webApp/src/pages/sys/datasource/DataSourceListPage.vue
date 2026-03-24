@@ -419,7 +419,7 @@ class DataSourceListPage extends TenantSupportListPage {
     const url = 'sys/dataSource/resetPassword';
     try {
       const result = await backendRequest({ url, params });
-      if (isApiSuccessResponse(result) || result === true || result?.data === true) {
+      if (isApiSuccessResponse(result)) {
         ElMessage.info(tr('dataSourceList.messages.resetPasswordSuccess'));
       } else {
         ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('dataSourceList.messages.resetPasswordFailed'));

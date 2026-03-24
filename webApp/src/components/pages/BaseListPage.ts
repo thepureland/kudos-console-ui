@@ -1,6 +1,6 @@
 import { ElMessage, ElMessageBox } from "element-plus"
 import { BasePage } from "./BasePage"
-import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from "../../utils/backendRequest"
+import { backendRequest, getApiResponseData, getApiResponseMessage, getApiFailureMessage, isApiSuccessResponse, resolveApiFailureMessage } from "../../utils/backendRequest"
 import { ColumnVisibilitySupport } from "../widgets/ColumnVisibilitySupport"
 import { i18n } from "../../i18n"
 
@@ -181,7 +181,7 @@ export abstract class BaseListPage extends BasePage {
                 this.state.emptyShakeVersion = Number(this.state.emptyShakeVersion ?? 0) + 1
             }
         } else {
-            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('listPage.queryFailed') as string))
+            ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || (i18n.global.t('listPage.queryFailed') as string))
         }
     }
 
@@ -476,11 +476,11 @@ export abstract class BaseListPage extends BasePage {
         }
         const params = this.createDeleteParams(row)
         const result = await backendRequest({url: this.getDeleteUrl(), method: "delete", params: params})
-        if (isApiSuccessResponse(result) || result === true || result?.data === true) {
+        if (isApiSuccessResponse(result)) {
             ElMessage.success(t('listPage.deleteSuccess') as string)
             this.doAfterDelete([params["id"]])
         } else {
-            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string))
+            ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string))
         }
     }
 
@@ -503,11 +503,11 @@ export abstract class BaseListPage extends BasePage {
             }
             const params = this.createBatchDeleteParams()
             const result = await backendRequest({url: this.getBatchDeleteUrl(), method: "post", params: params})
-            if (isApiSuccessResponse(result) || result === true || result?.data === true) {
+            if (isApiSuccessResponse(result)) {
                 ElMessage.success(t('listPage.deleteSuccess') as string)
                 this.doAfterDelete(this.getSelectedIds())
             } else {
-                ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string))
+                ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string))
             }
         }
     }
@@ -533,8 +533,8 @@ export abstract class BaseListPage extends BasePage {
             params["subSystemCode"] = subSystemCode
         }
         const result = await backendRequest({url: this.getUpdateActiveUrl(), method: 'put', params, paramsInQuery: true})
-        if (!(isApiSuccessResponse(result) || result === true || result?.data === true)) {
-            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('listPage.updateActiveFailed') as string))
+        if (!isApiSuccessResponse(result)) {
+            ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || (i18n.global.t('listPage.updateActiveFailed') as string))
         }
     }
 

@@ -88,7 +88,7 @@ class UserAssignmentDialog extends BaseDetailPage {
     }
     // @ts-ignore
     const result = await backendRequest({url: this.getRootActionPath() + "/assignUser", method: "post", params})
-    if (isApiSuccessResponse(result) || result === true || result?.data === true) {
+    if (isApiSuccessResponse(result)) {
       ElMessage.success('保存成功！')
       this.context.emit('update:modelValue', false)
     } else {
