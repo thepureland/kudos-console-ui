@@ -11,7 +11,7 @@ export type ApiErrorDetail = {
 export type ApiResponse<T = unknown> = {
   success: boolean
   code: string
-  message: string
+  message?: string | null
   data?: T | null
   timestamp?: number
   errors?: ApiErrorDetail[] | null
@@ -77,20 +77,11 @@ export async function resolveUserFacingMessage(message: unknown): Promise<string
 export function isApiResponse(result: unknown): result is ApiResponse {
   if (result == null || typeof result !== "object" || Array.isArray(result)) return false
   const o = result as Record<string, unknown>
-  return typeof o.success === "boolean" && typeof o.code === "string" && typeof o.message === "string"
+  return typeof o.success === "boolean" && typeof o.code === "string"
 }
 
 export function isApiSuccessResponse(result: unknown): boolean {
-  if (isApiResponse(result)) return result.success === true
-  if (result == null || typeof result !== "object" || Array.isArray(result)) return false
-  const o = result as Record<string, unknown>
-  const code = o.code
-  if (typeof code === "number") return code === 200 || code === 0
-  if (typeof code === "string") {
-    const n = Number.parseInt(code, 10)
-    if (!Number.isNaN(n)) return n === 200 || n === 0
-  }
-  return false
+  return isApiResponse(result) && result.success === true
 }
 
 export function getApiResponseMessage(result: unknown): string | null {
@@ -113,6 +104,22 @@ export async function resolveApiResponseMessage(result: unknown): Promise<string
   return null
 }
 
+/** 仅当统一响应明确表示失败时，才取 message 作为给用户的失败提示。 */
+export function getApiFailureMessage(result: unknown): string | null {
+  if (isApiResponse(result)) {
+    return result.success === false ? getUserFacingMessage(result.message) : null
+  }
+  return null
+}
+
+/** 异步版失败提示解析：先确保默认后端消息国际化已加载，再取失败 message。 */
+export async function resolveApiFailureMessage(result: unknown): Promise<string | null> {
+  if (isApiResponse(result)) {
+    return result.success === false ? resolveUserFacingMessage(result.message) : null
+  }
+  return null
+}
+
 export function getApiResponseData<T = unknown>(result: unknown): T | null {
   if (isApiResponse(result)) {
     return (result.data ?? null) as T | null
@@ -128,7 +135,17 @@ export async function backendRequest(options: BackendRequestOptions): Promise<an
   const paramsJson =
     options.params != null ? JSON.stringify(options.params) : null;
   const paramsInQuery = options.paramsInQuery === true;
-  const raw = await api.request(options.url, method, paramsJson, paramsInQuery);
+  let raw: unknown
+  try {
+    raw = await api.request(options.url, method, paramsJson, paramsInQuery);
+  } catch (error) {
+    const recovered = extractErrorPayload(error)
+    if (recovered !== undefined) {
+      raw = recovered
+    } else {
+      throw error
+    }
+  }
   const t2 = LOG_SLOW_REQUESTS ? now() : 0;
   let result: unknown
   if (typeof raw !== "string") {
@@ -158,4 +175,50 @@ export async function backendRequest(options: BackendRequestOptions): Promise<an
     }
   }
   return result;
+}
+
+function extractErrorPayload(error: unknown): unknown {
+  const candidates: unknown[] = []
+  if (error != null && typeof error === "object") {
+    const e = error as {
+      response?: { data?: unknown }
+      data?: unknown
+      message?: unknown
+    }
+    if (e.response?.data !== undefined) candidates.push(e.response.data)
+    if (e.data !== undefined) candidates.push(e.data)
+    if (e.message !== undefined) candidates.push(e.message)
+  }
+  for (const candidate of candidates) {
+    const parsed = parseMaybeJson(candidate)
+    if (parsed != null && (
+      isApiResponse(parsed)
+      || (typeof parsed === "object" && !Array.isArray(parsed) && "message" in (parsed as Record<string, unknown>))
+      || typeof parsed === "string"
+    )) {
+      return parsed
+    }
+  }
+  return undefined
+}
+
+function parseMaybeJson(value: unknown): unknown {
+  if (typeof value !== "string") return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
+export function getThrownErrorMessage(error: unknown): string | null {
+  const payload = extractErrorPayload(error)
+  if (typeof payload === "string") return getUserFacingMessage(payload)
+  return getApiFailureMessage(payload) || getApiResponseMessage(payload)
+}
+
+export async function resolveThrownErrorMessage(error: unknown): Promise<string | null> {
+  const payload = extractErrorPayload(error)
+  if (typeof payload === "string") return resolveUserFacingMessage(payload)
+  return await resolveApiFailureMessage(payload) || await resolveApiResponseMessage(payload)
 }

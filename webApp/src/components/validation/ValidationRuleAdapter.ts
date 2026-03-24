@@ -1,4 +1,4 @@
-import { backendRequest } from "../../utils/backendRequest";
+import { backendRequest, getApiFailureMessage, isApiSuccessResponse } from "../../utils/backendRequest";
 import { i18n } from "../../i18n";
 
 /**
@@ -328,11 +328,12 @@ export class ValidationRuleAdapter {
                 params[propName] = value
 
                 const result = await backendRequest({url: ruleDetails[0].requestUrl, params})
-                if (result != null) {
+                if (isApiSuccessResponse(result)) {
                     resolve()
                 } else {
                     reject(
-                        ValidationRuleAdapter.resolveMessageWithDetail(
+                        getApiFailureMessage(result)
+                        || ValidationRuleAdapter.resolveMessageWithDetail(
                             ruleDetails[0]["message"],
                             ruleDetails[0] as Record<string, unknown>,
                         ),

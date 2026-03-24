@@ -119,7 +119,7 @@ class Page extends BasePage {
     const url = this.getRootActionPath() + "/setRolePermissions"
     // @ts-ignore
     const result = await backendRequest({url: url, method: 'post', params})
-    if (isApiSuccessResponse(result) || result === true || result?.data === true) {
+    if (isApiSuccessResponse(result)) {
       ElMessage.info('授权成功！')
       this.close()
     } else {

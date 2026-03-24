@@ -469,14 +469,14 @@ class DictListPage extends BaseListPage {
     try {
       if (dictIds.length > 0) {
         const result = await backendRequest({ url: 'sys/dict/batchDelete', method: 'post', params: dictIds });
-        if (!(isApiSuccessResponse(result) || result === true || result?.data === true)) {
+        if (!isApiSuccessResponse(result)) {
           ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string));
           return;
         }
       }
       if (itemIds.length > 0) {
         const result = await backendRequest({ url: 'sys/dictItem/batchDelete', method: 'post', params: itemIds });
-        if (!(isApiSuccessResponse(result) || result === true || result?.data === true)) {
+        if (!isApiSuccessResponse(result)) {
           ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string));
           return;
         }

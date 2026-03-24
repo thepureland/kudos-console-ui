@@ -2,7 +2,7 @@ import { ElMessage } from "element-plus"
 import { nextTick, ref } from "vue"
 import { ValidationRuleAdapter } from "../validation/ValidationRuleAdapter"
 import { BasePage } from "./BasePage"
-import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from "../../utils/backendRequest"
+import { backendRequest, getApiResponseData, getApiResponseMessage, getApiFailureMessage, isApiSuccessResponse, resolveApiFailureMessage, resolveApiResponseMessage } from "../../utils/backendRequest"
 import { i18n, loadMessagesForConfig, loadMessagesForValidationPage } from "../../i18n"
 
 /**
@@ -46,8 +46,7 @@ function extractRemarkMaxLengthFromFieldRules(payload: Record<string, unknown>, 
 
 /** 判断保存接口的 result 是否表示业务成功：仅当 code 为 200/0 或能解析出保存后的 id 时视为成功 */
 function isSuccessfulSaveResponse(result: unknown): boolean {
-    if (isApiSuccessResponse(result)) return true
-    return getSavedIdFromResponse(result) != null
+    return isApiSuccessResponse(result)
 }
 
 /** 从保存接口的 result（直接格式）中解析出主键 id（支持 { data: [entity], totalCount }、单实体、数组、或直接为 id） */
@@ -467,7 +466,9 @@ export abstract class BaseAddEditPage extends BasePage {
                             this.context.emit('response', params)
                             nextTick(() => this.doClose())
                         } else {
-                            const msg = await resolveApiResponseMessage(result)
+                            const msg = await resolveApiFailureMessage(result)
+                                || getApiFailureMessage(result)
+                                || await resolveApiResponseMessage(result)
                                 || getApiResponseMessage(result)
                                 || (i18n.global.t('addEditPage.saveFailed') as string)
                             ElMessage.error(msg)
