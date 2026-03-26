@@ -914,9 +914,6 @@ export default defineComponent({
     ]);
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
     const columnWidths = ref<Record<string, number>>({});
-    function onTableWrapMounted() {
-      layoutOnTableWrapMounted();
-    }
 
     const { splitContainerRef, treePanelWidthPercent, startTreeResize } = useTreeSplitResize({
       initialPercent: 15.75,

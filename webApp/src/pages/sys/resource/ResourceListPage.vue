@@ -276,6 +276,7 @@ import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
+import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useTreeSplitResize } from '../../../components/pages/useTreeSplitResize';
@@ -333,6 +334,8 @@ class ResourceListPage extends BaseListPage {
   }
 
   protected initState(): Record<string, unknown> {
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
+
     return {
       resourceTreeProps: { label: 'name' },
       resourceTypeOptions: [] as Array<{ first: string; second: string }>,
@@ -776,16 +779,10 @@ export default defineComponent({
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
     const columnWidths = ref<Record<string, number>>({});
-    function onTableWrapMounted() {
-      layoutOnTableWrapMounted();
-    }
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),
     });
-    function isColumnVisible(key: string): boolean {
-      return listPage.isColumnVisible(key);
-    }
 
     onBeforeRouteLeave((_to, _from, next) => {
       listPage.persistListState();

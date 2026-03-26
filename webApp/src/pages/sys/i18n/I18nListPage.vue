@@ -360,6 +360,7 @@ import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
+import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
@@ -390,6 +391,8 @@ class I18nListPage extends BaseListPage {
   }
 
   protected initState(): Record<string, unknown> {
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
+
     return {
       searchParams: {
         key: null as string | null,
@@ -503,9 +506,6 @@ export default defineComponent({
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
     const columnWidths = ref<Record<string, number>>({});
-    function onTableWrapMounted() {
-      layoutOnTableWrapMounted();
-    }
 
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
@@ -517,9 +517,6 @@ export default defineComponent({
       getColumnKeys: () => orderedColumnKeys.value,
       getColumnLabel: (key) => t('i18nList.columns.' + key),
     });
-    function isColumnVisible(key: string): boolean {
-      return listPage.isColumnVisible(key);
-    }
 
     function formatBoolText(value: unknown): string {
       return listPage.formatBoolean(value, t('i18nList.common.yes'), t('i18nList.common.no'));

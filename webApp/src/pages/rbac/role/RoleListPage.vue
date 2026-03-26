@@ -334,6 +334,8 @@ import { TenantSupportListPage } from '../../../components/pages/TenantSupportLi
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
+import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
+import { useOperationColumnVisible } from '../../../components/pages/useOperationColumnVisible';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
@@ -358,6 +360,8 @@ class RoleListPage extends TenantSupportListPage {
   }
 
   protected initState(): Record<string, unknown> {
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
+
     return {
       searchParams: {
         subSysOrTenant: null as string[] | null,
@@ -494,9 +498,6 @@ export default defineComponent({
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
     const columnWidths = ref<Record<string, number>>({});
-    function onTableWrapMounted() {
-      layoutOnTableWrapMounted();
-    }
 
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
@@ -508,10 +509,7 @@ export default defineComponent({
       getColumnKeys: () => orderedColumnKeys.value,
       getColumnLabel: (key) => t('roleList.columns.' + key),
     });
-    function isColumnVisible(key: string): boolean {
-      return listPage.isColumnVisible(key);
-    }
-    const showOperationColumn = computed(() => Boolean(listPage.state?.showOperationColumn));
+    const showOperationColumn = useOperationColumnVisible(listPage);
 
     return {
       listPage,

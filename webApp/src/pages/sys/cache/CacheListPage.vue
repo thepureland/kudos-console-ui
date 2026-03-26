@@ -451,6 +451,7 @@ import {useListPageLayout} from '../../../components/pages/useListPageLayout';
 import {useValidationI18nCacheProvider} from '../../../components/pages/useValidationI18nCacheProvider';
 import {createColumnVisibilityConfig} from '../../../components/pages/columnVisibilityConfig';
 import {useListPageFormSetup} from '../../../components/pages/useListPageFormSetup';
+import {useListPageVisibilityState} from '../../../components/pages/useListPageVisibilityState';
 import {useColumnVisibilityOptions} from '../../../components/pages/useColumnVisibilityOptions';
 import {useFixedLeftTableWidth} from '../../../components/pages/useFixedLeftTableWidth';
 import {useFixedLeftRelayoutWatcher} from '../../../components/pages/useFixedLeftRelayoutWatcher';
@@ -485,6 +486,8 @@ class CacheListPage extends BaseListPage {
 
   /** 初始化页面状态：搜索条件、key 弹窗可见性、当前操作与当前行 */
   protected initState(): Record<string, unknown> {
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
+
     return {
       searchParams: {
         name: null,
@@ -826,9 +829,6 @@ export default defineComponent({
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
     const columnWidths = ref<Record<string, number>>({});
-    function onTableWrapMounted() {
-      layoutOnTableWrapMounted();
-    }
     /** 栏位可见性勾选与 listPage 状态双向同步 */
     const visibleColumnKeys = computed<string[]>({
       get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],
@@ -872,9 +872,6 @@ export default defineComponent({
     }
 
     /** 判断某列是否在「栏位可见性」中勾选 */
-    function isColumnVisible(key: string): boolean {
-      return listPage.isColumnVisible(key);
-    }
 
     /** 表格列筛选变化时同步到 searchParams 并请求列表 */
     function       handleTableFilterChange(filters: Record<string, Array<string | number | boolean>>) {

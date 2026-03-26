@@ -290,6 +290,7 @@ import { TenantSupportListPage } from '../../../components/pages/TenantSupportLi
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
+import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
@@ -321,6 +322,8 @@ class DomainListPage extends TenantSupportListPage {
   }
 
   protected initState(): Record<string, unknown> {
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
+
     return {
       searchParams: {
         domain: null as string | null,
@@ -406,9 +409,6 @@ export default defineComponent({
     );
     const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
     const columnWidths = ref<Record<string, number>>({});
-    function onTableWrapMounted() {
-      layoutOnTableWrapMounted();
-    }
 
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
@@ -420,9 +420,6 @@ export default defineComponent({
       getColumnKeys: () => orderedColumnKeys.value,
       getColumnLabel: (key) => t('domainList.columns.' + (key === 'systemCode' ? 'subSys' : key === 'tenantName' ? 'tenant' : key)),
     });
-    function isColumnVisible(key: string): boolean {
-      return listPage.isColumnVisible(key);
-    }
 
     watch(
       () => listPage.state.visibleColumnKeys,
