@@ -75,6 +75,7 @@ import { ElMessage } from 'element-plus';
 import { Pair } from '../../../components/model/Pair';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
 class ResourcePermissionListPage extends TenantSupportListPage {
@@ -266,13 +267,22 @@ export default defineComponent({
     const listPage = reactive(new ResourcePermissionListPage(props, context, tree)) as ResourcePermissionListPage & { state: Record<string, unknown> };
     const { listLayoutRefs } = useListPageLayout(listPage, {
     });
-    const autoWidthColumns = computed(() => [
+    const {
+      RESERVED_WIDTH_LEFT,
+      RESERVED_WIDTH_RIGHT,
+      autoWidthColumns,
+      tableDataRef,
+      columnWidths,
+    } = useTableAutoWidthContext({
+      listPage,
+      reservedWidthLeft: 0,
+      reservedWidthRight: 0,
+      createAutoWidthColumns: () => [
       { key: 'name', getLabel: () => '资源名称', sortable: true, getCellText: (row: Record<string, unknown>) => String(row.name ?? '') },
       { key: 'url', getLabel: () => 'URL', sortable: true, getCellText: (row: Record<string, unknown>) => String(row.url ?? '') },
       { key: 'roleNames', getLabel: () => '关联的角色', getCellText: (row: Record<string, unknown>) => String(row.roleNames ?? '') },
-    ]);
-    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const columnWidths = ref<Record<string, number>>({});
+    ],
+    });
     return {
       t,
       ...toRefs(listPage.state),

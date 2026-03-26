@@ -57,6 +57,7 @@ import { defineComponent, reactive, toRefs, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import MenuRoleAssignDialog from './MenuRoleAssignDialog.vue';
 
 
@@ -91,13 +92,22 @@ export default defineComponent({
     const listPage = reactive(new MenuPermissionListPage(props, context)) as MenuPermissionListPage & { state: Record<string, unknown> };
     const { listLayoutRefs } = useListPageLayout(listPage, {
     });
-    const autoWidthColumns = computed(() => [
+    const {
+      RESERVED_WIDTH_LEFT,
+      RESERVED_WIDTH_RIGHT,
+      autoWidthColumns,
+      tableDataRef,
+      columnWidths,
+    } = useTableAutoWidthContext({
+      listPage,
+      reservedWidthLeft: 0,
+      reservedWidthRight: 0,
+      createAutoWidthColumns: () => [
       { key: 'name', getLabel: () => '名称', getCellText: (row: Record<string, unknown>) => String(row.name ?? '') },
       { key: 'url', getLabel: () => 'URL', getCellText: (row: Record<string, unknown>) => String(row.url ?? '') },
       { key: 'roleNames', getLabel: () => '关联的角色', getCellText: (row: Record<string, unknown>) => String(row.roleNames ?? '') },
-    ]);
-    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const columnWidths = ref<Record<string, number>>({});
+    ],
+    });
     return {
       t,
       ...toRefs(listPage.state),

@@ -341,6 +341,7 @@ import { useValidationI18nCacheProvider } from '../../../components/pages/useVal
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
 import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useFixedLeftRelayoutWatcher } from '../../../components/pages/useFixedLeftRelayoutWatcher';
@@ -576,9 +577,17 @@ export default defineComponent({
       getColumnKeys: () => orderedColumnKeys.value,
       getColumnLabel: (key) => columnKeyToLabel[key]?.() ?? key,
     });
-    const RESERVED_WIDTH_LEFT = 39 + 50 + 120;
-    const RESERVED_WIDTH_RIGHT = 140;
-    const autoWidthColumns = computed(() =>
+    const {
+      RESERVED_WIDTH_LEFT,
+      RESERVED_WIDTH_RIGHT,
+      autoWidthColumns,
+      tableDataRef,
+      columnWidths,
+    } = useTableAutoWidthContext({
+      listPage,
+      reservedWidthLeft: 39 + 50 + 120,
+      reservedWidthRight: 140,
+      createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
         getLabel: () => columnKeyToLabel[key]?.() ?? key,
@@ -596,9 +605,7 @@ export default defineComponent({
                     ? (row: Record<string, unknown>) => String(row.username ?? '')
                     : () => '',
       }))
-    );
-    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const columnWidths = ref<Record<string, number>>({});
+    });
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
     return {

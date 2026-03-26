@@ -350,6 +350,7 @@ import { useValidationI18nCacheProvider } from '../../../components/pages/useVal
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
 import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
@@ -454,14 +455,21 @@ export default defineComponent({
     } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS, {
       onOrderChange: () => nextTick(forceFixedLeftWidth),
     });
-
-    const RESERVED_WIDTH_LEFT = 39 + 50 + 200;
-    const RESERVED_WIDTH_RIGHT = 140;
     function formatSubSystemCodes(val: unknown): string {
       if (Array.isArray(val)) return val.map((c) => listPage.transAtomicService(c)).filter(Boolean).join(', ');
       return listPage.transAtomicService(val as string | null | undefined);
     }
-    const autoWidthColumns = computed(() =>
+    const {
+      RESERVED_WIDTH_LEFT,
+      RESERVED_WIDTH_RIGHT,
+      autoWidthColumns,
+      tableDataRef,
+      columnWidths,
+    } = useTableAutoWidthContext({
+      listPage,
+      reservedWidthLeft: 0,
+      reservedWidthRight: 0,
+      createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
         getLabel: () => t('tenantList.columns.' + (key === 'subSystemCodes' ? 'subSys' : key)),
@@ -481,9 +489,7 @@ export default defineComponent({
                     ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
                     : () => '',
       }))
-    );
-    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const columnWidths = ref<Record<string, number>>({});
+    });
 
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],

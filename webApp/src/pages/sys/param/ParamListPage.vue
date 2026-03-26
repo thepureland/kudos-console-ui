@@ -249,6 +249,7 @@ import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
+import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 
 class ParamListPage extends BaseListPage {
@@ -299,8 +300,6 @@ const {
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['paramValue', 'defaultValue', 'atomicServiceCode', 'orderNum', 'remark', 'active']);
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
-const RESERVED_WIDTH_LEFT = 39 + 50 + 120;
-const RESERVED_WIDTH_RIGHT = 140;
 
 export default defineComponent({
   name: 'ParamListPage',
@@ -349,16 +348,25 @@ export default defineComponent({
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
 
-    const autoWidthColumns = computed(() => [
+    const {
+      RESERVED_WIDTH_LEFT,
+      RESERVED_WIDTH_RIGHT,
+      autoWidthColumns,
+      tableDataRef,
+      columnWidths,
+    } = useTableAutoWidthContext({
+      listPage,
+      reservedWidthLeft: 0,
+      reservedWidthRight: 0,
+      createAutoWidthColumns: () => [
       { key: 'paramValue', getLabel: () => t('paramList.columns.paramValue'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.paramValue ?? '') },
       { key: 'defaultValue', getLabel: () => t('paramList.columns.defaultValue'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.defaultValue ?? '') },
       { key: 'atomicServiceCode', getLabel: () => t('paramList.columns.atomicServiceCode'), sortable: true, getCellText: (row: Record<string, unknown>) => listPage.transAtomicService(row.atomicServiceCode) },
       { key: 'orderNum', getLabel: () => t('paramList.columns.orderNum'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.orderNum ?? '') },
       { key: 'remark', getLabel: () => t('paramList.columns.remark'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.remark ?? '') },
       { key: 'active', getLabel: () => t('paramList.columns.active'), sortable: false, getCellText: () => '' },
-    ]);
-    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const columnWidths = ref<Record<string, number>>({});
+    ],
+    });
 
     watch(
       () => (listPage.state as Record<string, unknown>).showOperationColumn,
