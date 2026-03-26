@@ -269,6 +269,7 @@ import { useListPageFormSetup } from '../../../components/pages/useListPageFormS
 import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useOperationColumnVisible } from '../../../components/pages/useOperationColumnVisible';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
@@ -409,9 +410,17 @@ export default defineComponent({
       onTableDrop,
     } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS);
 
-    const RESERVED_WIDTH_LEFT = 39 + 50 + 140 + 120;
-    const RESERVED_WIDTH_RIGHT = 120;
-    const autoWidthColumns = computed(() =>
+    const {
+      RESERVED_WIDTH_LEFT,
+      RESERVED_WIDTH_RIGHT,
+      autoWidthColumns,
+      tableDataRef,
+      columnWidths,
+    } = useTableAutoWidthContext({
+      listPage,
+      reservedWidthLeft: 39 + 50 + 140 + 120,
+      reservedWidthRight: 120,
+      createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
         getLabel: () => t('systemList.columns.' + key),
@@ -425,9 +434,7 @@ export default defineComponent({
                 ? (row: Record<string, unknown>) => String(row.remark ?? '')
                 : () => '',
       }))
-    );
-    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const columnWidths = ref<Record<string, number>>({});
+    });
 
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],

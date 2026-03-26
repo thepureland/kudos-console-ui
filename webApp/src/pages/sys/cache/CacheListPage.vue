@@ -448,6 +448,7 @@ import CacheDetailPage from './CacheDetailPage.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import {BaseListPage} from '../../../components/pages/BaseListPage';
 import {useListPageLayout} from '../../../components/pages/useListPageLayout';
+import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import {useValidationI18nCacheProvider} from '../../../components/pages/useValidationI18nCacheProvider';
 import {createColumnVisibilityConfig} from '../../../components/pages/columnVisibilityConfig';
 import {useListPageFormSetup} from '../../../components/pages/useListPageFormSetup';
@@ -799,10 +800,18 @@ export default defineComponent({
     } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS, {
       onOrderChange: () => nextTick(forceFixedLeftWidth),
     });
-    const RESERVED_WIDTH_LEFT = 439;
-    const RESERVED_WIDTH_RIGHT = 180;
     const cacheListColumnLabel = (k: string) => t('cacheList.columns.' + (k === 'atomicServiceCode' ? 'subSystem' : k === 'strategyDictCode' ? 'strategy' : k === 'ttl' ? 'ttlSeconds' : k === 'hash' ? 'hash' : k));
-    const autoWidthColumns = computed(() =>
+    const {
+      RESERVED_WIDTH_LEFT,
+      RESERVED_WIDTH_RIGHT,
+      autoWidthColumns,
+      tableDataRef,
+      columnWidths,
+    } = useTableAutoWidthContext({
+      listPage,
+      reservedWidthLeft: 0,
+      reservedWidthRight: 0,
+      createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
         getLabel: () => cacheListColumnLabel(key),
@@ -826,9 +835,7 @@ export default defineComponent({
                     ? (row: Record<string, unknown>) => String(row.remark ?? '')
                     : () => '',
       }))
-    );
-    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const columnWidths = ref<Record<string, number>>({});
+    });
     /** 栏位可见性勾选与 listPage 状态双向同步 */
     const visibleColumnKeys = computed<string[]>({
       get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],

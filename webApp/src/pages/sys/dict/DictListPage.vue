@@ -316,6 +316,7 @@ import { useListPageLayout } from '../../../components/pages/useListPageLayout';
 import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
+import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { useTreeSplitResize } from '../../../components/pages/useTreeSplitResize';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
@@ -899,9 +900,17 @@ export default defineComponent({
       },
     });
 
-    const RESERVED_WIDTH_LEFT = 39 + 50;
-    const RESERVED_WIDTH_RIGHT = 140;
-    const autoWidthColumns = computed(() => [
+    const {
+      RESERVED_WIDTH_LEFT,
+      RESERVED_WIDTH_RIGHT,
+      autoWidthColumns,
+      tableDataRef,
+      columnWidths,
+    } = useTableAutoWidthContext({
+      listPage,
+      reservedWidthLeft: 39 + 50,
+      reservedWidthRight: 140,
+      createAutoWidthColumns: () => [
       { key: 'dictType', getLabel: () => t('dictList.columns.dictType'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.dictType ?? '') },
       { key: 'dictName', getLabel: () => t('dictList.columns.dictName'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.dictName ?? '') },
       { key: 'atomicServiceCode', getLabel: () => t('dictList.columns.atomicServiceCode'), sortable: true, getCellText: (row: Record<string, unknown>) => listPage.transAtomicService(row.atomicServiceCode) },
@@ -911,9 +920,8 @@ export default defineComponent({
       { key: 'orderNum', getLabel: () => t('dictList.columns.orderNum'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.orderNum ?? '') },
       { key: 'remark', getLabel: () => t('dictList.columns.remark'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.remark ?? '') },
       { key: 'active', getLabel: () => t('dictList.columns.active'), sortable: false, getCellText: (row: Record<string, unknown>) => '' },
-    ]);
-    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const columnWidths = ref<Record<string, number>>({});
+    ],
+    });
 
     const { splitContainerRef, treePanelWidthPercent, startTreeResize } = useTreeSplitResize({
       initialPercent: 15.75,

@@ -278,6 +278,7 @@ import { useValidationI18nCacheProvider } from '../../../components/pages/useVal
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
 import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useTreeSplitResize } from '../../../components/pages/useTreeSplitResize';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
@@ -735,8 +736,6 @@ export default defineComponent({
       getColumnKeys: () => ALL_COLUMN_KEYS,
       getColumnLabel: (key) => columnKeyToLabel[key]?.() ?? key,
     });
-    const RESERVED_WIDTH_LEFT = 39 + 50;
-    const RESERVED_WIDTH_RIGHT = 140;
     /** 字典项展示：有 i18n key 时 t(key)，否则不调用 t('') 避免 intlify 报错 */
     function formatDictCell(module: string, dictType: string, code: unknown): string {
       const key = listPage.transDict(module, dictType, code);
@@ -756,7 +755,17 @@ export default defineComponent({
       if (key && te(key)) return t(key);
       return (data.name != null ? String(data.name) : '') || (data.title != null ? String(data.title) : '') || (data.titleKey != null ? String(data.titleKey) : '');
     }
-    const autoWidthColumns = computed(() =>
+    const {
+      RESERVED_WIDTH_LEFT,
+      RESERVED_WIDTH_RIGHT,
+      autoWidthColumns,
+      tableDataRef,
+      columnWidths,
+    } = useTableAutoWidthContext({
+      listPage,
+      reservedWidthLeft: 0,
+      reservedWidthRight: 0,
+      createAutoWidthColumns: () =>
       ALL_COLUMN_KEYS.map((key) => ({
         key,
         getLabel: () => columnKeyToLabel[key]?.() ?? key,
@@ -776,9 +785,7 @@ export default defineComponent({
                       ? (row: Record<string, unknown>) => String(row.orderNum ?? '')
                       : () => '',
       }))
-    );
-    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const columnWidths = ref<Record<string, number>>({});
+    });
     const visibleColumnKeys = computed<string[]>({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),

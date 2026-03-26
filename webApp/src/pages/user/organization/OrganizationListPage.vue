@@ -269,6 +269,7 @@ import { useListPageFormSetup } from '../../../components/pages/useListPageFormS
 import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useOperationColumnVisible } from '../../../components/pages/useOperationColumnVisible';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { Pair } from '../../../components/model/Pair';
@@ -384,9 +385,17 @@ export default defineComponent({
       onTableDrop,
     } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS);
 
-    const RESERVED_WIDTH_LEFT = 39 + 50 + 120;
-    const RESERVED_WIDTH_RIGHT = 120;
-    const autoWidthColumns = computed(() =>
+    const {
+      RESERVED_WIDTH_LEFT,
+      RESERVED_WIDTH_RIGHT,
+      autoWidthColumns,
+      tableDataRef,
+      columnWidths,
+    } = useTableAutoWidthContext({
+      listPage,
+      reservedWidthLeft: 39 + 50 + 120,
+      reservedWidthRight: 120,
+      createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
         getLabel: () => t('organizationList.columns.' + (COLUMN_KEY_TO_I18N[key] ?? key)),
@@ -402,9 +411,7 @@ export default defineComponent({
                   ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
                   : () => '',
       }))
-    );
-    const tableDataRef = computed(() => (listPage.state as Record<string, unknown>).tableData as Array<Record<string, unknown>>);
-    const columnWidths = ref<Record<string, number>>({});
+    });
 
     /** 组织类型列：transDict 可能返回 i18n key（含.）或原始 code；空则不再 t('') 避免 intlify 报错 */
     function formatOrgTypeLabel(code: string | null | undefined): string {
