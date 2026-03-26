@@ -327,9 +327,12 @@ import AccountDetailPage from './AccountDetailPage.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
+import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
+import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
 import { ElMessage } from 'element-plus';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
@@ -338,10 +341,12 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'accountList.operationColumnPinned';
 const ACCOUNT_LIST_STATE_STORAGE_KEY = 'accountList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'accountList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'accountList.columnOrder';
-const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSystemCode', 'tenantId', 'userStatusDictCode', 'userTypeDictCode', 'lastLoginTime', 'createTime'];
-const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const {
+  indexColumnKey: INDEX_COLUMN_KEY,
+  allColumnKeys: ALL_COLUMN_KEYS,
+  columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
+  defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
+} = createColumnVisibilityConfig(['subSystemCode', 'tenantId', 'userStatusDictCode', 'userTypeDictCode', 'lastLoginTime', 'createTime']);
 
 class AccountListPage extends TenantSupportListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
@@ -426,24 +431,18 @@ export default defineComponent({
   name: 'AccountListPage',
   components: { AccountFormPage, AccountDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    provide(ValidationI18nCacheKey, ref(new Set<string>()));
+    useValidationI18nCacheProvider();
     const { t } = useI18n();
     const listPage = reactive(new AccountListPage(props, context)) as AccountListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const state = listPage.state as Record<string, unknown>;
-    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
-    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
-    const hasFormEverOpened = ref(false);
-    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
-    const currentFormMode = ref<'add' | 'edit'>('add');
-    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
-    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
-    function onFormClose(v: boolean) {
-      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
-    }
-    function onFormResponse(payload: Record<string, unknown>) {
-      (currentFormMode.value === 'add' ? listPage.afterAdd : listPage.afterEdit).call(listPage, payload);
-    }
+    const {
+      formVisible,
+      formRid,
+      hasFormEverOpened,
+      onFormClose,
+      onFormResponse,
+    } = useListPageFormSetup({ state, listPage });
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
@@ -510,13 +509,12 @@ export default defineComponent({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),
     });
-    const columnVisibilityOptions = computed(() => [
-      { key: INDEX_COLUMN_KEY, label: t('accountList.columns.index') },
-      ...orderedColumnKeys.value.map((key) => ({
-        key,
-        label: t('accountList.columns.' + (columnKeyToLabelKey[key] ?? key)),
-      })),
-    ]);
+    const columnVisibilityOptions = useColumnVisibilityOptions({
+      indexColumnKey: INDEX_COLUMN_KEY,
+      getIndexLabel: () => t('accountList.columns.index'),
+      getColumnKeys: () => orderedColumnKeys.value,
+      getColumnLabel: (key) => t('accountList.columns.' + (columnKeyToLabelKey[key] ?? key)),
+    });
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
     }

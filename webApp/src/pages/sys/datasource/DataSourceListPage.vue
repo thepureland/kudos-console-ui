@@ -332,22 +332,20 @@ import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, prov
 import { ElMessage } from 'element-plus';
 import { Delete, Edit, Lock, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
-import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import DataSourceFormPage from './DataSourceFormPage.vue';
 import DataSourceDetailPage from './DataSourceDetailPage.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
+import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
+import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
+import { useFixedLeftRelayoutWatcher } from '../../../components/pages/useFixedLeftRelayoutWatcher';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
-import { i18n } from '../../../i18n';
-
-/** 在非 setup 中获取 i18n 文案 */
-function tr(key: string): string {
-  return i18n.global.t(key) as string;
-}
 
 /** 数据源列表页业务逻辑：继承租户支持列表，支持搜索、重置密码、测试数据回退。租户下拉为两级联动：第一级子系统（getAllActiveSubSystemCodes），第二级租户（getTenantsBySubSystemCode）。 */
 class DataSourceListPage extends TenantSupportListPage {
@@ -420,12 +418,12 @@ class DataSourceListPage extends TenantSupportListPage {
     try {
       const result = await backendRequest({ url, params });
       if (isApiSuccessResponse(result)) {
-        ElMessage.info(tr('dataSourceList.messages.resetPasswordSuccess'));
+        ElMessage.info(this.tr('dataSourceList.messages.resetPasswordSuccess'));
       } else {
-        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('dataSourceList.messages.resetPasswordFailed'));
+        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || this.tr('dataSourceList.messages.resetPasswordFailed'));
       }
     } catch {
-      ElMessage.error(tr('dataSourceList.messages.resetPasswordFailed'));
+      ElMessage.error(this.tr('dataSourceList.messages.resetPasswordFailed'));
     }
   }
 
@@ -436,10 +434,12 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'dataSourceList.operationColumnPinne
 const DATA_SOURCE_LIST_STATE_STORAGE_KEY = 'dataSourceList.queryState.v2';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'dataSourceList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'dataSourceList.columnOrder.v2';
-const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSystemCode', 'tenantName', 'microservice', 'url', 'username', 'active'];
-const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const {
+  indexColumnKey: INDEX_COLUMN_KEY,
+  allColumnKeys: ALL_COLUMN_KEYS,
+  columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
+  defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
+} = createColumnVisibilityConfig(['subSystemCode', 'tenantName', 'microservice', 'url', 'username', 'active']);
 
 export default defineComponent({
   name: 'DataSourceListPage',
@@ -456,24 +456,18 @@ export default defineComponent({
     Plus,
   },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    provide(ValidationI18nCacheKey, ref(new Set<string>()));
+    useValidationI18nCacheProvider();
     const { t } = useI18n();
     const listPage = reactive(new DataSourceListPage(props, context)) as DataSourceListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const state = listPage.state as Record<string, unknown>;
-    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
-    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
-    const hasFormEverOpened = ref(false);
-    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
-    const currentFormMode = ref<'add' | 'edit'>('add');
-    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
-    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
-    function onFormClose(v: boolean) {
-      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
-    }
-    function onFormResponse(payload: Record<string, unknown>) {
-      (currentFormMode.value === 'add' ? listPage.afterAdd : listPage.afterEdit).call(listPage, payload);
-    }
+    const {
+      formVisible,
+      formRid,
+      hasFormEverOpened,
+      onFormClose,
+      onFormResponse,
+    } = useListPageFormSetup({ state, listPage });
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
     const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
@@ -575,10 +569,12 @@ export default defineComponent({
       username: () => t('dataSourceList.columns.username'),
       active: () => t('dataSourceList.columns.active'),
     };
-    const columnVisibilityOptions = computed(() => [
-      { key: INDEX_COLUMN_KEY, label: t('dataSourceList.columns.index') },
-      ...orderedColumnKeys.value.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
-    ]);
+    const columnVisibilityOptions = useColumnVisibilityOptions({
+      indexColumnKey: INDEX_COLUMN_KEY,
+      getIndexLabel: () => t('dataSourceList.columns.index'),
+      getColumnKeys: () => orderedColumnKeys.value,
+      getColumnLabel: (key) => columnKeyToLabel[key]?.() ?? key,
+    });
     const RESERVED_WIDTH_LEFT = 39 + 50 + 120;
     const RESERVED_WIDTH_RIGHT = 140;
     const autoWidthColumns = computed(() =>
@@ -608,15 +604,7 @@ export default defineComponent({
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
     }
-    watch(
-      () => (listPage.state as Record<string, unknown>).visibleColumnKeys,
-      () => { nextTick(forceFixedLeftWidth); },
-      { deep: true },
-    );
-    watch(
-      () => (listPage.state as Record<string, unknown>).showOperationColumn,
-      () => { nextTick(forceFixedLeftWidth); },
-    );
+    useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,

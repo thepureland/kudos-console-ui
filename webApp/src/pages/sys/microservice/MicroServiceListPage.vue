@@ -283,8 +283,11 @@ import { useI18n } from 'vue-i18n';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
+import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
+import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import MicroServiceFormPage from './MicroServiceFormPage.vue';
 import MicroServiceDetailPage from './MicroServiceDetailPage.vue';
 
@@ -292,10 +295,12 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'microServiceList.operationColumnPin
 const MICROSERVICE_LIST_STATE_STORAGE_KEY = 'microServiceList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'microServiceList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'microServiceList.columnOrder';
-const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['atomicService', 'context', 'active', 'builtIn', 'remark'];
-const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const {
+  indexColumnKey: INDEX_COLUMN_KEY,
+  allColumnKeys: ALL_COLUMN_KEYS,
+  columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
+  defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
+} = createColumnVisibilityConfig(['atomicService', 'context', 'active', 'builtIn', 'remark']);
 
 class MicroServiceListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
@@ -370,24 +375,18 @@ export default defineComponent({
   name: 'MicroServiceListPage',
   components: { ListPageLayout, MicroServiceFormPage, MicroServiceDetailPage, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    provide(ValidationI18nCacheKey, ref(new Set<string>()));
+    useValidationI18nCacheProvider();
     const { t } = useI18n();
     const listPage = reactive(new MicroServiceListPage(props, context)) as MicroServiceListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const state = listPage.state as Record<string, unknown>;
-    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
-    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
-    const hasFormEverOpened = ref(false);
-    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
-    const currentFormMode = ref<'add' | 'edit'>('add');
-    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
-    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
-    function onFormClose(v: boolean) {
-      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
-    }
-    function onFormResponse(payload: Record<string, unknown>) {
-      (currentFormMode.value === 'add' ? listPage.afterAdd : listPage.afterEdit).call(listPage, payload);
-    }
+    const {
+      formVisible,
+      formRid,
+      hasFormEverOpened,
+      onFormClose,
+      onFormResponse,
+    } = useListPageFormSetup({ state, listPage });
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
@@ -432,13 +431,12 @@ export default defineComponent({
       get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
       set: (next) => listPage.applyVisibleColumns(next),
     });
-    const columnVisibilityOptions = computed(() => [
-      { key: INDEX_COLUMN_KEY, label: t('microServiceList.columns.index') },
-      ...orderedColumnKeys.value.map((key) => ({
-        key,
-        label: t('microServiceList.columns.' + key),
-      })),
-    ]);
+    const columnVisibilityOptions = useColumnVisibilityOptions({
+      indexColumnKey: INDEX_COLUMN_KEY,
+      getIndexLabel: () => t('microServiceList.columns.index'),
+      getColumnKeys: () => orderedColumnKeys.value,
+      getColumnLabel: (key) => t('microServiceList.columns.' + key),
+    });
     function isColumnVisible(key: string): boolean {
       return listPage.isColumnVisible(key);
     }

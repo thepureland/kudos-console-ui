@@ -156,6 +156,11 @@ export abstract class BaseListPage extends BasePage {
         return i18n.global.t('listPage.batchDeleteConfirm', { n: rows.length }) as string
     }
 
+    /** 统一的 i18n 文案获取，供子类在非 setup 作用域内使用。 */
+    protected tr(key: string, params?: Record<string, unknown>): string {
+        return i18n.global.t(key, params ?? {}) as string
+    }
+
     /** 获取数据行主键，默认取 row.id。 */
     protected getRowId(row: any): string | number {
         return row.id

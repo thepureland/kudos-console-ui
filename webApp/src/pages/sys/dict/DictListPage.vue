@@ -313,14 +313,13 @@ import DictItemDetailPage from './DictItemDetailPage.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
+import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
+import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
+import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
+import { useTreeSplitResize } from '../../../components/pages/useTreeSplitResize';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { loadMessagesForConfig } from '../../../i18n';
-
-function tr(key: string): string {
-  return i18n.global.t(key) as string;
-}
 
 class DictListPage extends BaseListPage {
   private tree: { value?: { remove: (obj: { id: string }) => void } };
@@ -448,16 +447,15 @@ class DictListPage extends BaseListPage {
 
   /** 按 dict 标识分别请求 sys/dict/batchDelete 与 sys/dictItem/batchDelete */
   protected async doMultiDelete(): Promise<void> {
-    const t = i18n.global.t.bind(i18n.global);
     const rows = this.state.selectedItems as Array<Record<string, unknown>> | undefined;
     if (!rows || rows.length === 0) {
-      ElMessage.info(t('listPage.selectDataFirst') as string);
+      ElMessage.info(this.tr('listPage.selectDataFirst'));
       return;
     }
     const confirmResult = await ElMessageBox.confirm(
       this.getBatchDeleteMessage(rows),
-      t('listPage.confirmTitle') as string,
-      { confirmButtonText: t('listPage.confirmButton') as string, cancelButtonText: t('listPage.cancelButton') as string, type: 'warning' }
+      this.tr('listPage.confirmTitle'),
+      { confirmButtonText: this.tr('listPage.confirmButton'), cancelButtonText: this.tr('listPage.cancelButton'), type: 'warning' }
     ).catch((err: unknown) => err);
     if (confirmResult !== 'confirm') return;
 
@@ -470,21 +468,21 @@ class DictListPage extends BaseListPage {
       if (dictIds.length > 0) {
         const result = await backendRequest({ url: 'sys/dict/batchDelete', method: 'post', params: dictIds });
         if (!isApiSuccessResponse(result)) {
-          ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string));
+          ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || this.tr('listPage.deleteFailed'));
           return;
         }
       }
       if (itemIds.length > 0) {
         const result = await backendRequest({ url: 'sys/dictItem/batchDelete', method: 'post', params: itemIds });
         if (!isApiSuccessResponse(result)) {
-          ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string));
+          ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || this.tr('listPage.deleteFailed'));
           return;
         }
       }
-      ElMessage.success(t('listPage.deleteSuccess') as string);
+      ElMessage.success(this.tr('listPage.deleteSuccess'));
       this.doAfterDelete(this.getSelectedIds());
     } catch {
-      ElMessage.error(t('listPage.deleteFailed') as string);
+      ElMessage.error(this.tr('listPage.deleteFailed'));
     }
   }
 
@@ -525,16 +523,16 @@ class DictListPage extends BaseListPage {
 
   protected getDeleteMessage(row: Record<string, unknown>): string {
     return (row as { itemCode?: unknown }).itemCode == null
-      ? tr('dictList.messages.deleteDictConfirm')
-      : tr('dictList.messages.deleteItemConfirm');
+      ? this.tr('dictList.messages.deleteDictConfirm')
+      : this.tr('dictList.messages.deleteItemConfirm');
   }
 
   protected getBatchDeleteMessage(rows: Record<string, unknown>[]): string {
     const existDict = rows.findIndex((row) => (row as { itemCode?: unknown }).itemCode == null) !== -1;
     if (existDict) {
-      return tr('dictList.messages.batchDeleteConfirm') + super.getBatchDeleteMessage(rows);
+      return this.tr('dictList.messages.batchDeleteConfirm') + super.getBatchDeleteMessage(rows);
     }
-    return tr('dictList.messages.batchDeleteItemPrefix') + super.getBatchDeleteMessage(rows);
+    return this.tr('dictList.messages.batchDeleteItemPrefix') + super.getBatchDeleteMessage(rows);
   }
 
   protected getRowId(row: Record<string, unknown>): string | number {
@@ -616,10 +614,10 @@ class DictListPage extends BaseListPage {
   }
 
   /** 第三层及以下树节点名称：优先用 dict-item 国际化 t(dictType.itemCode)，否则用 itemName 或 code。需先 loadMessagesForConfig dict-item+dictType。 */
-  private static transDictItemName(dictType: string, itemCode: string, itemName: string): string {
+  private transDictItemName(dictType: string, itemCode: string, itemName: string): string {
     if (!itemCode) return itemName || '';
     const key = dictType + '.' + itemCode;
-    const translated = i18n.global.t(key) as string;
+    const translated = this.tr(key);
     return (translated !== key ? translated : null) ?? itemName ?? itemCode;
   }
 
@@ -716,7 +714,7 @@ class DictListPage extends BaseListPage {
       });
       resolve(nodes);
     } catch {
-      ElMessage.error(tr('dictList.messages.loadTreeFailed'));
+      ElMessage.error(this.tr('dictList.messages.loadTreeFailed'));
     }
   }
 
@@ -744,10 +742,10 @@ class DictListPage extends BaseListPage {
         this.state.tableData = [payload];
         this.state.pagination.total = 1;
       } else {
-        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('dictList.messages.loadFailed'));
+        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || this.tr('dictList.messages.loadFailed'));
       }
     } catch {
-      ElMessage.error(tr('dictList.messages.loadFailed'));
+      ElMessage.error(this.tr('dictList.messages.loadFailed'));
     }
   }
 
@@ -803,10 +801,10 @@ class DictListPage extends BaseListPage {
         this.state.tableData = payload.data ?? [];
         this.state.pagination.total = payload.totalCount ?? 0;
       } else {
-        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('dictList.messages.loadFailed'));
+        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || this.tr('dictList.messages.loadFailed'));
       }
     } catch {
-      ElMessage.error(tr('dictList.messages.loadFailed'));
+      ElMessage.error(this.tr('dictList.messages.loadFailed'));
     }
   }
 
@@ -832,33 +830,29 @@ class DictListPage extends BaseListPage {
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'dictList.operationColumnPinned';
 const DICT_LIST_STATE_STORAGE_KEY = 'dictList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'dictList.visibleColumns';
-const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['dictType', 'dictName', 'atomicServiceCode', 'itemCode', 'itemName', 'parentCode', 'orderNum', 'remark', 'active'];
-const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const {
+  indexColumnKey: INDEX_COLUMN_KEY,
+  allColumnKeys: ALL_COLUMN_KEYS,
+  columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
+  defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
+} = createColumnVisibilityConfig(['dictType', 'dictName', 'atomicServiceCode', 'itemCode', 'itemName', 'parentCode', 'orderNum', 'remark', 'active']);
 
 export default defineComponent({
   name: 'DictListPage',
   components: { DictFormPage, DictItemFormPage, DictDetailPage, DictItemDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    provide(ValidationI18nCacheKey, ref(new Set<string>()));
+    useValidationI18nCacheProvider();
     const { t, te } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new DictListPage(props, context, tree)) as DictListPage & { state: Record<string, unknown> };
     const state = listPage.state as Record<string, unknown>;
-    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
-    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
-    const hasFormEverOpened = ref(false);
-    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
-    const currentFormMode = ref<'add' | 'edit'>('add');
-    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
-    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
-    function onFormClose(v: boolean) {
-      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
-    }
-    function onFormResponse(payload: Record<string, unknown>) {
-      (currentFormMode.value === 'add' ? listPage.afterAddDict : listPage.afterEdit).call(listPage, payload);
-    }
+    const {
+      formVisible,
+      formRid,
+      hasFormEverOpened,
+      onFormClose,
+      onFormResponse,
+    } = useListPageFormSetup({ state, listPage, addHandlerName: 'afterAddDict' });
     const itemFormVisible = computed(() => !!(state.addItemDialogVisible || state.editItemDialogVisible));
     const itemFormRid = computed(() => (state.editItemDialogVisible ? String(state.rid ?? '') : ''));
     const hasItemFormEverOpened = ref(false);
@@ -924,25 +918,11 @@ export default defineComponent({
       layoutOnTableWrapMounted();
     }
 
-    const splitContainerRef = ref<HTMLElement | null>(null);
-    const treePanelWidthPercent = ref(15.75);
-    function startTreeResize(e: MouseEvent) {
-      e.preventDefault();
-      document.addEventListener('mousemove', onTreeResizeMove);
-      document.addEventListener('mouseup', onTreeResizeEnd);
-    }
-    function onTreeResizeMove(e: MouseEvent) {
-      const el = splitContainerRef.value;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const pct = (x / rect.width) * 100;
-      treePanelWidthPercent.value = Math.min(50, Math.max(10, pct));
-    }
-    function onTreeResizeEnd() {
-      document.removeEventListener('mousemove', onTreeResizeMove);
-      document.removeEventListener('mouseup', onTreeResizeEnd);
-    }
+    const { splitContainerRef, treePanelWidthPercent, startTreeResize } = useTreeSplitResize({
+      initialPercent: 15.75,
+      minPercent: 10,
+      maxPercent: 50,
+    });
 
     return {
       listPage,

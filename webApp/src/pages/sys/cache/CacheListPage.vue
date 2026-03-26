@@ -439,31 +439,37 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
-import { ElMessage } from 'element-plus';
-import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
-import { useI18n } from 'vue-i18n';
+import {computed, defineComponent, nextTick, provide, reactive, ref, toRefs, watch} from 'vue';
+import {ElMessage} from 'element-plus';
+import {Delete, Edit, Plus, RefreshLeft, Search, Tickets} from '@element-plus/icons-vue';
+import {useI18n} from 'vue-i18n';
 import CacheFormPage from './CacheFormPage.vue';
 import CacheDetailPage from './CacheDetailPage.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import { BaseListPage } from '../../../components/pages/BaseListPage';
-import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
-import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
-import { Pair } from '../../../components/model/Pair';
-import { backendRequest, getApiFailureMessage, getApiResponseMessage, getThrownErrorMessage, getUserFacingMessage, isApiSuccessResponse, resolveApiFailureMessage, resolveApiResponseMessage, resolveThrownErrorMessage, resolveUserFacingMessage } from '../../../utils/backendRequest';
-import { i18n } from '../../../i18n';
-import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
+import {BaseListPage} from '../../../components/pages/BaseListPage';
+import {useListPageLayout} from '../../../components/pages/useListPageLayout';
+import {useValidationI18nCacheProvider} from '../../../components/pages/useValidationI18nCacheProvider';
+import {createColumnVisibilityConfig} from '../../../components/pages/columnVisibilityConfig';
+import {useListPageFormSetup} from '../../../components/pages/useListPageFormSetup';
+import {useColumnVisibilityOptions} from '../../../components/pages/useColumnVisibilityOptions';
+import {useFixedLeftTableWidth} from '../../../components/pages/useFixedLeftTableWidth';
+import {useFixedLeftRelayoutWatcher} from '../../../components/pages/useFixedLeftRelayoutWatcher';
+import {useColumnOrderDrag} from '../../../components/pages/useColumnOrderDrag';
+import {
+  backendRequest,
+  getApiFailureMessage,
+  getApiResponseMessage,
+  getThrownErrorMessage,
+  isApiSuccessResponse,
+  resolveApiFailureMessage,
+  resolveApiResponseMessage,
+  resolveThrownErrorMessage
+} from '../../../utils/backendRequest';
 
 /** 下拉菜单「管理」操作项的命令参数：操作编号 + 当前行数据 */
 interface CacheCommandPayload {
   item: number;
   row: Record<string, unknown>;
-}
-
-/** 在非模板代码中获取 i18n 文案（类内部等无法使用 useI18n 时） */
-function tr(key: string): string {
-  return i18n.global.t(key) as string;
 }
 
 /** 缓存列表页业务逻辑：搜索、表格、缓存管理操作（重载/驱逐等）及 key 弹窗 */
@@ -587,14 +593,14 @@ class CacheListPage extends BaseListPage {
           || getApiFailureMessage(result)
           || await resolveApiResponseMessage(result)
           || getApiResponseMessage(result)
-          || tr('cacheList.messages.requestOperationFailed')
+          || this.tr('cacheList.messages.requestOperationFailed')
         );
       }
     } catch (error) {
       ElMessage.error(
         await resolveThrownErrorMessage(error)
         || getThrownErrorMessage(error)
-        || tr('cacheList.messages.requestOperationFailed')
+        || this.tr('cacheList.messages.requestOperationFailed')
       );
     }
   }
@@ -649,7 +655,7 @@ class CacheListPage extends BaseListPage {
 
   /** 更新启用状态前提示「重启后生效」，再调用基类请求 */
   protected async doUpdateActive(row: Record<string, unknown>): Promise<void> {
-    ElMessage.info(tr('cacheList.messages.activeChangeTakesEffectAfterRestart'));
+    ElMessage.info(this.tr('cacheList.messages.activeChangeTakesEffectAfterRestart'));
     await super.doUpdateActive(row);
   }
 }
@@ -665,8 +671,12 @@ const COLUMN_VISIBILITY_STORAGE_KEY = 'cacheList.visibleColumns';
 /** 栏位顺序持久化的 localStorage key */
 const COLUMN_ORDER_STORAGE_KEY = 'cacheList.columnOrder';
 /** 可参与排序的列 key（与栏位可见性一致） */
-const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = [
+const {
+  indexColumnKey: INDEX_COLUMN_KEY,
+  allColumnKeys: ALL_COLUMN_KEYS,
+  columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
+  defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
+} = createColumnVisibilityConfig([
   'atomicServiceCode',
   'strategyDictCode',
   'active',
@@ -675,10 +685,7 @@ const ALL_COLUMN_KEYS = [
   'writeInTime',
   'ttl',
   'remark',
-];
-const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-/** 默认展示的列 key 列表（除固定列外） */
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+]);
 
 export default defineComponent({
   name: 'CacheListPage',
@@ -694,25 +701,19 @@ export default defineComponent({
     Plus,
   },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    provide(ValidationI18nCacheKey, ref(new Set<string>()));
+    useValidationI18nCacheProvider();
     const { t } = useI18n();
     const listPage = reactive(new CacheListPage(props, context)) as CacheListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const state = listPage.state as Record<string, unknown>;
     const cacheKeyInputRef = ref<{ $el?: HTMLElement; input?: HTMLInputElement; select?: () => void; focus?: () => void } | null>(null);
-    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
-    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
-    const hasFormEverOpened = ref(false);
-    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
-    const currentFormMode = ref<'add' | 'edit'>('add');
-    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
-    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
-    function onFormClose(v: boolean) {
-      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
-    }
-    function onFormResponse(payload: Record<string, unknown>) {
-      (currentFormMode.value === 'add' ? listPage.afterAdd : listPage.afterEdit).call(listPage, payload);
-    }
+    const {
+      formVisible,
+      formRid,
+      hasFormEverOpened,
+      onFormClose,
+      onFormResponse,
+    } = useListPageFormSetup({ state, listPage });
     function submitCacheOperationFromInput() {
       const value = state.cacheKey;
       if (value == null || String(value).trim() === '') return;
@@ -858,10 +859,12 @@ export default defineComponent({
       remark: () => t('cacheList.columns.remark'),
     };
     /** 栏位可见性面板中的可选项（按当前顺序），支持拖拽排序 */
-    const columnVisibilityOptions = computed(() => [
-      { key: INDEX_COLUMN_KEY, label: t('cacheList.columns.index') },
-      ...orderedColumnKeys.value.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
-    ]);
+    const columnVisibilityOptions = useColumnVisibilityOptions({
+      indexColumnKey: INDEX_COLUMN_KEY,
+      getIndexLabel: () => t('cacheList.columns.index'),
+      getColumnKeys: () => orderedColumnKeys.value,
+      getColumnLabel: (key) => columnKeyToLabel[key]?.() ?? key,
+    });
 
     /** 将布尔值格式化为「是/否」文案 */
     function formatBoolText(value: unknown): string {
@@ -884,17 +887,7 @@ export default defineComponent({
       });
     }
 
-    /** 栏位可见性变化后重新布局并强制锁定左侧固定列宽度 */
-    watch(
-      () => (listPage.state as Record<string, unknown>).visibleColumnKeys,
-      () => { nextTick(forceFixedLeftWidth); },
-      { deep: true },
-    );
-    /** 操作列显示/隐藏切换后重新布局并强制锁定左侧固定列宽度 */
-    watch(
-      () => (listPage.state as Record<string, unknown>).showOperationColumn,
-      () => { nextTick(forceFixedLeftWidth); },
-    );
+    useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,

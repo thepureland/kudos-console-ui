@@ -246,8 +246,10 @@ import ParamDetailPage from './ParamDetailPage.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
+import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
+import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
-import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 
 class ParamListPage extends BaseListPage {
   constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
@@ -290,10 +292,12 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'paramList.operationColumnPinned';
 const PARAM_LIST_STATE_STORAGE_KEY = 'paramList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'paramList.visibleColumns';
 /** 可配置可见性的列（顺序列、备注列等）；paramName 固定左侧不参与 */
-const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['paramValue', 'defaultValue', 'atomicServiceCode', 'orderNum', 'remark', 'active'];
-const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const {
+  indexColumnKey: INDEX_COLUMN_KEY,
+  allColumnKeys: ALL_COLUMN_KEYS,
+  columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
+  defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
+} = createColumnVisibilityConfig(['paramValue', 'defaultValue', 'atomicServiceCode', 'orderNum', 'remark', 'active']);
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
 const RESERVED_WIDTH_LEFT = 39 + 50 + 120;
 const RESERVED_WIDTH_RIGHT = 140;
@@ -312,23 +316,18 @@ export default defineComponent({
     Plus,
   },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    provide(ValidationI18nCacheKey, ref(new Set<string>()));
+    useValidationI18nCacheProvider();
     const { t } = useI18n();
     const listPage = reactive(new ParamListPage(props, context)) as ParamListPage & { state: Record<string, unknown> };
     const state = listPage.state as Record<string, unknown>;
-    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
-    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
-    const hasFormEverOpened = ref(false);
-    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
-    const currentFormMode = ref<'add' | 'edit'>('add');
-    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
-    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
-    function onFormClose(v: boolean) {
-      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
-    }
-    function onFormResponse(payload: Record<string, unknown>) {
-      (currentFormMode.value === 'add' ? listPage.doAfterAdd : listPage.doAfterEdit).call(listPage, payload);
-    }
+    const {
+      formVisible,
+      formRid,
+      hasFormEverOpened,
+      currentFormMode,
+      onFormClose,
+      onFormResponse,
+    } = useListPageFormSetup({ state, listPage, addHandlerName: 'doAfterAdd', editHandlerName: 'doAfterEdit' });
     function handleFormSaved(params: Record<string, unknown>) {
       (currentFormMode.value === 'add' ? listPage.doAfterAdd : listPage.doAfterEdit).call(listPage, params);
     }

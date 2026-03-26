@@ -269,12 +269,16 @@ import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { i18n } from '../../../i18n';
-import { ValidationI18nCacheKey } from '../../../components/pages/useAddEditDialogSetup';
 import ResourceFormPage from './ResourceFormPage.vue';
 import ResourceDetailPage from './ResourceDetailPage.vue';
 import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
 import { BaseListPage } from '../../../components/pages/BaseListPage';
 import { useListPageLayout } from '../../../components/pages/useListPageLayout';
+import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
+import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
+import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
+import { useTreeSplitResize } from '../../../components/pages/useTreeSplitResize';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { loadMessagesForConfig } from '../../../i18n';
 
@@ -284,10 +288,6 @@ const RESOURCE_LIST_I18N_CONFIG = [
   { i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' },
   ...MENU_I18N_CONFIG,
 ];
-
-function tr(key: string): string {
-  return i18n.global.t(key) as string;
-}
 
 class ResourceListPage extends BaseListPage {
   private tree: { value?: { remove: (obj: { id: string }) => void } };
@@ -437,10 +437,10 @@ class ResourceListPage extends BaseListPage {
       if (isSuccess) {
         this.postSearchSuccessfully(payload as { data: unknown[]; totalCount: number });
       } else {
-        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('resourceList.messages.loadFailed'));
+        ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || this.tr('resourceList.messages.loadFailed'));
       }
     } catch {
-      ElMessage.error(tr('resourceList.messages.loadFailed'));
+      ElMessage.error(this.tr('resourceList.messages.loadFailed'));
     }
   }
 
@@ -513,7 +513,7 @@ class ResourceListPage extends BaseListPage {
       const resolved = this.applyTreeNodeI18n(list, node.level);
       resolve(resolved);
     } catch {
-      ElMessage.error(tr('resourceList.messages.loadTreeFailed'));
+      ElMessage.error(this.tr('resourceList.messages.loadTreeFailed'));
     }
   }
 
@@ -572,9 +572,9 @@ class ResourceListPage extends BaseListPage {
       if (payload != null && typeof payload === 'object' && 'data' in payload && 'totalCount' in payload) {
         this.state.tableData = payload.data ?? [];
         (this.state.pagination as Record<string, number>).total = payload.totalCount ?? 0;
-      } else ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('resourceList.messages.loadFailed'));
+      } else ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || this.tr('resourceList.messages.loadFailed'));
     } catch {
-      ElMessage.error(tr('resourceList.messages.loadFailed'));
+      ElMessage.error(this.tr('resourceList.messages.loadFailed'));
     }
   }
 
@@ -639,9 +639,9 @@ class ResourceListPage extends BaseListPage {
       if (payload != null && typeof payload === 'object' && 'data' in payload && 'totalCount' in payload) {
         this.state.tableData = payload.data ?? [];
         (this.state.pagination as Record<string, number>).total = payload.totalCount ?? 0;
-      } else ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tr('resourceList.messages.loadFailed'));
+      } else ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || this.tr('resourceList.messages.loadFailed'));
     } catch {
-      ElMessage.error(tr('resourceList.messages.loadFailed'));
+      ElMessage.error(this.tr('resourceList.messages.loadFailed'));
     }
   }
 
@@ -689,34 +689,30 @@ class ResourceListPage extends BaseListPage {
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'resourceList.operationColumnPinned';
 const RESOURCE_LIST_STATE_STORAGE_KEY = 'resourceList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'resourceList.visibleColumns';
-const INDEX_COLUMN_KEY = 'index';
-const ALL_COLUMN_KEYS = ['subSystemCode', 'resourceTypeDictCode', 'name', 'url', 'icon', 'orderNum', 'active'];
-const COLUMN_VISIBILITY_KEYS = [INDEX_COLUMN_KEY, ...ALL_COLUMN_KEYS];
-const DEFAULT_VISIBLE_COLUMN_KEYS = [...ALL_COLUMN_KEYS];
+const {
+  indexColumnKey: INDEX_COLUMN_KEY,
+  allColumnKeys: ALL_COLUMN_KEYS,
+  columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
+  defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
+} = createColumnVisibilityConfig(['subSystemCode', 'resourceTypeDictCode', 'name', 'url', 'icon', 'orderNum', 'active']);
 
 export default defineComponent({
   name: 'ResourceListPage',
   components: { ResourceFormPage, ResourceDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    provide(ValidationI18nCacheKey, ref(new Set<string>()));
+    useValidationI18nCacheProvider();
     const { t, te } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
     const listPage = reactive(new ResourceListPage(props, context, tree)) as ResourceListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const state = listPage.state as Record<string, unknown>;
-    const formVisible = computed(() => !!(state.addDialogVisible || state.editDialogVisible));
-    const formRid = computed(() => (state.editDialogVisible ? String(state.rid ?? '') : ''));
-    const hasFormEverOpened = ref(false);
-    watch(formVisible, (v) => { if (v) hasFormEverOpened.value = true; }, { immediate: true });
-    const currentFormMode = ref<'add' | 'edit'>('add');
-    watch(() => state.addDialogVisible, (v) => { if (v) currentFormMode.value = 'add'; }, { immediate: true });
-    watch(() => state.editDialogVisible, (v) => { if (v) currentFormMode.value = 'edit'; }, { immediate: true });
-    function onFormClose(v: boolean) {
-      if (!v) { state.addDialogVisible = false; state.editDialogVisible = false; }
-    }
-    function onFormResponse(payload: Record<string, unknown>) {
-      (currentFormMode.value === 'add' ? listPage.afterAdd : listPage.afterEdit).call(listPage, payload);
-    }
+    const {
+      formVisible,
+      formRid,
+      hasFormEverOpened,
+      onFormClose,
+      onFormResponse,
+    } = useListPageFormSetup({ state, listPage });
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
@@ -730,10 +726,12 @@ export default defineComponent({
       orderNum: () => t('resourceList.columns.seqNo'),
       active: () => t('resourceList.columns.active'),
     };
-    const columnVisibilityOptions = computed(() => [
-      { key: INDEX_COLUMN_KEY, label: t('resourceList.columns.index') },
-      ...ALL_COLUMN_KEYS.map((key) => ({ key, label: columnKeyToLabel[key]?.() ?? key })),
-    ]);
+    const columnVisibilityOptions = useColumnVisibilityOptions({
+      indexColumnKey: INDEX_COLUMN_KEY,
+      getIndexLabel: () => t('resourceList.columns.index'),
+      getColumnKeys: () => ALL_COLUMN_KEYS,
+      getColumnLabel: (key) => columnKeyToLabel[key]?.() ?? key,
+    });
     const RESERVED_WIDTH_LEFT = 39 + 50;
     const RESERVED_WIDTH_RIGHT = 140;
     /** 字典项展示：有 i18n key 时 t(key)，否则不调用 t('') 避免 intlify 报错 */
@@ -795,29 +793,13 @@ export default defineComponent({
     });
     onBeforeUnmount(() => {
       listPage.persistListState();
-      document.removeEventListener('mousemove', onTreeResizeMove);
-      document.removeEventListener('mouseup', onTreeResizeEnd);
     });
 
-    const splitContainerRef = ref<HTMLElement | null>(null);
-    const treePanelWidthPercent = ref(15.75);
-    function startTreeResize(e: MouseEvent) {
-      e.preventDefault();
-      document.addEventListener('mousemove', onTreeResizeMove);
-      document.addEventListener('mouseup', onTreeResizeEnd);
-    }
-    function onTreeResizeMove(e: MouseEvent) {
-      const el = splitContainerRef.value;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const pct = (x / rect.width) * 100;
-      treePanelWidthPercent.value = Math.min(50, Math.max(15, pct));
-    }
-    function onTreeResizeEnd() {
-      document.removeEventListener('mousemove', onTreeResizeMove);
-      document.removeEventListener('mouseup', onTreeResizeEnd);
-    }
+    const { splitContainerRef, treePanelWidthPercent, startTreeResize } = useTreeSplitResize({
+      initialPercent: 15.75,
+      minPercent: 15,
+      maxPercent: 50,
+    });
 
     return {
       listPage,
