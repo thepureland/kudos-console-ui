@@ -301,7 +301,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, provide, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick,  watch } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';

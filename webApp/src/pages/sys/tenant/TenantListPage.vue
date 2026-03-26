@@ -337,7 +337,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import TenantFormPage from './TenantFormPage.vue';
@@ -350,6 +350,7 @@ import { useValidationI18nCacheProvider } from '../../../components/pages/useVal
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
 import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
 import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
@@ -389,9 +390,7 @@ class TenantListPage extends BaseListPage {
   }
 
   protected initState(): Record<string, unknown> {
-    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
-
-    return {
+        return {
       searchParams: {
         name: null as string | null,
         subSystemCode: null as string | null,
@@ -439,6 +438,7 @@ export default defineComponent({
     } = useListPageFormSetup({ state, listPage });
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 200;
     const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
@@ -467,8 +467,8 @@ export default defineComponent({
       columnWidths,
     } = useTableAutoWidthContext({
       listPage,
-      reservedWidthLeft: 0,
-      reservedWidthRight: 0,
+      reservedWidthLeft: 289,
+      reservedWidthRight: 140,
       createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
@@ -491,10 +491,7 @@ export default defineComponent({
       }))
     });
 
-    const visibleColumnKeys = computed<string[]>({
-      get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
-      set: (next) => listPage.applyVisibleColumns(next),
-    });
+    const visibleColumnKeys = useVisibleColumnKeys(listPage);
     const columnVisibilityOptions = useColumnVisibilityOptions({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('tenantList.columns.index'),

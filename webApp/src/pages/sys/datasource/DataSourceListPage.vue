@@ -328,7 +328,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide, onMounted } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch,  onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Delete, Edit, Lock, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
@@ -341,6 +341,7 @@ import { useValidationI18nCacheProvider } from '../../../components/pages/useVal
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
 import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
 import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
@@ -487,6 +488,7 @@ export default defineComponent({
       onAfterMount: updateNameInputWidth,
       onAfterPersist: updateNameInputWidth,
     });
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     function normalizeColumnOrder(order: string[]): string[] {
       const tenantIdx = order.indexOf('tenantName');
       const microIdx = order.indexOf('microservice');
@@ -511,10 +513,7 @@ export default defineComponent({
       onOrderChange: () => nextTick(forceFixedLeftWidth),
       normalizeOrder: normalizeColumnOrder,
     });
-    const visibleColumnKeys = computed<string[]>({
-      get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],
-      set: (next) => listPage.applyVisibleColumns(next),
-    });
+    const visibleColumnKeys = useVisibleColumnKeys(listPage);
     /** 微服务树：来自 sys/microService/getFullMicroServiceTree，供 el-tree-select 树形展示。接口返回 IdAndNameTreeNode：{ id, name, parentId?, orderNum?, children } */
     type MicroServiceTreeNode = { id: string; name: string; parentId?: string | null; orderNum?: number | null; children?: MicroServiceTreeNode[] };
     type TreeSelectNode = { value: string; label: string; children?: TreeSelectNode[] };
@@ -606,8 +605,7 @@ export default defineComponent({
                     : () => '',
       }))
     });
-    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
-    useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
+        useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,

@@ -255,7 +255,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
@@ -269,6 +269,7 @@ import { useListPageFormSetup } from '../../../components/pages/useListPageFormS
 import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useOperationColumnVisible } from '../../../components/pages/useOperationColumnVisible';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
 import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
@@ -302,9 +303,7 @@ class OrganizationListPage extends TenantSupportListPage {
   }
 
   protected initState(): Record<string, unknown> {
-    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
-
-    return {
+        return {
       searchParams: {
         subSysOrTenant: null as string[] | null,
         active: true,
@@ -372,6 +371,7 @@ export default defineComponent({
     } = useListPageFormSetup({ state, listPage });
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
     const {
       orderedColumnKeys,
@@ -420,10 +420,7 @@ export default defineComponent({
       return val.includes('.') ? t(val) : t('organization_type.' + val);
     }
 
-    const visibleColumnKeys = computed<string[]>({
-      get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
-      set: (next) => listPage.applyVisibleColumns(next),
-    });
+    const visibleColumnKeys = useVisibleColumnKeys(listPage);
     const columnVisibilityOptions = useColumnVisibilityOptions({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('organizationList.columns.index'),

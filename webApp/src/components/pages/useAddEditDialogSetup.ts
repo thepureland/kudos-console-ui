@@ -114,8 +114,11 @@ export function useAddEditDialogSetup(
   }
 
   const { form: _formRef, visible: _visibleRef, ...restPageRefs } = toRefs(page);
+  const safePageRefs = Object.fromEntries(
+    Object.entries(restPageRefs).filter(([key]) => !key.startsWith('_') && !key.startsWith('$'))
+  );
   return {
-    ...restPageRefs,
+    ...safePageRefs,
     ...toRefs(page.state),
     form: formRef,
     visible: visibleRef,

@@ -255,7 +255,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import UserGroupFormPage from './UserGroupFormPage.vue';
@@ -268,6 +268,7 @@ import { useListPageFormSetup } from '../../../components/pages/useListPageFormS
 import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useOperationColumnVisible } from '../../../components/pages/useOperationColumnVisible';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
 import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
@@ -290,9 +291,7 @@ class UserGroupListPage extends BaseListPage {
   }
 
   protected initState(): Record<string, unknown> {
-    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
-
-    return {
+        return {
       searchParams: {
         groupCode: null as string | null,
         groupName: null as string | null,
@@ -338,6 +337,7 @@ export default defineComponent({
     } = useListPageFormSetup({ state, listPage });
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
     const {
       orderedColumnKeys,
@@ -377,10 +377,7 @@ export default defineComponent({
       }))
     });
 
-    const visibleColumnKeys = computed<string[]>({
-      get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
-      set: (next) => listPage.applyVisibleColumns(next),
-    });
+    const visibleColumnKeys = useVisibleColumnKeys(listPage);
     const columnVisibilityOptions = useColumnVisibilityOptions({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('userGroupList.columns.index'),

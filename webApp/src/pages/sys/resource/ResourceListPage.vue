@@ -263,7 +263,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, watch, nextTick, onBeforeUnmount, provide } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
@@ -278,6 +278,7 @@ import { useValidationI18nCacheProvider } from '../../../components/pages/useVal
 import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
 import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
 import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
+import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
 import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
 import { useTreeSplitResize } from '../../../components/pages/useTreeSplitResize';
@@ -335,9 +336,7 @@ class ResourceListPage extends BaseListPage {
   }
 
   protected initState(): Record<string, unknown> {
-    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
-
-    return {
+        return {
       resourceTreeProps: { label: 'name' },
       resourceTypeOptions: [] as Array<{ first: string; second: string }>,
       searchParams: {
@@ -719,6 +718,7 @@ export default defineComponent({
     } = useListPageFormSetup({ state, listPage });
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
     });
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
 
     const columnKeyToLabel: Record<string, () => string> = {
@@ -763,8 +763,8 @@ export default defineComponent({
       columnWidths,
     } = useTableAutoWidthContext({
       listPage,
-      reservedWidthLeft: 0,
-      reservedWidthRight: 0,
+      reservedWidthLeft: 89,
+      reservedWidthRight: 140,
       createAutoWidthColumns: () =>
       ALL_COLUMN_KEYS.map((key) => ({
         key,
@@ -786,10 +786,7 @@ export default defineComponent({
                       : () => '',
       }))
     });
-    const visibleColumnKeys = computed<string[]>({
-      get: () => (listPage.state.visibleColumnKeys as string[]) ?? [],
-      set: (next) => listPage.applyVisibleColumns(next),
-    });
+    const visibleColumnKeys = useVisibleColumnKeys(listPage);
 
     onBeforeRouteLeave((_to, _from, next) => {
       listPage.persistListState();

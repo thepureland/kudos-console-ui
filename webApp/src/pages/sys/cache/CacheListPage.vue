@@ -439,7 +439,7 @@
 </template>
 
 <script lang="ts">
-import {computed, defineComponent, nextTick, provide, reactive, ref, toRefs, watch} from 'vue';
+import {computed, defineComponent, nextTick,  reactive, ref, toRefs, watch} from 'vue';
 import {ElMessage} from 'element-plus';
 import {Delete, Edit, Plus, RefreshLeft, Search, Tickets} from '@element-plus/icons-vue';
 import {useI18n} from 'vue-i18n';
@@ -454,6 +454,7 @@ import {createColumnVisibilityConfig} from '../../../components/pages/columnVisi
 import {useListPageFormSetup} from '../../../components/pages/useListPageFormSetup';
 import {useListPageVisibilityState} from '../../../components/pages/useListPageVisibilityState';
 import {useColumnVisibilityOptions} from '../../../components/pages/useColumnVisibilityOptions';
+import {useVisibleColumnKeys} from '../../../components/pages/useVisibleColumnKeys';
 import {useFixedLeftTableWidth} from '../../../components/pages/useFixedLeftTableWidth';
 import {useFixedLeftRelayoutWatcher} from '../../../components/pages/useFixedLeftRelayoutWatcher';
 import {useColumnOrderDrag} from '../../../components/pages/useColumnOrderDrag';
@@ -487,9 +488,7 @@ class CacheListPage extends BaseListPage {
 
   /** 初始化页面状态：搜索条件、key 弹窗可见性、当前操作与当前行 */
   protected initState(): Record<string, unknown> {
-    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
-
-    return {
+        return {
       searchParams: {
         name: null,
         atomicServiceCode: null,
@@ -587,8 +586,13 @@ class CacheListPage extends BaseListPage {
           const exists = (result as { data?: unknown })?.data === true;
           message = exists ? '指定的缓存key存在' : '指定的缓存key不存在';
         } else {
-          message =
-            await resolveApiResponseMessage(result) ?? getApiResponseMessage(result) ?? ((result as { data?: string })?.data ?? '');
+          const rawMessage =
+            await resolveApiResponseMessage(result)
+            ?? getApiResponseMessage(result)
+            ?? (typeof (result as { data?: unknown })?.data === 'string' ? (result as { data?: string }).data : null)
+            ?? '';
+          const normalizedMessage = String(rawMessage).trim();
+          message = normalizedMessage !== '' ? normalizedMessage : this.getDefaultCacheOperationSuccessMessage(operation);
         }
         ElMessage.info(message);
       } else {
@@ -607,6 +611,21 @@ class CacheListPage extends BaseListPage {
         || this.tr('cacheList.messages.requestOperationFailed')
       );
     }
+  }
+
+  /** 后端未返回可展示 message 时，按操作给出本地兜底成功提示。 */
+  private getDefaultCacheOperationSuccessMessage(operation: string): string {
+    const actionKeyMap: Record<string, string> = {
+      reload: 'cacheList.actions.reload',
+      reloadAll: 'cacheList.actions.reloadAll',
+      evict: 'cacheList.actions.evict',
+      evictAll: 'cacheList.actions.clearAll',
+      existsKey: 'cacheList.actions.checkKeyExists',
+      getValueJson: 'cacheList.actions.getValueInfo',
+    };
+    const actionKey = actionKeyMap[operation];
+    const actionText = actionKey ? this.tr(actionKey) : this.tr('cacheList.actions.manage');
+    return `${actionText}成功`;
   }
 
   /** 重载单 key：记录当前行与操作，打开 key 输入弹窗 */
@@ -779,6 +798,7 @@ export default defineComponent({
         updateSubSysSelectWidth();
       },
     });
+    const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     function updateSubSysSelectWidth() {
       nextTick(() => {
         const el = subSysSelectMirrorRef.value;
@@ -809,8 +829,8 @@ export default defineComponent({
       columnWidths,
     } = useTableAutoWidthContext({
       listPage,
-      reservedWidthLeft: 0,
-      reservedWidthRight: 0,
+      reservedWidthLeft: 439,
+      reservedWidthRight: 180,
       createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
@@ -837,10 +857,7 @@ export default defineComponent({
       }))
     });
     /** 栏位可见性勾选与 listPage 状态双向同步 */
-    const visibleColumnKeys = computed<string[]>({
-      get: () => ((listPage.state as Record<string, unknown>).visibleColumnKeys as string[]) ?? [],
-      set: (next) => listPage.applyVisibleColumns(next),
-    });
+    const visibleColumnKeys = useVisibleColumnKeys(listPage);
     /** 策略列表头筛选选项：字典项 value 为 i18n key，用 t() 显示 */
     const strategyFilters = computed(() => {
       const items = (listPage.state.strategyDictOptions || []) as Array<{ first: string; second: string }>;

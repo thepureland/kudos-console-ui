@@ -238,7 +238,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch, provide } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import ParamFormPage from './ParamFormPage.vue';
@@ -356,8 +356,8 @@ export default defineComponent({
       columnWidths,
     } = useTableAutoWidthContext({
       listPage,
-      reservedWidthLeft: 0,
-      reservedWidthRight: 0,
+      reservedWidthLeft: 209,
+      reservedWidthRight: 140,
       createAutoWidthColumns: () => [
       { key: 'paramValue', getLabel: () => t('paramList.columns.paramValue'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.paramValue ?? '') },
       { key: 'defaultValue', getLabel: () => t('paramList.columns.defaultValue'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.defaultValue ?? '') },
