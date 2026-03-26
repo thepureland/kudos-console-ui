@@ -221,11 +221,12 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { WarningFilled } from '@element-plus/icons-vue';
-import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
-import type { SysMicroServiceCacheItem } from '../../../components/pages/BasePage';
 import { Pair } from '../../../components/model/Pair';
-import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import '../../../styles/add-edit-dialog-common.css';
+import { BaseAddEditPage } from '../../../components/pages/core';
+import type { PageContext, PageProps, SysMicroServiceCacheItem } from '../../../components/pages/core';
+import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
+import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 
 interface FormModel {
   name: string | null;
@@ -243,7 +244,7 @@ interface FormModel {
 type StrategyOption = { first: string; second: string };
 
 class CacheFormPage extends BaseAddEditPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     const list = (props as { atomicServiceList?: SysMicroServiceCacheItem[] }).atomicServiceList;
     if (Array.isArray(list) && list.length > 0) {
@@ -312,38 +313,24 @@ export default defineComponent({
   name: 'CacheFormPage',
   components: { WarningFilled },
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
+    ...commonAddEditDialogProps,
     /** 原子服务下拉列表，由列表页传入时与搜索栏共用数据，不单独加载 */
     atomicServiceList: {
       type: Array as () => { code: string; name: string }[],
       default: () => [],
     },
-    onSaved: {
-      type: Function as (params: Record<string, unknown>) => void,
-      default: undefined,
-    },
   },
-  emits: ['update:modelValue', 'response'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    return useAddEditDialogSetup(props, context, {
+  emits: commonAddEditDialogEmits,
+  setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    return useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new CacheFormPage(p, c),
       i18nKeyPrefix: 'cacheAddEdit',
       formHasContent(model: Record<string, unknown>) {
-        if (!model) return false;
-        if (model.name != null && String(model.name).trim() !== '') return true;
-        if (model.atomicServiceCode != null && model.atomicServiceCode !== '') return true;
-        if (model.strategyDictCode != null && model.strategyDictCode !== '') return true;
-        if (model.remark != null && String(model.remark).trim() !== '') return true;
-        if (model.ttl != null && model.ttl !== '') return true;
-        if (model.writeOnBoot === true || model.writeInTime === true) return true;
-        return false;
+        return hasAnyFormContent(model, {
+          stringKeys: ['name', 'remark'],
+          valueKeys: ['atomicServiceCode', 'strategyDictCode', 'ttl'],
+          trueKeys: ['writeOnBoot', 'writeInTime'],
+        });
       },
     });
   },

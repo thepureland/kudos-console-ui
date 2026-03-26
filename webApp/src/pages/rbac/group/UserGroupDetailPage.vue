@@ -13,14 +13,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, watch, computed } from 'vue';
-import { BaseDetailPage } from '../../../components/pages/BaseDetailPage';
-import SectionedDetailDialog from '../../../components/pages/SectionedDetailDialog.vue';
+import { defineComponent, reactive, watch } from 'vue';
+import { BaseDetailPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, useDetailDialogVisibility, SectionedDetailDialog } from '../../../components/pages/detail';
+import type { DetailPageViewModel } from '../../../components/pages/detail';
 import {
   type FieldConfig,
   type SectionConfig,
-  useSectionedDetail,
-} from '../../../components/pages/sectionedDetail';
+} from '../../../components/pages/detail';
 
 /** 与 CacheDetail 一致：每行最多 2 个字段；其他信息放最后，备注接在内置后面。 */
 const SECTION_MAP: SectionConfig[] = [
@@ -70,48 +71,28 @@ export default defineComponent({
   name: 'UserGroupDetailPage',
   components: { SectionedDetailDialog },
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
+    ...commonDetailDialogProps,
   },
-  emits: ['update:modelValue'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  emits: commonDetailDialogEmits,
+  setup(props: PageProps, context: PageContext) {
     const page = reactive(new UserGroupDetailPage(props, context)) as UserGroupDetailPage & {
       state: { detail: Record<string, unknown> | null };
       transAtomicService: (code: string) => string;
       formatDate: (value: unknown) => string;
     };
 
-    const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
+    const { rowsWithSections, formatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {
       emptyKey: 'userGroupDetail.empty',
       yesNoKey: 'userGroupList.common',
     });
 
-    watch(
-      () => props.rid,
-      (newRid, oldRid) => {
-        const id = newRid ? String(newRid) : '';
-        page.state.rid = id;
-        if (oldRid !== undefined && id && id !== String(oldRid)) {
-          page.state.detail = null;
-          page.loadData();
-        }
-      }
-    );
+    useDetailPageRidSync(props, page);
 
-    const visible = computed(() => props.modelValue as boolean);
-    function close() {
-      context.emit('update:modelValue', false);
-    }
+    const { visible, close } = useDetailDialogVisibility(props, context);
 
     return {
-      ...toRefs(page),
-      ...toRefs(page.state),
+      ...pageRefs,
+      ...stateRefs,
       rowsWithSections,
       formatFieldValue,
       visible,

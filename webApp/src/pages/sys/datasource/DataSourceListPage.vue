@@ -328,31 +328,24 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch,  onMounted } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Delete, Edit, Lock, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import DataSourceFormPage from './DataSourceFormPage.vue';
 import DataSourceDetailPage from './DataSourceDetailPage.vue';
-import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
-import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
-import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
-import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
-import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
-import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
-import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
-import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
-import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
-import { useFixedLeftRelayoutWatcher } from '../../../components/pages/useFixedLeftRelayoutWatcher';
-import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
+import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
-import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
+import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
+import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, useFixedLeftTableWidth, useFixedLeftRelayoutWatcher, createI18nColumnLabelGetter, useColumnOrderDrag } from '../../../components/pages/list';
+import { TenantSupportListPage } from '../../../components/pages/support';
+import { useMicroserviceTreeOptions } from '../../../components/pages/integration';
+import { ListPageLayout } from '../../../components/pages/ui';
 
 /** 数据源列表页业务逻辑：继承租户支持列表，支持搜索、重置密码、测试数据回退。租户下拉为两级联动：第一级子系统（getAllActiveSubSystemCodes），第二级租户（getTenantsBySubSystemCode）。 */
 class DataSourceListPage extends TenantSupportListPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.convertThis();
   }
@@ -458,7 +451,7 @@ export default defineComponent({
     RefreshLeft,
     Plus,
   },
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
     const listPage = reactive(new DataSourceListPage(props, context)) as DataSourceListPage & { state: Record<string, unknown> };
@@ -514,46 +507,8 @@ export default defineComponent({
       normalizeOrder: normalizeColumnOrder,
     });
     const visibleColumnKeys = useVisibleColumnKeys(listPage);
-    /** 微服务树：来自 sys/microService/getFullMicroServiceTree，供 el-tree-select 树形展示。接口返回 IdAndNameTreeNode：{ id, name, parentId?, orderNum?, children } */
-    type MicroServiceTreeNode = { id: string; name: string; parentId?: string | null; orderNum?: number | null; children?: MicroServiceTreeNode[] };
-    type TreeSelectNode = { value: string; label: string; children?: TreeSelectNode[] };
-    const microserviceTree = ref<TreeSelectNode[]>([]);
-    /** 扁平列表，用于表格列「微服务」根据 code 显示 name */
-    const microserviceOptions = ref<Array<{ value: string; label: string }>>([]);
-    function toTreeSelectNode(node: MicroServiceTreeNode): TreeSelectNode {
-      const children = Array.isArray(node.children) && node.children.length > 0
-        ? node.children.map(toTreeSelectNode)
-        : undefined;
-      return {
-        value: String(node.id),
-        label: node.name ?? String(node.id),
-        ...(children ? { children } : {}),
-      };
-    }
-    function flattenMicroServiceTree(nodes: MicroServiceTreeNode[]): Array<{ value: string; label: string }> {
-      if (!Array.isArray(nodes) || nodes.length === 0) return [];
-      const list: Array<{ value: string; label: string }> = [];
-      for (const node of nodes) {
-        list.push({ value: String(node.id), label: node.name ?? String(node.id) });
-        if (Array.isArray(node.children) && node.children.length > 0) {
-          list.push(...flattenMicroServiceTree(node.children));
-        }
-      }
-      return list;
-    }
-    onMounted(() => {
-      backendRequest({ url: 'sys/microService/getFullMicroServiceTree', method: 'get' })
-        .then((result) => {
-          const payload = getApiResponseData<MicroServiceTreeNode[]>(result);
-          const raw = (Array.isArray(payload) ? payload : []) as MicroServiceTreeNode[];
-          microserviceTree.value = raw.map(toTreeSelectNode);
-          microserviceOptions.value = flattenMicroServiceTree(raw);
-        })
-        .catch(() => {
-          microserviceTree.value = [];
-          microserviceOptions.value = [];
-        });
-    });
+    /** 微服务树（供下拉展示）与扁平选项（供表格 code->name 映射） */
+    const { microserviceTree, microserviceOptions } = useMicroserviceTreeOptions({ includeFlatOptions: true });
     /** 表格微服务列展示：兼容多种后端字段与 microservice 展示，优先显示选项 label */
     function getMicroserviceDisplayText(row: Record<string, unknown>): string {
       const raw = row.microservice ?? row.microserviceCode ?? row.microServiceCode;
@@ -562,19 +517,12 @@ export default defineComponent({
       const label = microserviceOptions.value.find((o) => o.value === code)?.label;
       return label ?? code;
     }
-    const columnKeyToLabel: Record<string, () => string> = {
-      subSystemCode: () => t('dataSourceList.columns.subSys'),
-      tenantName: () => t('dataSourceList.columns.tenantName'),
-      microservice: () => t('dataSourceList.columns.microservice'),
-      url: () => t('dataSourceList.columns.url'),
-      username: () => t('dataSourceList.columns.username'),
-      active: () => t('dataSourceList.columns.active'),
-    };
+    const columnLabel = createI18nColumnLabelGetter(t, 'dataSourceList.columns', { subSystemCode: 'subSys' });
     const columnVisibilityOptions = useColumnVisibilityOptions({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('dataSourceList.columns.index'),
       getColumnKeys: () => orderedColumnKeys.value,
-      getColumnLabel: (key) => columnKeyToLabel[key]?.() ?? key,
+      getColumnLabel: columnLabel,
     });
     const {
       RESERVED_WIDTH_LEFT,
@@ -589,7 +537,7 @@ export default defineComponent({
       createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
-        getLabel: () => columnKeyToLabel[key]?.() ?? key,
+        getLabel: () => columnLabel(key),
         sortable: false,
         getCellText:
           key === 'subSystemCode'

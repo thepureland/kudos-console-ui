@@ -352,23 +352,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
-import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import { BaseListPage } from '../../../components/pages/BaseListPage';
-import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
-import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
-import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
-import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
-import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
-import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
-import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
-import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
+import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
 import I18nFormPage from './I18nFormPage.vue';
 import I18nDetailPage from './I18nDetailPage.vue';
+import { BaseListPage } from '../../../components/pages/core';
+import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
+import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, createI18nColumnLabelGetter, useColumnOrderDrag } from '../../../components/pages/list';
+import { ListPageLayout } from '../../../components/pages/ui';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'i18nList.operationColumnPinned';
 const I18N_LIST_STATE_STORAGE_KEY = 'i18nList.queryState';
@@ -382,7 +376,7 @@ const {
 } = createColumnVisibilityConfig(['atomicServiceCode', 'active', 'builtIn', 'remark']);
 
 class I18nListPage extends BaseListPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.loadAtomicServices();
     this.loadDicts(['locale', 'i18n_type'], 'sys').then(() => {
@@ -441,9 +435,10 @@ class I18nListPage extends BaseListPage {
 export default defineComponent({
   name: 'I18nListPage',
   components: { ListPageLayout, I18nFormPage, I18nDetailPage, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
+    const columnLabel = createI18nColumnLabelGetter(t, 'i18nList.columns');
     const listPage = reactive(new I18nListPage(props, context)) as I18nListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const state = listPage.state as Record<string, unknown>;
@@ -501,7 +496,7 @@ export default defineComponent({
       createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
-        getLabel: () => t('i18nList.columns.' + key),
+        getLabel: () => columnLabel(key),
         sortable: key === 'atomicServiceCode',
         getCellText:
           key === 'atomicServiceCode'
@@ -519,22 +514,14 @@ export default defineComponent({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('i18nList.columns.index'),
       getColumnKeys: () => orderedColumnKeys.value,
-      getColumnLabel: (key) => t('i18nList.columns.' + key),
+      getColumnLabel: columnLabel,
     });
 
     function formatBoolText(value: unknown): string {
       return listPage.formatBoolean(value, t('i18nList.common.yes'), t('i18nList.common.no'));
     }
 
-    watch(
-      () => listPage.state.visibleColumnKeys,
-      () => nextTick(forceFixedLeftWidth),
-      { deep: true },
-    );
-    watch(
-      () => listPage.state.showOperationColumn,
-      () => nextTick(forceFixedLeftWidth),
-    );
+    useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
 
     return {
       listPage,

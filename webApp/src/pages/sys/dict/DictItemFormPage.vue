@@ -101,11 +101,13 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { ElMessage } from 'element-plus';
-import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
-import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 import { i18n, loadMessagesForConfig } from '../../../i18n';
 import '../../../styles/add-edit-dialog-common.css';
+import { BaseAddEditPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
+import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 
 interface FormModel {
   parent: string[] | null;
@@ -124,7 +126,7 @@ class DictItemFormPage extends BaseAddEditPage {
   private defaultModule: string = '';
   private defaultDictType: string = '';
 
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.defaultModule = (props.module as string) ?? '';
     this.defaultDictType = (props.dictType as string) ?? '';
@@ -323,23 +325,12 @@ class DictItemFormPage extends BaseAddEditPage {
     }
   }
 
-  protected convertThis(): void {
-    super.convertThis();
-  }
 }
 
 export default defineComponent({
   name: 'DictItemFormPage',
-  components: {},
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
+    ...commonAddEditDialogProps,
     module: {
       type: String,
       default: '',
@@ -348,24 +339,18 @@ export default defineComponent({
       type: String,
       default: '',
     },
-    onSaved: {
-      type: Function as (params: Record<string, unknown>) => void,
-      default: undefined,
-    },
   },
-  emits: ['update:modelValue', 'response'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    return useAddEditDialogSetup(props, context, {
+  emits: commonAddEditDialogEmits,
+  setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    return useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new DictItemFormPage(p, c),
       i18nKeyPrefix: 'dictItemAddEdit',
       formHasContent(model: Record<string, unknown>) {
-        if (!model) return false;
-        if (model.parent != null && Array.isArray(model.parent) && model.parent.length > 0) return true;
-        if (model.itemCode != null && String(model.itemCode).trim() !== '') return true;
-        if (model.itemName != null && String(model.itemName).trim() !== '') return true;
-        if (model.remark != null && String(model.remark).trim() !== '') return true;
-        if (model.orderNum !== undefined && model.orderNum !== null) return true;
-        return false;
+        return hasAnyFormContent(model, {
+          stringKeys: ['itemCode', 'itemName', 'remark'],
+          arrayKeys: ['parent'],
+          customChecks: [(m) => m.orderNum !== undefined && m.orderNum !== null],
+        });
       },
     });
   },

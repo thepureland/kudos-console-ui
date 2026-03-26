@@ -33,7 +33,7 @@
 <script lang='ts'>
 import {defineComponent, reactive, ref, toRefs} from "vue"
 import {ElMessage, ElTree} from "element-plus";
-import { BasePage } from '../../../components/pages/BasePage';
+import { BasePage } from '../../../components/pages/core/BasePage';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
 class Page extends BasePage {

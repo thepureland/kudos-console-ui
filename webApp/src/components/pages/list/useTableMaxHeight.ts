@@ -1,5 +1,5 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue';
-import type { BaseListPage } from './BaseListPage';
+import type { BaseListPage } from '../core/BaseListPage';
 
 /**
  * 列表页表格动态高度：根据表格容器顶部与分页栏占位，计算表格 max-height，填满内容区，避免分页下方留白。

@@ -73,9 +73,11 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
-import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import '../../../styles/add-edit-dialog-common.css';
+import { BaseAddEditPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
+import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 
 interface FormModel {
   groupCode: string | null;
@@ -84,7 +86,7 @@ interface FormModel {
 }
 
 class UserGroupFormPage extends BaseAddEditPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
   }
 
@@ -110,25 +112,20 @@ class UserGroupFormPage extends BaseAddEditPage {
 export default defineComponent({
   name: 'UserGroupFormPage',
   props: {
-    modelValue: { type: Boolean, default: false },
-    rid: { type: String, default: '' },
-    onSaved: { type: Function as (params: Record<string, unknown>) => void, default: undefined },
+    ...commonAddEditDialogProps,
   },
-  emits: ['update:modelValue', 'response'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    return useAddEditDialogSetup(props, context, {
+  emits: commonAddEditDialogEmits,
+  setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    return useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new UserGroupFormPage(p, c),
       i18nKeyPrefix: 'userGroupAddEdit',
       formHasContent(model: Record<string, unknown>) {
-        if (!model) return false;
-        if (model.groupCode != null && String(model.groupCode).trim() !== '') return true;
-        if (model.groupName != null && String(model.groupName).trim() !== '') return true;
-        if (model.remark != null && String(model.remark).trim() !== '') return true;
-        return false;
+        return hasAnyFormContent(model, {
+          stringKeys: ['groupCode', 'groupName', 'remark'],
+        });
       },
     });
   },
 });
 </script>
 
-<style scoped></style>

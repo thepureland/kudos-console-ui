@@ -11,6 +11,7 @@ export interface AddEditDialogPage {
   onEditFormLoaded?: (() => void) | null;
 }
 
+/** 关闭确认守卫配置：页面实例、编辑态判断、i18n 前缀与脏检查。 */
 export interface UseAddEditDialogCloseGuardOptions {
   /** 弹窗页面实例（BaseAddEditPage 的 reactive 实例） */
   page: AddEditDialogPage;

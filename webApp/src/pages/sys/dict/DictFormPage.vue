@@ -93,12 +93,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, watch } from 'vue';
+import { defineComponent } from 'vue';
 import { ElMessage } from 'element-plus';
-import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
-import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import { i18n } from '../../../i18n';
 import '../../../styles/add-edit-dialog-common.css';
+import { BaseAddEditPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
+import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 
 interface FormModel {
   atomicServiceCode: string | null;
@@ -108,7 +110,7 @@ interface FormModel {
 }
 
 class DictFormPage extends BaseAddEditPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
   }
 
@@ -168,61 +170,37 @@ class DictFormPage extends BaseAddEditPage {
     model.atomicServiceCode = (rowObject.atomicServiceCode ?? rowObject.module) as string;
   }
 
-  protected convertThis(): void {
-    super.convertThis();
-  }
 }
 
 export default defineComponent({
   name: 'DictFormPage',
-  components: {},
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
+    ...commonAddEditDialogProps,
     atomicServiceCode: {
       type: String,
       default: '',
     },
-    onSaved: {
-      type: Function as (params: Record<string, unknown>) => void,
-      default: undefined,
-    },
   },
-  emits: ['update:modelValue', 'response'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    const result = useAddEditDialogSetup(props, context, {
+  emits: commonAddEditDialogEmits,
+  setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    return useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new DictFormPage(p, c),
       i18nKeyPrefix: 'dictAddEdit',
       formHasContent(model: Record<string, unknown>) {
-        if (!model) return false;
-        if (model.atomicServiceCode != null && String(model.atomicServiceCode).trim() !== '') return true;
-        if (model.dictType != null && String(model.dictType).trim() !== '') return true;
-        if (model.dictName != null && String(model.dictName).trim() !== '') return true;
-        if (model.remark != null && String(model.remark).trim() !== '') return true;
-        return false;
+        return hasAnyFormContent(model, {
+          stringKeys: ['atomicServiceCode', 'dictType', 'dictName', 'remark'],
+        });
+      },
+      onVisible: async (result) => {
+        if (typeof (result as { loadAtomicServices?: () => Promise<void> }).loadAtomicServices === 'function') {
+          await (result as { loadAtomicServices: () => Promise<void> }).loadAtomicServices();
+          if (!props.rid && props.atomicServiceCode) {
+            const state = (result as { state?: { formModel?: { atomicServiceCode?: string | null } } }).state;
+            if (state?.formModel) state.formModel.atomicServiceCode = String(props.atomicServiceCode);
+          }
+        }
       },
     });
-    watch(
-      () => result.visible?.value,
-      (visible) => {
-        if (!visible) return;
-        if (typeof (result as { loadAtomicServices?: () => Promise<void> }).loadAtomicServices === 'function') {
-          (result as { loadAtomicServices: () => Promise<void> }).loadAtomicServices().then(() => {
-            if (!props.rid && props.atomicServiceCode) {
-              const state = (result as { state?: { formModel?: { atomicServiceCode?: string | null } } }).state;
-              if (state?.formModel) state.formModel.atomicServiceCode = String(props.atomicServiceCode);
-            }
-          });
-        }
-      }
-    );
-    return result;
   },
 });
 </script>

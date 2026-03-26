@@ -55,10 +55,9 @@
 <script lang='ts'>
 import { defineComponent, reactive, toRefs, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
-import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import MenuRoleAssignDialog from './MenuRoleAssignDialog.vue';
+import { useListPageLayout, useTableAutoWidthContext } from '../../../components/pages/list';
+import { TenantSupportListPage } from '../../../components/pages/support';
 
 
 class MenuPermissionListPage extends TenantSupportListPage {

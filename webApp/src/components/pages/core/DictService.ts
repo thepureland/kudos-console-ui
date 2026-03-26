@@ -1,6 +1,6 @@
 import { ElMessage } from "element-plus";
-import { Pair } from "../model/Pair";
-import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from "../../utils/backendRequest";
+import { Pair } from "../../model/Pair";
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from "../../../utils/backendRequest";
 
 const DICT_CACHE_KEY = "__kudosDictCache";
 

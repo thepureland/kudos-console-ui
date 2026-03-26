@@ -1,10 +1,11 @@
 import { computed, onMounted, onActivated, onDeactivated, watch } from 'vue';
 import { nextTick } from 'vue';
 import { useStore } from 'vuex';
-import type { BaseListPage } from './BaseListPage';
+import type { BaseListPage } from '../core/BaseListPage';
 import { useTableMaxHeight } from './useTableMaxHeight';
-import { i18n, loadMessagesForConfig } from '../../i18n';
+import { i18n, loadMessagesForConfig } from '../../../i18n';
 
+/** 列可见性面板配置。 */
 export interface ListPageColumnVisibilityOption {
   storageKey: string;
   columnKeys: string[];
@@ -13,6 +14,7 @@ export interface ListPageColumnVisibilityOption {
   getColumnLabel: (key: string) => string;
 }
 
+/** 列表布局组合配置。 */
 export interface UseListPageLayoutOptions {
   /** 列表状态持久化 localStorage key；不传或传空则关闭后不保留查询结果（默认不持久化） */
   stateStorageKey?: string | null;
@@ -26,6 +28,7 @@ export interface UseListPageLayoutOptions {
   onAfterPersist?: () => void;
 }
 
+/** 带 state 的列表页实例类型。 */
 export type ListPageWithState = BaseListPage & { state: Record<string, unknown> };
 
 /**

@@ -271,19 +271,14 @@ import { useI18n } from 'vue-i18n';
 import { i18n } from '../../../i18n';
 import ResourceFormPage from './ResourceFormPage.vue';
 import ResourceDetailPage from './ResourceDetailPage.vue';
-import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import { BaseListPage } from '../../../components/pages/BaseListPage';
-import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
-import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
-import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
-import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
-import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
-import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
-import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
-import { useTreeSplitResize } from '../../../components/pages/useTreeSplitResize';
+import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { loadMessagesForConfig } from '../../../i18n';
+import { BaseListPage } from '../../../components/pages/core';
+import type { ListPageContext, ListPageProps } from '../../../components/pages/core';
+import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, createI18nColumnLabelGetter } from '../../../components/pages/list';
+import { useTreeSplitResize } from '../../../components/pages/integration';
+import { ListPageLayout } from '../../../components/pages/ui';
 
 const MENU_I18N_CONFIG = [{ i18nTypeDictCode: 'view', namespaces: ['menu'], atomicServiceCode: 'sys' as const }];
 /** 本页切换语言时需重新加载的 i18n（与 getI18nConfig 一致），保证 t('resource_type.*') 等随新 locale 生效 */
@@ -702,7 +697,7 @@ const {
 export default defineComponent({
   name: 'ResourceListPage',
   components: { ResourceFormPage, ResourceDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t, te } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);
@@ -721,20 +716,16 @@ export default defineComponent({
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
 
-    const columnKeyToLabel: Record<string, () => string> = {
-      subSystemCode: () => t('resourceList.columns.subSys'),
-      resourceTypeDictCode: () => t('resourceList.columns.resourceType'),
-      name: () => t('resourceList.columns.name'),
-      url: () => t('resourceList.columns.url'),
-      icon: () => t('resourceList.columns.icon'),
-      orderNum: () => t('resourceList.columns.seqNo'),
-      active: () => t('resourceList.columns.active'),
-    };
+    const columnLabel = createI18nColumnLabelGetter(t, 'resourceList.columns', {
+      subSystemCode: 'subSys',
+      resourceTypeDictCode: 'resourceType',
+      orderNum: 'seqNo',
+    });
     const columnVisibilityOptions = useColumnVisibilityOptions({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('resourceList.columns.index'),
       getColumnKeys: () => ALL_COLUMN_KEYS,
-      getColumnLabel: (key) => columnKeyToLabel[key]?.() ?? key,
+      getColumnLabel: columnLabel,
     });
     /** 字典项展示：有 i18n key 时 t(key)，否则不调用 t('') 避免 intlify 报错 */
     function formatDictCell(module: string, dictType: string, code: unknown): string {
@@ -768,7 +759,7 @@ export default defineComponent({
       createAutoWidthColumns: () =>
       ALL_COLUMN_KEYS.map((key) => ({
         key,
-        getLabel: () => columnKeyToLabel[key]?.() ?? key,
+        getLabel: () => columnLabel(key),
         sortable: key === 'name' || key === 'url' || key === 'icon' || key === 'orderNum',
         getCellText:
           key === 'subSystemCode'

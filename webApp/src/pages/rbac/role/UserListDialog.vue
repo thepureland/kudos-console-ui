@@ -57,7 +57,7 @@
 
 <script lang='ts'>
 import {defineComponent, reactive, toRefs} from "vue"
-import { BaseListPage } from '../../../components/pages/BaseListPage'
+import { BaseListPage } from '../../../components/pages/core/BaseListPage'
 import AccountDetailPage from '../../user/account/AccountDetailPage.vue'
 import { Pair } from '../../../components/model/Pair'
 

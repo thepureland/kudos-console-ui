@@ -68,14 +68,16 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, nextTick, watch, computed, ref } from 'vue';
+import { defineComponent, nextTick, computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
-import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 import { loadMessagesForConfig } from '../../../i18n';
 import '../../../styles/add-edit-dialog-common.css';
+import { BaseAddEditPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent, useCloseDropdownOnChange } from '../../../components/pages/form';
+import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 
 const MENU_I18N_CONFIG = [{ i18nTypeDictCode: 'view', namespaces: ['menu'], atomicServiceCode: 'sys' as const }];
 
@@ -90,7 +92,7 @@ type ParentCascaderNode = {
 };
 
 class ResourceFormPage extends BaseAddEditPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
   }
 
@@ -404,37 +406,26 @@ class ResourceFormPage extends BaseAddEditPage {
 export default defineComponent({
   name: 'ResourceFormPage',
   props: {
-    modelValue: { type: Boolean, default: false },
-    rid: { type: String, default: '' },
-    onSaved: { type: Function as (params: Record<string, unknown>) => void, default: undefined },
+    ...commonAddEditDialogProps,
   },
-  emits: ['update:modelValue', 'response'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    const result = useAddEditDialogSetup(props, context, {
+  emits: commonAddEditDialogEmits,
+  setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    const result = useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new ResourceFormPage(p, c),
       i18nKeyPrefix: 'resourceAddEdit',
       formHasContent(model: Record<string, unknown>) {
-        if (!model) return false;
-        const parent = model.parent as unknown[] | undefined;
-        if (parent != null && parent.length > 0) return true;
-        if (model.name != null && String(model.name).trim() !== '') return true;
-        if (model.url != null && String(model.url).trim() !== '') return true;
-        if (model.icon != null && String(model.icon).trim() !== '') return true;
-        if (model.remark != null && String(model.remark).trim() !== '') return true;
-        if (model.seqNo != null && model.seqNo !== '') return true;
-        return false;
+        return hasAnyFormContent(model, {
+          stringKeys: ['name', 'url', 'icon', 'remark'],
+          arrayKeys: ['parent'],
+          valueKeys: ['seqNo'],
+        });
       },
-    });
-    watch(
-      () => result.visible?.value,
-      async (visible) => {
-        if (!visible) return;
+      onVisible: async (result) => {
         const fn = (result as { ensureParentCascaderOptions?: (() => Promise<void>) | { value: () => Promise<void> } }).ensureParentCascaderOptions;
         const call = typeof fn === 'function' ? fn : (fn as { value: () => Promise<void> } | undefined)?.value;
         if (call) await call();
       },
-      { flush: 'post' },
-    );
+    });
     const { t, te, locale } = useI18n();
     /** 与列表树一致：用 nameKey 在渲染时 t(nameKey)，切换语言时随 locale 更新 */
     const parentCascaderOptionsWithI18n = computed(() => {
@@ -453,17 +444,9 @@ export default defineComponent({
       return map(list);
     });
     const parentCascaderRef = ref<{ blur: () => void; togglePopperVisible: (visible?: boolean) => void } | null>(null);
+    const { closeDropdown } = useCloseDropdownOnChange();
     function onParentCascaderChange() {
-      const closeDropdown = () => {
-        const cascader = parentCascaderRef.value;
-        if (!cascader) return;
-        if (typeof cascader.togglePopperVisible === 'function') {
-          cascader.togglePopperVisible(false);
-        } else {
-          cascader.blur();
-        }
-      };
-      setTimeout(closeDropdown, 50);
+      closeDropdown(parentCascaderRef);
     }
     return {
       ...result,
@@ -475,4 +458,3 @@ export default defineComponent({
 });
 </script>
 
-<style scoped></style>

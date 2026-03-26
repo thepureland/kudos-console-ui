@@ -49,18 +49,19 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, watch } from 'vue';
+import { defineComponent, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import { BaseDetailPage } from '../../../components/pages/BaseDetailPage';
-import SectionedDetailDialog from '../../../components/pages/SectionedDetailDialog.vue';
 import {
   type FieldConfig,
   type SectionConfig,
-  useSectionedDetail,
-} from '../../../components/pages/sectionedDetail';
+} from '../../../components/pages/detail';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { i18n } from '../../../i18n';
+import { BaseDetailPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, SectionedDetailDialog } from '../../../components/pages/detail';
+import type { DetailPageViewModel } from '../../../components/pages/detail';
 
 /** 分组：基本信息、审计信息、其他信息 */
 const SECTION_MAP: SectionConfig[] = [
@@ -95,7 +96,7 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class DictDetailPage extends BaseDetailPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     if (props.rid) {
       this.state.rid = props.rid as string;
@@ -173,51 +174,34 @@ export default defineComponent({
   name: 'DictDetailPage',
   components: { SectionedDetailDialog },
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
+    ...commonDetailDialogProps,
   },
-  emits: ['update:modelValue'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  emits: commonDetailDialogEmits,
+  setup(props: PageProps, context: PageContext) {
     const { t } = useI18n();
-    const page = reactive(new DictDetailPage(props, context)) as DictDetailPage & {
-      state: {
-        detail: Record<string, unknown> | null;
-        tableData: Record<string, unknown>[];
-        itemsPageNo: number;
-        itemsPageSize: number;
-        itemsTotal: number;
-      };
-      formatDate: (value: unknown) => string;
-      transAtomicService: (code: string) => string;
-      transDict: (module: string, code: string, value: string) => string;
-    };
+    const page = reactive(new DictDetailPage(props, context)) as DictDetailPage & DetailPageViewModel<{
+      detail: Record<string, unknown> | null;
+      tableData: Record<string, unknown>[];
+      itemsPageNo: number;
+      itemsPageSize: number;
+      itemsTotal: number;
+    }>;
 
-    const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
+    const { rowsWithSections, formatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {
       emptyKey: 'dictDetail.empty',
       yesNoKey: 'dictList.common',
     });
 
-    watch(
-      () => props.rid,
-      (newRid, oldRid) => {
-        const id = newRid ? String(newRid) : '';
-        page.state.rid = id;
-        if (oldRid !== undefined && id && id !== String(oldRid)) {
-          page.state.detail = null;
-          const st = page.state as Record<string, unknown>;
-          st.tableData = [];
-          st.itemsPageNo = 1;
-          st.itemsTotal = 0;
-          page.loadData().then(() => page.loadOthers());
-        }
-      }
-    );
+    useDetailPageRidSync(props, page, {
+      onRidChanged: (p) => {
+        p.state.detail = null;
+        const st = p.state as Record<string, unknown>;
+        st.tableData = [];
+        st.itemsPageNo = 1;
+        st.itemsTotal = 0;
+        Promise.resolve(p.loadData()).then(() => (p as unknown as { loadOthers: () => void }).loadOthers());
+      },
+    });
 
     function onItemsSizeChange(newSize: number) {
       (page.state as Record<string, unknown>).itemsPageSize = newSize;
@@ -230,8 +214,8 @@ export default defineComponent({
     }
 
     return {
-      ...toRefs(page),
-      ...toRefs(page.state),
+      ...pageRefs,
+      ...stateRefs,
       t,
       rowsWithSections,
       formatFieldValue,

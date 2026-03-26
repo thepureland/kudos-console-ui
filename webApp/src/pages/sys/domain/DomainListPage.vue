@@ -280,23 +280,16 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import DomainFormPage from './DomainFormPage.vue';
 import DomainDetailPage from './DomainDetailPage.vue';
-import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
-import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
-import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
-import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
-import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
-import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
-import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
-import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
-import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
-import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
+import { createColumnVisibilityConfig } from '../../../components/pages/list';
+import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
+import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, createI18nColumnLabelGetter, useFixedLeftTableWidth, useFixedLeftRelayoutWatcher, useColumnOrderDrag } from '../../../components/pages/list';
+import { TenantSupportListPage } from '../../../components/pages/support';
+import { ListPageLayout } from '../../../components/pages/ui';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'domainList.operationColumnPinned';
 const DOMAIN_LIST_STATE_STORAGE_KEY = 'domainList.queryState';
@@ -310,7 +303,7 @@ const {
 } = createColumnVisibilityConfig(['systemCode', 'tenantName', 'active', 'remark', 'createTime']);
 
 class DomainListPage extends TenantSupportListPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.convertThis();
   }
@@ -355,9 +348,10 @@ class DomainListPage extends TenantSupportListPage {
 export default defineComponent({
   name: 'DomainListPage',
   components: { DomainFormPage, DomainDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
+    const columnLabel = createI18nColumnLabelGetter(t, 'domainList.columns', { systemCode: 'subSys', tenantName: 'tenant' });
     const listPage = reactive(new DomainListPage(props, context)) as DomainListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const state = listPage.state as Record<string, unknown>;
@@ -421,18 +415,10 @@ export default defineComponent({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('domainList.columns.index'),
       getColumnKeys: () => orderedColumnKeys.value,
-      getColumnLabel: (key) => t('domainList.columns.' + (key === 'systemCode' ? 'subSys' : key === 'tenantName' ? 'tenant' : key)),
+      getColumnLabel: columnLabel,
     });
 
-    watch(
-      () => listPage.state.visibleColumnKeys,
-      () => nextTick(forceFixedLeftWidth),
-      { deep: true },
-    );
-    watch(
-      () => listPage.state.showOperationColumn,
-      () => nextTick(forceFixedLeftWidth),
-    );
+    useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
 
     return {
       listPage,

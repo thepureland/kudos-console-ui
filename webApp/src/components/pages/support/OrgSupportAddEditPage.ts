@@ -1,6 +1,6 @@
 import { ElMessage } from "element-plus"
 import { TenantSupportAddEditPage } from "./TenantSupportAddEditPage"
-import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from "../../utils/backendRequest"
+import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from "../../../utils/backendRequest"
 
 
 /**

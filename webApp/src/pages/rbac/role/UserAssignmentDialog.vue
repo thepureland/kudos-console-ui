@@ -31,7 +31,7 @@
 
 <script lang='ts'>
 import {defineComponent, reactive, toRefs} from "vue"
-import { BaseDetailPage } from '../../../components/pages/BaseDetailPage'
+import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage'
 import {ElMessage} from "element-plus";
 import { backendRequest, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 

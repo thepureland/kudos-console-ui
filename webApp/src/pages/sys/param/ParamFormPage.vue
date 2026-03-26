@@ -118,9 +118,11 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
-import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import '../../../styles/add-edit-dialog-common.css';
+import { BaseAddEditPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
+import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 
 interface FormModel {
   atomicServiceCode: string | null;
@@ -132,7 +134,7 @@ interface FormModel {
 }
 
 class ParamFormPage extends BaseAddEditPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.loadAtomicServices();
   }
@@ -172,33 +174,18 @@ class ParamFormPage extends BaseAddEditPage {
 export default defineComponent({
   name: 'ParamFormPage',
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
-    onSaved: {
-      type: Function as (params: Record<string, unknown>) => void,
-      default: undefined,
-    },
+    ...commonAddEditDialogProps,
   },
-  emits: ['update:modelValue', 'response'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    return useAddEditDialogSetup(props, context, {
+  emits: commonAddEditDialogEmits,
+  setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    return useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new ParamFormPage(p, c),
       i18nKeyPrefix: 'paramAddEdit',
       formHasContent(model: Record<string, unknown>) {
-        if (!model) return false;
-        if (model.atomicServiceCode != null && String(model.atomicServiceCode).trim() !== '') return true;
-        if (model.paramName != null && String(model.paramName).trim() !== '') return true;
-        if (model.paramValue != null && String(model.paramValue).trim() !== '') return true;
-        if (model.defaultValue != null && String(model.defaultValue).trim() !== '') return true;
-        if (model.remark != null && String(model.remark).trim() !== '') return true;
-        if (model.orderNum != null && model.orderNum !== 1) return true;
-        return false;
+        return hasAnyFormContent(model, {
+          stringKeys: ['atomicServiceCode', 'paramName', 'paramValue', 'defaultValue', 'remark'],
+          customChecks: [(m) => m.orderNum != null && m.orderNum !== 1],
+        });
       },
     });
   },

@@ -319,26 +319,19 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import AccountFormPage from './AccountFormPage.vue';
 import AccountDetailPage from './AccountDetailPage.vue';
-import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
-import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
-import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
-import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
-import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
-import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
-import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
-import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
-import { useFixedLeftTableWidth } from '../../../components/pages/useFixedLeftTableWidth';
-import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
+import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
 import { ElMessage } from 'element-plus';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
+import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
+import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, createI18nColumnLabelGetter, useFixedLeftTableWidth, useFixedLeftRelayoutWatcher, useColumnOrderDrag } from '../../../components/pages/list';
+import { TenantSupportListPage } from '../../../components/pages/support';
+import { ListPageLayout } from '../../../components/pages/ui';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'accountList.operationColumnPinned';
 const ACCOUNT_LIST_STATE_STORAGE_KEY = 'accountList.queryState';
@@ -352,7 +345,7 @@ const {
 } = createColumnVisibilityConfig(['subSystemCode', 'tenantId', 'userStatusDictCode', 'userTypeDictCode', 'lastLoginTime', 'createTime']);
 
 class AccountListPage extends TenantSupportListPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.loadDicts(['user_status', 'user_type'], 'user');
     this.convertThis();
@@ -433,7 +426,7 @@ class AccountListPage extends TenantSupportListPage {
 export default defineComponent({
   name: 'AccountListPage',
   components: { AccountFormPage, AccountDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
     const listPage = reactive(new AccountListPage(props, context)) as AccountListPage & { state: Record<string, unknown> };
@@ -473,6 +466,7 @@ export default defineComponent({
       lastLoginTime: 'lastLoginTime',
       createTime: 'createTime',
     };
+    const columnLabel = createI18nColumnLabelGetter(t, 'accountList.columns', columnKeyToLabelKey);
     /** 字典项展示：若为 i18n key（含.）则 t(key)，否则直接显示 key 或 —，避免 t('NORMAL') 等报错 */
     function formatDictCell(module: string, dictType: string, code: unknown): string {
       const key = listPage.transDict(module, dictType, code);
@@ -492,7 +486,7 @@ export default defineComponent({
       createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
-        getLabel: () => t('accountList.columns.' + (columnKeyToLabelKey[key] ?? key)),
+        getLabel: () => columnLabel(key),
         sortable: true,
         getCellText:
           key === 'subSystemCode'
@@ -516,7 +510,7 @@ export default defineComponent({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('accountList.columns.index'),
       getColumnKeys: () => orderedColumnKeys.value,
-      getColumnLabel: (key) => t('accountList.columns.' + (columnKeyToLabelKey[key] ?? key)),
+      getColumnLabel: columnLabel,
     });
 
     function onOrgNodeClick(nodeData: { id?: string }) {
@@ -528,15 +522,7 @@ export default defineComponent({
       listPage.search();
     }
 
-    watch(
-      () => listPage.state.visibleColumnKeys,
-      () => nextTick(forceFixedLeftWidth),
-      { deep: true }
-    );
-    watch(
-      () => listPage.state.showOperationColumn,
-      () => nextTick(forceFixedLeftWidth),
-    );
+    useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
 
     return {
       listPage,

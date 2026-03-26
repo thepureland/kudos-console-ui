@@ -1,8 +1,8 @@
 import { ElMessage } from "element-plus"
-import { BaseListPage } from "./BaseListPage"
-import { Pair } from "../model/Pair"
-import { backendRequest, getApiResponseData } from "../../utils/backendRequest"
-import type { SysMicroServiceCacheItem } from "./BasePage"
+import { BaseListPage } from "../core/BaseListPage"
+import { Pair } from "../../model/Pair"
+import { backendRequest, getApiResponseData } from "../../../utils/backendRequest"
+import type { SysMicroServiceCacheItem } from "../core/BasePage"
 
 /**
  * 多租户支持的列表页面处理抽象父类

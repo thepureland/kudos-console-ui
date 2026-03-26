@@ -72,13 +72,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, nextTick } from 'vue';
+import { defineComponent, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { OrgSupportAddEditPage } from '../../../components/pages/OrgSupportAddEditPage';
-import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import '../../../styles/add-edit-dialog-common.css';
+import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent, useCloseDropdownOnChange } from '../../../components/pages/form';
+import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
+import { OrgSupportAddEditPage } from '../../../components/pages/support';
 
 class AccountFormPage extends OrgSupportAddEditPage {
   constructor(
@@ -215,16 +216,15 @@ class AccountFormPage extends OrgSupportAddEditPage {
 export default defineComponent({
   name: 'AccountFormPage',
   props: {
-    modelValue: { type: Boolean, default: false },
-    rid: { type: String, default: '' },
-    onSaved: { type: Function as (params: Record<string, unknown>) => void, default: undefined },
+    ...commonAddEditDialogProps,
   },
-  emits: ['update:modelValue', 'response'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  emits: commonAddEditDialogEmits,
+  setup(props: AddEditDialogProps, context: AddEditDialogContext) {
     const parentCascaderRef = ref<{ getCheckedNodes: () => unknown[] } | null>(null);
     const subSysOrTenantCascaderRef = ref(null);
     const addEditPageRef = ref<{ loadOrganizationTree?: (v?: string[]) => Promise<void> } | null>(null);
-    const result = useAddEditDialogSetup(props, context, {
+    const { closeDropdown } = useCloseDropdownOnChange();
+    const result = useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => {
         const page = new AccountFormPage(p, c, parentCascaderRef as { value?: { getCheckedNodes: () => unknown[] } });
         addEditPageRef.value = page;
@@ -232,38 +232,26 @@ export default defineComponent({
       },
       i18nKeyPrefix: 'accountAddEdit',
       formHasContent(model: Record<string, unknown>) {
-        if (!model) return false;
-        if (model.username != null && String(model.username).trim() !== '') return true;
-        const subSysOrTenant = model.subSysOrTenant as unknown[] | undefined;
-        if (subSysOrTenant != null && subSysOrTenant.length > 0) return true;
-        if (model.userTypeDictCode != null && model.userTypeDictCode !== '') return true;
-        if (model.remark != null && String(model.remark).trim() !== '') return true;
-        const parent = model.parent as unknown[] | undefined;
-        if (parent != null && parent.length > 0) return true;
-        return false;
+        return hasAnyFormContent(model, {
+          stringKeys: ['username', 'remark'],
+          arrayKeys: ['subSysOrTenant', 'parent'],
+          valueKeys: ['userTypeDictCode'],
+        });
       },
     });
-    function closeCascader(ref: { value: unknown } | null) {
-      nextTick(() => {
-        const el = ref?.value as { togglePopperVisible?: (v?: boolean) => void; blur?: () => void } | null;
-        el?.togglePopperVisible?.(false);
-        el?.blur?.();
-      });
-    }
     return {
       ...result,
       parentCascaderRef,
       subSysOrTenantCascaderRef,
       onSubSysOrTenantChange(val?: string[]) {
         addEditPageRef.value?.loadOrganizationTree?.(val);
-        closeCascader(subSysOrTenantCascaderRef);
+        closeDropdown(subSysOrTenantCascaderRef);
       },
       onParentChange() {
-        closeCascader(parentCascaderRef);
+        closeDropdown(parentCascaderRef);
       },
     };
   },
 });
 </script>
 
-<style scoped></style>

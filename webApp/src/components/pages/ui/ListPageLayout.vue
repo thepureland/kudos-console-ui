@@ -62,8 +62,8 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import type { Ref } from 'vue';
-import OperationColumnFoldToggle from '../widgets/OperationColumnFoldToggle.vue';
-import { useOperationColumnFold } from './useOperationColumnFold';
+import OperationColumnFoldToggle from '../../widgets/OperationColumnFoldToggle.vue';
+import { useOperationColumnFold } from '../list/useOperationColumnFold';
 
 export default defineComponent({
   name: 'ListPageLayout',

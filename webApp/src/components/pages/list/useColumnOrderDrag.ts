@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import { nextTick } from 'vue';
 
+/** 列拖拽排序配置。 */
 export interface UseColumnOrderDragOptions {
   /** 列顺序变更并持久化后调用（如用于 nextTick(forceFixedLeftWidth)） */
   onOrderChange?: () => void;

@@ -310,17 +310,15 @@ import DictFormPage from './DictFormPage.vue';
 import DictItemFormPage from './DictItemFormPage.vue';
 import DictDetailPage from './DictDetailPage.vue';
 import DictItemDetailPage from './DictItemDetailPage.vue';
-import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import { BaseListPage } from '../../../components/pages/BaseListPage';
-import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
-import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
-import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
-import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
-import { useTreeSplitResize } from '../../../components/pages/useTreeSplitResize';
+import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { loadMessagesForConfig } from '../../../i18n';
+import { BaseListPage } from '../../../components/pages/core';
+import type { ListPageContext, ListPageProps } from '../../../components/pages/core';
+import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useTableAutoWidthContext } from '../../../components/pages/list';
+import { useTreeSplitResize } from '../../../components/pages/integration';
+import { ListPageLayout } from '../../../components/pages/ui';
 
 class DictListPage extends BaseListPage {
   private tree: { value?: { remove: (obj: { id: string }) => void } };
@@ -841,7 +839,7 @@ const {
 export default defineComponent({
   name: 'DictListPage',
   components: { DictFormPage, DictItemFormPage, DictDetailPage, DictItemDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t, te } = useI18n();
     const tree = ref<{ remove: (obj: { id: string }) => void } | null>(null);

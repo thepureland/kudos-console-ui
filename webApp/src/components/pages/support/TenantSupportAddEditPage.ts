@@ -1,8 +1,7 @@
 import { nextTick } from "vue"
-import { ElMessage } from "element-plus"
-import { BaseAddEditPage } from "./BaseAddEditPage"
-import { backendRequest, getApiResponseData } from "../../utils/backendRequest"
-import type { SysMicroServiceCacheItem } from "./BasePage"
+import { BaseAddEditPage } from "../core/BaseAddEditPage"
+import { backendRequest, getApiResponseData } from "../../../utils/backendRequest"
+import type { SysMicroServiceCacheItem } from "../core/BasePage"
 
 /**
  * 多租户支持的添加/编辑页面处理抽象父类

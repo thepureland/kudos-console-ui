@@ -73,10 +73,9 @@ import { defineComponent, reactive, toRefs, ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Pair } from '../../../components/model/Pair';
-import { TenantSupportListPage } from '../../../components/pages/TenantSupportListPage';
-import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
+import { useListPageLayout, useTableAutoWidthContext } from '../../../components/pages/list';
+import { TenantSupportListPage } from '../../../components/pages/support';
 
 class ResourcePermissionListPage extends TenantSupportListPage {
 

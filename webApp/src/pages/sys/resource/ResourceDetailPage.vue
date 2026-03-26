@@ -13,15 +13,16 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, watch } from 'vue';
-import { BaseDetailPage } from '../../../components/pages/BaseDetailPage';
-import SectionedDetailDialog from '../../../components/pages/SectionedDetailDialog.vue';
+import { defineComponent, reactive } from 'vue';
 import {
   type FieldConfig,
   type SectionConfig,
-  useSectionedDetail,
-} from '../../../components/pages/sectionedDetail';
+} from '../../../components/pages/detail';
 import { Pair } from '../../../components/model/Pair';
+import { BaseDetailPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, SectionedDetailDialog } from '../../../components/pages/detail';
+import type { DetailPageViewModel } from '../../../components/pages/detail';
 
 /** 分组：从第几行开始显示分组标题（其他信息放最后） */
 const SECTION_MAP: SectionConfig[] = [
@@ -82,44 +83,22 @@ export default defineComponent({
   name: 'ResourceDetailPage',
   components: { SectionedDetailDialog },
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
+    ...commonDetailDialogProps,
   },
-  emits: ['update:modelValue'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    const page = reactive(new ResourceDetailPage(props, context)) as ResourceDetailPage & {
-      state: { detail: Record<string, unknown> | null };
-      transAtomicService: (code: string) => string;
-      transDict: (module: string, code: string, value: string) => string;
-      formatDate: (value: unknown) => string;
-    };
+  emits: commonDetailDialogEmits,
+  setup(props: PageProps, context: PageContext) {
+    const page = reactive(new ResourceDetailPage(props, context)) as ResourceDetailPage & DetailPageViewModel;
 
-    const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
+    const { rowsWithSections, formatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {
       emptyKey: 'resourceDetail.empty',
       yesNoKey: 'resourceList.common',
     });
 
-    watch(
-      () => props.rid,
-      (newRid, oldRid) => {
-        const id = newRid ? String(newRid) : '';
-        page.state.rid = id;
-        if (oldRid !== undefined && id && id !== String(oldRid)) {
-          page.state.detail = null;
-          page.loadData();
-        }
-      }
-    );
+    useDetailPageRidSync(props, page);
 
     return {
-      ...toRefs(page),
-      ...toRefs(page.state),
+      ...pageRefs,
+      ...stateRefs,
       rowsWithSections,
       formatFieldValue,
     };

@@ -21,6 +21,7 @@ export type SectionConfig = {
 /** 带 label 的字段（由 rowsWithSections 解析 labelKey 得到） */
 export type FieldWithLabel = FieldConfig & { label: string };
 
+/** 详情行定义。 */
 export type SectionedDetailRow = {
   sectionTitle: string | null;
   row: FieldWithLabel[];
@@ -34,6 +35,7 @@ export type SectionedDetailPage = {
   transDict: (module: string, code: string, value: string) => string;
 };
 
+/** 分组详情 hook 配置。 */
 export type UseSectionedDetailOptions = {
   /** 空值占位文案的 i18n key，如 'cacheDetail.empty' */
   emptyKey: string;

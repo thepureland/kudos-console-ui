@@ -1,5 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 
+/** 操作列折叠控制配置。 */
 export interface UseOperationColumnFoldOptions {
   /** 本地存储 key，用于持久化「操作列是否固定展开」 */
   storageKey: string;

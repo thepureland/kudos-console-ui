@@ -13,14 +13,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, watch } from 'vue';
-import { BaseDetailPage } from '../../../components/pages/BaseDetailPage';
-import SectionedDetailDialog from '../../../components/pages/SectionedDetailDialog.vue';
+import { defineComponent, reactive } from 'vue';
+import { BaseDetailPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, useDetailDialogVisibility, SectionedDetailDialog } from '../../../components/pages/detail';
+import type { DetailPageViewModel } from '../../../components/pages/detail';
 import {
   type FieldConfig,
   type SectionConfig,
-  useSectionedDetail,
-} from '../../../components/pages/sectionedDetail';
+} from '../../../components/pages/detail';
 
 /** 分组：从第几行开始显示分组标题（其他信息放最后） */
 const SECTION_MAP: SectionConfig[] = [
@@ -84,25 +85,13 @@ export default defineComponent({
   name: 'TenantDetailPage',
   components: { SectionedDetailDialog },
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
+    ...commonDetailDialogProps,
   },
-  emits: ['update:modelValue'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    const page = reactive(new TenantDetailPage(props, context)) as TenantDetailPage & {
-      state: { detail: Record<string, unknown> | null };
-      transAtomicService: (code: string) => string;
-      transDict: (module: string, code: string, value: string) => string;
-      formatDate: (value: unknown) => string;
-    };
+  emits: commonDetailDialogEmits,
+  setup(props: PageProps, context: PageContext) {
+    const page = reactive(new TenantDetailPage(props, context)) as TenantDetailPage & DetailPageViewModel;
 
-    const { rowsWithSections, formatFieldValue: baseFormatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
+    const { rowsWithSections, formatFieldValue: baseFormatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {
       emptyKey: 'tenantDetail.empty',
       yesNoKey: 'tenantList.common',
     });
@@ -116,23 +105,16 @@ export default defineComponent({
       return baseFormatFieldValue(field);
     }
 
-    watch(
-      () => props.rid,
-      (newRid, oldRid) => {
-        const id = newRid ? String(newRid) : '';
-        page.state.rid = id;
-        if (oldRid !== undefined && id && id !== String(oldRid)) {
-          page.state.detail = null;
-          page.loadData();
-        }
-      }
-    );
+    useDetailPageRidSync(props, page);
+    const { visible, close } = useDetailDialogVisibility(props, context);
 
     return {
-      ...toRefs(page),
-      ...toRefs(page.state),
+      ...pageRefs,
+      ...stateRefs,
       rowsWithSections,
       formatFieldValue,
+      visible,
+      close,
     };
   },
 });

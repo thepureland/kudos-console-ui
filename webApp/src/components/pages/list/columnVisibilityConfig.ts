@@ -1,3 +1,4 @@
+/** 列可见性配置项集合（索引列/可见列/默认列）。 */
 export interface ColumnVisibilityConfig {
   indexColumnKey: 'index';
   allColumnKeys: string[];

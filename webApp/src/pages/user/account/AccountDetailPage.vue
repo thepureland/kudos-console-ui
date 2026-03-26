@@ -13,16 +13,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, watch, computed } from 'vue';
-import { BaseDetailPage } from '../../../components/pages/BaseDetailPage';
-import SectionedDetailDialog from '../../../components/pages/SectionedDetailDialog.vue';
+import { defineComponent, reactive, watch } from 'vue';
 import {
   type FieldConfig,
   type SectionConfig,
-  useSectionedDetail,
-} from '../../../components/pages/sectionedDetail';
+} from '../../../components/pages/detail';
 import { Pair } from '../../../components/model/Pair';
 import { i18n, loadMessagesForConfig } from '../../../i18n';
+import { BaseDetailPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, useDetailDialogVisibility, SectionedDetailDialog } from '../../../components/pages/detail';
+import type { DetailPageViewModel } from '../../../components/pages/detail';
 
 /** 与 CacheDetail 一致：每行最多 2 个字段，每行一条 detail-row 底部分隔线 */
 const SECTION_MAP: SectionConfig[] = [
@@ -108,40 +109,18 @@ export default defineComponent({
   name: 'AccountDetailPage',
   components: { SectionedDetailDialog },
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
+    ...commonDetailDialogProps,
   },
-  emits: ['update:modelValue'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    const page = reactive(new AccountDetailPage(props, context)) as AccountDetailPage & {
-      state: { detail: Record<string, unknown> | null };
-      transAtomicService: (code: string) => string;
-      transDict: (module: string, code: string, value: string) => string;
-      formatDate: (value: unknown) => string;
-    };
+  emits: commonDetailDialogEmits,
+  setup(props: PageProps, context: PageContext) {
+    const page = reactive(new AccountDetailPage(props, context)) as AccountDetailPage & DetailPageViewModel;
 
-    const { rowsWithSections, formatFieldValue } = useSectionedDetail(page, ROW_FIELDS, SECTION_MAP, {
+    const { rowsWithSections, formatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {
       emptyKey: 'accountDetail.empty',
       yesNoKey: 'accountList.common',
     });
 
-    watch(
-      () => props.rid,
-      (newRid, oldRid) => {
-        const id = newRid ? String(newRid) : '';
-        page.state.rid = id;
-        if (oldRid !== undefined && id && id !== String(oldRid)) {
-          page.state.detail = null;
-          page.loadData();
-        }
-      }
-    );
+    useDetailPageRidSync(props, page);
 
     watch(
       () => i18n.global.locale.value,
@@ -152,14 +131,11 @@ export default defineComponent({
       { immediate: false }
     );
 
-    const visible = computed(() => props.modelValue as boolean);
-    function close() {
-      context.emit('update:modelValue', false);
-    }
+    const { visible, close } = useDetailDialogVisibility(props, context);
 
     return {
-      ...toRefs(page),
-      ...toRefs(page.state),
+      ...pageRefs,
+      ...stateRefs,
       rowsWithSections,
       formatFieldValue,
       visible,

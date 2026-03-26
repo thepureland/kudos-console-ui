@@ -260,18 +260,11 @@ import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/
 import { useI18n } from 'vue-i18n';
 import UserGroupFormPage from './UserGroupFormPage.vue';
 import UserGroupDetailPage from './UserGroupDetailPage.vue';
-import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import { BaseListPage } from '../../../components/pages/BaseListPage';
-import { useListPageLayout } from '../../../components/pages/useListPageLayout';
-import { useValidationI18nCacheProvider } from '../../../components/pages/useValidationI18nCacheProvider';
-import { useListPageFormSetup } from '../../../components/pages/useListPageFormSetup';
-import { useListPageVisibilityState } from '../../../components/pages/useListPageVisibilityState';
-import { useOperationColumnVisible } from '../../../components/pages/useOperationColumnVisible';
-import { useColumnVisibilityOptions } from '../../../components/pages/useColumnVisibilityOptions';
-import { useVisibleColumnKeys } from '../../../components/pages/useVisibleColumnKeys';
-import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
-import { createColumnVisibilityConfig } from '../../../components/pages/columnVisibilityConfig';
-import { useColumnOrderDrag } from '../../../components/pages/useColumnOrderDrag';
+import { createColumnVisibilityConfig } from '../../../components/pages/list';
+import { BaseListPage } from '../../../components/pages/core';
+import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
+import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useOperationColumnVisible, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, createI18nColumnLabelGetter, useColumnOrderDrag } from '../../../components/pages/list';
+import { ListPageLayout } from '../../../components/pages/ui';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'userGroupList.operationColumnPinned';
 const USER_GROUP_LIST_STATE_STORAGE_KEY = 'userGroupList.queryState';
@@ -285,7 +278,7 @@ const {
 } = createColumnVisibilityConfig(['groupName', 'remark', 'active', 'createTime']);
 
 class UserGroupListPage extends BaseListPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.convertThis();
   }
@@ -322,9 +315,10 @@ class UserGroupListPage extends BaseListPage {
 export default defineComponent({
   name: 'UserGroupListPage',
   components: { UserGroupFormPage, UserGroupDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
+    const columnLabel = createI18nColumnLabelGetter(t, 'userGroupList.columns');
     const listPage = reactive(new UserGroupListPage(props, context)) as UserGroupListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
     const state = listPage.state as Record<string, unknown>;
@@ -364,7 +358,7 @@ export default defineComponent({
       createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
-        getLabel: () => t('userGroupList.columns.' + key),
+        getLabel: () => columnLabel(key),
         sortable: key === 'groupName' || key === 'createTime',
         getCellText:
           key === 'groupName'
@@ -382,7 +376,7 @@ export default defineComponent({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('userGroupList.columns.index'),
       getColumnKeys: () => orderedColumnKeys.value,
-      getColumnLabel: (key) => t('userGroupList.columns.' + key),
+      getColumnLabel: columnLabel,
     });
     const showOperationColumn = useOperationColumnVisible(listPage);
 

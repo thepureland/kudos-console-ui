@@ -1,15 +1,17 @@
 import { computed, inject, reactive, ref, toRefs, watch, nextTick, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { BaseAddEditPage } from './BaseAddEditPage';
+import type { BaseAddEditPage } from '../core/BaseAddEditPage';
 import { useAddEditDialogCloseGuard } from './useAddEditDialogCloseGuard';
-import { i18n, loadMessagesForConfig } from '../../i18n';
+import { i18n, loadMessagesForConfig } from '../../../i18n';
+import type { PageContext, PageProps } from '../core/pageTypes';
 
 /** 列表页 provide 此 key（值为 Ref<Set<string>>），AddEdit 注入后作为校验 i18n 的列表页级缓存，避免多次打开弹窗重复请求 */
 export const ValidationI18nCacheKey = Symbol('ValidationI18nCache');
 
+/** Add/Edit 通用 setup 配置。 */
 export interface UseAddEditDialogSetupOptions {
   /** 创建页面实例的工厂（如 () => new CacheAddEditPage(props, context)） */
-  createPage: (props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) => BaseAddEditPage;
+  createPage: (props: PageProps, context: PageContext) => BaseAddEditPage;
   /** i18n 文案前缀，如 'cacheAddEdit'，需包含 titleAdd、titleEdit、closeConfirm、buttons 等 */
   i18nKeyPrefix: string;
   /** 新增模式下无快照时，根据是否有填写内容判断为 dirty */
@@ -21,8 +23,8 @@ export interface UseAddEditDialogSetupOptions {
  * 与 useAddEditDialogCloseGuard 配合，供 CacheAddEdit、ParamAddEdit 等复用。
  */
 export function useAddEditDialogSetup(
-  props: Record<string, unknown>,
-  context: { emit: (event: string, ...args: unknown[]) => void },
+  props: PageProps,
+  context: PageContext,
   options: UseAddEditDialogSetupOptions
 ) {
   const { createPage, i18nKeyPrefix, formHasContent } = options;

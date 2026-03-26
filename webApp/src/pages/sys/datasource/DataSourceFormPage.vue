@@ -188,18 +188,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
-import { TenantSupportAddEditPage } from '../../../components/pages/TenantSupportAddEditPage';
-import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
-import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
+import { defineComponent } from 'vue';
 import '../../../styles/add-edit-dialog-common.css';
-
-type MicroServiceTreeNode = { id: string; name: string; parentId?: string | null; orderNum?: number | null; children?: MicroServiceTreeNode[] };
-type TreeSelectNode = { value: string; label: string; children?: TreeSelectNode[] };
-function toTreeSelectNode(node: MicroServiceTreeNode): TreeSelectNode {
-  const children = Array.isArray(node.children) && node.children.length > 0 ? node.children.map(toTreeSelectNode) : undefined;
-  return { value: String(node.id), label: node.name ?? String(node.id), ...(children ? { children } : {}) };
-}
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
+import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
+import { TenantSupportAddEditPage } from '../../../components/pages/support';
+import { useMicroserviceTreeOptions } from '../../../components/pages/integration';
 
 interface FormModel {
   name: string | null;
@@ -225,7 +220,7 @@ function toNumberOrUndefined(value: unknown): number | undefined {
 }
 
 class DataSourceFormPage extends TenantSupportAddEditPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
   }
 
@@ -296,47 +291,21 @@ class DataSourceFormPage extends TenantSupportAddEditPage {
 export default defineComponent({
   name: 'DataSourceFormPage',
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
-    onSaved: {
-      type: Function as (params: Record<string, unknown>) => void,
-      default: undefined,
-    },
+    ...commonAddEditDialogProps,
   },
-  emits: ['update:modelValue', 'response'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    const microserviceTree = ref<TreeSelectNode[]>([]);
-    onMounted(() => {
-      backendRequest({ url: 'sys/microService/getFullMicroServiceTree', method: 'get' })
-        .then((result) => {
-          const payload = getApiResponseData<MicroServiceTreeNode[]>(result);
-          const raw = (Array.isArray(payload) ? payload : []) as MicroServiceTreeNode[];
-          microserviceTree.value = raw.map(toTreeSelectNode);
-        })
-        .catch(() => { microserviceTree.value = []; });
-    });
-    const setupReturn = useAddEditDialogSetup(props, context, {
+  emits: commonAddEditDialogEmits,
+  setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    const { microserviceTree } = useMicroserviceTreeOptions();
+    const setupReturn = useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new DataSourceFormPage(p, c),
       i18nKeyPrefix: 'dataSourceAddEdit',
       formHasContent(model: Record<string, unknown>) {
-        if (!model) return false;
-        if (model.name != null && String(model.name).trim() !== '') return true;
-        if (model.subSysOrTenant != null && Array.isArray(model.subSysOrTenant) && model.subSysOrTenant.length > 0) return true;
-        if (model.microServiceCode != null && String(model.microServiceCode).trim() !== '') return true;
-        if (model.url != null && String(model.url).trim() !== '') return true;
-        if (model.username != null && String(model.username).trim() !== '') return true;
-        if (model.password != null && String(model.password).trim() !== '') return true;
-        if (model.remark != null && String(model.remark).trim() !== '') return true;
-        if (model.initialSize != null && model.initialSize !== '') return true;
-        if (model.maxActive != null && model.maxActive !== '') return true;
-        if (model.maxIdle != null || model.minIdle != null || model.maxWait != null || model.maxAge != null) return true;
-        return false;
+        return hasAnyFormContent(model, {
+          stringKeys: ['name', 'microServiceCode', 'url', 'username', 'password', 'remark'],
+          arrayKeys: ['subSysOrTenant'],
+          valueKeys: ['initialSize', 'maxActive'],
+          customChecks: [(m) => m.maxIdle != null || m.minIdle != null || m.maxWait != null || m.maxAge != null],
+        });
       },
     });
     return { ...setupReturn, microserviceTree };

@@ -1,6 +1,7 @@
 import { ref, watch, nextTick, onUnmounted } from 'vue';
 import type { Ref } from 'vue';
 
+/** 自动列宽计算列配置。 */
 export interface TableColumnAutoWidthConfig {
   key: string;
   /** 列头显示文案（用于测量宽度） */
@@ -11,6 +12,7 @@ export interface TableColumnAutoWidthConfig {
   getCellText?: (row: Record<string, unknown>) => string;
 }
 
+/** 自动列宽 hook 配置。 */
 export interface UseTableColumnAutoWidthOptions {
   /** 表格外层容器 ref（用于取可用宽度和表头字体） */
   containerRef: Ref<HTMLElement | null>;

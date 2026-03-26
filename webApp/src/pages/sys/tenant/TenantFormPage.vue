@@ -83,10 +83,12 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
-import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 import '../../../styles/add-edit-dialog-common.css';
+import { BaseAddEditPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
+import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 
 interface FormModel {
   name: string | null;
@@ -96,7 +98,7 @@ interface FormModel {
 }
 
 class TenantFormPage extends BaseAddEditPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.loadSubSystems();
   }
@@ -153,30 +155,18 @@ class TenantFormPage extends BaseAddEditPage {
 export default defineComponent({
   name: 'TenantFormPage',
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
-    onSaved: {
-      type: Function as (params: Record<string, unknown>) => void,
-      default: undefined,
-    },
+    ...commonAddEditDialogProps,
   },
-  emits: ['update:modelValue', 'response'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    return useAddEditDialogSetup(props, context, {
+  emits: commonAddEditDialogEmits,
+  setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    return useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new TenantFormPage(p, c),
       i18nKeyPrefix: 'tenantAddEdit',
       formHasContent(model: Record<string, unknown>) {
-        if (!model) return false;
-        if (model.name != null && String(model.name).trim() !== '') return true;
-        if (Array.isArray(model.subSystemCodes) && model.subSystemCodes.length > 0) return true;
-        if (model.remark != null && String(model.remark).trim() !== '') return true;
-        return false;
+        return hasAnyFormContent(model, {
+          stringKeys: ['name', 'remark'],
+          arrayKeys: ['subSystemCodes'],
+        });
       },
     });
   },

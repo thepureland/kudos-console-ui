@@ -445,19 +445,10 @@ import {Delete, Edit, Plus, RefreshLeft, Search, Tickets} from '@element-plus/ic
 import {useI18n} from 'vue-i18n';
 import CacheFormPage from './CacheFormPage.vue';
 import CacheDetailPage from './CacheDetailPage.vue';
-import ListPageLayout from '../../../components/pages/ListPageLayout.vue';
-import {BaseListPage} from '../../../components/pages/BaseListPage';
-import {useListPageLayout} from '../../../components/pages/useListPageLayout';
-import { useTableAutoWidthContext } from '../../../components/pages/useTableAutoWidthContext';
-import {useValidationI18nCacheProvider} from '../../../components/pages/useValidationI18nCacheProvider';
-import {createColumnVisibilityConfig} from '../../../components/pages/columnVisibilityConfig';
-import {useListPageFormSetup} from '../../../components/pages/useListPageFormSetup';
-import {useListPageVisibilityState} from '../../../components/pages/useListPageVisibilityState';
-import {useColumnVisibilityOptions} from '../../../components/pages/useColumnVisibilityOptions';
-import {useVisibleColumnKeys} from '../../../components/pages/useVisibleColumnKeys';
-import {useFixedLeftTableWidth} from '../../../components/pages/useFixedLeftTableWidth';
-import {useFixedLeftRelayoutWatcher} from '../../../components/pages/useFixedLeftRelayoutWatcher';
-import {useColumnOrderDrag} from '../../../components/pages/useColumnOrderDrag';
+import { BaseListPage } from '../../../components/pages/core';
+import type { ListPageContext, ListPageProps, PageContext, PageProps } from '../../../components/pages/core';
+import { useListPageLayout, useTableAutoWidthContext, useValidationI18nCacheProvider, createColumnVisibilityConfig, useListPageFormSetup, useListPageVisibilityState, useColumnVisibilityOptions, useVisibleColumnKeys, useFixedLeftTableWidth, useFixedLeftRelayoutWatcher, useColumnOrderDrag, createI18nColumnLabelGetter } from '../../../components/pages/list';
+import { ListPageLayout } from '../../../components/pages/ui';
 import {
   backendRequest,
   getApiFailureMessage,
@@ -477,7 +468,7 @@ interface CacheCommandPayload {
 
 /** 缓存列表页业务逻辑：搜索、表格、缓存管理操作（重载/驱逐等）及 key 弹窗 */
 class CacheListPage extends BaseListPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.convertThis();
     this.loadAtomicServices();
@@ -723,7 +714,7 @@ export default defineComponent({
     RefreshLeft,
     Plus,
   },
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
     const listPage = reactive(new CacheListPage(props, context)) as CacheListPage & { state: Record<string, unknown> };
@@ -820,7 +811,11 @@ export default defineComponent({
     } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS, {
       onOrderChange: () => nextTick(forceFixedLeftWidth),
     });
-    const cacheListColumnLabel = (k: string) => t('cacheList.columns.' + (k === 'atomicServiceCode' ? 'subSystem' : k === 'strategyDictCode' ? 'strategy' : k === 'ttl' ? 'ttlSeconds' : k === 'hash' ? 'hash' : k));
+    const cacheListColumnLabel = createI18nColumnLabelGetter(t, 'cacheList.columns', {
+      atomicServiceCode: 'subSystem',
+      strategyDictCode: 'strategy',
+      ttl: 'ttlSeconds',
+    });
     const {
       RESERVED_WIDTH_LEFT,
       RESERVED_WIDTH_RIGHT,
@@ -872,22 +867,12 @@ export default defineComponent({
     });
     /** 布尔列（启用/写缓存等）表头筛选：是/否 */
     const boolFilters = computed(() => listPage.createBooleanFilters(t('cacheList.common.yes'), t('cacheList.common.no')));
-    const columnKeyToLabel: Record<string, () => string> = {
-      atomicServiceCode: () => t('cacheList.columns.subSystem'),
-      strategyDictCode: () => t('cacheList.columns.strategy'),
-      active: () => t('cacheList.columns.active'),
-      hash: () => t('cacheList.columns.hash'),
-      writeOnBoot: () => t('cacheList.columns.writeOnBoot'),
-      writeInTime: () => t('cacheList.columns.writeInTime'),
-      ttl: () => t('cacheList.columns.ttlSeconds'),
-      remark: () => t('cacheList.columns.remark'),
-    };
     /** 栏位可见性面板中的可选项（按当前顺序），支持拖拽排序 */
     const columnVisibilityOptions = useColumnVisibilityOptions({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('cacheList.columns.index'),
       getColumnKeys: () => orderedColumnKeys.value,
-      getColumnLabel: (key) => columnKeyToLabel[key]?.() ?? key,
+      getColumnLabel: cacheListColumnLabel,
     });
 
     /** 将布尔值格式化为「是/否」文案 */

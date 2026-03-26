@@ -108,9 +108,11 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { BaseAddEditPage } from '../../../components/pages/BaseAddEditPage';
-import { useAddEditDialogSetup } from '../../../components/pages/useAddEditDialogSetup';
 import '../../../styles/add-edit-dialog-common.css';
+import { BaseAddEditPage } from '../../../components/pages/core';
+import type { PageContext, PageProps } from '../../../components/pages/core';
+import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
+import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 
 interface FormModel {
   code: string | null;
@@ -122,7 +124,7 @@ interface FormModel {
 }
 
 class MicroServiceFormPage extends BaseAddEditPage {
-  constructor(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
+  constructor(props: PageProps, context: PageContext) {
     super(props, context);
   }
 
@@ -151,33 +153,18 @@ class MicroServiceFormPage extends BaseAddEditPage {
 export default defineComponent({
   name: 'MicroServiceFormPage',
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-    rid: {
-      type: String,
-      default: '',
-    },
-    onSaved: {
-      type: Function as (params: Record<string, unknown>) => void,
-      default: undefined,
-    },
+    ...commonAddEditDialogProps,
   },
-  emits: ['update:modelValue', 'response'],
-  setup(props: Record<string, unknown>, context: { emit: (event: string, ...args: unknown[]) => void }) {
-    return useAddEditDialogSetup(props, context, {
+  emits: commonAddEditDialogEmits,
+  setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    return useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new MicroServiceFormPage(p, c),
       i18nKeyPrefix: 'microServiceAddEdit',
       formHasContent(model: Record<string, unknown>) {
-        if (!model) return false;
-        if (model.code != null && String(model.code).trim() !== '') return true;
-        if (model.name != null && String(model.name).trim() !== '') return true;
-        if (model.parentCode != null && String(model.parentCode).trim() !== '') return true;
-        if (model.context != null && String(model.context).trim() !== '') return true;
-        if (model.remark != null && String(model.remark).trim() !== '') return true;
-        if (model.atomicService === true) return true;
-        return false;
+        return hasAnyFormContent(model, {
+          stringKeys: ['code', 'name', 'parentCode', 'context', 'remark'],
+          trueKeys: ['atomicService'],
+        });
       },
     });
   },
