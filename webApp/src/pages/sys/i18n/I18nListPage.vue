@@ -361,7 +361,7 @@ import I18nFormPage from './I18nFormPage.vue';
 import I18nDetailPage from './I18nDetailPage.vue';
 import { BaseListPage } from '../../../components/pages/core';
 import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
-import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, createI18nColumnLabelGetter, useColumnOrderDrag } from '../../../components/pages/list';
+import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, createI18nColumnLabelGetter, useColumnOrderDrag, useFixedLeftRelayoutWatcher } from '../../../components/pages/list';
 import { ListPageLayout } from '../../../components/pages/ui';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'i18nList.operationColumnPinned';

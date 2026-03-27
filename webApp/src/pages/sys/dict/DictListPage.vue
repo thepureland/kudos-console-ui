@@ -885,7 +885,7 @@ export default defineComponent({
     }
     const {
       listLayoutRefs,
-      onTableWrapMounted: layoutOnTableWrapMounted,
+      onTableWrapMounted,
       visibleColumnKeys,
       columnVisibilityOptions,
       isColumnVisible,
