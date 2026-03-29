@@ -57,7 +57,7 @@
             v-model="formModel.remark"
             type="textarea"
             :rows="3"
-            :placeholder="t('domainAddEdit.placeholders.remark')"
+            :placeholder="t('formCommon.remarkPlaceholderWithMax', { max: remarkMaxLength })"
             :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"

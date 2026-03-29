@@ -2590,6 +2590,15 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
                 ?: """{"code":{"NotBlank":[{"message":"sys.valid-msg.default.NotBlank"}]},"name":{"NotBlank":[{"message":"sys.valid-msg.default.NotBlank"}]}}"""
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/system/getAllActiveSystemCodes", "/api/sys/system/getAllActiveSystemCodes", "/api/admin/sys/system/getAllActiveSystemCodes" -> {
+            /** 与 buildSubsysSearchTreeResponse 扁平数据一致：启用且非子系统 */
+            val arr = JsonArray(listOf(JsonPrimitive("module_x"), JsonPrimitive("module_y")))
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", arr)
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/subsys/saveOrUpdate", "/api/sys/subsys/saveOrUpdate", "/api/admin/sys/subsys/saveOrUpdate",
         "/sys/subsys/save", "/api/sys/subsys/save", "/api/admin/sys/subsys/save",
         "/sys/subsys/update", "/api/sys/subsys/update", "/api/admin/sys/subsys/update" -> {
