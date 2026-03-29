@@ -129,8 +129,8 @@
               :active-value="true"
               :inactive-value="false"
               inline-prompt
-              :active-text="t('cacheAddEdit.switch.on')"
-              :inactive-text="t('cacheAddEdit.switch.off')"
+              :active-text="t('cacheAddEdit.switch.yes')"
+              :inactive-text="t('cacheAddEdit.switch.no')"
             />
           </el-form-item>
           <el-form-item :label="t('cacheAddEdit.labels.writeInTime')" prop="writeInTime" class="form-item--inline">
@@ -139,8 +139,8 @@
               :active-value="true"
               :inactive-value="false"
               inline-prompt
-              :active-text="t('cacheAddEdit.switch.on')"
-              :inactive-text="t('cacheAddEdit.switch.off')"
+              :active-text="t('cacheAddEdit.switch.yes')"
+              :inactive-text="t('cacheAddEdit.switch.no')"
             />
           </el-form-item>
         </div>
@@ -151,7 +151,6 @@
                 v-model="formModel.ttl"
                 :min="0"
                 :max="2147483647"
-                :placeholder="t('cacheAddEdit.placeholders.ttl')"
                 controls-position="right"
                 class="form-input-number-full"
               />
@@ -177,8 +176,8 @@
                 :active-value="true"
                 :inactive-value="false"
                 inline-prompt
-                :active-text="t('cacheAddEdit.switch.on')"
-                :inactive-text="t('cacheAddEdit.switch.off')"
+                :active-text="t('cacheAddEdit.switch.yes')"
+                :inactive-text="t('cacheAddEdit.switch.no')"
               />
             </div>
           </el-tooltip>
@@ -188,8 +187,8 @@
             :active-value="true"
             :inactive-value="false"
             inline-prompt
-            :active-text="t('cacheAddEdit.switch.on')"
-            :inactive-text="t('cacheAddEdit.switch.off')"
+            :active-text="t('cacheAddEdit.switch.yes')"
+            :inactive-text="t('cacheAddEdit.switch.no')"
           />
           <span v-if="!isEdit" class="form-tip form-tip--warn hash-immutable-tip">
             <el-icon><WarningFilled /></el-icon>
@@ -201,7 +200,7 @@
             v-model="formModel.remark"
             type="textarea"
             :rows="3"
-            :placeholder="t('cacheAddEdit.placeholders.remark')"
+            :placeholder="t('formCommon.remarkPlaceholderWithMax', { max: remarkMaxLength })"
             :maxlength="remarkMaxLength"
             show-word-limit
             resize="none"
@@ -227,6 +226,9 @@ import { BaseAddEditPage } from '../../../components/pages/core';
 import type { PageContext, PageProps, SysMicroServiceCacheItem } from '../../../components/pages/core';
 import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
 import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
+
+/** 新增表单 TTL 默认值（秒），与关闭守卫「是否改动」判断一致 */
+const DEFAULT_CACHE_TTL = 999999999;
 
 interface FormModel {
   name: string | null;
@@ -266,10 +268,10 @@ class CacheFormPage extends BaseAddEditPage {
         name: null,
         atomicServiceCode: null,
         strategyDictCode: null,
-        hash: false,
-        writeOnBoot: false,
-        writeInTime: false,
-        ttl: null,
+        hash: true,
+        writeOnBoot: true,
+        writeInTime: true,
+        ttl: DEFAULT_CACHE_TTL,
         managementBeanName: null,
         remark: null,
       } as FormModel,
@@ -328,8 +330,19 @@ export default defineComponent({
       formHasContent(model: Record<string, unknown>) {
         return hasAnyFormContent(model, {
           stringKeys: ['name', 'remark'],
-          valueKeys: ['atomicServiceCode', 'strategyDictCode', 'ttl'],
-          trueKeys: ['writeOnBoot', 'writeInTime'],
+          valueKeys: ['atomicServiceCode', 'strategyDictCode'],
+          // 三者默认 true；TTL 默认 DEFAULT_CACHE_TTL，仅偏离时视为有改动
+          customChecks: [
+            (m) => m.writeOnBoot === false,
+            (m) => m.writeInTime === false,
+            (m) => m.hash === false,
+            (m) => {
+              const t = m.ttl;
+              if (t === null || t === undefined) return true;
+              const n = Number(t);
+              return Number.isNaN(n) ? true : n !== DEFAULT_CACHE_TTL;
+            },
+          ],
         });
       },
     });

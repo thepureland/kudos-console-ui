@@ -54,7 +54,7 @@
       <section class="form-section">
         <div class="form-section__title">{{ t('resourceAddEdit.sections.other') }}</div>
         <el-form-item :label="t('resourceAddEdit.labels.remark')" prop="remark">
-          <el-input v-model="formModel.remark" type="textarea" :rows="3" :placeholder="t('resourceAddEdit.placeholders.remark')" :maxlength="remarkMaxLength" show-word-limit resize="none" />
+          <el-input v-model="formModel.remark" type="textarea" :rows="3" :placeholder="t('formCommon.remarkPlaceholderWithMax', { max: remarkMaxLength })" :maxlength="remarkMaxLength" show-word-limit resize="none" />
         </el-form-item>
       </section>
     </el-form>
