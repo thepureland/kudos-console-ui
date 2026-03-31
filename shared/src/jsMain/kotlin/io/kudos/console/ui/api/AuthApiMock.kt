@@ -2641,6 +2641,15 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: "{}"
             respond(body, HttpStatusCode.OK, headers)
         }
+        "/sys/microService/getAllActiveMicroServiceCodes", "/api/sys/microService/getAllActiveMicroServiceCodes", "/api/admin/sys/microService/getAllActiveMicroServiceCodes" -> {
+            /** 与 buildMicroserviceSearchTreeResponse 一致：启用且非原子服务 → order-worker */
+            val arr = JsonArray(listOf(JsonPrimitive("order-worker")))
+            val body = buildJsonObject {
+                put("code", JsonPrimitive(200))
+                put("data", arr)
+            }.toString()
+            respond(body, HttpStatusCode.OK, headers)
+        }
         "/sys/microService/saveOrUpdate", "/api/sys/microService/saveOrUpdate", "/api/admin/sys/microService/saveOrUpdate",
         "/sys/microService/save", "/api/sys/microService/save", "/api/admin/sys/microService/save",
         "/sys/microService/update", "/api/sys/microService/update", "/api/admin/sys/microService/update" -> {

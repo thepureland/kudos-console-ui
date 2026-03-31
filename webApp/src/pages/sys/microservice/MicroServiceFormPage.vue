@@ -59,14 +59,37 @@
           </el-row>
         </el-form-item>
         <el-form-item :label="t('microServiceAddEdit.labels.parentCode')" prop="parentCode">
-          <el-row :gutter="12" class="form-item-row">
-            <el-col :span="24">
-              <el-input
+          <el-row :gutter="8" class="form-item-row microservice-parent-code-row">
+            <el-col :span="18">
+              <el-select
                 v-model="formModel.parentCode"
                 :placeholder="t('microServiceAddEdit.placeholders.parentCode')"
                 clearable
+                filterable
+                class="form-select-full"
                 size="default"
-              />
+              >
+                <el-option
+                  v-for="code in parentCodeOptions || []"
+                  :key="code"
+                  :value="code"
+                  :label="code"
+                />
+              </el-select>
+            </el-col>
+            <el-col :span="6" class="microservice-parent-code-row__btn">
+              <el-tooltip :content="t('microServiceAddEdit.tooltips.refreshParentCodes')" placement="top" :enterable="false">
+                <el-button
+                  type="default"
+                  size="default"
+                  :loading="parentCodeOptionsLoading"
+                  :aria-label="t('microServiceAddEdit.buttons.refreshParentCodes')"
+                  @click="reloadParentMicroServiceCodes"
+                >
+                  <el-icon><Refresh /></el-icon>
+                  <span class="microservice-parent-code-row__btn-text">{{ t('microServiceAddEdit.buttons.refreshParentCodes') }}</span>
+                </el-button>
+              </el-tooltip>
             </el-col>
           </el-row>
         </el-form-item>
@@ -108,6 +131,8 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { Refresh } from '@element-plus/icons-vue';
+import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 import '../../../styles/add-edit-dialog-common.css';
 import { BaseAddEditPage } from '../../../components/pages/core';
 import type { PageContext, PageProps } from '../../../components/pages/core';
@@ -124,8 +149,12 @@ interface FormModel {
 }
 
 class MicroServiceFormPage extends BaseAddEditPage {
+  /** 接口返回的启用非原子微服务编码（未排除当前行 code） */
+  private parentCodeOptionsRaw: string[] = [];
+
   constructor(props: PageProps, context: PageContext) {
     super(props, context);
+    this.loadParentMicroServiceCodes();
   }
 
   protected initState(): Record<string, unknown> {
@@ -135,10 +164,49 @@ class MicroServiceFormPage extends BaseAddEditPage {
         name: null,
         parentCode: null,
         context: null,
-        atomicService: false,
+        atomicService: true,
         remark: null,
       } as FormModel,
+      parentCodeOptions: [] as string[],
+      parentCodeOptionsLoading: false,
     };
+  }
+
+  public reloadParentMicroServiceCodes(): Promise<void> {
+    return this.loadParentMicroServiceCodes();
+  }
+
+  /** sys/microService/getAllActiveMicroServiceCodes */
+  private async loadParentMicroServiceCodes(): Promise<void> {
+    (this.state as Record<string, unknown>).parentCodeOptionsLoading = true;
+    try {
+      const result = await backendRequest({ url: 'sys/microService/getAllActiveMicroServiceCodes' });
+      const payload = getApiResponseData<unknown[]>(result);
+      this.parentCodeOptionsRaw = Array.isArray(payload)
+        ? payload.map((x) => String(x ?? '')).filter((c) => c !== '')
+        : [];
+    } catch {
+      this.parentCodeOptionsRaw = [];
+    } finally {
+      (this.state as Record<string, unknown>).parentCodeOptionsLoading = false;
+    }
+    this.syncParentCodeOptions();
+  }
+
+  private syncParentCodeOptions(): void {
+    const raw = this.parentCodeOptionsRaw;
+    const selfCode = String((this.state.formModel as FormModel).code ?? '').trim();
+    let list = selfCode ? raw.filter((c) => c !== selfCode) : [...raw];
+    const pc = (this.state.formModel as FormModel).parentCode?.trim();
+    if (pc && !list.includes(pc)) {
+      list = [...list, pc];
+    }
+    (this.state as Record<string, unknown>).parentCodeOptions = list;
+  }
+
+  protected fillForm(rowObject: Record<string, unknown>): void {
+    super.fillForm(rowObject);
+    this.syncParentCodeOptions();
   }
 
   protected getRootActionPath(): string {
@@ -152,25 +220,43 @@ class MicroServiceFormPage extends BaseAddEditPage {
 
 export default defineComponent({
   name: 'MicroServiceFormPage',
+  components: { Refresh },
   props: {
     ...commonAddEditDialogProps,
   },
   emits: commonAddEditDialogEmits,
   setup(props: AddEditDialogProps, context: AddEditDialogContext) {
-    return useAddEditDialogSetupWithVisible(props, context, {
-      createPage: (p, c) => new MicroServiceFormPage(p, c),
+    const pageHolder: { ref: MicroServiceFormPage | null } = { ref: null };
+    const base = useAddEditDialogSetupWithVisible(props, context, {
+      createPage: (p, c) => {
+        const page = new MicroServiceFormPage(p, c);
+        pageHolder.ref = page;
+        return page;
+      },
       i18nKeyPrefix: 'microServiceAddEdit',
       formHasContent(model: Record<string, unknown>) {
         return hasAnyFormContent(model, {
           stringKeys: ['code', 'name', 'parentCode', 'context', 'remark'],
-          trueKeys: ['atomicService'],
+          // 原子服务默认 true；关为否视为有改动
+          customChecks: [(m) => m.atomicService === false],
         });
       },
     });
+    async function reloadParentMicroServiceCodes(): Promise<void> {
+      await pageHolder.ref?.reloadParentMicroServiceCodes();
+    }
+    return { ...base, reloadParentMicroServiceCodes };
   },
 });
 </script>
 
 <style scoped>
-/* 仅微服务页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
+.microservice-parent-code-row__btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.microservice-parent-code-row__btn-text {
+  margin-left: 4px;
+}
 </style>

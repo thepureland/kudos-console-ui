@@ -229,7 +229,7 @@
             v-if="showOperationColumn"
             :label="t('microServiceList.columns.operation')"
             align="center"
-            min-width="120"
+            min-width="68"
             fixed="right"
             class-name="operation-column"
             label-class-name="operation-column"

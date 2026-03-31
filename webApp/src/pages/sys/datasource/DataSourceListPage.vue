@@ -21,7 +21,7 @@
       <!-- 工具栏：布局由 ListPageLayout + list-page-common 提供，此处仅填 slot 内容 -->
       <template #toolbar>
         <div class="toolbar-cell toolbar-name">
-          <div class="search-name-input-wrap">
+          <div class="search-name-input-wrap" :style="{ width: nameInputWidth + 'px' }">
             <span ref="nameInputMirrorRef" class="search-name-input-mirror">{{ searchParams.name || namePlaceholder }}</span>
             <el-input
               v-model="searchParams.name"
@@ -425,7 +425,9 @@ class DataSourceListPage extends TenantSupportListPage {
 
 }
 
-const NAME_INPUT_PADDING = 40;
+/** 动态宽度 = 镜像文本宽 + 余量；不小于 MIN 以免输入框过窄（与原先约 200px 工具栏格相当） */
+const NAME_INPUT_PADDING = 48;
+const NAME_INPUT_MIN_WIDTH = 240;
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'dataSourceList.operationColumnPinned';
 const DATA_SOURCE_LIST_STATE_STORAGE_KEY = 'dataSourceList.queryState.v2';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'dataSourceList.visibleColumns';
@@ -468,13 +470,13 @@ export default defineComponent({
     const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
     const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
     const nameInputMirrorRef = ref<HTMLElement | null>(null);
-    const nameInputWidth = ref(180);
+    const nameInputWidth = ref(NAME_INPUT_MIN_WIDTH);
     const namePlaceholder = computed(() => t('dataSourceList.placeholders.name'));
     function updateNameInputWidth() {
       nextTick(() => {
         const el = nameInputMirrorRef.value;
         if (!el) return;
-        nameInputWidth.value = el.offsetWidth + NAME_INPUT_PADDING;
+        nameInputWidth.value = Math.max(NAME_INPUT_MIN_WIDTH, el.offsetWidth + NAME_INPUT_PADDING);
       });
     }
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
@@ -597,6 +599,56 @@ export default defineComponent({
 
 <style src="../../../styles/list-page-common.css" scoped></style>
 <style scoped>
+/*
+ * 数据源搜索栏：与 list-page-common 里分散的 margin-right（名称 4px、级联/微服务 2px、extra 4px）叠加后，
+ * 中间几块视觉上「越间距越大」。改为工具栏统一 gap，并清零子项左右 margin；按钮紧跟在「仅启用」后（不再 margin-left:auto）。
+ */
+.data-source-list-page :deep(.list-page-toolbar) {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+.data-source-list-page :deep(.list-page-toolbar > .toolbar-cell),
+.data-source-list-page :deep(.list-page-toolbar > .toolbar-extra),
+.data-source-list-page :deep(.list-page-toolbar > .toolbar-buttons) {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+.data-source-list-page :deep(.list-page-toolbar > .toolbar-buttons) {
+  min-width: 0 !important;
+  flex: 0 0 auto;
+}
+.data-source-list-page :deep(.list-page-toolbar .toolbar-cell) {
+  flex: 0 0 auto !important;
+  max-width: none !important;
+}
+.data-source-list-page :deep(.list-page-toolbar .toolbar-name) {
+  flex-shrink: 0;
+}
+.data-source-list-page :deep(.list-page-toolbar .toolbar-cascader),
+.data-source-list-page :deep(.list-page-toolbar .toolbar-microservice) {
+  min-width: 0;
+}
+.data-source-list-page :deep(.list-page-toolbar .toolbar-cascader) {
+  flex: 0 0 200px;
+  width: 200px;
+  max-width: min(200px, 42vw);
+  box-sizing: border-box;
+}
+.data-source-list-page :deep(.list-page-toolbar .toolbar-microservice) {
+  flex: 0 0 200px;
+  width: 200px;
+  max-width: min(200px, 42vw);
+  box-sizing: border-box;
+}
+.data-source-list-page :deep(.list-page-toolbar .toolbar-cascader .subsys-tenant-cascader),
+.data-source-list-page :deep(.list-page-toolbar .toolbar-microservice .microservice-select) {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100%;
+}
 .col-subsys-microservice {
   display: flex;
   align-items: center;

@@ -907,11 +907,14 @@ export default {
     placeholders: {
       code: '请输入编码',
       name: '请输入名称',
-      parentCode: '选填，父级微服务编码',
+      parentCode: '请选择父级编码',
       context: '请输入上下文路径',
     },
     switch: { yes: '是', no: '否' },
-    buttons: { cancel: '取 消', confirm: '确 定' },
+    buttons: { cancel: '取 消', confirm: '确 定', refreshParentCodes: '刷新' },
+    tooltips: {
+      refreshParentCodes: '重新获取父级微服务编码列表；新增微服务后若下拉未更新可点此刷新',
+    },
     closeConfirm: { message: '有未保存的修改，确定要关闭吗？', title: '提示' },
     messages: { loadFailed: '数据加载失败！' },
     validation: {

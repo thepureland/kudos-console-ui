@@ -224,7 +224,7 @@
             :label="t('domainList.columns.operation')"
             align="center"
             fixed="right"
-            min-width="160"
+            min-width="68"
             class-name="operation-column"
           >
             <template #header>
