@@ -207,7 +207,7 @@
             v-if="showOperationColumn"
             :label="t('organizationList.columns.operation')"
             align="center"
-            min-width="160"
+            min-width="68"
             class-name="operation-column"
             label-class-name="operation-column"
           >

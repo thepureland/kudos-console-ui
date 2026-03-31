@@ -907,11 +907,14 @@ export default {
     placeholders: {
       code: '請輸入編碼',
       name: '請輸入名稱',
-      parentCode: '選填，父級微服務編碼',
+      parentCode: '請選擇父級編碼',
       context: '請輸入上下文路徑',
     },
     switch: { yes: '是', no: '否' },
-    buttons: { cancel: '取 消', confirm: '確 定' },
+    buttons: { cancel: '取 消', confirm: '確 定', refreshParentCodes: '刷新' },
+    tooltips: {
+      refreshParentCodes: '重新取得父級微服務編碼列表；新增微服務後若下拉未更新可點此刷新',
+    },
     closeConfirm: { message: '有未儲存的修改，確定要關閉嗎？', title: '提示' },
     messages: { loadFailed: '資料載入失敗！' },
     validation: {

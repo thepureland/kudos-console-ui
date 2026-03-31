@@ -296,7 +296,7 @@
             :label="t('i18nList.columns.operation')"
             align="center"
               fixed="right"
-              min-width="160"
+              min-width="68"
               class-name="operation-column"
             label-class-name="operation-column"
           >

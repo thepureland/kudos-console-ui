@@ -907,11 +907,14 @@ export default {
     placeholders: {
       code: 'Enter code',
       name: 'Enter name',
-      parentCode: 'Optional, parent microservice code',
+      parentCode: 'Select parent code',
       context: 'Enter context path',
     },
     switch: { yes: 'Yes', no: 'No' },
-    buttons: { cancel: 'Cancel', confirm: 'OK' },
+    buttons: { cancel: 'Cancel', confirm: 'OK', refreshParentCodes: 'Refresh' },
+    tooltips: {
+      refreshParentCodes: 'Reload parent microservice code list; use after adding one if the dropdown is stale',
+    },
     closeConfirm: { message: 'Unsaved changes. Close anyway?', title: 'Confirm' },
     messages: { loadFailed: 'Failed to load data.' },
     validation: {
