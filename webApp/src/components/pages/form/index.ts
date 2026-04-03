@@ -6,3 +6,4 @@ export * from './useCloseDropdownOnChange';
 export * from './useOnDialogVisible';
 export * from './formHasContent';
 export * from './useValidationI18nCacheProvider';
+export * from './installFormErrorTooltip';
