@@ -1,0 +1,33 @@
+.el-form .el-form-item__error:not(.el-form-item__error--inline) {
+  display: block;
+  left: 0;
+  right: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-error-tooltip {
+  position: fixed;
+  z-index: var(--el-index-popper);
+  max-width: min(420px, 80vw);
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: rgba(48, 49, 51, 0.96);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: break-word;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.08s ease;
+}
+
+.form-error-tooltip.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
