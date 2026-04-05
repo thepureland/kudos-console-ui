@@ -15,14 +15,31 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         this.initVars()
-        const firstLevelUrl = this.getFirstLevelApiUrl()
-        if (firstLevelUrl != null) {
-            this.loadFirstLevel(firstLevelUrl).then(() => {
-                this.state.subSysOrTenants = []
-            })
+        if (this.useListTenantBootstrap()) {
+            // 不将列表的 options 写入 state：列表 loadTenants 完成后会整体替换 subSysOrTenants 引用，仅跳过请求即可；子类模板用 props 与 state 合并绑定
         } else {
-            this.loadAtomicServices().then(() => this.loadTenants())
+            const firstLevelUrl = this.getFirstLevelApiUrl()
+            if (firstLevelUrl != null) {
+                this.loadFirstLevel(firstLevelUrl).then(() => {
+                    this.state.subSysOrTenants = []
+                })
+            } else {
+                this.loadAtomicServices().then(() => this.loadTenants())
+            }
         }
+    }
+
+    /**
+     * 列表页传入与自身一致的子系统/租户级联与原子服务数据时，不再请求接口，与列表共用数据。
+     * 子类可重写；默认要求 listSubSysOrTenants、listCascaderProps、listAtomicServiceList 均传入。
+     */
+    protected useListTenantBootstrap(): boolean {
+        const p = this.props as Record<string, unknown>
+        return (
+            p.listSubSysOrTenants !== undefined &&
+            p.listCascaderProps !== undefined &&
+            p.listAtomicServiceList !== undefined
+        )
     }
 
     /** 第一级使用子系统接口时返回 URL（如 sys/system/getAllActiveSubSystemCodes），返回 null 则使用原子服务。子类可重写。 */

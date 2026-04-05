@@ -204,7 +204,7 @@ const menuDataDisplay = computed(() =>
   collapse.value ? menuData.value.filter((i) => i.children) : menuData.value
 );
 
-const DEFAULT_SUB_SYSTEM_CODE = 'default';
+const DEFAULT_SUB_SYSTEM_CODE = 'default-sub-system';
 
 /** 从 shared mock 获取静态菜单（sys/resource/getMenus 或 AuthApi.getMenus 返回 menus.json） */
 async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {

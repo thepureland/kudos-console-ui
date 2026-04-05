@@ -12,6 +12,7 @@ import TenantListPage from '../pages/sys/tenant/TenantListPage.vue';
 import SystemListPage from '../pages/sys/system/SystemListPage.vue';
 import MicroServiceListPage from '../pages/sys/microservice/MicroServiceListPage.vue';
 import I18nListPage from '../pages/sys/i18n/I18nListPage.vue';
+import AccessRuleListPage from '../pages/sys/accessrule/AccessRuleListPage.vue';
 import AccountListPage from '../pages/user/account/AccountListPage.vue';
 import OrganizationListPage from '../pages/user/organization/OrganizationListPage.vue';
 import RoleListPage from '../pages/rbac/role/RoleListPage.vue';
@@ -37,6 +38,9 @@ const routes: RouteRecordRaw[] = [
       { path: 'sys/datasource', name: 'sys-datasource', component: DataSourceListPage, meta: { titleKey: 'route.sysDatasource', icon: 'Collection' } },
       { path: 'sys/resource', name: 'sys-resource', component: ResourceListPage, meta: { titleKey: 'route.sysResource', icon: 'Document' } },
       { path: 'sys/i18n', name: 'sys-i18n', component: I18nListPage, meta: { titleKey: 'route.sysI18n', icon: 'Setting' } },
+      { path: 'sys/accessrule', name: 'sys-accessrule', component: AccessRuleListPage, meta: { titleKey: 'route.sysAccessRule', icon: 'Lock' } },
+      { path: 'sys/accessruleip', redirect: '/sys/accessrule' },
+      { path: 'sys/accessrulewithip', redirect: '/sys/accessrule' },
       { path: 'user/account', name: 'user-account', component: AccountListPage, meta: { titleKey: 'route.userAccount', icon: 'UserFilled' } },
       { path: 'user/organization', name: 'user-organization', component: OrganizationListPage, meta: { titleKey: 'route.userOrganization', icon: 'OfficeBuilding' } },
       { path: 'rbac/role', name: 'rbac-role', component: RoleListPage, meta: { titleKey: 'route.rbacRole', icon: 'Key' } },
