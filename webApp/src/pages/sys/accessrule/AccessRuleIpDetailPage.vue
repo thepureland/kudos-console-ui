@@ -44,7 +44,7 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'accessRuleIpDetail.fields.ipEnd', key: 'ipEnd' },
   ],
   [
-    { labelKey: 'accessRuleIpDetail.fields.ipType', key: 'ipType' },
+    { labelKey: 'accessRuleIpDetail.fields.ipTypeDictCode', key: 'ipTypeDictCode' },
     { labelKey: 'accessRuleIpDetail.fields.expirationDate', key: 'expirationDate', type: 'date' },
   ],
   [

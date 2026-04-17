@@ -40,7 +40,7 @@ type RootState = {
   currentMenuPath: string;
   /** 关闭标签时记录的 path，下次该页激活时重置列表状态（切换标签不重置） */
   listStateResetPaths: string[];
-  /** 菜单数据（后端或 mock），Sidebar 加载后写入，Tags/Header 按 path 取 titleKey、icon */
+  /** 菜单数据（由后端接口写入），Sidebar 加载后写入，Tags/Header 按 path 取 titleKey、icon */
   menuData: MenuItem[];
 };
 
@@ -58,7 +58,9 @@ function loadSavedTags(): TagItem[] {
     if (!raw) return [];
     const arr = JSON.parse(raw) as unknown;
     if (!Array.isArray(arr)) return [];
-    return arr.filter((t): t is TagItem => t && typeof t === 'object' && typeof (t as TagItem).path === 'string');
+    return arr
+      .filter((t): t is TagItem => t && typeof t === 'object' && typeof (t as TagItem).path === 'string')
+      .map((t) => ({ ...t, path: resolvePath(t.path) }));
   } catch {
     return [];
   }
@@ -141,9 +143,11 @@ const store = createStore<RootState>({
       }
     },
     setTagsItem(state, item: TagItem) {
-      const exists = state.tagsList.some((tag) => tag.path === item.path);
+      const path = resolvePath(item.path);
+      const normalized = { ...item, path };
+      const exists = state.tagsList.some((tag) => tag.path === path);
       if (!exists) {
-        state.tagsList.unshift(item);
+        state.tagsList.unshift(normalized);
         saveTagsList(state.tagsList);
       }
     },
@@ -173,9 +177,10 @@ const store = createStore<RootState>({
       saveTagsList(state.tagsList);
     },
     setCurrentMenuPath(state, path: string) {
-      state.currentMenuPath = path;
+      const resolved = resolvePath(path);
+      state.currentMenuPath = resolved;
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(STORAGE_KEYS.currentMenuPath, path);
+        localStorage.setItem(STORAGE_KEYS.currentMenuPath, resolved);
       }
     },
     /** 关闭标签时调用，下次该 path 对应列表页激活时重置状态 */
@@ -187,7 +192,7 @@ const store = createStore<RootState>({
     removeListStateResetPath(state: RootState, path: string) {
       state.listStateResetPaths = state.listStateResetPaths.filter((p) => p !== path);
     },
-    /** Sidebar 加载菜单后调用（后端或 mock） */
+    /** Sidebar 加载菜单后调用（来自后端 getMenus / getAuthorisedMenus 等） */
     setMenuData(state: RootState, list: MenuItem[]) {
       state.menuData = list ?? [];
     },

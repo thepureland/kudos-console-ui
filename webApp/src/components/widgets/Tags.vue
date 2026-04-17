@@ -67,7 +67,7 @@
                 >
                   <span
                     class="more-item-row"
-                    :class="{ 'more-item-active': item.path === currentMenuPath }"
+                    :class="{ 'more-item-active': resolvePath(item.path) === currentMenuPath }"
                   >
                     <el-icon class="more-item-icon"><component :is="tagIcon(item)" /></el-icon>
                     <span class="more-item-title">{{ tagTitle(item) }}</span>
@@ -107,6 +107,7 @@ import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import type { TagItem } from '../../store/index';
+import { resolvePath } from '../../config/menuPathToComponent';
 
 const { t, te } = useI18n();
 const store = useStore();
@@ -178,7 +179,7 @@ watch(tagsList, scheduleMeasure, { deep: true });
 watch(() => t('tags.more'), scheduleMeasure);
 
 // ---------- 标签文案与图标（与侧栏菜单一致） ----------
-const isActive = (path: string) => path === currentMenuPath.value;
+const isActive = (path: string) => resolvePath(path) === currentMenuPath.value;
 /** 菜单/路由文案：titleKey 存在且当前 locale 有译文时用 t(titleKey)，否则用 title（后端菜单 key 未拉取到时避免报错） */
 function tagTitle(item: { titleKey?: string; title?: string }) {
   if (item.titleKey && te(item.titleKey)) return t(item.titleKey);
@@ -200,7 +201,7 @@ const pathToIcon: Record<string, string> = {
   '/sys/domain': 'Document',
   '/sys/tenant': 'Document',
   '/sys/subsys': 'Document',
-  '/sys/microService': 'Setting',
+  '/sys/microservice': 'Setting',
   '/sys/datasource': 'Collection',
   '/sys/resource': 'Document',
   '/sys/i18n': 'Setting',

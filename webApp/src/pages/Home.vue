@@ -45,7 +45,7 @@
         >
           <transition name="move" mode="out-in">
             <keep-alive :max="30">
-              <component v-if="currentComponent" :is="currentComponent" :key="currentMenuPath" />
+              <component :is="contentPageComponent" v-bind="contentPageProps" :key="currentMenuPath" />
             </keep-alive>
           </transition>
         </div>
@@ -62,11 +62,21 @@ import { getComponentForPath, VALID_MENU_PATHS } from '../config/menuPathToCompo
 import vHeader from '../components/widgets/Header.vue';
 import vSidebar from '../components/widgets/Sidebar.vue';
 import vTags from '../components/widgets/Tags.vue';
+import MenuPageFallback from './MenuPageFallback.vue';
 
 const store = useStore();
 const route = useRoute();
 const currentMenuPath = computed(() => store.state.currentMenuPath);
-const currentComponent = computed(() => getComponentForPath(currentMenuPath.value));
+
+/** 无映射页（如仅作分组的 /sys/basic）时用占位组件，避免 keep-alive 子节点为空触发 transition 的 shapeFlag 报错 */
+const contentPageResolved = computed(() => {
+  const path = currentMenuPath.value;
+  const comp = getComponentForPath(path);
+  if (comp) return { comp, props: {} as Record<string, string> };
+  return { comp: MenuPageFallback, props: { menuPath: path } };
+});
+const contentPageComponent = computed(() => contentPageResolved.value.comp);
+const contentPageProps = computed(() => contentPageResolved.value.props);
 
 /** 根据路由同步 store.currentMenuPath，使直接访问/刷新 /sys/subsys 等时内容区与侧栏/标签一致；点菜单不改地址栏。
  * 当 URL 为默认页 /home 时不覆盖 store，以保留刷新后从 localStorage 恢复的 currentMenuPath（避免刷新总回首页）。 */

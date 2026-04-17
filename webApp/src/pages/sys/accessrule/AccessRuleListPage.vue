@@ -1,7 +1,8 @@
 <!--
- * 访问规则 + IP 规则统一列表：主从同一页查询、展示、新增/编辑/删除（视图 v_sys_access_rule_with_ip + pagingSearchAccessRuleWithIp）。
+ * 访问规则 + IP 规则统一列表：查询关联视图明细行；树形分组下子系统 / 租户 / 规则类型在同一列内缩进展示。
  *
- * @author: AI: Cursor
+ * @author K
+ * @author AI: Cursor
  * @since 1.0.0
  -->
 <template>
@@ -17,65 +18,111 @@
       @table-wrap-mounted="onTableWrapMounted"
     >
       <template #toolbar>
-        <div class="toolbar-cell toolbar-system">
-          <el-select
-            v-model="searchParams.systemCode"
-            :placeholder="t('accessRuleList.placeholders.systemCode')"
-            clearable
-            filterable
-            class="search-name-input"
-            @change="search"
+        <div class="access-rule-list-toolbar-rows">
+          <div class="toolbar-row toolbar-row--primary">
+            <div class="toolbar-cell toolbar-system">
+              <el-select
+                v-model="searchParams.systemCode"
+                :placeholder="t('accessRuleList.placeholders.systemCode')"
+                clearable
+                filterable
+                class="search-name-input"
+                @change="search"
+              >
+                <el-option
+                  v-for="item in getAtomicServices()"
+                  :key="item.code"
+                  :value="item.code"
+                  :label="item.name"
+                />
+              </el-select>
+            </div>
+            <div class="toolbar-cell toolbar-cascader">
+              <el-cascader
+                v-model="searchParams.subSysOrTenant"
+                :options="subSysOrTenants"
+                :props="cascaderProps"
+                :placeholder="t('dataSourceList.placeholders.subSysOrTenant')"
+                clearable
+                class="subsys-tenant-cascader"
+                @change="search"
+              />
+            </div>
+            <div class="toolbar-cell toolbar-rule-type">
+              <el-select
+                v-model="searchParams.accessRuleTypeDictCode"
+                :placeholder="t('accessRuleList.placeholders.ruleType')"
+                clearable
+                filterable
+                class="search-select-input"
+                @change="search"
+              >
+                <el-option
+                  v-for="item in (ruleTypeOptions || [])"
+                  :key="item.first"
+                  :value="item.first"
+                  :label="t(item.second)"
+                />
+              </el-select>
+            </div>
+            <div class="toolbar-cell toolbar-ip-type">
+              <el-select
+                v-model="searchParams.ipTypeDictCode"
+                :placeholder="t('accessRuleList.placeholders.ipTypeDictCode')"
+                clearable
+                filterable
+                class="search-select-input"
+                @change="search"
+              >
+                <el-option
+                  v-for="item in (ipTypeOptions || [])"
+                  :key="item.first"
+                  :value="item.first"
+                  :label="t(item.second)"
+                />
+              </el-select>
+            </div>
+            <div class="toolbar-extra">
+              <el-checkbox v-model="searchParams.parentActive" class="active-only-checkbox" @change="search">
+                {{ t('accessRuleList.actions.activeOnly') }}
+              </el-checkbox>
+            </div>
+            <div class="toolbar-buttons">
+              <el-button type="primary" round @click="search">
+                <el-icon><Search /></el-icon>
+                {{ t('accessRuleList.actions.search') }}
+              </el-button>
+              <el-button type="primary" round @click="resetSearchFields">
+                <el-icon><RefreshLeft /></el-icon>
+                {{ t('accessRuleList.actions.reset') }}
+              </el-button>
+            </div>
+          </div>
+          <div
+            v-if="['ipv4', 'ipv6'].includes(String(searchParams.ipTypeDictCode ?? '').toLowerCase())"
+            class="toolbar-row toolbar-row--ip"
           >
-            <el-option
-              v-for="item in getAtomicServices()"
-              :key="item.code"
-              :value="item.code"
-              :label="item.name"
-            />
-          </el-select>
-        </div>
-        <div class="toolbar-cell toolbar-cascader">
-          <el-cascader
-            v-model="searchParams.subSysOrTenant"
-            :options="subSysOrTenants"
-            :props="cascaderProps"
-            :placeholder="t('dataSourceList.placeholders.subSysOrTenant')"
-            clearable
-            class="subsys-tenant-cascader"
-            @change="search"
-          />
-        </div>
-        <div class="toolbar-cell toolbar-rule-type">
-          <el-select
-            v-model="searchParams.accessRuleTypeDictCode"
-            :placeholder="t('accessRuleList.placeholders.ruleType')"
-            clearable
-            filterable
-            class="search-select-input"
-            @change="search"
-          >
-            <el-option
-              v-for="item in ruleTypeOptions"
-              :key="item.first"
-              :value="item.first"
-              :label="getAccessRuleTypeLabel(item.first)"
-            />
-          </el-select>
-        </div>
-        <div class="toolbar-extra">
-          <el-checkbox v-model="searchParams.parentActive" class="active-only-checkbox" @change="search">
-            {{ t('accessRuleList.actions.activeOnly') }}
-          </el-checkbox>
-        </div>
-        <div class="toolbar-buttons">
-          <el-button type="primary" round @click="search">
-            <el-icon><Search /></el-icon>
-            {{ t('accessRuleList.actions.search') }}
-          </el-button>
-          <el-button type="primary" round @click="resetSearchFields">
-            <el-icon><RefreshLeft /></el-icon>
-            {{ t('accessRuleList.actions.reset') }}
-          </el-button>
+            <template v-if="String(searchParams.ipTypeDictCode ?? '').toLowerCase() === 'ipv4'">
+              <div class="toolbar-cell toolbar-ip-range toolbar-ip-range--inline">
+                <span class="toolbar-ip-label">{{ t('accessRuleList.searchToolbar.ipRange') }}</span>
+                <IpSegmentedAddressInput v-model="searchParams.ipv4SearchStartStr" protocol="ipv4" compact />
+              </div>
+              <div class="toolbar-cell toolbar-ip-range toolbar-ip-range--inline">
+                <span class="toolbar-ip-label">{{ t('accessRuleList.searchToolbar.through') }}</span>
+                <IpSegmentedAddressInput v-model="searchParams.ipv4SearchEndStr" protocol="ipv4" compact />
+              </div>
+            </template>
+            <template v-else-if="String(searchParams.ipTypeDictCode ?? '').toLowerCase() === 'ipv6'">
+              <div class="toolbar-cell toolbar-ip-range toolbar-ip-range--inline">
+                <span class="toolbar-ip-label">{{ t('accessRuleList.searchToolbar.ipRange') }}</span>
+                <IpSegmentedAddressInput v-model="searchParams.ipv6SearchStartStr" protocol="ipv6" compact />
+              </div>
+              <div class="toolbar-cell toolbar-ip-range toolbar-ip-range--inline">
+                <span class="toolbar-ip-label">{{ t('accessRuleList.searchToolbar.through') }}</span>
+                <IpSegmentedAddressInput v-model="searchParams.ipv6SearchEndStr" protocol="ipv6" compact />
+              </div>
+            </template>
+          </div>
         </div>
       </template>
       <template #tableToolbar>
@@ -109,75 +156,64 @@
           ref="tableRef"
           border
           stripe
-          :data="tableData"
+          :data="treeTableData"
           :max-height="tableMaxHeight"
           :header-cell-style="{ textAlign: 'center' }"
+          :row-key="accessRuleTreeRowKey"
+          :tree-props="{ children: 'children' }"
+          default-expand-all
+          :row-class-name="accessRuleTreeRowClassName"
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" width="39" fixed="left" class-name="col-fixed-selection" />
+          <el-table-column
+            type="selection"
+            width="39"
+            fixed="left"
+            class-name="col-fixed-selection"
+            :selectable="accessRuleRowSelectable"
+          />
           <el-table-column v-if="isColumnVisible('index')" type="index" min-width="50" fixed="left" class-name="col-fixed-index" />
           <el-table-column
-            :label="t('accessRuleList.columns.systemCode')"
+            v-if="isColumnVisible('treeScope')"
+            :label="t('accessRuleList.columns.treeScope')"
             prop="systemCode"
-            min-width="100"
+            min-width="168"
             sortable="custom"
             fixed="left"
-            class-name="col-fixed-name"
+            class-name="col-fixed-name access-rule-tree-scope-col"
             show-overflow-tooltip
           >
             <template #default="scope">
-              {{ transAtomicService(scope.row.systemCode) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-if="isColumnVisible('tenantId')"
-            :label="t('accessRuleList.columns.tenantId')"
-            prop="tenantId"
-            min-width="100"
-            show-overflow-tooltip
-          />
-          <el-table-column
-            v-if="isColumnVisible('accessRuleTypeDictCode')"
-            :label="t('accessRuleList.columns.ruleType')"
-            prop="accessRuleTypeDictCode"
-            min-width="100"
-            show-overflow-tooltip
-          >
-            <template #default="scope">
-              {{ getAccessRuleTypeLabel(scope.row.accessRuleTypeDictCode) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-if="isColumnVisible('parentActive')"
-            :label="t('accessRuleList.columns.parentActive')"
-            prop="parentActive"
-            min-width="96"
-          >
-            <template #default="scope">
-              <el-tag :type="scope.row.parentActive ? 'success' : 'info'" size="small">
-                {{ scope.row.parentActive ? t('accessRuleList.common.yes') : t('accessRuleList.common.no') }}
-              </el-tag>
+              <template v-if="scope.row._treeGroup">
+                <span
+                  v-if="scope.row._groupLevel === 0"
+                  :class="['access-rule-tree-group-label', treeScopeIndentClass(scope.row)]"
+                >{{ formatTreeSubsystem(scope.row.systemCode) }}</span>
+                <span
+                  v-else-if="scope.row._groupLevel === 1"
+                  :class="['access-rule-tree-group-label', treeScopeIndentClass(scope.row)]"
+                >{{ formatTreeTenant(scope.row.tenantId, scope.row.tenantName) }}</span>
+                <span
+                  v-else-if="scope.row._groupLevel === 2"
+                  :class="['access-rule-tree-group-label', treeScopeIndentClass(scope.row)]"
+                >{{ formatTreeRuleType(scope.row.accessRuleTypeDictCode) }}</span>
+                <span v-else class="access-rule-tree-group-placeholder">—</span>
+              </template>
+              <span v-else :class="treeScopeIndentClass(scope.row)" />
             </template>
           </el-table-column>
           <el-table-column
             v-if="isColumnVisible('ipStart')"
             :label="t('accessRuleList.columns.ipStart')"
-            prop="ipStart"
+            prop="ipStartStr"
             min-width="100"
             show-overflow-tooltip
           />
           <el-table-column
             v-if="isColumnVisible('ipEnd')"
             :label="t('accessRuleList.columns.ipEnd')"
-            prop="ipEnd"
-            min-width="100"
-            show-overflow-tooltip
-          />
-          <el-table-column
-            v-if="isColumnVisible('ipTypeDictCode')"
-            :label="t('accessRuleList.columns.ipTypeDictCode')"
-            prop="ipTypeDictCode"
+            prop="ipEndStr"
             min-width="100"
             show-overflow-tooltip
           />
@@ -196,12 +232,18 @@
             v-if="isColumnVisible('ipActive')"
             :label="t('accessRuleList.columns.ipActive')"
             prop="active"
-            min-width="80"
+            min-width="88"
+            align="center"
           >
             <template #default="scope">
-              <el-tag v-if="scope.row.ipId" :type="scope.row.active ? 'success' : 'info'" size="small">
-                {{ scope.row.active ? t('accessRuleList.common.yes') : t('accessRuleList.common.no') }}
-              </el-tag>
+              <template v-if="scope.row.ipId">
+                <el-switch
+                  v-model="scope.row.active"
+                  :active-value="true"
+                  :inactive-value="false"
+                  @change="listPage.updateActive(scope.row)"
+                />
+              </template>
               <span v-else>—</span>
             </template>
           </el-table-column>
@@ -229,18 +271,30 @@
               <div class="operation-column-hover-area">{{ t('accessRuleList.columns.operation') }}</div>
             </template>
             <template #default="scope">
-              <div class="operation-column-hover-area">
-                <el-tooltip :content="t('accessRuleList.actions.edit')" placement="top" :enterable="false">
+              <div v-if="!scope.row._treeGroup" class="operation-column-hover-area">
+                <el-tooltip
+                  :content="scope.row.ipId ? t('accessRuleList.actions.editIp') : t('accessRuleList.actions.editRule')"
+                  placement="top"
+                  :enterable="false"
+                >
                   <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
                     <Edit />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('accessRuleList.actions.delete')" placement="top" :enterable="false">
+                <el-tooltip
+                  :content="scope.row.ipId ? t('accessRuleList.actions.deleteIp') : t('accessRuleList.actions.deleteRule')"
+                  placement="top"
+                  :enterable="false"
+                >
                   <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
                     <Delete />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('accessRuleList.actions.detail')" placement="top" :enterable="false">
+                <el-tooltip
+                  :content="scope.row.ipId ? t('accessRuleList.actions.detailIp') : t('accessRuleList.actions.detailRule')"
+                  placement="top"
+                  :enterable="false"
+                >
                   <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
                     <Tickets />
                   </el-icon>
@@ -299,7 +353,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import AccessRuleFormPage from './AccessRuleFormPage.vue';
-import AccessRuleIpFormPage from '../accessruleip/AccessRuleIpFormPage.vue';
+import AccessRuleIpFormPage from './AccessRuleIpFormPage.vue';
 import AccessRuleWithIpDetailPage from '../accessrulewithip/AccessRuleWithIpDetailPage.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { BaseListPage } from '../../../components/pages/core';
@@ -315,6 +369,97 @@ import {
   isApiSuccessResponse,
   resolveApiFailureMessage,
 } from '../../../utils/backendRequest';
+import { uint32ToIpv4Padded } from '../../../utils/ipAddressNumeric';
+import IpSegmentedAddressInput from './IpSegmentedAddressInput.vue';
+
+const IPV6_ZERO = '0000:0000:0000:0000:0000:0000:0000:0000';
+
+function isDefaultIpv4SearchRange(start: unknown, end: unknown): boolean {
+  const z = uint32ToIpv4Padded(0);
+  return String(start ?? '').trim() === z && String(end ?? '').trim() === z;
+}
+
+function isDefaultIpv6SearchRange(start: unknown, end: unknown): boolean {
+  return String(start ?? '').trim() === IPV6_ZERO && String(end ?? '').trim() === IPV6_ZERO;
+}
+
+type AccessRuleTableRow = Record<string, unknown>;
+
+/** 将当前页扁平明细行按 子系统 → 租户 → 规则类型 三级分组为 el-table 树形数据 */
+function buildAccessRuleTree(rows: AccessRuleTableRow[]): AccessRuleTableRow[] {
+  if (!rows?.length) return [];
+  const bySys = new Map<string, AccessRuleTableRow[]>();
+  for (const row of rows) {
+    const sc = row.systemCode != null && String(row.systemCode).trim() !== '' ? String(row.systemCode) : '__empty__';
+    const list = bySys.get(sc);
+    if (list) list.push(row);
+    else bySys.set(sc, [row]);
+  }
+  const roots: AccessRuleTableRow[] = [];
+  for (const [systemKey, sysRows] of bySys) {
+    const byTenant = new Map<string, AccessRuleTableRow[]>();
+    for (const r of sysRows) {
+      const tid =
+        r.tenantId == null || String(r.tenantId).trim() === '' ? '__platform__' : String(r.tenantId);
+      const list = byTenant.get(tid);
+      if (list) list.push(r);
+      else byTenant.set(tid, [r]);
+    }
+    const tenantNodes: AccessRuleTableRow[] = [];
+    for (const [tenantKey, tenantRows] of byTenant) {
+      const tenantNameForGroup =
+        tenantKey === '__platform__'
+          ? null
+          : (() => {
+              const n = tenantRows[0]?.tenantName;
+              return n != null && String(n).trim() !== '' ? String(n).trim() : null;
+            })();
+      const byType = new Map<string, AccessRuleTableRow[]>();
+      for (const r of tenantRows) {
+        const tc =
+          r.accessRuleTypeDictCode != null && String(r.accessRuleTypeDictCode).trim() !== ''
+            ? String(r.accessRuleTypeDictCode)
+            : '__unknown__';
+        const list = byType.get(tc);
+        if (list) list.push(r);
+        else byType.set(tc, [r]);
+      }
+      const typeNodes: AccessRuleTableRow[] = [];
+      for (const [typeCode, leafRows] of byType) {
+        typeNodes.push({
+          _treeGroup: true,
+          _groupLevel: 2,
+          treeRowKey: `g:${systemKey}:${tenantKey}:type:${typeCode}`,
+          systemCode: systemKey === '__empty__' ? null : systemKey,
+          tenantId: tenantKey === '__platform__' ? null : tenantKey,
+          tenantName: tenantNameForGroup,
+          accessRuleTypeDictCode: typeCode === '__unknown__' ? null : typeCode,
+          children: leafRows.map((r) => ({
+            ...r,
+            treeRowKey: String(r.id ?? ''),
+          })),
+        });
+      }
+      tenantNodes.push({
+        _treeGroup: true,
+        _groupLevel: 1,
+        treeRowKey: `g:${systemKey}:${tenantKey}`,
+        systemCode: systemKey === '__empty__' ? null : systemKey,
+        tenantId: tenantKey === '__platform__' ? null : tenantKey,
+        tenantName: tenantNameForGroup,
+        children: typeNodes,
+      });
+    }
+    roots.push({
+      _treeGroup: true,
+      _groupLevel: 0,
+      treeRowKey: `g:${systemKey}`,
+      systemCode: systemKey === '__empty__' ? null : systemKey,
+      children: tenantNodes,
+    });
+  }
+  return roots;
+}
 
 /**
  * 主从合一列表：查询 v_sys_access_rule_with_ip；有 ipId 行为 IP 子行，无 ipId 为仅主规则占位行。
@@ -322,15 +467,17 @@ import {
 class AccessRuleListPage extends TenantSupportListPage {
   constructor(props: PageProps, context: PageContext) {
     super(props, context);
-    this.loadDicts(['access_rule_type'], 'sys').then(() => {
-      (this.state as Record<string, unknown>).ruleTypeOptions = this.getDictItems('sys', 'access_rule_type');
+    this.loadDicts(['access_rule_type', 'ip_type'], 'sys').then(() => {
+      const s = this.state as Record<string, unknown>;
+      s.ruleTypeOptions = this.getDictItems('sys', 'access_rule_type');
+      s.ipTypeOptions = this.getDictItems('sys', 'ip_type');
     });
     this.convertThis();
     this.loadAtomicServices();
   }
 
   protected getI18nConfig() {
-    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['access_rule_type'], atomicServiceCode: 'sys' }];
+    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['access_rule_type', 'ip_type'], atomicServiceCode: 'sys' }];
   }
 
   protected getFirstLevelApiUrl(): string | null {
@@ -338,12 +485,13 @@ class AccessRuleListPage extends TenantSupportListPage {
   }
 
   protected isCheckStrictly(): boolean {
-    return false;
+    return true;
   }
 
   protected initState(): Record<string, unknown> {
     return {
       ruleTypeOptions: [] as Array<{ first: string; second: string }>,
+      ipTypeOptions: [] as Array<{ first: string; second: string }>,
       ipFormVisible: false,
       ipFormRid: '',
       ipFormDefaultParentRuleId: '',
@@ -351,6 +499,11 @@ class AccessRuleListPage extends TenantSupportListPage {
         systemCode: null as string | null,
         accessRuleTypeDictCode: null as string | null,
         parentActive: true,
+        ipTypeDictCode: null as string | null,
+        ipv4SearchStartStr: uint32ToIpv4Padded(0),
+        ipv4SearchEndStr: uint32ToIpv4Padded(0),
+        ipv6SearchStartStr: IPV6_ZERO,
+        ipv6SearchEndStr: IPV6_ZERO,
       },
     };
   }
@@ -378,9 +531,46 @@ class AccessRuleListPage extends TenantSupportListPage {
     base.tenantId = pair.second;
     base.accessRuleTypeDictCode = sp.accessRuleTypeDictCode ?? null;
     base.parentActive = sp.parentActive === true ? true : null;
+
+    const ipTypeRaw = sp.ipTypeDictCode;
+    const ipType =
+      ipTypeRaw != null && String(ipTypeRaw).trim() !== '' ? String(ipTypeRaw).trim() : null;
+    if (ipType) {
+      base.ipTypeDictCode = ipType;
+      const t = ipType.toLowerCase();
+      if (t === 'ipv4') {
+        if (isDefaultIpv4SearchRange(sp.ipv4SearchStartStr, sp.ipv4SearchEndStr)) {
+          delete (base as Record<string, unknown>).ipStartStr;
+          delete (base as Record<string, unknown>).ipEndStr;
+        } else {
+          base.ipStartStr = String(sp.ipv4SearchStartStr ?? '');
+          base.ipEndStr = String(sp.ipv4SearchEndStr ?? '');
+        }
+      } else if (t === 'ipv6') {
+        if (isDefaultIpv6SearchRange(sp.ipv6SearchStartStr, sp.ipv6SearchEndStr)) {
+          delete (base as Record<string, unknown>).ipStartStr;
+          delete (base as Record<string, unknown>).ipEndStr;
+        } else {
+          base.ipStartStr = String(sp.ipv6SearchStartStr ?? '');
+          base.ipEndStr = String(sp.ipv6SearchEndStr ?? '');
+        }
+      } else {
+        delete (base as Record<string, unknown>).ipStartStr;
+        delete (base as Record<string, unknown>).ipEndStr;
+      }
+    } else {
+      delete (base as Record<string, unknown>).ipTypeDictCode;
+      delete (base as Record<string, unknown>).ipStartStr;
+      delete (base as Record<string, unknown>).ipEndStr;
+    }
+
     delete (base as Record<string, unknown>).subSysOrTenant;
     delete (base as Record<string, unknown>).subSystemCode;
     delete (base as Record<string, unknown>).active;
+    delete (base as Record<string, unknown>).ipv4SearchStartStr;
+    delete (base as Record<string, unknown>).ipv4SearchEndStr;
+    delete (base as Record<string, unknown>).ipv6SearchStartStr;
+    delete (base as Record<string, unknown>).ipv6SearchEndStr;
     return base;
   }
 
@@ -408,6 +598,12 @@ class AccessRuleListPage extends TenantSupportListPage {
     self.handleDelete = (row: Record<string, unknown>) => {
       void self.doHandleDeleteUnified(row);
     };
+    self.handleDetail = (row: Record<string, unknown>) => {
+      if (row._treeGroup) return;
+      const s = self.state as Record<string, unknown>;
+      s.rid = self.getRowId(row);
+      s.detailDialogVisible = true;
+    };
     self.multiDelete = () => {
       void self.doMultiDeleteUnified();
     };
@@ -415,6 +611,7 @@ class AccessRuleListPage extends TenantSupportListPage {
 
   /** 有 IP 子行则编辑 IP 表单；否则编辑主规则 */
   protected doHandleEditUnified(row: Record<string, unknown>): void {
+    if (row._treeGroup) return;
     const s = this.state as Record<string, unknown>;
     if (row.ipId) {
       s.ipFormRid = String(row.ipId);
@@ -428,12 +625,14 @@ class AccessRuleListPage extends TenantSupportListPage {
 
   protected getDeleteMessage(row: Record<string, unknown>): string {
     const t = i18n.global.t.bind(i18n.global);
+    if (row._treeGroup) return '';
     return row.ipId
       ? (t('accessRuleList.messages.deleteIpConfirm') as string)
       : (t('accessRuleList.messages.deleteRuleConfirm') as string);
   }
 
   protected async doHandleDeleteUnified(row: Record<string, unknown>): Promise<void> {
+    if (row._treeGroup) return;
     const t = i18n.global.t.bind(i18n.global);
     const confirmResult = await ElMessageBox.confirm(this.getDeleteMessage(row), t('listPage.confirmTitle') as string, {
       confirmButtonText: t('listPage.confirmButton') as string,
@@ -456,7 +655,7 @@ class AccessRuleListPage extends TenantSupportListPage {
 
   protected async doMultiDeleteUnified(): Promise<void> {
     const t = i18n.global.t.bind(i18n.global);
-    const rows = (this.state.selectedItems as Record<string, unknown>[]) ?? [];
+    const rows = ((this.state.selectedItems as Record<string, unknown>[]) ?? []).filter((r) => !r._treeGroup);
     if (!rows.length) {
       ElMessage.info(t('listPage.selectDataFirst') as string);
       return;
@@ -480,6 +679,7 @@ class AccessRuleListPage extends TenantSupportListPage {
   }
 
   private async deleteOneRowApi(row: Record<string, unknown>): Promise<void> {
+    if (row._treeGroup) return;
     const ipId = row.ipId;
     const url = ipId ? 'sys/accessRuleIp/delete' : 'sys/accessRule/delete';
     const id = ipId ? String(ipId) : String(row.parentId ?? row.id);
@@ -496,18 +696,16 @@ class AccessRuleListPage extends TenantSupportListPage {
 }
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'accessRuleList.operationColumnPinned';
-const COLUMN_VISIBILITY_STORAGE_KEY = 'accessRuleList.visibleColumns';
+/** v2：合并子系统/租户/规则类型为 treeScope 列后更换 key，避免沿用旧列 key 导致新列被隐藏 */
+const COLUMN_VISIBILITY_STORAGE_KEY = 'accessRuleList.visibleColumns.v2';
 const {
   indexColumnKey: INDEX_COLUMN_KEY,
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig([
-  'tenantId',
-  'accessRuleTypeDictCode',
-  'parentActive',
+  'treeScope',
   'ipStart',
   'ipEnd',
-  'ipTypeDictCode',
   'expirationTime',
   'ipActive',
   'remark',
@@ -519,6 +717,7 @@ export default defineComponent({
     AccessRuleFormPage,
     AccessRuleIpFormPage,
     AccessRuleWithIpDetailPage,
+    IpSegmentedAddressInput,
     ListPageLayout,
     Edit,
     Delete,
@@ -586,7 +785,7 @@ export default defineComponent({
         defaultVisibleKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
         getColumnLabel: (key) => {
           if (key === INDEX_COLUMN_KEY) return t('accessRuleList.columns.index');
-          if (key === 'accessRuleTypeDictCode') return t('accessRuleList.columns.ruleType');
+          if (key === 'treeScope') return t('accessRuleList.columns.treeScope');
           return t('accessRuleList.columns.' + key);
         },
       },
@@ -595,12 +794,14 @@ export default defineComponent({
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
 
-    function getAccessRuleTypeLabel(code: unknown): string {
-      const c = String(code ?? '').trim();
+    /** 与 CacheListPage 缓存策略一致：字典项 second 为 i18n key，用 t(item.second)；表格内按 first 查找选项 */
+    type DictPairOpt = { first: string; second: string };
+    function dictLabelFromOptions(code: unknown, options: DictPairOpt[] | null | undefined): string {
+      const c = code != null && String(code).trim() !== '' ? String(code).trim() : '';
       if (!c) return '—';
-      const i18nKey = 'access_rule_type.' + c;
-      const translated = t(i18nKey);
-      return translated !== i18nKey ? translated : listPage.transDict('sys', 'access_rule_type', c) || c;
+      const opts = options ?? [];
+      const item = opts.find((o) => o.first === c);
+      return item ? (t(item.second) as string) : c;
     }
 
     function formatDateCell(v: unknown): string {
@@ -609,12 +810,62 @@ export default defineComponent({
 
     /** 有 IP 子行时展示 IP 规则 remark；仅主规则占位行展示父规则 parentRemark */
     function formatRemarkCell(row: Record<string, unknown>): string {
+      if (row._treeGroup) return '—';
       if (row.ipId) {
         const v = row.remark;
         return v == null || v === '' ? '—' : String(v);
       }
       const v = row.parentRemark;
       return v == null || v === '' ? '—' : String(v);
+    }
+
+    const treeTableData = computed(() => buildAccessRuleTree((state.tableData as AccessRuleTableRow[]) ?? []));
+
+    function accessRuleTreeRowKey(row: AccessRuleTableRow): string {
+      const k = row.treeRowKey;
+      if (k != null && String(k) !== '') return String(k);
+      const id = row.id;
+      if (id != null && String(id) !== '') return String(id);
+      return `row-${String(row.parentId ?? '')}-${String(row.ipId ?? '')}-${String(row.systemCode ?? '')}`;
+    }
+
+    function accessRuleRowSelectable(row: AccessRuleTableRow): boolean {
+      return !row._treeGroup;
+    }
+
+    /** 分组行高亮；明细行仍区分 IP 段与主规则占位（样式） */
+    function accessRuleTreeRowClassName({ row }: { row: AccessRuleTableRow }): string {
+      if (row._treeGroup) return 'access-rule-list-row--tree-group';
+      return row.ipId ? 'access-rule-list-row--ip' : 'access-rule-list-row--rule';
+    }
+
+    function treeScopeIndentClass(row: AccessRuleTableRow): string {
+      if (row._treeGroup) {
+        const lv = row._groupLevel;
+        if (lv === 0) return 'access-rule-tree-scope-indent--0';
+        if (lv === 1) return 'access-rule-tree-scope-indent--1';
+        if (lv === 2) return 'access-rule-tree-scope-indent--2';
+      }
+      return 'access-rule-tree-scope-indent--leaf';
+    }
+
+    function formatTreeSubsystem(code: unknown): string {
+      if (code == null || String(code).trim() === '') return '—';
+      return listPage.transAtomicService(code);
+    }
+
+    function formatTreeTenant(tenantId: unknown, tenantName?: unknown): string {
+      if (tenantId == null || String(tenantId).trim() === '') {
+        return t('accessRuleList.treeGroup.platformTenant') as string;
+      }
+      if (tenantName != null && String(tenantName).trim() !== '') {
+        return String(tenantName).trim();
+      }
+      return String(tenantId);
+    }
+
+    function formatTreeRuleType(code: unknown): string {
+      return dictLabelFromOptions(code, state.ruleTypeOptions as DictPairOpt[] | undefined);
     }
 
     return {
@@ -635,9 +886,16 @@ export default defineComponent({
       onFormClose,
       onFormResponse,
       handleFormSaved,
-      getAccessRuleTypeLabel,
       formatDateCell,
       formatRemarkCell,
+      treeTableData,
+      accessRuleTreeRowKey,
+      accessRuleRowSelectable,
+      accessRuleTreeRowClassName,
+      treeScopeIndentClass,
+      formatTreeSubsystem,
+      formatTreeTenant,
+      formatTreeRuleType,
       hasIpFormEverOpened,
       onIpFormClose,
       onIpFormSaved,
@@ -652,14 +910,58 @@ export default defineComponent({
 <style scoped>
 .access-rule-list-page :deep(.list-page-toolbar) {
   display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 6px;
+  align-items: stretch;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 0;
   justify-content: flex-start;
 }
-.access-rule-list-page :deep(.list-page-toolbar > .toolbar-cell),
-.access-rule-list-page :deep(.list-page-toolbar > .toolbar-extra),
-.access-rule-list-page :deep(.list-page-toolbar > .toolbar-buttons) {
+.access-rule-list-page .access-rule-list-toolbar-rows {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+.access-rule-list-page .toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+/** 与筛选项同一行；避免 search/reset 被单独换到下一行 */
+.access-rule-list-page .toolbar-row--primary {
+  flex-wrap: nowrap;
+}
+.access-rule-list-page .toolbar-row--primary .toolbar-buttons {
+  flex: 0 0 auto;
+}
+.access-rule-list-page .toolbar-row--ip {
+  align-items: center;
+}
+.access-rule-list-page .toolbar-ip-range--inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.access-rule-list-page .toolbar-ip-range--inline .toolbar-ip-label {
+  font-size: var(--el-font-size-base, 14px);
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  line-height: var(--el-component-line-height, 1.4);
+}
+.access-rule-list-page .toolbar-cell.toolbar-ip-type {
+  flex: 0 0 140px;
+  width: 140px;
+  min-width: 120px;
+  max-width: 160px;
+}
+.access-rule-list-page :deep(.list-page-toolbar .toolbar-cell),
+.access-rule-list-page :deep(.list-page-toolbar .toolbar-extra),
+.access-rule-list-page :deep(.list-page-toolbar .toolbar-buttons) {
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
@@ -701,5 +1003,55 @@ export default defineComponent({
   margin-top: 8px;
   justify-content: flex-end;
   flex-shrink: 0;
+}
+
+/* 树形分组行 */
+.access-rule-list-page :deep(tr.access-rule-list-row--tree-group > td.el-table__cell) {
+  background-color: var(--el-fill-color-light) !important;
+  font-weight: 500;
+}
+.access-rule-list-page :deep(tr.access-rule-list-row--tree-group:hover > td.el-table__cell) {
+  background-color: var(--el-table-row-hover-bg-color) !important;
+}
+.access-rule-list-page .access-rule-tree-group-label {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.access-rule-list-page .access-rule-tree-group-placeholder {
+  color: var(--el-text-color-placeholder);
+}
+
+/* 树形分组：子系统 / 租户 / 规则类型 同列缩进 */
+.access-rule-list-page .access-rule-tree-scope-col .access-rule-tree-scope-indent--0 {
+  display: inline-block;
+  padding-left: 0;
+}
+.access-rule-list-page .access-rule-tree-scope-col .access-rule-tree-scope-indent--1 {
+  display: inline-block;
+  padding-left: 1.25rem;
+}
+.access-rule-list-page .access-rule-tree-scope-col .access-rule-tree-scope-indent--2 {
+  display: inline-block;
+  padding-left: 2.5rem;
+}
+.access-rule-list-page .access-rule-tree-scope-col .access-rule-tree-scope-indent--leaf {
+  display: inline-block;
+  min-height: 1em;
+  padding-left: 3.75rem;
+}
+
+/* IP 明细行相对主规则占位行略作层级区分 */
+.access-rule-list-page :deep(.el-table__body tr.access-rule-list-row--ip > td.el-table__cell:first-child) {
+  box-shadow: inset 3px 0 0 var(--el-color-primary-light-5);
+}
+.access-rule-list-page :deep(tr.access-rule-list-row--ip.el-table__row--striped),
+.access-rule-list-page :deep(tr.access-rule-list-row--ip:not(.el-table__row--striped)) {
+  background-color: var(--el-fill-color-lighter) !important;
+}
+.access-rule-list-page :deep(tr.access-rule-list-row--ip:hover > td.el-table__cell) {
+  background-color: var(--el-table-row-hover-bg-color) !important;
+}
+.access-rule-list-page .access-rule-list-cell--ip-indent {
+  padding-left: 12px;
 }
 </style>

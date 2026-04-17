@@ -17,33 +17,43 @@ private fun shouldUseMock(): Boolean {
     return hostname == "localhost" || hostname == "127.0.0.1"
 }
 
-// Creates a client for JS; uses MockEngine in dev and real JS engine otherwise.
+private fun HttpClientConfig<*>.applyKudosDefaults() {
+    install(ContentNegotiation) {
+        json(Json {
+            ignoreUnknownKeys = true
+        })
+    }
+    defaultRequest {
+        // Base URL and auth are applied consistently for all requests.
+        url(rawWindow().location.origin.unsafeCast<String>())
+        TokenStorage.get()?.let { header("Authorization", "Bearer $it") }
+    }
+}
+
+/** Auth 等：非 2xx 抛错。 */
 internal fun createHttpClient(): HttpClient =
     if (shouldUseMock()) {
         HttpClient(createMockEngine()) {
             expectSuccess = true
-            install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                })
-            }
-            defaultRequest {
-                // Base URL and auth are applied consistently for all requests.
-                url(rawWindow().location.origin.unsafeCast<String>())
-                TokenStorage.get()?.let { header("Authorization", "Bearer $it") }
-            }
+            applyKudosDefaults()
         }
     } else {
         HttpClient(Js) {
             expectSuccess = true
-            install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                })
-            }
-            defaultRequest {
-                url(rawWindow().location.origin.unsafeCast<String>())
-                TokenStorage.get()?.let { header("Authorization", "Bearer $it") }
-            }
+            applyKudosDefaults()
+        }
+    }
+
+/** [BackendApi]：expectSuccess=false，4xx 仍返回响应体供前端解析业务 JSON。 */
+internal fun createBackendHttpClient(): HttpClient =
+    if (shouldUseMock()) {
+        HttpClient(createMockEngine()) {
+            expectSuccess = false
+            applyKudosDefaults()
+        }
+    } else {
+        HttpClient(Js) {
+            expectSuccess = false
+            applyKudosDefaults()
         }
     }

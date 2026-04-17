@@ -72,6 +72,25 @@ export function resolvePath(path: string): string {
   return normalizePath(redirected);
 }
 
+/**
+ * 后端菜单项上的「地址」：常见为相对 path，也可能是完整 URL（含 origin）。
+ * 转成与前端页面、el-menu index 一致的路径（resolvePath，含小写段）。
+ */
+export function extractMenuPathFromBackend(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  let s = String(raw).trim();
+  if (!s) return null;
+  if (s.startsWith('http://') || s.startsWith('https://')) {
+    try {
+      s = new URL(s).pathname || '/';
+    } catch {
+      return null;
+    }
+  }
+  if (!s.startsWith('/')) s = '/' + s;
+  return resolvePath(s);
+}
+
 export const VALID_MENU_PATHS = new Set(Object.keys(PATH_TO_COMPONENT));
 
 export function getComponentForPath(path: string): Component | undefined {

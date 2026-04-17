@@ -131,5 +131,7 @@ export function useAddEditDialogSetup(
     handleBeforeClose,
     handleCloseRequest,
     handleSubmit,
+    /** 页面类实例（reactive），供子组件 setup 调用 loadRowData、loadCascade 等 */
+    page,
   };
 }
