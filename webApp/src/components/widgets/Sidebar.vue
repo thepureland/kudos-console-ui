@@ -23,6 +23,7 @@
       </div>
     </div>
     <el-menu
+      ref="menuRef"
       class="sidebar-el-menu"
       :default-active="currentPath"
       :collapse="collapse"
@@ -79,13 +80,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, onMounted, ref, watch } from 'vue';
+import { computed, markRaw, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import { AuthApiFactory } from 'shared';
 import { REQUIRE_AUTH } from '../../config/auth';
-import { resolvePath } from '../../config/menuPathToComponent';
+import { extractMenuPathFromBackend, resolvePath } from '../../config/menuPathToComponent';
 import { backendRequest, getApiResponseData } from '../../utils/backendRequest';
 import { loadMessagesForConfig } from '../../i18n';
 
@@ -157,40 +158,88 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 function resolveIcon(name: string | null | undefined): unknown {
   return name ? iconMap[name] ?? iconMap.Setting : iconMap.Setting;
 }
-/** MenuTreeNode 后端结构：index(url)、title(名称或i18n key)、icon、children */
+/** 后端 getMenus 常见字段：index 或 path/url、title 或 name、icon、children */
 interface MenuTreeNode {
   index?: string | null;
+  path?: string | null;
+  url?: string | null;
   title?: string | null;
+  name?: string | null;
   icon?: string | null;
   children?: MenuTreeNode[];
 }
 
-/** 将 sys/resource/getMenus 返回的 MenuTreeNode 转为本地 MenuItem（icon 保留字符串，供 store/Tags 使用，侧栏渲染时用 resolveIcon） */
+/** 将 sys/resource/getMenus 等返回的树转为本地 MenuItem（路径与后端 URL 对齐后写入 index） */
 function mapMenuTreeToItems(nodes: MenuTreeNode[]): MenuItem[] {
-  return nodes
-    .filter((n) => n.index)
-    .map((n) => ({
-      index: n.index!,
-      title: n.title ?? '',
-      titleKey: n.title ?? undefined,
+  if (!nodes?.length) return [];
+  const out: MenuItem[] = [];
+  for (const n of nodes) {
+    const index = extractMenuPathFromBackend(n.index ?? n.path ?? n.url ?? undefined);
+    if (index == null) continue;
+    const titleRaw = n.title ?? n.name ?? '';
+    const title = String(titleRaw).trim() || index;
+    out.push({
+      index,
+      title,
+      titleKey: typeof titleRaw === 'string' && titleRaw.trim() !== '' ? titleRaw.trim() : undefined,
       icon: (n.icon as string) ?? undefined,
       children: n.children?.length ? mapMenuTreeToItems(n.children) : undefined,
-    }));
+    });
+  }
+  return out;
 }
 
-/** 兼容 shared AuthApi 返回格式：path、name、icon、children */
+/** getAuthorisedMenus 等返回结构不固定时，统一抽出 path + 递归 children */
+function coerceBackendMenuTree(nodes: unknown): MenuItem[] {
+  if (!Array.isArray(nodes)) return [];
+  const out: MenuItem[] = [];
+  for (const raw of nodes) {
+    if (!raw || typeof raw !== 'object') continue;
+    const n = raw as Record<string, unknown>;
+    const pathSrc = n.index ?? n.path ?? n.url;
+    const index = typeof pathSrc === 'string' ? extractMenuPathFromBackend(pathSrc) : null;
+    if (index == null) continue;
+    const titleRaw = n.title ?? n.name;
+    const titleStr = typeof titleRaw === 'string' ? titleRaw.trim() : '';
+    out.push({
+      index,
+      title: titleStr || index,
+      titleKey: typeof titleRaw === 'string' && titleRaw ? titleRaw : undefined,
+      icon: typeof n.icon === 'string' ? n.icon : undefined,
+      children: n.children != null ? coerceBackendMenuTree(n.children) : undefined,
+    });
+  }
+  return out;
+}
+
+/** 兼容 AuthApi.getMenus：path、name、icon、children（path 可能为完整 URL） */
 function mapMenusFromShared(items: Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>): MenuItem[] {
-  return items.map((it) => ({
-    index: it.path,
-    title: it.name,
-    titleKey: it.name,
-    icon: (it.icon as string) ?? undefined,
-    children: it.children?.length ? mapMenusFromShared(it.children as Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>) : undefined,
-  }));
+  return items.map((it) => {
+    const index = extractMenuPathFromBackend(it.path) ?? resolvePath(it.path);
+    return {
+      index,
+      title: it.name,
+      titleKey: it.name,
+      icon: (it.icon as string) ?? undefined,
+      children: it.children?.length ? mapMenusFromShared(it.children as Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>) : undefined,
+    };
+  });
 }
 
 // ---------- 菜单数据加载 ----------
 const menuData = ref<MenuItem[]>([]);
+
+/** 与标签栏切换同步：菜单异步挂载后补一次 active，避免 default-active 与 items 注册顺序不一致 */
+const menuRef = ref<{ updateActiveIndex: (index: string) => void } | null>(null);
+watch(
+  [() => menuData.value.length, currentPath],
+  () => {
+    nextTick(() => {
+      menuRef.value?.updateActiveIndex(currentPath.value);
+    });
+  },
+  { flush: 'post' }
+);
 
 /** 折叠时仅展示的顶部两项（首页、消息中心），用于自定义居中图标行，顺序固定 */
 const collapseTopItems = computed(() => {
@@ -206,7 +255,7 @@ const menuDataDisplay = computed(() =>
 
 const DEFAULT_SUB_SYSTEM_CODE = 'default-sub-system';
 
-/** 从 shared mock 获取静态菜单（sys/resource/getMenus 或 AuthApi.getMenus 返回 menus.json） */
+/** 优先走后端 sys/resource/getMenus；失败时再试 AuthApi.getMenus（与 mock 无关时同样适用） */
 async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {
   try {
     const result = await backendRequest({
@@ -236,38 +285,34 @@ async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {
 const MENU_I18N_CONFIG = [{ i18nTypeDictCode: 'view', namespaces: ['menu'], atomicServiceCode: 'sys' }];
 
 /**
- * 加载菜单：优先 sys/resource/getMenus（shared mock 或后端），失败则 getAuthorisedMenus，最后用 shared mock 的 menus.json。
- * 菜单 name 为 i18n key，会调用 loadMessagesForConfig 从后端拉取 menu 命名空间译文。
+ * 加载菜单：优先后端 sys/resource/getMenus，再 user/account/getAuthorisedMenus；本地 mock 仅在前述失败时作为开发回退。
+ * 菜单文案多为 i18n key，会拉取 menu 命名空间译文。后端 URL 字段可能是 path / index / url（含完整 HTTP URL）。
  */
 async function loadMenuData() {
-  // 0. 加载菜单 i18n 译文（view 类型、menu 命名空间、sys 原子服务）
   await loadMessagesForConfig(MENU_I18N_CONFIG);
-  // 1. sys 模式或已登录：优先 sys/resource/getMenus（mock 或后端）
-  const fromShared = await loadMenusFromSharedMock();
-  if (fromShared && fromShared.length > 0) {
-    menuData.value = fromShared;
-    store.commit('setMenuData', fromShared);
+  const fromGetMenus = await loadMenusFromSharedMock();
+  if (fromGetMenus && fromGetMenus.length > 0) {
+    menuData.value = fromGetMenus;
+    store.commit('setMenuData', fromGetMenus);
     return;
   }
-  // 2. user 模式且未登录：不加载菜单（会显示登录页）
   if (REQUIRE_AUTH && !AuthApiFactory.getInstance().hasToken()) {
     menuData.value = [];
     store.commit('setMenuData', []);
     return;
   }
-  // 3. 尝试 getAuthorisedMenus（后端权限菜单）
   try {
     const result = await backendRequest({ url: 'user/account/getAuthorisedMenus' });
-    const list = getApiResponseData<MenuItem[]>(result);
-    if (Array.isArray(list) && list.length) {
-      menuData.value = list;
-      store.commit('setMenuData', list);
+    const list = getApiResponseData<unknown>(result);
+    const coerced = coerceBackendMenuTree(list);
+    if (coerced.length > 0) {
+      menuData.value = coerced;
+      store.commit('setMenuData', coerced);
       return;
     }
   } catch {
     // 继续
   }
-  // 4. 最终回退：再次尝试 shared mock（localhost 等场景）
   const fallback = await loadMenusFromSharedMock();
   menuData.value = fallback ?? [];
   store.commit('setMenuData', menuData.value);

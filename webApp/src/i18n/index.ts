@@ -5,10 +5,19 @@ const i18nService = new I18nService();
 /** vue-i18n 实例，供 app.use(i18n) 及 t()、d() 等使用 */
 export const i18n = i18nService.i18n;
 
+/**
+ * 与 ValidationRuleAdapter 一致：后端四段式键（如 sys.valid-msg.default.DictItemCode）在 vue-i18n 中多为去掉首段原子服务后的路径。
+ */
 function backendMessageCandidates(message: string): string[] {
   const text = String(message ?? '').trim();
   if (text === '') return [];
-  return [text];
+  const parts = text.split('.');
+  const out: string[] = [text];
+  if (parts.length >= 4) {
+    const withoutAtomic = parts.slice(1).join('.');
+    if (withoutAtomic !== text) out.push(withoutAtomic);
+  }
+  return out;
 }
 
 let appMessagesLoadPromise: Promise<void> | null = null;
@@ -30,8 +39,12 @@ export function ensureAppMessagesLoaded(): Promise<void> {
   for (const key of backendMessageCandidates(text)) {
     if (typeof global.te === 'function' && global.te(key)) {
       const translated = global.t(key);
-      return typeof translated === 'string' ? translated : String(translated ?? text);
+      const s = typeof translated === 'string' ? translated : String(translated ?? text);
+      if (s !== '') return s;
     }
+    const fallback = global.t(key);
+    const s = typeof fallback === 'string' ? fallback : String(fallback ?? '');
+    if (s !== '' && s !== key) return s;
   }
   return text;
 };

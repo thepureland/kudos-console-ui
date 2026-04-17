@@ -20,7 +20,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 /**
- * 暴露给前端的通用后端请求 API，与 AuthApi 共用同一 [createHttpClient]（同源 + Bearer Token）。
+ * 暴露给前端的通用后端请求 API（[createBackendHttpClient]，与 Auth 的 client 分离）。
  * GET/DELETE 使用 query 参数，POST 使用 JSON body；返回响应体 JSON 字符串，由 TS 侧解析。
  *
  * @author K
@@ -29,7 +29,7 @@ import kotlinx.serialization.json.JsonPrimitive
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 class BackendApiExposed {
-    private val client = createHttpClient()
+    private val client = createBackendHttpClient()
     private val scope = MainScope()
     private val json = Json { ignoreUnknownKeys = true }
 

@@ -21,8 +21,9 @@ const I18N_API_PATH = 'sys/i18n/batchGetI18ns';
 
 /** 应用启动时从 batchGetI18ns 拉取的默认命名空间（可为空；字典项译文在 DictService 加载字典时按 dict-item + 字典类型编码 拉取）。valid-msg/default/sys 为后端校验规则 message 的国际化应用级缓存。 */
 export const APP_DEFAULT_I18N_CONFIG: I18nLoadConfig[] = [
-  { atomicServiceCode: 'sys', i18nTypeDictCode: 'valid-msg', namespaces: ['default'] },
-  { atomicServiceCode: 'sys', i18nTypeDictCode: 'error-msg', namespaces: ['default'] },
+  /** accessrule：IP 访问规则等 Compare 校验 message（如 sys.valid-msg.accessrule.le-ip-start） */
+  { atomicServiceCode: 'sys', i18nTypeDictCode: 'valid-msg', namespaces: ['default', 'accessrule'] },
+  { atomicServiceCode: 'sys', i18nTypeDictCode: 'error-msg', namespaces: ['default', 'accessrule'] },
 ];
 
 /** 语言选项：id、地区旗帜、该语言下的名称（始终用母语显示，不受当前语言影响） */

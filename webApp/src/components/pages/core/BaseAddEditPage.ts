@@ -2,7 +2,7 @@ import { ElMessage } from "element-plus"
 import { nextTick, ref } from "vue"
 import { ValidationRuleAdapter } from "../../validation/ValidationRuleAdapter"
 import { BasePage } from "./BasePage"
-import { backendRequest, getApiResponseData, getApiResponseMessage, getApiFailureMessage, isApiSuccessResponse, resolveApiFailureMessage, resolveApiResponseMessage } from "../../../utils/backendRequest"
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage, resolveSaveFailureHint } from "../../../utils/backendRequest"
 import { i18n, loadMessagesForConfig, loadMessagesForValidationPage } from "../../../i18n"
 
 function extractValidationRulesPayload(result: unknown): Record<string, unknown> {
@@ -75,10 +75,15 @@ export abstract class BaseAddEditPage extends BasePage {
         const target = this.state.formModel as Record<string, unknown> | undefined
         if (!target || typeof target !== 'object') return
         const initial = this.initialFormModel
-        for (const k in initial) if (Object.prototype.hasOwnProperty.call(initial, k)) target[k] = initial[k]
+        for (const k in initial) {
+            if (!Object.prototype.hasOwnProperty.call(initial, k)) continue
+            const v = initial[k]
+            target[k] = v !== null && typeof v === 'object' ? JSON.parse(JSON.stringify(v)) : v
+        }
         this.initialEditFormSnapshot = null
         const form = this.getFormInstance()
-        if (form?.resetFields) form.resetFields()
+        /** 勿在此调用 resetFields：el-form 会按各 field 挂载时的 initialValue 写回 model，弹窗复用时常为上次输入，会覆盖上面的重置。 */
+        if (form?.clearValidate) form.clearValidate()
     }
     private deepNormalize(value: unknown): unknown {
         if (value === undefined || (typeof value === 'number' && Number.isNaN(value))) return null
@@ -111,7 +116,9 @@ export abstract class BaseAddEditPage extends BasePage {
     protected getCreateValidationRuleUrl(): string { return this.getRootActionPath() + "/getCreateValidationRule" }
     protected getUpdateValidationRuleUrl(): string { return this.getRootActionPath() + "/getUpdateValidationRule" }
     protected getValidationRuleUrl(): string { return this.isEditMode() ? this.getUpdateValidationRuleUrl() : this.getCreateValidationRuleUrl() }
-    protected getDefaultValidMsgI18nConfig(): { atomicServiceCode: string; i18nTypeDictCode: string; namespaces: string[] } { return { atomicServiceCode: 'sys', i18nTypeDictCode: 'valid-msg', namespaces: ['default'] } }
+    protected getDefaultValidMsgI18nConfig(): { atomicServiceCode: string; i18nTypeDictCode: string; namespaces: string[] } {
+        return { atomicServiceCode: 'sys', i18nTypeDictCode: 'valid-msg', namespaces: ['default', 'accessrule'] }
+    }
     protected getValidationI18nNamespace(): string | undefined {
         const path = this.getRootActionPath(); return path ? path.replace(/\//g, '.') : undefined
     }
@@ -177,7 +184,8 @@ export abstract class BaseAddEditPage extends BasePage {
         try { result = await backendRequest({ url: this.getValidationRuleUrl() }) }
         catch (_) { this.state.rules = {}; this.state.remarkMaxLength = DEFAULT_REMARK_MAX_LENGTH; return }
         const rulesPayload = extractValidationRulesPayload(getApiResponseData(result))
-        this.state.rules = new ValidationRuleAdapter(rulesPayload, () => this.getFormInstance()?.model, 'blur', () => i18n.global.t('addEditPage.defaultValidationMessage') as string).getRules()
+        /** Element Plus 2 的 ElForm ref 不暴露 model，Compare 等规则取 anotherProperty 须直接用 state.formModel */
+        this.state.rules = new ValidationRuleAdapter(rulesPayload, () => this.state.formModel, 'blur', () => i18n.global.t('addEditPage.defaultValidationMessage') as string).getRules()
         this.syncRemarkMaxLengthFromRulesPayload(rulesPayload)
         if (this.isEditMode()) this._updateValidationRuleLoaded = true
         else this._createValidationRuleLoaded = true
@@ -210,14 +218,26 @@ export abstract class BaseAddEditPage extends BasePage {
                         if (result != null && isSuccessfulSaveResponse(result)) {
                             ElMessage.success(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('addEditPage.saveSuccess') as string))
                             const form = this.getFormInstance()
-                            if (form?.resetFields) form.resetFields()
+                            if (!this.isEditMode()) {
+                                this.resetFormForAdd()
+                            } else if (form?.resetFields) {
+                                form.resetFields()
+                            }
                             params.id = getSavedIdFromResponse(result)
                             if (typeof this.props?.onSaved === 'function') this.props.onSaved(params)
                             this.context.emit('response', params)
                             nextTick(() => this.doClose())
                         } else {
-                            const msg = await resolveApiFailureMessage(result) || getApiFailureMessage(result) || await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('addEditPage.saveFailed') as string)
-                            ElMessage.error(msg)
+                            try {
+                                const hint = await resolveSaveFailureHint(result)
+                                ElMessage.error(
+                                    hint != null && hint !== ''
+                                        ? hint
+                                        : (i18n.global.t('addEditPage.saveFailed') as string)
+                                )
+                            } catch {
+                                ElMessage.error(i18n.global.t('addEditPage.saveFailed') as string)
+                            }
                         }
                     })
                     .catch((e) => {
@@ -233,7 +253,7 @@ export abstract class BaseAddEditPage extends BasePage {
     protected doClose() {
         super.doClose()
         const form = this.getFormInstance()
-        if (form?.resetFields) form.resetFields()
+        if (form?.clearValidate) form.clearValidate()
     }
     protected convertThis() {
         super.convertThis()

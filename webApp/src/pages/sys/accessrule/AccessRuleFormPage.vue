@@ -1,5 +1,5 @@
 <!--
- * 访问规则新增/编辑：子系统/租户级联、规则类型（与访问规则列表一致；租户数据由列表页注入）。
+ * 访问规则新增/编辑：级联仅可选租户（叶子）；规则类型；租户数据由列表页注入。
  *
  * @author: AI: Cursor
  * @since 1.0.0
@@ -27,7 +27,12 @@
     >
       <section class="form-section">
         <div class="form-section__title">{{ t('accessRuleAddEdit.sections.basicInfo') }}</div>
-        <el-form-item :label="t('accessRuleAddEdit.labels.subSysOrTenant')" prop="subSysOrTenant" class="is-required">
+        <el-form-item
+          :label="t('accessRuleAddEdit.labels.subSysOrTenant')"
+          prop="subSysOrTenant"
+          class="is-required"
+          :rules="tenantCascaderRules"
+        >
           <el-cascader
             v-model="formModel.subSysOrTenant"
             :options="cascaderOptionsList || []"
@@ -46,10 +51,10 @@
             class="form-select-full"
           >
             <el-option
-              v-for="item in ruleTypeOptions"
+              v-for="item in (ruleTypeOptions || [])"
               :key="item.first"
               :value="item.first"
-              :label="getAccessRuleTypeLabel(item.first)"
+              :label="t(item.second)"
             />
           </el-select>
         </el-form-item>
@@ -79,7 +84,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from 'vue';
+import { defineComponent, computed, type ComputedRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import '../../../styles/add-edit-dialog-common.css';
 import { BaseAddEditPage } from '../../../components/pages/core';
@@ -113,9 +118,21 @@ class AccessRuleFormPage extends TenantSupportAddEditPage {
     return 'sys/system/getAllActiveSubSystemCodes';
   }
 
-  /** 与列表一致：须选到租户（第二级） */
-  protected isCheckStrictly(): boolean {
-    return false;
+  /** 提交前拆分级联；须选到租户（叶子），与级联 checkStrictly: false 一致 */
+  protected beforeValidate(): void {
+    const subSysOrTenant = (this.state.formModel as AccessRuleFormModel).subSysOrTenant;
+    const fm = this.state.formModel as AccessRuleFormModel;
+    if (!subSysOrTenant || subSysOrTenant.length === 0) {
+      fm.subSystemCode = null;
+      fm.tenantId = null;
+      return;
+    }
+    fm.subSystemCode = subSysOrTenant[0];
+    if (subSysOrTenant.length > 1) {
+      fm.tenantId = subSysOrTenant[1];
+    } else {
+      fm.tenantId = null;
+    }
   }
 
   protected initState(): Record<string, unknown> {
@@ -139,16 +156,18 @@ class AccessRuleFormPage extends TenantSupportAddEditPage {
     return 'accessRuleAddEdit.messages.loadFailed';
   }
 
-  /** 后端编辑回显为 systemCode，父类 fillForm 依赖 subSystemCode，此处按 systemCode + tenantId 合并级联 */
+  /** 后端编辑回显：仅当有租户时合并级联；平台级规则（无 tenantId）不填级联，由用户必选租户后保存 */
   protected fillForm(rowObject: Record<string, unknown>): void {
     BaseAddEditPage.prototype.fillForm.call(this, rowObject);
     const fm = this.state.formModel as AccessRuleFormModel;
     const sys = rowObject.systemCode ?? rowObject.subSystemCode;
     if (sys == null || sys === '') return;
-    const arr: string[] = [String(sys)];
     const tid = rowObject.tenantId;
-    if (tid != null && tid !== '') arr.push(String(tid));
-    fm.subSysOrTenant = arr;
+    if (tid != null && String(tid).trim() !== '') {
+      fm.subSysOrTenant = [String(sys), String(tid)];
+    } else {
+      fm.subSysOrTenant = null;
+    }
   }
 
   public resetFormForAdd(): void {
@@ -157,7 +176,7 @@ class AccessRuleFormPage extends TenantSupportAddEditPage {
     if (!snap) return;
     const fm = this.state.formModel as AccessRuleFormModel;
     const sst = snap.subSysOrTenant;
-    if (Array.isArray(sst) && sst.length > 0) {
+    if (Array.isArray(sst) && sst.length >= 2) {
       fm.subSysOrTenant = [...sst];
     }
     if (snap.accessRuleTypeDictCode != null && String(snap.accessRuleTypeDictCode).trim() !== '') {
@@ -202,26 +221,37 @@ export default defineComponent({
     });
     const page = setupReturn.page as AccessRuleFormPage & { state: Record<string, unknown> };
 
+    const tenantCascaderRules: ComputedRef<
+      Array<{ required: boolean; trigger: string; validator: (rule: unknown, value: unknown, callback: (e?: Error) => void) => void }>
+    > = computed(() => [
+      {
+        required: true,
+        trigger: 'change',
+        validator: (_rule: unknown, value: unknown, callback: (e?: Error) => void) => {
+          if (value == null || !Array.isArray(value) || value.length < 2) {
+            callback(new Error(t('accessRuleAddEdit.validation.tenantRequired') as string));
+            return;
+          }
+          callback();
+        },
+      },
+    ]);
+
     const cascaderOptionsList = computed(
       () => (props as Record<string, unknown>).listSubSysOrTenants ?? page.state.subSysOrTenants
     );
-    const cascaderPropsMerged = computed(
-      () => (props as Record<string, unknown>).listCascaderProps ?? page.state.cascaderProps
-    );
-
-    function getAccessRuleTypeLabel(code: unknown): string {
-      const c = String(code ?? '').trim();
-      if (!c) return '—';
-      const i18nKey = 'access_rule_type.' + c;
-      const translated = t(i18nKey);
-      return translated !== i18nKey ? translated : page.transDict('sys', 'access_rule_type', c) || c;
-    }
+    const cascaderPropsMerged = computed(() => {
+      const base =
+        ((props as Record<string, unknown>).listCascaderProps as Record<string, unknown> | undefined) ??
+        (page.state.cascaderProps as Record<string, unknown> | undefined);
+      return { ...base, checkStrictly: false };
+    });
 
     return {
       ...setupReturn,
+      tenantCascaderRules,
       cascaderOptionsList,
       cascaderPropsMerged,
-      getAccessRuleTypeLabel,
     };
   },
 });

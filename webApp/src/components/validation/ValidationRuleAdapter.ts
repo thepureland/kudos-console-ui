@@ -385,7 +385,12 @@ export class ValidationRuleAdapter {
 
                     // 依赖条件不存在，或其表达式成立，再进行Compare比较逻辑
                     const anotherProperty = ruleDetail["anotherProperty"]
-                    const anotherValue = this.getModel()[anotherProperty]
+                    const model = typeof this.getModel === "function" ? this.getModel() : null
+                    if (model == null || typeof model !== "object") {
+                        reject(this.getDefaultMessage())
+                        return
+                    }
+                    const anotherValue = (model as Record<string, unknown>)[anotherProperty as string]
                     const logic = ruleDetail["logic"]
                     const result = this.compareTwoValue(logic, value, anotherValue)
                     if (!result) {
