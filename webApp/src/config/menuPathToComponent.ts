@@ -14,7 +14,12 @@ const PATH_OVERRIDES: Record<string, string> = {
   '/tabs': 'Placeholder.vue',
 };
 
-const PAGE_MODULES = import.meta.glob<{ default: Component }>('../pages/**/*.vue');
+/** 只纳入可作为菜单主页面的组件，避免表单/详情弹窗被误打进菜单页动态分包。 */
+const PAGE_MODULES = import.meta.glob<{ default: Component }>([
+  '../pages/**/*ListPage.vue',
+  '../pages/Welcome.vue',
+  '../pages/Placeholder.vue',
+]);
 
 /**
  * 从 glob 推导 path → 组件文件路径（相对 pages）。
@@ -97,4 +102,3 @@ export function getComponentForPath(path: string): Component | undefined {
   const resolved = resolvePath(path);
   return PATH_TO_COMPONENT[resolved];
 }
-

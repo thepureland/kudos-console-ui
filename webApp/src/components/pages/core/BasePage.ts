@@ -2,7 +2,7 @@ import { reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Pair } from "../../model/Pair";
 import { backendRequest, getApiResponseData, isApiSuccessResponse } from "../../../utils/backendRequest";
-import { i18n, loadMessagesForConfig } from "../../../i18n";
+import { dGlobal, loadMessagesForConfig } from "../../../i18n";
 import type { I18nLoadConfig } from "../../../i18n";
 import { DictService } from "./DictService";
 import type { PageContext, PageProps } from "./pageTypes";
@@ -87,7 +87,7 @@ export abstract class BasePage {
         return false
     }
 
-    public transDict: (atomicServiceCode: string, type: string, code: string) => string
+    public transDict!: (atomicServiceCode: string, type: string, code: string) => string
 
     protected async loadDict(atomicServiceCode: string, dictType: string) {
         await this.dictService.loadDict(atomicServiceCode, dictType)
@@ -154,14 +154,14 @@ export abstract class BasePage {
     public formatDate = (date: unknown) => {
         const parsed = this.toDate(date)
         if (!parsed) return ''
-        return i18n.global.d(parsed, 'datetime')
+        return dGlobal(parsed, 'datetime')
     }
 
     public sleep = (delay: number) => {
         return new Promise<void>((resolve) => window.setTimeout(resolve, delay))
     }
 
-    public close: () => void
+    public close!: () => void
 
     protected doClose() {
         const v = this.visible as unknown as { value?: boolean } | boolean

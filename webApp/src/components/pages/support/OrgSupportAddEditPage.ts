@@ -35,7 +35,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
                 multiple: false,
                 checkStrictly: true,
                 expandTrigger: "hover",
-                lazyLoad(node, resolve) {
+                lazyLoad(node: any, resolve: (data: any[]) => void) {
                 _self.loadTreeNodes(node, resolve)
             },
         }
@@ -70,7 +70,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         this.state.formModel.parent = parents
     }
 
-    public loadTreeNodes: (node: any, resolve: (data: any[]) => void) => void
+    public loadTreeNodes!: (node: any, resolve: (data: any[]) => void) => void
 
     /** 级联懒加载：根节点返回原子服务列表，子节点请求 organization 树接口 */
     protected async doLoadTreeNodes(node: any, resolve: (data: any[]) => void) {

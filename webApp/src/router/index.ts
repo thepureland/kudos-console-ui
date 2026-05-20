@@ -1,24 +1,26 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
-import Home from '../pages/Home.vue';
-import Welcome from '../pages/Welcome.vue';
-import Placeholder from '../pages/Placeholder.vue';
-import CacheListPage from '../pages/sys/cache/CacheListPage.vue';
-import DataSourceListPage from '../pages/sys/datasource/DataSourceListPage.vue';
-import DictListPage from '../pages/sys/dict/DictListPage.vue';
-import ParamListPage from '../pages/sys/param/ParamListPage.vue';
-import ResourceListPage from '../pages/sys/resource/ResourceListPage.vue';
-import DomainListPage from '../pages/sys/domain/DomainListPage.vue';
-import TenantListPage from '../pages/sys/tenant/TenantListPage.vue';
-import SystemListPage from '../pages/sys/system/SystemListPage.vue';
-import MicroServiceListPage from '../pages/sys/microservice/MicroServiceListPage.vue';
-import I18nListPage from '../pages/sys/i18n/I18nListPage.vue';
-import AccessRuleListPage from '../pages/sys/accessrule/AccessRuleListPage.vue';
-import AccountListPage from '../pages/user/account/AccountListPage.vue';
-import OrganizationListPage from '../pages/user/organization/OrganizationListPage.vue';
-import RoleListPage from '../pages/rbac/role/RoleListPage.vue';
-import UserGroupListPage from '../pages/rbac/group/UserGroupListPage.vue';
-import Login from '../components/Login/Login.vue';
-import NotFound from '../pages/404.vue';
+
+/** 路由入口使用懒加载，避免与菜单动态组件映射形成重复静态引用。 */
+const Home = () => import('../pages/Home.vue');
+const Welcome = () => import('../pages/Welcome.vue');
+const Placeholder = () => import('../pages/Placeholder.vue');
+const CacheListPage = () => import('../pages/sys/cache/CacheListPage.vue');
+const DataSourceListPage = () => import('../pages/sys/datasource/DataSourceListPage.vue');
+const DictListPage = () => import('../pages/sys/dict/DictListPage.vue');
+const ParamListPage = () => import('../pages/sys/param/ParamListPage.vue');
+const ResourceListPage = () => import('../pages/sys/resource/ResourceListPage.vue');
+const DomainListPage = () => import('../pages/sys/domain/DomainListPage.vue');
+const TenantListPage = () => import('../pages/sys/tenant/TenantListPage.vue');
+const SystemListPage = () => import('../pages/sys/system/SystemListPage.vue');
+const MicroServiceListPage = () => import('../pages/sys/microservice/MicroServiceListPage.vue');
+const I18nListPage = () => import('../pages/sys/i18n/I18nListPage.vue');
+const AccessRuleListPage = () => import('../pages/sys/accessrule/AccessRuleListPage.vue');
+const AccountListPage = () => import('../pages/user/account/AccountListPage.vue');
+const OrganizationListPage = () => import('../pages/user/organization/OrganizationListPage.vue');
+const RoleListPage = () => import('../pages/rbac/role/RoleListPage.vue');
+const UserGroupListPage = () => import('../pages/rbac/group/UserGroupListPage.vue');
+const Login = () => import('../components/Login/Login.vue');
+const NotFound = () => import('../pages/404.vue');
 
 const routes: RouteRecordRaw[] = [
   {

@@ -74,6 +74,7 @@ export function useSectionedDetail(
     const d = page.state.detail;
     if (!d) return '';
     const value = d[field.key];
+    if (value == null || value === '') return t(emptyKey);
     switch (field.type) {
       case 'boolean':
         return value ? t(`${yesNoKey}.yes`) : t(`${yesNoKey}.no`);

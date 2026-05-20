@@ -3,7 +3,7 @@ import { nextTick, ref } from "vue"
 import { ValidationRuleAdapter } from "../../validation/ValidationRuleAdapter"
 import { BasePage } from "./BasePage"
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage, resolveSaveFailureHint } from "../../../utils/backendRequest"
-import { i18n, loadMessagesForConfig, loadMessagesForValidationPage } from "../../../i18n"
+import { loadMessagesForConfig, loadMessagesForValidationPage, tGlobal } from "../../../i18n"
 
 function extractValidationRulesPayload(result: unknown): Record<string, unknown> {
     if (result == null || typeof result !== 'object' || Array.isArray(result)) return {}
@@ -139,7 +139,7 @@ export abstract class BaseAddEditPage extends BasePage {
         const rules: Record<string, Array<{ required: boolean; validator: (rule: any, value: any, callback: (err?: Error) => void) => void; trigger: string }>> = {}
         for (const field of Object.keys(fieldToKey)) {
             const i18nKey = fieldToKey[field]; const trigger = triggerByField?.[field] ?? 'blur'
-            rules[field] = [{ required: true, validator: (_rule: any, value: unknown, callback: (err?: Error) => void) => value !== undefined && value !== null && String(value).trim() !== '' ? callback() : callback(new Error((i18n.global.t(i18nKey) as string) || '')), trigger }]
+            rules[field] = [{ required: true, validator: (_rule: any, value: unknown, callback: (err?: Error) => void) => value !== undefined && value !== null && String(value).trim() !== '' ? callback() : callback(new Error(tGlobal(i18nKey) || '')), trigger }]
         }
         return rules
     }
@@ -158,7 +158,7 @@ export abstract class BaseAddEditPage extends BasePage {
         const payload = getApiResponseData(result)
         const rowData = typeof payload === 'object' && payload !== null && !Array.isArray(payload) && 'id' in payload ? payload : null
         if (rowData != null) { this.fillForm(rowData); this.takeEditSnapshot(); super.render(); this.onEditFormLoaded?.() }
-        else ElMessage.error(i18n.global.t(this.getLoadFailedMessageKey()) as string)
+        else ElMessage.error(tGlobal(this.getLoadFailedMessageKey()))
     }
     protected async initValidationRule(): Promise<any> {
         if (this.isEditMode()) { if (this._updateValidationRuleLoaded) return } else { if (this._createValidationRuleLoaded) return }
@@ -185,7 +185,7 @@ export abstract class BaseAddEditPage extends BasePage {
         catch (_) { this.state.rules = {}; this.state.remarkMaxLength = DEFAULT_REMARK_MAX_LENGTH; return }
         const rulesPayload = extractValidationRulesPayload(getApiResponseData(result))
         /** Element Plus 2 的 ElForm ref 不暴露 model，Compare 等规则取 anotherProperty 须直接用 state.formModel */
-        this.state.rules = new ValidationRuleAdapter(rulesPayload, () => this.state.formModel, 'blur', () => i18n.global.t('addEditPage.defaultValidationMessage') as string).getRules()
+        this.state.rules = new ValidationRuleAdapter(rulesPayload, () => this.state.formModel, 'blur', () => tGlobal('addEditPage.defaultValidationMessage')).getRules()
         this.syncRemarkMaxLengthFromRulesPayload(rulesPayload)
         if (this.isEditMode()) this._updateValidationRuleLoaded = true
         else this._createValidationRuleLoaded = true
@@ -196,7 +196,7 @@ export abstract class BaseAddEditPage extends BasePage {
         await this.initValidationRule()
     }
     protected beforeValidate() {}
-    public submit: () => void
+    public submit!: () => void
     protected getFormInstance(): any {
         const f = this.form
         if (!f) return null
@@ -206,17 +206,17 @@ export abstract class BaseAddEditPage extends BasePage {
     protected doSubmit() {
         try {
             const formInstance = this.getFormInstance()
-            if (!formInstance || typeof formInstance.validate !== 'function') { ElMessage.error(i18n.global.t('addEditPage.formNotReady') as string); return }
-            if (this.isEditMode() && !this.isEditFormDirty()) { ElMessage.info(i18n.global.t('addEditPage.noChangeToSave') as string); return }
+            if (!formInstance || typeof formInstance.validate !== 'function') { ElMessage.error(tGlobal('addEditPage.formNotReady')); return }
+            if (this.isEditMode() && !this.isEditFormDirty()) { ElMessage.info(tGlobal('addEditPage.noChangeToSave')); return }
             this.beforeValidate()
             formInstance.validate((valid: boolean) => {
-                if (!valid) { ElMessage.error(i18n.global.t('addEditPage.validationFailed') as string); return }
+                if (!valid) { ElMessage.error(tGlobal('addEditPage.validationFailed')); return }
                 const params = this.createSubmitParams()
                 if (!params) return
                 backendRequest({ url: this.getSubmitUrl(), method: this.getSubmitMethod(), params })
                     .then(async (result) => {
                         if (result != null && isSuccessfulSaveResponse(result)) {
-                            ElMessage.success(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('addEditPage.saveSuccess') as string))
+                            ElMessage.success(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tGlobal('addEditPage.saveSuccess'))
                             const form = this.getFormInstance()
                             if (!this.isEditMode()) {
                                 this.resetFormForAdd()
@@ -233,21 +233,21 @@ export abstract class BaseAddEditPage extends BasePage {
                                 ElMessage.error(
                                     hint != null && hint !== ''
                                         ? hint
-                                        : (i18n.global.t('addEditPage.saveFailed') as string)
+                                        : tGlobal('addEditPage.saveFailed')
                                 )
                             } catch {
-                                ElMessage.error(i18n.global.t('addEditPage.saveFailed') as string)
+                                ElMessage.error(tGlobal('addEditPage.saveFailed'))
                             }
                         }
                     })
                     .catch((e) => {
-                        const msg = e instanceof Error ? e.message : i18n.global.t('addEditPage.requestFailed')
-                        ElMessage.error(typeof msg === 'string' ? msg : (i18n.global.t('addEditPage.requestFailed') as string))
+                        const msg = e instanceof Error ? e.message : tGlobal('addEditPage.requestFailed')
+                        ElMessage.error(typeof msg === 'string' ? msg : tGlobal('addEditPage.requestFailed'))
                     })
             })
         } catch (e) {
-            const msg = e instanceof Error ? e.message : i18n.global.t('addEditPage.submitError')
-            ElMessage.error(typeof msg === 'string' ? msg : (i18n.global.t('addEditPage.submitError') as string))
+            const msg = e instanceof Error ? e.message : tGlobal('addEditPage.submitError')
+            ElMessage.error(typeof msg === 'string' ? msg : tGlobal('addEditPage.submitError'))
         }
     }
     protected doClose() {

@@ -1,5 +1,11 @@
 import { backendRequest, getApiFailureMessage, isApiSuccessResponse } from "../../utils/backendRequest";
-import { i18n } from "../../i18n";
+import { tGlobal } from "../../i18n";
+
+/** 后端 ruleDetail 字段随校验注解变化，保留索引类型以承载动态规则元数据。 */
+type RuleDetail = Record<string, any>
+type RuleDetails = RuleDetail[]
+/** async-validator 规则对象由不同解析器逐步补充 type/validator/message 等字段。 */
+type ValidatorRule = Record<string, any>
 
 /**
  * 校验规则适配器，用于将服务端返回的校验规则适配为async-validator的校验规则
@@ -11,9 +17,9 @@ import { i18n } from "../../i18n";
  */
 export class ValidationRuleAdapter {
 
-    private remoteRules: any
-    private getModel: any
-    private destRules: any = {}
+    private remoteRules: Record<string, Record<string, RuleDetails>>
+    private getModel: () => Record<string, any>
+    private destRules: Record<string, ValidatorRule[]> = {}
     private trigger: string
 
     /** 供 vue-i18n 命名插值与文案 {xxx} 替换的字段（与后端 ruleDetail 常见字段对齐） */
@@ -40,9 +46,8 @@ export class ValidationRuleAdapter {
         const parts = raw.split('.')
         if (parts.length >= 4) {
             const keyWithoutAtomic = parts.slice(1).join('.')
-            const t = i18n.global.t.bind(i18n.global)
             const params = ValidationRuleAdapter.buildMessageInterpolationParams(detail ?? null)
-            const out = (params ? t(keyWithoutAtomic, params) : t(keyWithoutAtomic)) as string
+            const out = params ? tGlobal(keyWithoutAtomic, params) : tGlobal(keyWithoutAtomic)
             return out !== keyWithoutAtomic ? out : raw
         }
         return raw
@@ -77,8 +82,9 @@ export class ValidationRuleAdapter {
      * @param trigger 校验规则触发器
      * @param getDefaultMessage 当服务端未返回 message 时使用的默认提示（可用于国际化）
      */
-    constructor(remoteRules: any, getModel: () => any, trigger = 'blur', getDefaultMessage?: () => string) {
-        this.remoteRules = remoteRules
+    constructor(remoteRules: any, getModel: () => Record<string, any>, trigger = 'blur', getDefaultMessage?: () => string) {
+        // 后端失败或旧接口可能不给规则对象，空对象可让表单继续渲染但不挂远程规则。
+        this.remoteRules = remoteRules ?? {}
         this.getModel = getModel
         this.trigger = trigger
         this.getDefaultMessage = getDefaultMessage ?? (() => '校验未通过')
@@ -91,7 +97,7 @@ export class ValidationRuleAdapter {
      */
     getRules(): any {
         for (let propName in this.remoteRules) {
-            let rules = this.remoteRules[propName]
+            const rules = this.remoteRules[propName]
             for (let ruleName in rules) {
                 this.parseRule(ruleName, propName, rules)
             }
@@ -99,15 +105,15 @@ export class ValidationRuleAdapter {
         return this.destRules
     }
 
-    private parseRule(ruleName: string, propName: string, rules) {
-        let ruleDetails: Array<any> = rules[ruleName]
+    private parseRule(ruleName: string, propName: string, rules: Record<string, RuleDetails>) {
+        const ruleDetails: RuleDetails = rules[ruleName]
         if (!Array.isArray(ruleDetails) || ruleDetails.length === 0) {
             return
         }
         if (!this.destRules[propName]) {
             this.destRules[propName] = []
         }
-        const rule = {trigger: this.trigger}
+        const rule: ValidatorRule = {trigger: this.trigger}
         this.doParseRule(ruleName, propName, ruleDetails, rule)
         if (!rule["message"]) {
             const firstDetail = ruleDetails[0]
@@ -120,7 +126,7 @@ export class ValidationRuleAdapter {
         this.destRules[propName].push(rule)
     }
 
-    private doParseRule(ruleName: string, propName: string, ruleDetails: Array<any>, rule: any) {
+    private doParseRule(ruleName: string, propName: string, ruleDetails: RuleDetails, rule: ValidatorRule) {
         switch (ruleName) {
             case "Null":
                 this.null(propName, ruleDetails, rule)
@@ -266,7 +272,7 @@ export class ValidationRuleAdapter {
     }
 
     /** 使用 callback 形式确保校验失败时展示 rule.message（async-validator 在仅 return false 时可能不显示文案） */
-    private static validatorWithMessage(rule: any, value: any, callback: (err?: Error) => void, pass: boolean) {
+    private static validatorWithMessage(rule: any, _value: any, callback: (err?: Error) => void, pass: boolean) {
         if (pass) callback()
         else callback(new Error(rule?.message || ''))
     }
@@ -318,13 +324,13 @@ export class ValidationRuleAdapter {
 
     /** 远程校验 */
     private remote(propName: string, ruleDetails: Array<any>, rule: any) {
-        rule["asyncValidator"] = (rule: any, value: any) => {
-            return new Promise(async (resolve, reject) => {
+        rule["asyncValidator"] = (_rule: any, value: any) => {
+            return new Promise<void>(async (resolve, reject) => {
                 if (value == null || value == '') {
                     resolve()
                     return
                 }
-                const params = {}
+                const params: Record<string, any> = {}
                 params[propName] = value
 
                 const result = await backendRequest({url: ruleDetails[0].requestUrl, params})
@@ -367,9 +373,9 @@ export class ValidationRuleAdapter {
     /** 比较约束，支持数组类型，但是两个数组的大小必须一致 */
     private compare(propName: string, ruleDetails: Array<any>) {
         ruleDetails.forEach((ruleDetail) => {
-            let rule = {}
-            rule["asyncValidator"] = (r: any, value: any) => {
-                return new Promise((resolve, reject) => {
+            const rule: ValidatorRule = {}
+            rule["asyncValidator"] = (_r: any, value: any) => {
+                return new Promise<void>((resolve, reject) => {
                     if (value == null) {
                         resolve()
                         return
@@ -639,7 +645,6 @@ export class ValidationRuleAdapter {
                 }
 
                 const regexp = ruleDetails[0]["regexp"]
-                const flag = ruleDetails[0]["flag"] //TODO
                 if (regexp && regexp != "") {
                     if (!new RegExp(regexp).test(value)) {
                         return false
@@ -684,13 +689,14 @@ export class ValidationRuleAdapter {
             const n = Number(max)
             if (max === undefined || max === null || Number.isNaN(n)) return true
             if (this.isString(value) || value instanceof Array) {
-                return value.length <= n
+                return ((value as { length?: number }).length ?? (value as { byteLength?: number }).byteLength ?? 0) <= n
             }
             if (value instanceof Set || value instanceof Map) {
                 return value.size <= n
             }
             if (typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView(value)) {
-                return value.length <= n
+                // TypedArray/DataView 在 DOM 类型里不统一暴露 length；DataView 只有 byteLength。
+                return ((value as { length?: number }).length ?? (value as { byteLength?: number }).byteLength ?? 0) <= n
             }
             return false
         }
@@ -744,11 +750,11 @@ export class ValidationRuleAdapter {
     /** 对数组的每一个元素应用Constraints约束，每一个元素都校验通过才算最终通过 */
     private each(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "array"
-        rule["validator"] = (rule, value: Array<any>) => {
+        rule["validator"] = (_rule: any, value: Array<any>) => {
             ruleDetails.forEach((r) => {
                 for (let ruleName in r) {
                     for (let v in value) {
-                        const rule = {}
+                        const rule: ValidatorRule = {}
                         this.doParseRule(ruleName, propName, r[ruleName], rule)
                         if (!rule["validator"](rule, v)) {
                             return false
@@ -763,11 +769,11 @@ export class ValidationRuleAdapter {
     /** 对数组的每一个元素应用Constraints约束，只要一个元素Constraints约束校验通过就算通过 */
     private exist(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "array"
-        rule["validator"] = (rule, value: Array<any>) => {
+        rule["validator"] = (_rule: any, value: Array<any>) => {
             ruleDetails.forEach((r) => {
                 for (let ruleName in r) {
                     for (let v in value) {
-                        const rule = {}
+                        const rule: ValidatorRule = {}
                         this.doParseRule(ruleName, propName, r[ruleName], rule)
                         if (rule["validator"](rule, v)) {
                             return true
@@ -900,7 +906,7 @@ export class ValidationRuleAdapter {
                     if (v1 ! instanceof Array) {
                         return (<Array<any>>v2).indexOf(v1) != -1
                     } else {
-                        for (let elem in v1) {
+                        for (const _elem in v1) {
                             if ((<Array<any>>v2).indexOf(v1) != -1) {
                                 return false
                             }
@@ -912,7 +918,7 @@ export class ValidationRuleAdapter {
                     if (v1.size > v2.size) {
                         return false
                     } else {
-                        (<Map<any, any>>v1).forEach((v, k) => {
+                        (<Map<any, any>>v1).forEach((_v, k) => {
                             const value = (<Map<any, any>>v2).get(k)
                             if (value != k) {
                                 return false
@@ -931,9 +937,10 @@ export class ValidationRuleAdapter {
             case "IS_NOT_EMPTY":
                 return v1 != null && v1 != ''
         }
+        return false
     }
 
-    private checkMod10(nums): Boolean {
+    private checkMod10(nums: unknown): Boolean {
         let arr = (nums + '')
             .split('')
             .reverse()
@@ -947,7 +954,7 @@ export class ValidationRuleAdapter {
         return sum % 10 === 0;
     }
 
-    private checkMod11(nums): Boolean {
+    private checkMod11(nums: unknown): Boolean {
         let arr = (nums + '')
             .split('')
             .reverse()
@@ -968,35 +975,37 @@ export class ValidationRuleAdapter {
         return checkDigit === lastDigit;
     }
 
-    private checkISBN10(code): Boolean {
-        code = (code + '').replace(/[-\s]/g, '');
-        if (!/^\d{9}[\dxX]?$/.test(code)) return false;
+    private checkISBN10(code: unknown): Boolean {
+        // 统一转字符串后再计算校验位，兼容输入框传入 number 或 string。
+        const text = (code + '').replace(/[-\s]/g, '');
+        if (!/^\d{9}[\dxX]?$/.test(text)) return false;
         let i = 0, c = 0; // c:checksum
         for (; i < 9;)
-            c += code.charAt(i++) * i;
+            c += Number(text.charAt(i++)) * i;
         c %= 11;
         let ch = c + ''
         if (c == 10) ch = 'X';
-        return c == (i = code.charAt(9)) || ch == 'X' && i + '' == 'x';
+        return String(c) == (text.charAt(9)) || ch == 'X' && text.charAt(9).toLowerCase() == 'x';
     }
 
-    private checkISBN13(code): Boolean {
-        code = (code + '').replace(/[-\s]/g, '');
-        if (!/^\d{12,13}$/.test(code)) return false;
+    private checkISBN13(code: unknown): Boolean {
+        // 统一转字符串后再计算校验位，兼容输入框传入 number 或 string。
+        const text = (code + '').replace(/[-\s]/g, '');
+        if (!/^\d{12,13}$/.test(text)) return false;
         let i = 1, c = 0; // c:checksum
         for (; i < 12; i += 2)
-            c += Math.floor(code.charAt(i));
+            c += Math.floor(Number(text.charAt(i)));
         for (c *= 3, i = 0; i < 12; i += 2)
-            c += Math.floor(code.charAt(i));
+            c += Math.floor(Number(text.charAt(i)));
         c = (220 - c) % 10; // 220:大於(1*6+3*6)，%10==0即可。
-        if (code.length == 12) return code + c;
-        return c == code.charAt(12);
+        if (text.length == 12) return Boolean(text + c);
+        return String(c) == text.charAt(12);
     }
 
     private validateSeries(type: string, step: number, values: Array<number>): Boolean {
         switch (type) {
             case "INC_DIFF": // 递增且互不相等
-                let preValue: number = null
+                let preValue: number | null = null
                 for (let i = 0; i < values.length; i++) {
                     const value = Number(values[i])
                     if (preValue != null) {
@@ -1046,7 +1055,7 @@ export class ValidationRuleAdapter {
                 if (!diff) {
                     return false
                 } else if (step != 0.0) {
-                    let preValue: number = null
+                    let preValue: number | null = null
                     for (let i = 0; i < values.length; i++) {
                         const value = Number(values[i])
                         if (preValue != null) {
@@ -1059,7 +1068,7 @@ export class ValidationRuleAdapter {
                 }
                 return true
             case "INC_EQ": // 递增或相等
-                let preV: number = null
+                let preV: number | null = null
                 for (let i = 0; i < values.length; i++) {
                     const value = Number(values[i])
                     if (preV != null) {
@@ -1125,13 +1134,12 @@ export class ValidationRuleAdapter {
             case "EQ": // 全等
                 return new Set(values).size == 1
         }
-
-
+        return false
     }
 
     private maxValueIndex(values: Array<number>): number {
         let maxValueIndex = 0
-        let maxValue = null
+        let maxValue: number | null = null
         values.forEach((value, index) => {
             if (maxValue == null) {
                 maxValue = value
@@ -1147,7 +1155,7 @@ export class ValidationRuleAdapter {
 
     private minValueIndex(values: Array<number>): number {
         let minValueIndex = 0
-        let minValue = null
+        let minValue: number | null = null
         values.forEach((value, index) => {
             if (minValue == null) {
                 minValue = value

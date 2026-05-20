@@ -2,7 +2,7 @@ import { computed, inject, reactive, ref, toRefs, watch, nextTick, type Ref } fr
 import { useI18n } from 'vue-i18n';
 import type { BaseAddEditPage } from '../core/BaseAddEditPage';
 import { useAddEditDialogCloseGuard } from './useAddEditDialogCloseGuard';
-import { i18n, loadMessagesForConfig } from '../../../i18n';
+import { getGlobalLocale, loadMessagesForConfig } from '../../../i18n';
 import type { PageContext, PageProps } from '../core/pageTypes';
 
 /** 列表页 provide 此 key（值为 Ref<Set<string>>），AddEdit 注入后作为校验 i18n 的列表页级缓存，避免多次打开弹窗重复请求 */
@@ -29,12 +29,12 @@ export function useAddEditDialogSetup(
 ) {
   const { createPage, i18nKeyPrefix, formHasContent } = options;
   const { t } = useI18n();
-  const validationI18nCache = inject<Ref<Set<string>>>(ValidationI18nCacheKey, () => ref(new Set()), true);
+  const validationI18nCache = inject<Ref<Set<string>>>(ValidationI18nCacheKey, () => ref<Set<string>>(new Set<string>()), true);
   (props as Record<string, unknown>).validationI18nCache = validationI18nCache;
   const pageInstance = createPage(props, context);
   const formRef = pageInstance.form;
   const visibleRef = pageInstance.visible;
-  const page = reactive(pageInstance) as BaseAddEditPage & { state: Record<string, unknown> };
+  const page = reactive(pageInstance) as unknown as BaseAddEditPage & { state: Record<string, unknown> };
 
   const isEdit = computed(() => !!props.rid);
   const dialogTitle = computed(() =>
@@ -101,9 +101,9 @@ export function useAddEditDialogSetup(
 
   /** 语言切换时重载本页字典项等 i18n，并重新请求后端校验规则（清除 BaseAddEditPage 内缓存） */
   watch(
-    () => i18n.global.locale.value,
+    () => getGlobalLocale(),
     async () => {
-      const config = (page as { getI18nConfig?: () => { i18nTypeDictCode: string; namespaces: string[]; atomicServiceCode: string }[] }).getI18nConfig?.();
+      const config = (page as unknown as { getI18nConfig?: () => { i18nTypeDictCode: string; namespaces: string[]; atomicServiceCode: string }[] }).getI18nConfig?.();
       if (config?.length) await loadMessagesForConfig(config);
       await (page as BaseAddEditPage).reloadValidationRulesForLocaleChange?.();
     },

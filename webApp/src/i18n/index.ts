@@ -5,6 +5,44 @@ const i18nService = new I18nService();
 /** vue-i18n 实例，供 app.use(i18n) 及 t()、d() 等使用 */
 export const i18n = i18nService.i18n;
 
+/** vue-i18n 的插值参数实际允许更宽的值；这里保持宽类型，避免各业务页为类型适配重复断言。 */
+type TranslateParams = Record<string, unknown>;
+
+/** 统一屏蔽 vue-i18n legacy/composition 模式下 global 类型差异，业务代码只通过下方 helper 调用。 */
+type I18nGlobalCompat = {
+  t: (key: string, params?: TranslateParams) => string;
+  d: (value: Date, key?: string) => string;
+  locale: string | { value: string };
+};
+
+const i18nGlobal = i18n.global as unknown as I18nGlobalCompat;
+
+export function tGlobal(key: string, params?: TranslateParams): string {
+  return i18nGlobal.t(key, params);
+}
+
+/** 日期格式化统一走 i18n 实例，避免页面类直接触碰 vue-i18n 的联合类型。 */
+export function dGlobal(value: Date, key?: string): string {
+  return i18nGlobal.d(value, key);
+}
+
+/** locale 在不同 vue-i18n 类型声明中可能是字符串或 ref，这里统一读成 LocaleId。 */
+export function getGlobalLocale(): LocaleId {
+  const locale = i18nGlobal.locale;
+  const value = typeof locale === 'string' ? locale : locale.value;
+  return value as LocaleId;
+}
+
+/** 与 getGlobalLocale 配套，支持 legacy/composition 两种 locale 持有形态。 */
+export function setGlobalLocale(locale: LocaleId): void {
+  const target = i18nGlobal.locale;
+  if (typeof target === 'string') {
+    i18nGlobal.locale = locale;
+  } else {
+    target.value = locale;
+  }
+}
+
 /**
  * 与 ValidationRuleAdapter 一致：后端四段式键（如 sys.valid-msg.default.DictItemCode）在 vue-i18n 中多为去掉首段原子服务后的路径。
  */
