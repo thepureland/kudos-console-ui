@@ -33,6 +33,28 @@ function createProxyOptions(target: string) {
   };
 }
 
+/**
+ * 将体积稳定的大依赖拆到独立 chunk，降低入口包大小并提升浏览器缓存命中。
+ * shared 是 Kotlin/JS workspace 产物，路径可能以包名或本地 build 目录出现，两种都兼容。
+ */
+function manualChunks(id: string): string | undefined {
+  if (id.includes('@element-plus/icons-vue')) return 'element-icons';
+  if (id.includes('element-plus')) return 'element-plus';
+  if (id.includes('build/shared/dist/js/developmentLibrary') || id.includes('/node_modules/shared/')) {
+    return 'shared-kotlin';
+  }
+  if (
+    id.includes('/node_modules/vue/') ||
+    id.includes('/node_modules/vue-router/') ||
+    id.includes('/node_modules/vuex/') ||
+    id.includes('/node_modules/vue-i18n/') ||
+    id.includes('/node_modules/@vue/')
+  ) {
+    return 'vue-vendor';
+  }
+  return undefined;
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const proxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8081';
@@ -43,6 +65,11 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          manualChunks,
+        },
+      },
     },
     optimizeDeps: {
       esbuildOptions: { sourcemap: false },
