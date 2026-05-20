@@ -75,7 +75,7 @@ export abstract class TenantSupportListPage extends BaseListPage {
             multiple: false,
             checkStrictly: self.isCheckStrictly(),
             expandTrigger: "hover",
-            ...(useLazy ? { lazy: true, lazyLoad: (node: { level: number; value: string; data?: { value?: string } }, resolve: (children: Array<{ value: string; label: string; leaf: boolean }>) => void) => self.lazyLoadTenants(node, resolve) } : {}),
+            ...(useLazy ? { lazy: true, lazyLoad: (node: { level: number; value: string; data?: { value?: string } }, resolve: (children: Array<{ value: string; label: string; leaf?: boolean }>) => void) => self.lazyLoadTenants(node, resolve) } : {}),
         }
     }
 

@@ -2,7 +2,7 @@ import { ElMessage, ElMessageBox } from "element-plus"
 import { BasePage } from "./BasePage"
 import { backendRequest, getApiResponseData, getApiResponseMessage, getApiFailureMessage, isApiSuccessResponse, resolveApiFailureMessage } from "../../../utils/backendRequest"
 import { ColumnVisibilitySupport } from "../list/ColumnVisibilitySupport"
-import { i18n } from "../../../i18n"
+import { tGlobal } from "../../../i18n"
 
 export abstract class BaseListPage extends BasePage {
     private columnVisibilitySupport: ColumnVisibilitySupport | null = null
@@ -52,7 +52,7 @@ export abstract class BaseListPage extends BasePage {
     }
 
     protected createSearchParams(): any {
-        const params = {}
+        const params: Record<string, any> = {}
         if (this.state.sort.orderProperty) {
             params["orders"] = [{ property: this.state.sort.orderProperty, direction: this.state.sort.orderDirection }]
         }
@@ -78,12 +78,12 @@ export abstract class BaseListPage extends BasePage {
     }
     protected createDeleteParams(row: any): any { return { id: this.getRowId(row) } }
     protected createBatchDeleteParams(): any { return this.getSelectedIds() }
-    protected getDeleteMessage(_row: any): string { return i18n.global.t('listPage.deleteConfirm') as string }
-    protected getBatchDeleteMessage(rows: Array<any>): string { return i18n.global.t('listPage.batchDeleteConfirm', { n: rows.length }) as string }
-    protected tr(key: string, params?: Record<string, unknown>): string { return i18n.global.t(key, params ?? {}) as string }
+    protected getDeleteMessage(_row: any): string { return tGlobal('listPage.deleteConfirm') }
+    protected getBatchDeleteMessage(rows: Array<any>): string { return tGlobal('listPage.batchDeleteConfirm', { n: rows.length }) }
+    protected tr(key: string, params?: Record<string, any>): string { return tGlobal(key, params ?? {}) }
     protected getRowId(row: any): string | number { return row.id }
 
-    public search: () => void
+    public search!: () => void
     protected async doSearch() {
         const params = this.createSearchParams()
         if (!params) return
@@ -94,7 +94,7 @@ export abstract class BaseListPage extends BasePage {
             this.postSearchSuccessfully(isApiSuccessResponse(result) ? payload : result)
             if (Array.isArray(this.state.tableData) && this.state.tableData.length === 0) this.state.emptyShakeVersion = Number(this.state.emptyShakeVersion ?? 0) + 1
         } else {
-            ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || (i18n.global.t('listPage.queryFailed') as string))
+            ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.queryFailed'))
         }
     }
 
@@ -108,19 +108,19 @@ export abstract class BaseListPage extends BasePage {
     }
     private isSearchPayload(data: unknown): boolean { return Array.isArray(data) || !!(data && typeof data === "object" && Array.isArray((data as { data?: unknown }).data)) }
 
-    public handleSizeChange: (newSize: number) => void
+    public handleSizeChange!: (newSize: number) => void
     protected doHandleSizeChange(newSize: number) { this.state.pagination.pageSize = newSize; this.search() }
-    public handleCurrentChange: (newCurrent: number) => void
+    public handleCurrentChange!: (newCurrent: number) => void
     protected doHandleCurrentChange(newCurrent: number) { if (newCurrent) { this.state.pagination.pageNo = newCurrent; this.search() } }
-    public handleSelectionChange: (selection: any[]) => void
+    public handleSelectionChange!: (selection: any[]) => void
     protected doHandleSelectionChange(selection: any[]) { this.state.selectedItems = selection }
-    public resetSearchFields: () => void
+    public resetSearchFields!: () => void
     protected doResetSearchFields() {
         if (this.initialSearchParamsSnapshot && this.state.searchParams) Object.assign(this.state.searchParams, this.initialSearchParamsSnapshot)
         if (this.initialPaginationSnapshot && this.state.pagination) Object.assign(this.state.pagination, this.initialPaginationSnapshot)
         if (this.initialSortSnapshot && this.state.sort) Object.assign(this.state.sort, this.initialSortSnapshot)
     }
-    public handleSortChange: (column: { prop?: string; order?: string }) => void
+    public handleSortChange!: (column: { prop?: string; order?: string }) => void
     protected doHandleSortChange(column: { prop?: string; order?: string }) {
         if (!column.order || !column.prop) {
             this.state.sort.orderProperty = ""; this.state.sort.orderDirection = ""; this.state.pagination.pageNo = 1; this.doSearch(); return
@@ -130,7 +130,7 @@ export abstract class BaseListPage extends BasePage {
         this.state.pagination.pageNo = 1
         this.doSearch()
     }
-    public handleFilter: (value: any, row: any, column: any) => void
+    public handleFilter!: (value: any, row: any, column: any) => void
     protected doHandleFilter(value: any, row: any, column: any) { const property = column['property']; return row[property] === value }
 
     public parseBooleanFilterValue(value: unknown): boolean | null {
@@ -195,7 +195,7 @@ export abstract class BaseListPage extends BasePage {
         if (!keys || keys.length === 0) return true
         return keys.includes(columnKey)
     }
-    public toggleColumnVisibilityPanel: () => void
+    public toggleColumnVisibilityPanel!: () => void
     protected doToggleColumnVisibilityPanel() { this.state.columnVisibilityPanelVisible = !this.state.columnVisibilityPanelVisible }
     public applyVisibleColumns(keys: string[]) {
         if (!this.columnVisibilitySupport) { this.state.visibleColumnKeys = keys; return }
@@ -226,9 +226,9 @@ export abstract class BaseListPage extends BasePage {
         this.search()
     }
 
-    public handleDelete: (row: any) => void
+    public handleDelete!: (row: any) => void
     protected async doHandleDelete(row: any) {
-        const t = i18n.global.t.bind(i18n.global)
+        const t = tGlobal
         const confirmResult = await ElMessageBox.confirm(this.getDeleteMessage(row), t('listPage.confirmTitle') as string, { confirmButtonText: t('listPage.confirmButton') as string, cancelButtonText: t('listPage.cancelButton') as string, type: 'warning' }).catch(err => err)
         if (confirmResult !== 'confirm') return
         const params = this.createDeleteParams(row)
@@ -236,9 +236,9 @@ export abstract class BaseListPage extends BasePage {
         if (isApiSuccessResponse(result)) { ElMessage.success(t('listPage.deleteSuccess') as string); this.doAfterDelete([params["id"]]) }
         else ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string))
     }
-    public multiDelete: () => void
+    public multiDelete!: () => void
     protected async doMultiDelete() {
-        const t = i18n.global.t.bind(i18n.global)
+        const t = tGlobal
         const rows = this.state.selectedItems
         if (!rows || rows.length == 0) { ElMessage.info(t('listPage.selectDataFirst') as string); return }
         const confirmResult = await ElMessageBox.confirm(this.getBatchDeleteMessage(rows), t('listPage.confirmTitle') as string, { confirmButtonText: t('listPage.confirmButton') as string, cancelButtonText: t('listPage.cancelButton') as string, type: 'warning' }).catch(err => err)
@@ -249,23 +249,23 @@ export abstract class BaseListPage extends BasePage {
         else ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || (t('listPage.deleteFailed') as string))
     }
 
-    public handleDetail: (row: any) => void
+    public handleDetail!: (row: any) => void
     protected doHandleDetail(row: any) { this.state.rid = this.getRowId(row); this.state.detailDialogVisible = true }
-    public updateActive: (row: any) => void
+    public updateActive!: (row: any) => void
     protected async doUpdateActive(row: any) {
-        const params = { id: this.getRowId(row), active: row.active }
+        const params: Record<string, any> = { id: this.getRowId(row), active: row.active }
         const subSystemCode = row.subSystemCode ?? row.subSystemCode
         if (subSystemCode) params["subSystemCode"] = subSystemCode
         const result = await backendRequest({url: this.getUpdateActiveUrl(), method: 'put', params, paramsInQuery: true})
-        if (!isApiSuccessResponse(result)) ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || (i18n.global.t('listPage.updateActiveFailed') as string))
+        if (!isApiSuccessResponse(result)) ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.updateActiveFailed'))
     }
-    public handleEdit: (row: any) => void
+    public handleEdit!: (row: any) => void
     protected doHandleEdit(row: any) { this.state.rid = this.getRowId(row); this.state.editDialogVisible = true }
-    public openAddDialog: () => void
+    public openAddDialog!: () => void
     protected doOpenAddDialog() { this.state.addDialogVisible = true }
-    public toggleOperationColumn: () => void
+    public toggleOperationColumn!: () => void
     protected doToggleOperationColumn() { this.state.showOperationColumn = !this.state.showOperationColumn }
-    public afterAdd: (params: any) => void
+    public afterAdd!: (params: any) => void
     protected getAfterAddSearchParamKeys(): string[] { return [] }
     protected doAfterAdd(params: any) {
         const keys = this.getAfterAddSearchParamKeys()
@@ -275,10 +275,10 @@ export abstract class BaseListPage extends BasePage {
         }
         this.search()
     }
-    public afterEdit: (params: any) => void
+    public afterEdit!: (params: any) => void
     protected doAfterEdit(params: any) { this.doAfterAdd(params) }
-    public afterDelete: (ids: Array<any>) => void
-    protected doAfterDelete(ids: Array<any>) { this.search() }
+    public afterDelete!: (ids: Array<any>) => void
+    protected doAfterDelete(_ids: Array<any>) { this.search() }
 
     protected convertThis() {
         super.convertThis()

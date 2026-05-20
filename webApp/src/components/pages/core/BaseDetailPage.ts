@@ -60,7 +60,7 @@ export abstract class BaseDetailPage extends BasePage {
         }
     }
 
-    protected postLoadDataSuccessfully(data) {
+    protected postLoadDataSuccessfully(data: unknown) {
         this.state.detail = data
         if (this.showAfterLoadData()) {
             this.render()

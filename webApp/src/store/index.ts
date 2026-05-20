@@ -29,7 +29,7 @@ const SIDEBAR_WIDTH_MAX = 480;
 /** 侧栏展开时默认宽度（px），与原先固定 280px 一致 */
 const SIDEBAR_WIDTH_DEFAULT = 280;
 
-type RootState = {
+export type RootState = {
   /** 是否已登录（与 localStorage token 同步，登录成功后设为 true 以便 App.vue 立即切换为 router-view） */
   isAuthenticated: boolean;
   collapse: boolean;
@@ -135,14 +135,14 @@ const store = createStore<RootState>({
       }
     },
     /** 设置侧栏展开宽度（由 Home 页分界线拖拽调用），会钳制到 [SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX] 并持久化 */
-    setSidebarWidth(state, width: number) {
+    setSidebarWidth(state: RootState, width: number) {
       const w = Math.max(SIDEBAR_WIDTH_MIN, Math.min(SIDEBAR_WIDTH_MAX, Math.round(width)));
       state.sidebarWidth = w;
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(STORAGE_KEYS.sidebarWidth, String(w));
       }
     },
-    setTagsItem(state, item: TagItem) {
+    setTagsItem(state: RootState, item: TagItem) {
       const path = resolvePath(item.path);
       const normalized = { ...item, path };
       const exists = state.tagsList.some((tag) => tag.path === path);
@@ -151,22 +151,22 @@ const store = createStore<RootState>({
         saveTagsList(state.tagsList);
       }
     },
-    delTagsItem(state, payload: { index: number }) {
+    delTagsItem(state: RootState, payload: { index: number }) {
       state.tagsList.splice(payload.index, 1);
       saveTagsList(state.tagsList);
     },
-    clearTags(state) {
+    clearTags(state: RootState) {
       state.tagsList = [];
       saveTagsList(state.tagsList);
     },
-    closeTagsOther(state, curItems: TagItem[]) {
+    closeTagsOther(state: RootState, curItems: TagItem[]) {
       if (curItems && curItems.length > 0) {
         const current = curItems[0];
         state.tagsList = state.tagsList.filter((tag) => tag.path === current.path);
         saveTagsList(state.tagsList);
       }
     },
-    reorderTags(state, payload: { fromIndex: number; toIndex: number }) {
+    reorderTags(state: RootState, payload: { fromIndex: number; toIndex: number }) {
       const { fromIndex, toIndex } = payload;
       if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
       const list = state.tagsList;
@@ -176,7 +176,7 @@ const store = createStore<RootState>({
       list.splice(insertIndex, 0, item);
       saveTagsList(state.tagsList);
     },
-    setCurrentMenuPath(state, path: string) {
+    setCurrentMenuPath(state: RootState, path: string) {
       const resolved = resolvePath(path);
       state.currentMenuPath = resolved;
       if (typeof localStorage !== 'undefined') {

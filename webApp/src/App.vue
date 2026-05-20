@@ -13,7 +13,7 @@ import zhTw from 'element-plus/es/locale/lang/zh-tw';
 import en from 'element-plus/es/locale/lang/en';
 import Login from './components/Login/Login.vue';
 import { REQUIRE_AUTH } from './config/auth';
-import { i18n, ensureAppMessagesLoaded } from './i18n';
+import { ensureAppMessagesLoaded, getGlobalLocale } from './i18n';
 import type { LocaleId } from './i18n';
 
 const store = useStore();
@@ -21,8 +21,9 @@ const store = useStore();
 const isAuthenticated = computed(() => store.state.isAuthenticated);
 /** sys 模式（REQUIRE_AUTH=false）不显示登录页；user 模式未登录时显示 */
 const showLogin = computed(() => REQUIRE_AUTH && !isAuthenticated.value);
+/** Element Plus 语言包跟随应用 locale，locale 读取统一走 i18n 兼容 helper。 */
 const elementPlusLocale = computed(() => {
-  const locale = i18n.global.locale.value as LocaleId;
+  const locale = getGlobalLocale() as LocaleId;
   if (locale === 'zh-TW') return zhTw;
   if (locale === 'en-US') return en;
   return zhCn;

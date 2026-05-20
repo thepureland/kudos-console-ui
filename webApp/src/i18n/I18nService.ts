@@ -6,6 +6,12 @@ import { backendRequest } from '../utils/backendRequest';
 
 export type LocaleId = 'zh-CN' | 'zh-TW' | 'en-US';
 
+/** I18nService 只依赖 global 上的最小能力，减少对 vue-i18n 复杂泛型签名的耦合。 */
+type I18nGlobalCompat = {
+  locale: string | { value: string };
+  mergeLocaleMessage: (locale: string, message: Record<string, unknown>) => void;
+};
+
 /** 单条配置：国际化类型 -> 命名空间列表 */
 export type I18nLoadConfig = { i18nTypeDictCode: string; namespaces: string[]; atomicServiceCode?: string };
 
@@ -181,7 +187,9 @@ export class I18nService {
     namespacesByI18nTypeDictCode: Record<string, string[]>,
     atomicServiceCode: string
   ): Promise<void> {
-    const locale = this.i18n.global.locale.value as LocaleId;
+    // vue-i18n 在不同类型模式下 locale 可能是 string 或 ref；运行时兼容两种形态。
+    const global = this.i18n.global as unknown as I18nGlobalCompat;
+    const locale = (typeof global.locale === 'string' ? global.locale : global.locale.value) as LocaleId;
     try {
       const params = {
         locale,
@@ -198,7 +206,7 @@ export class I18nService {
       if (raw && typeof raw === 'object') {
         const messages = this.attachAtomicAliases(this.mergeBatchResponse(raw), atomicServiceCode);
         if (Object.keys(messages).length > 0) {
-          this.i18n.global.mergeLocaleMessage(locale, messages);
+          global.mergeLocaleMessage(locale, messages);
         }
       }
     } catch (e) {
@@ -248,7 +256,9 @@ export class I18nService {
    */
   async loadMessagesForConfig(configs: I18nLoadConfig[] | null | undefined): Promise<void> {
     if (!configs?.length) return;
-    const locale = this.i18n.global.locale.value as LocaleId;
+    // 缓存 key 必须使用当前语言，否则切换语言后可能误用旧语言的已加载标记。
+    const global = this.i18n.global as unknown as I18nGlobalCompat;
+    const locale = (typeof global.locale === 'string' ? global.locale : global.locale.value) as LocaleId;
     const byAtomic = new Map<string, Record<string, string[]>>();
     for (const c of configs) {
       const atomic = c.atomicServiceCode ?? '';
@@ -275,7 +285,13 @@ export class I18nService {
 
   /** 切换语言并持久化到 localStorage */
   setLocale(locale: LocaleId): void {
-    this.i18n.global.locale.value = locale;
+    // 同时支持 legacy 的 string locale 与 composition 的 ref locale。
+    const global = this.i18n.global as unknown as I18nGlobalCompat;
+    if (typeof global.locale === 'string') {
+      global.locale = locale;
+    } else {
+      global.locale.value = locale;
+    }
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(LOCALE_KEY, locale);
     }
