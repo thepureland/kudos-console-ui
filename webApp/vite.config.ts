@@ -80,9 +80,6 @@ export default defineConfig(({ mode }) => {
       allowedHosts: ['localhost', '127.0.0.1', 'kudos.io'],
       proxy: {
         '/api': createProxyOptions(proxyTarget),
-        '/sys': createProxyOptions(proxyTarget),
-        '/user': createProxyOptions(proxyTarget),
-        '/rbac': createProxyOptions(proxyTarget),
       },
     },
   };
