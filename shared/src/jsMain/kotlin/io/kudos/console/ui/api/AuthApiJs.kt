@@ -11,7 +11,7 @@ private const val TOKEN_KEY = "kudos_token"
 // JS interop: direct access to window for localStorage and env flags.
 internal fun rawWindow(): dynamic = js("window")
 
-/** 仅 jsMain 使用：浏览器 localStorage 存取 token */
+/** jsMain only: browser localStorage access for the token. */
 internal object TokenStorage {
     fun get(): String? = rawWindow().localStorage.getItem(TOKEN_KEY) as? String
 
@@ -28,7 +28,7 @@ internal object TokenStorage {
 private val authApi = AuthApi(createHttpClient())
 
 /**
- * 暴露给 Vue 的认证 API（登录后自动存 token，logout 清 token）
+ * Authentication API exposed to Vue (token is stored automatically after login, cleared on logout).
  */
 @OptIn(ExperimentalJsExport::class)
 @JsExport

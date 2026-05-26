@@ -1,4 +1,4 @@
-<!-- 系统详情 -->
+<!-- System detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -23,7 +23,7 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** 分组：从第几行开始显示分组标题（其他信息放最后） */
+/** Sections: which row to start showing each section title on (other info goes last) */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'systemDetail.sections.basicInfo' },
   { start: 2, titleKey: 'systemDetail.sections.audit' },

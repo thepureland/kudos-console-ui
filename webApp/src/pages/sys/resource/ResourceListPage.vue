@@ -1,5 +1,5 @@
 <!--
- * 资源列表：左侧资源树、右侧表格，支持工具栏筛选、栏位可见性、分页，多语言。
+ * Resource list: resource tree on the left, table on the right; supports toolbar filtering, column visibility, pagination, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -248,7 +248,7 @@
         </div>
       </div>
 
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
       <div v-if="hasFormEverOpened" v-show="formVisible">
         <resource-form-page
           :model-value="formVisible"
@@ -281,7 +281,7 @@ import { useTreeSplitResize } from '../../../components/pages/integration';
 import { ListPageLayout } from '../../../components/pages/ui';
 
 const MENU_I18N_CONFIG = [{ i18nTypeDictCode: 'view', namespaces: ['menu'], atomicServiceCode: 'sys' as const }];
-/** 本页切换语言时需重新加载的 i18n（与 getI18nConfig 一致），保证 t('resource_type.*') 等随新 locale 生效 */
+/** I18n that must be reloaded when this page's locale changes (matches getI18nConfig); ensures t('resource_type.*') etc. take effect under the new locale. */
 const RESOURCE_LIST_I18N_CONFIG = [
   { i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' },
   ...MENU_I18N_CONFIG,
@@ -304,7 +304,7 @@ class ResourceListPage extends BaseListPage {
     });
   }
 
-  /** 子系统下拉与表格展示：使用 sys/system/getAllActiveSubSystemCodes，与数据源/域名等页一致 */
+  /** Subsystem dropdown and table column: use sys/system/getAllActiveSubSystemCodes (consistent with DataSource/Domain pages). */
   private async loadSubSystems(): Promise<void> {
     try {
       const result = await backendRequest({ url: 'sys/system/getAllActiveSubSystemCodes', method: 'get' });
@@ -352,7 +352,7 @@ class ResourceListPage extends BaseListPage {
     return 'sys/resource';
   }
 
-  /** 重置搜索条件时保留「仅启用」为打勾，其它条件清空 */
+  /** When resetting search criteria, keep "active only" checked and clear everything else. */
   protected override doResetSearchFields(): void {
     this.state.pagination.pageNo = 1;
     const searchParams = this.state.searchParams as Record<string, unknown>;
@@ -367,7 +367,7 @@ class ResourceListPage extends BaseListPage {
     }
   }
 
-  /** 本页需加载的国际化：ListPage + FormPage（弹窗共用）；menu 与 Sidebar 一致供树第三层及以下菜单文案 */
+  /** I18n needed by this page: ListPage + FormPage (shared with the dialog). `menu` matches Sidebar's, providing menu strings for tree level 3 and below. */
   protected getI18nConfig() {
     return [
       { i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' },
@@ -385,8 +385,8 @@ class ResourceListPage extends BaseListPage {
   }
 
   /**
-   * 由树触发的 pagingSearch 参数：不传 name、pageNo、pageSize、level。
-   * 用于展开树节点、点击树节点时请求表格数据。
+   * pagingSearch params triggered by the tree: omit name, pageNo, pageSize, level.
+   * Used when expanding or clicking a tree node to fetch table data.
    */
   private buildPagingSearchParamsForTree(): Record<string, unknown> {
     const sp = this.state.searchParams as Record<string, unknown>;
@@ -404,8 +404,8 @@ class ResourceListPage extends BaseListPage {
   }
 
   /**
-   * 由搜索栏触发的 pagingSearch 参数：不传 level、parentId。
-   * 用于点击搜索/重置、分页、排序时请求表格数据。
+   * pagingSearch params triggered by the search bar: omit level and parentId.
+   * Used when clicking Search/Reset, paginating, or sorting to fetch table data.
    */
   private buildPagingSearchParamsForSearchBar(): Record<string, unknown> {
     const sp = this.state.searchParams as Record<string, unknown>;
@@ -467,11 +467,11 @@ class ResourceListPage extends BaseListPage {
   public loadTree: (node: unknown, resolve: (data: unknown) => void) => void;
 
   /**
-   * 按四种情况分别构造 loadDirectChildrenForTree 的请求参数：
-   * 1. 页面打开时（level=0）：加载资源类型，只传 level=0、active
-   * 2. 资源类型展开时（level=1）：加载子系统，只传 active、level=1
-   * 3. 子系统展开时（level=2）：加载第一层资源，传 active、level=2、subSystemCode、resourceTypeDictCode
-   * 4. 其他情况（level>2）：传 active、level、parentId
+   * Build loadDirectChildrenForTree request params for the four cases:
+   * 1. Page open (level=0): load resource types, passing only level=0 and active
+   * 2. Resource type expanded (level=1): load subsystems, passing only active and level=1
+   * 3. Subsystem expanded (level=2): load the first resource layer, passing active, level=2, subSystemCode, resourceTypeDictCode
+   * 4. Other (level>2): pass active, level, parentId
    */
   private buildTreeRequestParams(node: { level: number; data: { id?: string }; parent?: { data: { id?: string } } }): Record<string, unknown> {
     const active = (this.state.searchParams as Record<string, unknown>)?.active ?? true;
@@ -515,7 +515,7 @@ class ResourceListPage extends BaseListPage {
     }
   }
 
-  /** 树节点国际化：存 nameKey 供模板随 locale 用 t(nameKey) 渲染；第一层=resource_type.*，第二层不设，其余层=titleKey 或 name（当为 i18n key 时） */
+  /** Tree-node i18n: store nameKey so the template can render t(nameKey) and react to locale changes; level 1 = resource_type.*, level 2 unset, other levels = titleKey or name (when it looks like an i18n key). */
   private applyTreeNodeI18n(nodes: unknown[], parentLevel: number): Record<string, unknown>[] {
     return nodes.map((n) => {
       const item = (n && typeof n === 'object' ? { ...(n as Record<string, unknown>) } : { id: '', name: '' }) as Record<string, unknown>;
@@ -535,7 +535,7 @@ class ResourceListPage extends BaseListPage {
 
   private doExpandTreeNode(nodeData: unknown, node: { level: number }): void {
     if (node.level === 0 || node.level === 1) return;
-    // 若当前是工具栏搜索结果，仅展开树、不刷新表格，并保持 searchSource 为 button，避免搜索结果在切换标签时丢失
+    // If the current view is from a toolbar search, only expand the tree without refreshing the table, and keep searchSource as 'button' so the search results aren't lost when switching tabs.
     if ((this.state as Record<string, unknown>).searchSource === 'button') {
       this.setParamsForTree(node as { level: number; data: unknown }, true);
       (this.state as Record<string, unknown>).searchSource = 'button';
@@ -550,7 +550,7 @@ class ResourceListPage extends BaseListPage {
 
   private async doClickTreeNode(nodeData: { id: string }, node: { level: number; data: unknown; parent?: { data: unknown } }): Promise<void> {
     if (node.level === 1 || node.level === 2) return;
-    // 若当前是工具栏搜索结果，仅更新树选中状态、不刷新表格，并保持 searchSource 为 button，避免搜索结果在切换标签时丢失
+    // If the current view is from a toolbar search, only update the tree selection without refreshing the table, and keep searchSource as 'button' so the search results aren't lost when switching tabs.
     if ((this.state as Record<string, unknown>).searchSource === 'button') {
       this.setParamsForTree(node as { level: number; data: unknown }, false);
       (this.state as Record<string, unknown>).searchSource = 'button';
@@ -577,7 +577,7 @@ class ResourceListPage extends BaseListPage {
   }
 
   private setParamsForTree(node: { level: number; data: { id?: string; name?: string }; parent?: { data: { id?: string } } }, expand: boolean): void {
-    // 保留工具栏搜索结果场景：若当前是 button 搜索，不改为 tree，避免切换/恢复后表格被清空
+    // Preserve the toolbar-search scenario: if the current source is 'button', don't switch to 'tree' so the table isn't cleared after switching/restoring.
     if ((this.state as Record<string, unknown>).searchSource !== 'button') {
       (this.state as Record<string, unknown>).searchSource = 'tree';
     }
@@ -643,7 +643,7 @@ class ResourceListPage extends BaseListPage {
     }
   }
 
-  /** 持久化时一并保存 searchSource，便于标签切换后恢复树/表格联动状态 */
+  /** Persist searchSource alongside the rest so the tree/table interlocked state can be restored after a tab switch. */
   public override persistListState(): void {
     super.persistListState();
     if (typeof window === 'undefined') return;
@@ -659,7 +659,7 @@ class ResourceListPage extends BaseListPage {
     }
   }
 
-  /** 恢复时一并恢复 searchSource */
+  /** Restore searchSource alongside the rest. */
   public override restorePersistedListState(): void {
     super.restorePersistedListState();
     if (typeof window === 'undefined') return;
@@ -727,12 +727,12 @@ export default defineComponent({
       getColumnKeys: () => ALL_COLUMN_KEYS,
       getColumnLabel: columnLabel,
     });
-    /** 字典项展示：有 i18n key 时 t(key)，否则不调用 t('') 避免 intlify 报错 */
+    /** Dict-item display: if there's an i18n key call t(key); otherwise don't call t('') to avoid an intlify error. */
     function formatDictCell(module: string, dictType: string, code: unknown): string {
       const key = listPage.transDict(module, dictType, code);
       return key ? t(key) : '—';
     }
-    /** 资源类型列/下拉：使用 locale resource_type.* 做国际化，无对应 key 时回退到字典/原码；随 locale 切换更新 */
+    /** Resource-type column/dropdown: localized via the locale's resource_type.*; falls back to the dict / raw code when no key matches; updates when the locale changes. */
     function getResourceTypeLabel(code: unknown): string {
       const c = String(code ?? '').trim();
       if (!c) return '—';
@@ -740,7 +740,7 @@ export default defineComponent({
       const translated = t(i18nKey);
       return translated !== i18nKey ? translated : (listPage.transDict('sys', 'resource_type', c) || c);
     }
-    /** 树节点文案：有 nameKey 则 t(nameKey) 以随 locale 更新，否则用 name（第二层等） */
+    /** Tree-node label: when nameKey is present use t(nameKey) so it tracks the locale; otherwise fall back to name (e.g. level 2). */
     function getTreeNodeLabel(data: Record<string, unknown>): string {
       const key = data.nameKey != null ? String(data.nameKey) : '';
       if (key && te(key)) return t(key);
@@ -825,20 +825,20 @@ export default defineComponent({
 
 <style src="../../../styles/list-page-common.css" scoped></style>
 <style scoped>
-/* 卡片与行高度传递，使树与表格区域同高 */
+/* Propagate card and row heights so the tree and table areas are the same height. */
 .resource-list-page .resource-list-card {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  margin-top: 3px; /* 卡片上外边距 */
+  margin-top: 3px; /* card top outer margin */
 }
 .resource-list-page .resource-list-card :deep(.el-card__body) {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 8px 5px 5px 5px; /* 上内边距 8px（5+3） */
+  padding: 8px 5px 5px 5px; /* top inner padding 8px (5+3) */
 }
 .resource-list-page .resource-list-split {
   flex: 1;
@@ -853,7 +853,7 @@ export default defineComponent({
   min-height: 0;
   min-width: 120px;
 }
-/* 可拖拽分隔线 */
+/* Draggable divider. */
 .resource-list-page .resource-list-resizer {
   flex-shrink: 0;
   width: 6px;
@@ -864,7 +864,7 @@ export default defineComponent({
 .resource-list-page .resource-list-resizer:hover {
   background: var(--el-color-primary-light-5);
 }
-/* 树区：左边栏视觉（右边线 + 浅底）+ 可滚动 */
+/* Tree area: sidebar look (right border + light background) and scrollable. */
 .resource-list-page .resource-tree-wrap {
   height: 100%;
   min-height: 0;
@@ -880,7 +880,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
 }
-/* 树节点行高与表格接近，风格统一 */
+/* Match the tree's row height to the table's for a consistent look. */
 .resource-list-page .resource-tree-wrap :deep(.el-tree-node__content) {
   height: 32px;
 }

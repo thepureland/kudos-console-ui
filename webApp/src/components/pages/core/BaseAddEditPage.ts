@@ -82,7 +82,7 @@ export abstract class BaseAddEditPage extends BasePage {
         }
         this.initialEditFormSnapshot = null
         const form = this.getFormInstance()
-        /** 勿在此调用 resetFields：el-form 会按各 field 挂载时的 initialValue 写回 model，弹窗复用时常为上次输入，会覆盖上面的重置。 */
+        /** Do not call resetFields here: el-form writes back to model from each field's mount-time initialValue, which on dialog reuse is often the previous input and would override the reset above. */
         if (form?.clearValidate) form.clearValidate()
     }
     private deepNormalize(value: unknown): unknown {
@@ -184,7 +184,7 @@ export abstract class BaseAddEditPage extends BasePage {
         try { result = await backendRequest({ url: this.getValidationRuleUrl() }) }
         catch (_) { this.state.rules = {}; this.state.remarkMaxLength = DEFAULT_REMARK_MAX_LENGTH; return }
         const rulesPayload = extractValidationRulesPayload(getApiResponseData(result))
-        /** Element Plus 2 的 ElForm ref 不暴露 model，Compare 等规则取 anotherProperty 须直接用 state.formModel */
+        /** Element Plus 2's ElForm ref does not expose model; rules like Compare that need anotherProperty must read state.formModel directly */
         this.state.rules = new ValidationRuleAdapter(rulesPayload, () => this.state.formModel, 'blur', () => tGlobal('addEditPage.defaultValidationMessage')).getRules()
         this.syncRemarkMaxLengthFromRulesPayload(rulesPayload)
         if (this.isEditMode()) this._updateValidationRuleLoaded = true

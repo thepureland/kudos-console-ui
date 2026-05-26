@@ -1,14 +1,14 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 
-/** 操作列折叠控制配置。 */
+/** Operation-column fold control options. */
 export interface UseOperationColumnFoldOptions {
-  /** 本地存储 key，用于持久化「操作列是否固定展开」 */
+  /** localStorage key used to persist "is the operation column pinned open" */
   storageKey: string;
-  /** 操作列宽度（px），用于计算右侧触达区域 */
+  /** Operation column width (px), used to compute the right-side hit area */
   columnWidth?: number;
-  /** 操作列右侧触达带宽度（px） */
+  /** Width of the hit-band to the right of the operation column (px) */
   bandPadding?: number;
-  /** 鼠标离开后延迟隐藏（ms） */
+  /** Delay before hiding after mouse leave (ms) */
   hideDelayMs?: number;
 }
 
@@ -17,8 +17,8 @@ const DEFAULT_BAND_PADDING = 12;
 const DEFAULT_HIDE_DELAY_MS = 120;
 
 /**
- * 操作列折角逻辑：悬停展开、离开延迟收起、点击固定/取消固定，状态持久化到 localStorage。
- * 用于与 BaseListPage 配合的列表页，listPage.state 需有 showOperationColumn。
+ * Operation-column fold logic: expand on hover, collapse after a delay on leave, click to pin/unpin, state persisted to localStorage.
+ * For list pages working with BaseListPage; listPage.state must expose showOperationColumn.
  */
 export function useOperationColumnFold(
   listPage: { state: { showOperationColumn?: boolean } },
@@ -34,7 +34,7 @@ export function useOperationColumnFold(
   const operationColumnPinned = ref(false);
   const operationColumnHideTimer = ref<number | null>(null);
 
-  /** 同步 listPage.state.showOperationColumn */
+  /** Sync listPage.state.showOperationColumn */
   function setOperationColumnVisible(visible: boolean) {
     (listPage.state as { showOperationColumn: boolean }).showOperationColumn = visible;
   }
@@ -46,7 +46,7 @@ export function useOperationColumnFold(
     }
   }
 
-  /** 在 hideDelayMs 后若未固定则隐藏操作列 */
+  /** Hide the operation column after hideDelayMs if not pinned */
   function scheduleHideOperationColumn() {
     clearOperationColumnHideTimer();
     operationColumnHideTimer.value = window.setTimeout(() => {
@@ -57,7 +57,7 @@ export function useOperationColumnFold(
     }, hideDelayMs);
   }
 
-  /** 将操作列是否固定写入 localStorage */
+  /** Persist the pinned state of the operation column to localStorage */
   function persistOperationColumnPinned() {
     window.localStorage.setItem(storageKey, JSON.stringify(operationColumnPinned.value));
   }
@@ -69,7 +69,7 @@ export function useOperationColumnFold(
     }
   }
 
-  /** 在表格容器上移动时，若在操作列或右侧触达带内则取消隐藏，否则延迟隐藏 */
+  /** While moving over the table container, cancel hiding if inside the operation column or the right-hand hit band; otherwise schedule the delayed hide */
   function handleTableWrapMouseMove(event: MouseEvent) {
     if (operationColumnPinned.value) return;
     if (!(listPage.state as { showOperationColumn: boolean }).showOperationColumn) return;
@@ -92,14 +92,14 @@ export function useOperationColumnFold(
     }
   }
 
-  /** 鼠标离开表格容器时，若未固定则延迟隐藏操作列 */
+  /** When the mouse leaves the table container, schedule a delayed hide if not pinned */
   function handleTableWrapMouseLeave() {
     if (!operationColumnPinned.value) {
       scheduleHideOperationColumn();
     }
   }
 
-  /** 切换操作列固定状态并持久化，固定时立即显示、取消时立即隐藏 */
+  /** Toggle the operation column's pinned state and persist it; show immediately when pinning, hide immediately when unpinning */
   function toggleOperationColumnPin() {
     if (operationColumnPinned.value) {
       operationColumnPinned.value = false;

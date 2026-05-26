@@ -1,7 +1,7 @@
 /**
- * 详情页 setup 中常用的 page 视图模型类型：
- * - 含 state（可按页面扩展）
- * - 含 useSectionedDetail 依赖的格式化能力
+ * Common page view-model type used in detail-page setup:
+ * - includes state (extendable per page)
+ * - includes the formatting helpers required by useSectionedDetail
  */
 export type DetailPageViewModel<TState extends Record<string, unknown> = { detail: Record<string, unknown> | null }> = {
   state: TState;

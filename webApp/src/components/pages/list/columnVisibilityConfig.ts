@@ -1,4 +1,4 @@
-/** 列可见性配置项集合（索引列/可见列/默认列）。 */
+/** Column-visibility config bundle (index column / visible columns / default columns). */
 export interface ColumnVisibilityConfig {
   indexColumnKey: 'index';
   allColumnKeys: string[];
@@ -7,7 +7,7 @@ export interface ColumnVisibilityConfig {
 }
 
 /**
- * 统一生成列表页列可见性配置，避免每个页面重复声明样板常量。
+ * Build a list-page column-visibility config in one place to avoid repeating boilerplate constants on every page.
  */
 export function createColumnVisibilityConfig(allColumnKeys: readonly string[]): ColumnVisibilityConfig {
   const normalizedAllColumnKeys = [...allColumnKeys];

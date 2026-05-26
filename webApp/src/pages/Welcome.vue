@@ -1,7 +1,7 @@
 <template>
   <div class="welcome">
     <section class="hero" :class="heroTimeClass">
-      <p class="greeting">{{ greeting }}，{{ displayName }}</p>
+      <p class="greeting">{{ greeting }}, {{ displayName }}</p>
       <p class="hero-date">{{ dateText }}</p>
       <h1 class="title">{{ t('welcome.title') }}</h1>
       <p class="subtitle">{{ t('welcome.subtitle') }}</p>
@@ -47,7 +47,7 @@ import {
 
 const { t, locale } = useI18n();
 
-/** 问候语 + 用户名（无登录名时用「访客」） */
+/** Greeting + username (falls back to "Guest" when no login name is set). */
 const displayName = computed(() => {
   const name = typeof localStorage !== 'undefined' ? localStorage.getItem('current_username') : null;
   return name?.trim() || t('welcome.guest');
@@ -59,7 +59,7 @@ const greeting = computed(() => {
   return t('welcome.greetingEvening');
 });
 
-/** 当前日期 + 星期，随语言格式化 */
+/** Current date + weekday, formatted per the active locale. */
 const dateText = computed(() => {
   const d = new Date();
   const localeCode = locale.value as string;
@@ -68,7 +68,7 @@ const dateText = computed(() => {
   return `${date} · ${week}`;
 });
 
-/** 根据时段给 hero 加 class，在样式中定义渐变（保证生效且可见） */
+/** Add a time-of-day class to the hero; the gradient is defined in CSS (so it actually applies and stays visible). */
 const heroTimeClass = computed(() => {
   const h = new Date().getHours();
   if (h >= 5 && h < 11) return 'hero--time-morning';
@@ -100,7 +100,7 @@ const shortcutItems = [
   box-shadow: var(--theme-shadow);
 }
 
-/* 按时段叠加很轻的渐变（左上→右下），傍晚偏暖 */
+/* Subtle time-of-day gradient (top-left -> bottom-right); evening leans warm. */
 .hero.hero--time-morning {
   background: linear-gradient(160deg, var(--theme-bg-card) 0%, #e8f4fc 100%);
 }

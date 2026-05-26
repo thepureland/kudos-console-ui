@@ -17,11 +17,11 @@ import { ensureAppMessagesLoaded, getGlobalLocale } from './i18n';
 import type { LocaleId } from './i18n';
 
 const store = useStore();
-/** 是否已登录，来自 store（与 localStorage 同步）；登录成功后 commit 更新以便立即切换为 router-view */
+/** Whether the user is logged in; sourced from the store (kept in sync with localStorage). After a successful login the store commit updates so the view immediately switches to router-view. */
 const isAuthenticated = computed(() => store.state.isAuthenticated);
-/** sys 模式（REQUIRE_AUTH=false）不显示登录页；user 模式未登录时显示 */
+/** sys mode (REQUIRE_AUTH=false) does not show the login page; user mode shows it when not logged in. */
 const showLogin = computed(() => REQUIRE_AUTH && !isAuthenticated.value);
-/** Element Plus 语言包跟随应用 locale，locale 读取统一走 i18n 兼容 helper。 */
+/** Element Plus locale pack follows the app locale; the locale lookup goes through the i18n compatibility helper. */
 const elementPlusLocale = computed(() => {
   const locale = getGlobalLocale() as LocaleId;
   if (locale === 'zh-TW') return zhTw;

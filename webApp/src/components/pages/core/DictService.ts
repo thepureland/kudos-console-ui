@@ -7,18 +7,18 @@ const DICT_CACHE_KEY = "__kudosDictCache";
 const BATCH_GET_DICT_ITEM_MAP_URL = "sys/dictItem/batchGetDictItemMap";
 
 /**
- * 字典服务：负责字典的加载、缓存与翻译。
- * 缓存 key 格式：原子服务编码---字典类型
- * 请求：POST /api/admin/sys/dictItem/batchGetDictItemMap，body 为 dictTypesByAtomicServiceCode: Map<原子服务编码, Collection<字典类型>>
- * 返回：Map<原子服务编码, Map<字典类型, Record<编码, 译文或i18n key>>>
- * 字典项译文（当 value 为 i18n key 时）由各页 getI18nConfig() 指定从 batchGetI18ns 拉取，类型 dict-item、命名空间为字典类型编码（如 cache_strategy）。
+ * Dictionary service: responsible for loading, caching, and translating dictionaries.
+ * Cache key format: atomicServiceCode---dictType
+ * Request: POST /api/admin/sys/dictItem/batchGetDictItemMap, body is dictTypesByAtomicServiceCode: Map<atomicServiceCode, Collection<dictType>>
+ * Response: Map<atomicServiceCode, Map<dictType, Record<code, translation or i18n key>>>
+ * Dictionary item translations (when value is an i18n key) are fetched via batchGetI18ns as specified by each page's getI18nConfig(), with type dict-item and namespace being the dictType code (e.g. cache_strategy).
  *
  * @author K
  * @author AI: Cursor
  * @since 1.0.0
  */
 export class DictService {
-    /** 字典缓存：key 为 "原子服务编码---字典类型"，value 为 编码->名称（或 i18n key） */
+    /** Dictionary cache: key is "atomicServiceCode---dictType", value is code->name (or i18n key) */
     public readonly cache: Map<string, Record<string, string>>;
 
     constructor() {
@@ -29,7 +29,7 @@ export class DictService {
         this.cache = win[DICT_CACHE_KEY];
     }
 
-    /** 根据原子服务编码+字典类型+编码翻译为显示名称 */
+    /** Translate to display name based on atomicServiceCode + dictType + code */
     transDict(atomicServiceCode: string, dictType: string, code: string): string {
         if (!code) return "";
         const key = this.toCacheKey(atomicServiceCode, dictType);
@@ -41,15 +41,15 @@ export class DictService {
         return code;
     }
 
-    /** 加载单个字典，已存在则跳过 */
+    /** Load a single dictionary, skip if already cached */
     async loadDict(atomicServiceCode: string, dictType: string): Promise<void> {
         await this.loadDicts([dictType], atomicServiceCode);
     }
 
     /**
-     * 批量加载字典，仅加载尚未缓存的项。
-     * 请求体：dictTypesByAtomicServiceCode = { [atomicServiceCode]: toLoad }
-     * 返回：Map<原子服务编码, Map<字典类型, Record<编码, 译文或i18n key>>>
+     * Batch-load dictionaries, only loading items not yet cached.
+     * Request body: dictTypesByAtomicServiceCode = { [atomicServiceCode]: toLoad }
+     * Response: Map<atomicServiceCode, Map<dictType, Record<code, translation or i18n key>>>
      */
     async loadDicts(dictTypes: string[], atomicServiceCode: string): Promise<void> {
         const cacheKeyPrefix = atomicServiceCode + "---";
@@ -79,11 +79,11 @@ export class DictService {
                 }
             }
         } else if (!isApiSuccessResponse(result)) {
-            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || "批量加载字典项失败！");
+            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || "Failed to batch-load dictionary items!");
         }
     }
 
-    /** 批量加载多组字典（不同 atomicServiceCode 时使用），合并为一次 POST */
+    /** Batch-load multiple dictionary groups (used when atomicServiceCode differs), merged into one POST */
     async loadDictsBatch(configs: Array<{ dictTypes: string[]; atomicServiceCode: string }>): Promise<void> {
         const dictTypesByAtomicServiceCode: Record<string, string[]> = {};
         for (const c of configs) {
@@ -115,11 +115,11 @@ export class DictService {
                 }
             }
         } else if (!isApiSuccessResponse(result)) {
-            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || "批量加载字典项失败！");
+            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || "Failed to batch-load dictionary items!");
         }
     }
 
-    /** 解析批量字典接口返回：可能为 { code, data } 或直接为 data */
+    /** Parse batch dictionary API response: may be { code, data } or data directly */
     private normalizeBatchDictResponse(result: unknown): Record<string, Record<string, Record<string, string>>> | null {
         const payload = getApiResponseData(result)
         if (payload && typeof payload === "object" && !Array.isArray(payload)) {
@@ -131,7 +131,7 @@ export class DictService {
         return null;
     }
 
-    /** 返回字典项列表 [Pair(编码, 名称)]，供 el-select 等使用；需先 loadDict/loadDicts */
+    /** Returns dictionary item list [Pair(code, name)] for use by el-select, etc.; requires prior loadDict/loadDicts */
     getDictItems(atomicServiceCode: string, dictType: string): Array<Pair> {
         const key = this.toCacheKey(atomicServiceCode, dictType);
         const map = this.cache.get(key);

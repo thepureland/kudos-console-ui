@@ -1,7 +1,7 @@
 import { onMounted, ref } from 'vue';
 import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 
-/** 后端微服务树节点。 */
+/** Backend microservice tree node. */
 export type MicroServiceTreeNode = {
   id: string;
   name: string;
@@ -10,7 +10,7 @@ export type MicroServiceTreeNode = {
   children?: MicroServiceTreeNode[];
 };
 
-/** 供 el-tree-select 使用的树节点。 */
+/** Tree node for el-tree-select. */
 export type MicroServiceTreeSelectNode = {
   value: string;
   label: string;
@@ -22,7 +22,7 @@ interface UseMicroserviceTreeOptionsOptions {
 }
 
 /**
- * 加载微服务树，并按需提供扁平 options（供 code->label 显示映射）。
+ * Load microservice tree, and optionally provide flat options (for code->label display mapping).
  */
 export function useMicroserviceTreeOptions(options: UseMicroserviceTreeOptionsOptions = {}) {
   const { includeFlatOptions = false } = options;

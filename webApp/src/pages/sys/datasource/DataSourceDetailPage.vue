@@ -1,4 +1,4 @@
-<!-- 数据源详情 -->
+<!-- Data source detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -23,7 +23,7 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** 分组：从第几行开始显示分组标题（其他信息放最后） */
+/** Sections: which row to start showing each section title on (other info goes last) */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'dataSourceDetail.sections.basicInfo' },
   { start: 4, titleKey: 'dataSourceDetail.sections.config' },

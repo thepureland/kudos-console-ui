@@ -1,6 +1,6 @@
 import type { PageContext, PageProps } from './pageTypes';
 
-/** 列表页 props（复用页面通用 props）。 */
+/** List page props (reuse page-common props). */
 export type ListPageProps = PageProps;
-/** 列表页 context（复用页面通用 context）。 */
+/** List page context (reuse page-common context). */
 export type ListPageContext = PageContext;

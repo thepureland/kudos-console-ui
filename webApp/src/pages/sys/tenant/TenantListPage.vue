@@ -1,5 +1,5 @@
 <!--
- * 租户列表：支持按租户名称、子系统、仅启用筛选，表格支持列可见性、操作列折角、未固定列可拖拽排序，多语言。
+ * Tenant list: filter by tenant name, subsystem, and active-only; the table supports column visibility, an operation-column fold toggle, drag-reorder of non-fixed columns, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -323,7 +323,7 @@
       </template>
     </list-page-layout>
 
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <tenant-form-page
         :model-value="formVisible"
@@ -368,7 +368,7 @@ class TenantListPage extends BaseListPage {
     this.convertThis();
   }
 
-  /** 租户模块子系统下拉：调用 sys/system/getAllActiveSubSystemCodes，结果为启用子系统编码列表 */
+  /** Subsystem dropdown for the tenant module: calls sys/system/getAllActiveSubSystemCodes; the result is a list of active subsystem codes. */
   private async loadSubSystems(): Promise<void> {
     try {
       const result = await backendRequest({ url: 'sys/system/getAllActiveSubSystemCodes' });
@@ -389,7 +389,7 @@ class TenantListPage extends BaseListPage {
         subSystemCode: null as string | null,
         active: true,
       },
-      /** 子系统下拉选项（响应式，loadDicts 完成后更新以便下拉能刷新） */
+      /** Subsystem dropdown options (reactive; updated after loadDicts finishes so the dropdown refreshes). */
       subSysDictOptions: [] as Array<{ code: string; name: string }>,
     };
   }

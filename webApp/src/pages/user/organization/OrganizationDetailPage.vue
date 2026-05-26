@@ -1,4 +1,4 @@
-<!-- 组织机构详情 -->
+<!-- Organization detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -24,7 +24,7 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** 与 CacheDetail 一致：每行最多 2 个字段；其他信息放最后，备注单独一行。 */
+/** Mirrors CacheDetail: up to 2 fields per row; other info goes last and remark gets its own row. */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'organizationDetail.sections.basicInfo' },
   { start: 2, titleKey: 'organizationDetail.sections.audit' },

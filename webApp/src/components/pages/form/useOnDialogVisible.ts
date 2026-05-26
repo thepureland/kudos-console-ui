@@ -1,7 +1,7 @@
 import { watch, type Ref } from 'vue';
 
 /**
- * 在弹窗可见时触发回调（默认 post flush）。
+ * Fire a callback when the dialog becomes visible (post flush by default).
  */
 export function useOnDialogVisible(
   visibleRef: Ref<boolean | undefined> | undefined,

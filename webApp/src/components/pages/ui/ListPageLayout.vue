@@ -1,6 +1,6 @@
 <!--
- * 列表页统一布局：工具栏 + 表格区（含栏位可见性/操作列折角）+ 分页。
- * 与 BaseListPage、useTableMaxHeight、useOperationColumnFold 配合使用。
+ * Unified list-page layout: toolbar + table area (with column visibility / operation-column fold) + pagination.
+ * Works together with BaseListPage, useTableMaxHeight, and useOperationColumnFold.
  *
  * @author: K
  * @author: AI: Cursor
@@ -69,17 +69,17 @@ export default defineComponent({
   name: 'ListPageLayout',
   components: { OperationColumnFoldToggle },
   props: {
-    /** 表格外层容器的 ref，由 useTableMaxHeight 提供，用于计算表格高度 */
+    /** Ref to the table's outer container, provided by useTableMaxHeight and used to compute the table height */
     tableWrapRef: {
       type: Object as () => Ref<HTMLElement | null>,
       required: true,
     },
-    /** 列表页实例（BaseListPage），用于列可见性、操作列状态等 */
+    /** List-page instance (BaseListPage), used for column visibility, operation-column state, etc. */
     listPage: {
       type: Object,
       required: true,
     },
-    /** 操作列「固定展开」持久化的 storage key，如 'cacheList.operationColumnPinned' */
+    /** Storage key for persisting the operation column's "pinned open" state, e.g. 'cacheList.operationColumnPinned' */
     operationColumnStorageKey: {
       type: String,
       required: true,
@@ -193,7 +193,7 @@ export default defineComponent({
   padding: 5px 7px 7px 7px;
 }
 
-/* 区域一：搜索栏 */
+/* Area 1: search bar */
 .list-page-toolbar {
   margin-bottom: 8px;
   flex: 0 1 auto;
@@ -211,7 +211,7 @@ export default defineComponent({
   padding: 7px 8px;
 }
 
-/* 区域二：表格区（表格工具栏 + 表格 + 分页） */
+/* Area 2: table area (table toolbar + table + pagination) */
 .list-page-table-wrap {
   margin-top: 0;
   min-width: 0;
@@ -236,7 +236,7 @@ export default defineComponent({
 .list-page-pagination-wrap {
   flex-shrink: 0;
 }
-/* 分页栏：跳转输入框、每页条数选择框高度略减 */
+/* Pagination bar: slightly shrink the height of the jump-to input and the page-size selector */
 .list-page-pagination-wrap :deep(.el-pagination .el-input__wrapper) {
   min-height: 22px !important;
   padding-top: 1px !important;
@@ -246,7 +246,7 @@ export default defineComponent({
   height: 20px !important;
   line-height: 20px !important;
 }
-/* 每页条数 el-select 触发器 */
+/* el-select trigger for the page-size selector */
 .list-page-pagination-wrap :deep(.el-pagination .el-select .el-input__wrapper),
 .list-page-pagination-wrap :deep(.el-pagination .el-select .el-select__wrapper) {
   min-height: 22px !important;
@@ -270,7 +270,7 @@ export default defineComponent({
   flex: 0 0 auto;
 }
 
-/* 查询后无结果时，由脚本临时加类触发一次抖动；初始未查询状态不动画。 */
+/* When a search returns no results, scripts add a class to trigger a single shake; the initial pre-search state does not animate. */
 .list-page-table-slot :deep(.el-table__empty-block.is-empty-shaking),
 .list-page-table-slot :deep(.el-table__empty-text.is-empty-shaking) {
   animation: list-empty-shake 0.9s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.08s 1 both;

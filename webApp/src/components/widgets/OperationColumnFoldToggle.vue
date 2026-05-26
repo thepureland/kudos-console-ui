@@ -1,5 +1,5 @@
 <template>
-  <!-- 复用折角按钮：hover 用于临时显示，click 用于固定显示/隐藏 -->
+  <!-- Reusable fold-corner button: hover toggles temporary visibility; click toggles pinned visibility/hidden. -->
   <el-tooltip :content="visible ? hideText : showText" placement="left">
     <button
       class="table-corner-fold"
@@ -40,7 +40,7 @@ export default defineComponent({
   },
   emits: ['fold-mouseenter', 'fold-mouseleave', 'toggle-pin'],
   computed: {
-    // 左右两侧通过 class 切换，不复制模板
+    // Toggle between left/right sides via class; don't duplicate the template.
     positionClass(): string {
       return this.position === 'left' ? 'is-left' : 'is-right';
     },
@@ -60,14 +60,14 @@ export default defineComponent({
   cursor: pointer;
 }
 
-/* 右上角折角 */
+/* Top-right fold corner. */
 .table-corner-fold.is-right {
   right: 0;
   background: linear-gradient(135deg, #f5f7fa 50%, #dcdfe6 50%);
   clip-path: polygon(100% 0, 0 0, 100% 100%);
 }
 
-/* 左上角折角 */
+/* Top-left fold corner. */
 .table-corner-fold.is-left {
   left: 0;
   background: linear-gradient(225deg, #f5f7fa 50%, #dcdfe6 50%);
