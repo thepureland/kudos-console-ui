@@ -1,4 +1,4 @@
-<!-- 缓存新增/编辑 -->
+<!-- Cache add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -227,7 +227,7 @@ import type { PageContext, PageProps, SysMicroServiceCacheItem } from '../../../
 import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
 import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 
-/** 新增表单 TTL 默认值（秒），与关闭守卫「是否改动」判断一致 */
+/** Default TTL (seconds) for the add form; matches the close-guard "has been modified" check. */
 const DEFAULT_CACHE_TTL = 999999999;
 
 interface FormModel {
@@ -242,7 +242,7 @@ interface FormModel {
   remark: string | null;
 }
 
-/** 缓存策略选项：first=code, second=label */
+/** Cache-strategy options: first=code, second=label. */
 type StrategyOption = { first: string; second: string };
 
 class CacheFormPage extends BaseAddEditPage {
@@ -284,14 +284,14 @@ class CacheFormPage extends BaseAddEditPage {
   }
 
   /**
-   * 校验提示仅使用 valid-msg（default + 模块名 cache），不依赖后端 view 类型下的 sys.cache 命名空间。
-   * 不重写时会多一次 batchGetI18ns({ view: ['sys.cache'] })，与当前页无关。
+   * Validation prompts only use valid-msg (default + module name "cache"); they don't rely on the backend `view` type's sys.cache namespace.
+   * Without this override there'd be an extra batchGetI18ns({ view: ['sys.cache'] }) that this page doesn't need.
    */
   protected getValidationI18nNamespace(): string | undefined {
     return undefined;
   }
 
-  /** 缓存策略字典项译文从后端取 */
+  /** Cache-strategy dict-item translations come from the backend. */
   protected getI18nConfig() {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['cache_strategy'], atomicServiceCode: 'sys' }];
   }
@@ -300,7 +300,7 @@ class CacheFormPage extends BaseAddEditPage {
     return 'cacheAddEdit.messages.loadFailed';
   }
 
-  /** 回填时保证 ttl 为 number | null，兼容 el-input-number */
+  /** Ensure ttl is number | null on back-fill, for el-input-number compatibility. */
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
     const ttl = this.state.formModel?.ttl;
@@ -316,7 +316,7 @@ export default defineComponent({
   components: { WarningFilled },
   props: {
     ...commonAddEditDialogProps,
-    /** 原子服务下拉列表，由列表页传入时与搜索栏共用数据，不单独加载 */
+    /** Atomic-service dropdown list. When the list page passes it in, it shares the same data as the search bar; we don't load it separately. */
     atomicServiceList: {
       type: Array as () => { code: string; name: string }[],
       default: () => [],
@@ -331,7 +331,7 @@ export default defineComponent({
         return hasAnyFormContent(model, {
           stringKeys: ['name', 'remark'],
           valueKeys: ['atomicServiceCode', 'strategyDictCode'],
-          // 三者默认 true；TTL 默认 DEFAULT_CACHE_TTL，仅偏离时视为有改动
+          // The three switches default to true; TTL defaults to DEFAULT_CACHE_TTL; only deviations count as a change.
           customChecks: [
             (m) => m.writeOnBoot === false,
             (m) => m.writeInTime === false,
@@ -351,7 +351,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 仅缓存页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
+/* Add cache-page-specific overrides here; shared styles live in add-edit-dialog-common.css. */
 .hash-immutable-tip {
   margin-left: 10px;
 }

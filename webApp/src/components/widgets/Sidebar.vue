@@ -1,13 +1,13 @@
 <!--
- * 左侧导航栏
+ * Left navigation sidebar
  *
  * @author: K
  * @since 1.0.0
  -->
 <template>
-  <!-- 左侧导航：el-menu 多级 + 折叠，点击菜单仅更新 store.currentMenuPath 不改变地址栏 -->
+  <!-- Left nav: multi-level el-menu + collapse; clicking a menu item only updates store.currentMenuPath without changing the URL bar -->
   <div class="sidebar" :class="sidebarTimeClass" :style="sidebarStyle">
-    <!-- 折叠时首页、消息中心用自定义两行，保证图标水平居中（不受 el-menu-item 默认样式影响） -->
+    <!-- When collapsed, Home and Message Center use custom two rows so the icons stay horizontally centered (unaffected by el-menu-item defaults) -->
     <div v-if="collapse" class="sidebar-collapse-top">
       <div
         v-for="item in collapseTopItems"
@@ -101,9 +101,9 @@ interface MenuItem {
 const { t, te, locale } = useI18n();
 const store = useStore();
 const collapse = computed(() => store.state.collapse);
-/** 侧栏展开时的宽度（px），与 Home 页分界线拖拽联动，来自 store */
+/** Sidebar width (px) when expanded, kept in sync with the Home page divider drag, sourced from the store */
 const sidebarWidth = computed(() => store.state.sidebarWidth);
-/** 当前菜单路径，来自 store，点击菜单时更新（不改变地址栏） */
+/** Current menu path from the store, updated when a menu item is clicked (does not change the URL bar) */
 const currentPath = computed(() => store.state.currentMenuPath);
 
 function onMenuSelect(path: string) {
@@ -128,13 +128,13 @@ function findMenuItemByPath(items: MenuItem[], targetPath: string): MenuItem | u
   return undefined;
 }
 
-/** 侧栏根节点宽度：折叠时 43px（64 的三分之二），展开时为 store.sidebarWidth；菜单区用 width:100% 填满 */
+/** Sidebar root width: 43px when collapsed (two-thirds of 64), store.sidebarWidth when expanded; the menu area fills it with width:100% */
 const SIDEBAR_COLLAPSED_WIDTH = 43;
 const sidebarStyle = computed(() => ({
   width: collapse.value ? `${SIDEBAR_COLLAPSED_WIDTH}px` : `${sidebarWidth.value}px`,
 }));
 
-/** 根据时段给 sidebar 加 class，用于 ::after 叠加层（与 Header/Welcome 一致） */
+/** Tag the sidebar with a time-of-day class used by the ::after overlay (matching Header/Welcome) */
 const sidebarTimeClass = computed(() => {
   const h = new Date().getHours();
   if (h >= 5 && h < 11) return 'sidebar--time-morning';
@@ -143,14 +143,14 @@ const sidebarTimeClass = computed(() => {
   return 'sidebar--time-night';
 });
 
-// ---------- 菜单项文案与图标 ----------
-/** 菜单文案由后端提供：有 titleKey 且当前 locale 存在该 key 时用 t(titleKey)，否则用后端返回的 title，避免 "Not found 'view.menu.xxx' in 'zh' locale" */
+// ---------- Menu item labels and icons ----------
+/** Menu labels come from the backend: use t(titleKey) when titleKey exists and is present in the current locale, otherwise fall back to the backend title to avoid "Not found 'view.menu.xxx' in 'zh' locale" */
 function menuLabel(item: MenuItem): string {
   if (item.titleKey && te(item.titleKey)) return t(item.titleKey);
   return item.title ?? item.titleKey ?? '';
 }
 
-/** 全量图标名 → 组件；用 markRaw 避免被放入 ref(menuData) 时变成响应式触发 Vue 警告；后端可动态指定任意图标名 */
+/** Full icon-name -> component map; wrap with markRaw to prevent it from becoming reactive when stored in ref(menuData) (avoids Vue warnings); the backend can dynamically specify any icon name */
 const iconMap: Record<string, unknown> = {};
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   iconMap[key] = markRaw(component);
@@ -158,7 +158,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 function resolveIcon(name: string | null | undefined): unknown {
   return name ? iconMap[name] ?? iconMap.Setting : iconMap.Setting;
 }
-/** 后端 getMenus 常见字段：index 或 path/url、title 或 name、icon、children */
+/** Common fields returned by backend getMenus: index or path/url, title or name, icon, children */
 interface MenuTreeNode {
   index?: string | null;
   path?: string | null;
@@ -169,7 +169,7 @@ interface MenuTreeNode {
   children?: MenuTreeNode[];
 }
 
-/** 将 sys/resource/getMenus 等返回的树转为本地 MenuItem（路径与后端 URL 对齐后写入 index） */
+/** Convert the tree returned by sys/resource/getMenus into local MenuItem objects (path is normalized against the backend URL before being written to index) */
 function mapMenuTreeToItems(nodes: MenuTreeNode[]): MenuItem[] {
   if (!nodes?.length) return [];
   const out: MenuItem[] = [];
@@ -189,7 +189,7 @@ function mapMenuTreeToItems(nodes: MenuTreeNode[]): MenuItem[] {
   return out;
 }
 
-/** getAuthorisedMenus 等返回结构不固定时，统一抽出 path + 递归 children */
+/** When responses such as getAuthorisedMenus have variable shapes, uniformly extract path and recurse into children */
 function coerceBackendMenuTree(nodes: unknown): MenuItem[] {
   if (!Array.isArray(nodes)) return [];
   const out: MenuItem[] = [];
@@ -212,7 +212,7 @@ function coerceBackendMenuTree(nodes: unknown): MenuItem[] {
   return out;
 }
 
-/** 兼容 AuthApi.getMenus：path、name、icon、children（path 可能为完整 URL） */
+/** Compatible with AuthApi.getMenus: path, name, icon, children (path may be a full URL) */
 function mapMenusFromShared(items: Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>): MenuItem[] {
   return items.map((it) => {
     const index = extractMenuPathFromBackend(it.path) ?? resolvePath(it.path);
@@ -226,10 +226,10 @@ function mapMenusFromShared(items: Array<{ path: string; name: string; icon?: st
   });
 }
 
-// ---------- 菜单数据加载 ----------
+// ---------- Menu data loading ----------
 const menuData = ref<MenuItem[]>([]);
 
-/** 与标签栏切换同步：菜单异步挂载后补一次 active，避免 default-active 与 items 注册顺序不一致 */
+/** Sync with tag-bar switching: after the menu mounts asynchronously, re-apply active once to avoid mismatch between default-active and item registration order */
 const menuRef = ref<{ updateActiveIndex: (index: string) => void } | null>(null);
 watch(
   [() => menuData.value.length, currentPath],
@@ -241,21 +241,21 @@ watch(
   { flush: 'post' }
 );
 
-/** 折叠时仅展示的顶部两项（首页、消息中心），用于自定义居中图标行，顺序固定 */
+/** Top two items shown only when collapsed (Home, Message Center), used for the custom centered icon rows, fixed order */
 const collapseTopItems = computed(() => {
   const list = menuData.value;
   const home = list.find((i) => i.index === '/home');
   const tabs = list.find((i) => i.index === '/tabs');
   return [home, tabs].filter(Boolean) as MenuItem[];
 });
-/** 折叠时 el-menu 只渲染子菜单（不渲染首页/消息中心，避免其 el-menu-item 无法居中） */
+/** When collapsed, el-menu only renders sub-menus (Home/Message Center are excluded since their el-menu-item cannot be centered) */
 const menuDataDisplay = computed(() =>
   collapse.value ? menuData.value.filter((i) => i.children) : menuData.value
 );
 
 const DEFAULT_SUB_SYSTEM_CODE = 'default-sub-system';
 
-/** 优先走后端 sys/resource/getMenus；失败时再试 AuthApi.getMenus（与 mock 无关时同样适用） */
+/** Prefer the backend sys/resource/getMenus endpoint; fall back to AuthApi.getMenus on failure (also applies when not using mocks) */
 async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {
   try {
     const result = await backendRequest({
@@ -267,7 +267,7 @@ async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {
       return mapMenuTreeToItems(raw);
     }
   } catch {
-    // 继续尝试 AuthApi.getMenus
+    // Continue and try AuthApi.getMenus
   }
   try {
     const api = AuthApiFactory.getInstance().getAuthApi();
@@ -281,12 +281,12 @@ async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {
   return null;
 }
 
-/** 菜单 i18n 配置：后端返回的 name 为 i18n key，需从此接口拉取译文 */
+/** Menu i18n config: the backend returns names as i18n keys; translations must be fetched from this endpoint */
 const MENU_I18N_CONFIG = [{ i18nTypeDictCode: 'view', namespaces: ['menu'], atomicServiceCode: 'sys' }];
 
 /**
- * 加载菜单：优先后端 sys/resource/getMenus，再 user/account/getAuthorisedMenus；本地 mock 仅在前述失败时作为开发回退。
- * 菜单文案多为 i18n key，会拉取 menu 命名空间译文。后端 URL 字段可能是 path / index / url（含完整 HTTP URL）。
+ * Load menus: prefer the backend sys/resource/getMenus, then user/account/getAuthorisedMenus; local mock is used only as a dev fallback when both fail.
+ * Menu labels are usually i18n keys, so menu namespace translations are fetched. Backend URL fields may be path / index / url (including a full HTTP URL).
  */
 async function loadMenuData() {
   await loadMessagesForConfig(MENU_I18N_CONFIG);
@@ -311,7 +311,7 @@ async function loadMenuData() {
       return;
     }
   } catch {
-    // 继续
+    // Continue
   }
   const fallback = await loadMenusFromSharedMock();
   menuData.value = fallback ?? [];
@@ -320,7 +320,7 @@ async function loadMenuData() {
 
 onMounted(() => loadMenuData());
 
-/** 切换语言后重新拉取菜单命名空间译文（setLocale 会清空 I18nService 缓存，此处按新 locale 请求） */
+/** After switching locale, re-fetch menu namespace translations (setLocale clears the I18nService cache; this requests with the new locale) */
 watch(locale, () => {
   loadMessagesForConfig(MENU_I18N_CONFIG);
 }, { immediate: false });
@@ -333,17 +333,17 @@ watch(locale, () => {
   left: 0;
   top: 56px;
   bottom: 0;
-  height: calc(100vh - 56px); /* 明确高度，确保过长时出现纵向滚动条 */
+  height: calc(100vh - 56px); /* Explicit height so a vertical scrollbar appears when content overflows */
   z-index: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  border-right: none !important; /* 避免与分隔线并排出现两条线 */
-  /* Firefox 滚动条更明显 */
+  border-right: none !important; /* Avoid showing two parallel lines alongside the divider */
+  /* More visible scrollbar in Firefox */
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.08);
 }
 
-/* 时段叠加层：覆盖在侧栏背景上，不遮挡菜单；与 Header 时段一致 */
+/* Time-of-day overlay: sits above the sidebar background without covering the menu; matches the Header */
 .sidebar::after {
   content: '';
   position: absolute;
@@ -371,13 +371,13 @@ watch(locale, () => {
 .sidebar-el-menu {
   position: relative;
   z-index: 0;
-  border-right: none !important; /* 避免与分隔线并排出现两条线 */
+  border-right: none !important; /* Avoid showing two parallel lines alongside the divider */
 }
 .sidebar-el-menu :deep(.el-menu) {
   border-right: none !important;
 }
 
-/* 侧栏滚动条更明显 */
+/* More visible sidebar scrollbar */
 .sidebar::-webkit-scrollbar {
   width: 8px;
 }
@@ -396,7 +396,7 @@ watch(locale, () => {
   background: rgba(255, 255, 255, 0.5);
 }
 
-/* 折叠时顶部两行（首页、消息中心）：自管布局，图标水平居中，背景与侧栏一致 */
+/* Top two rows when collapsed (Home, Message Center): custom layout, horizontally centered icons, background matches the sidebar */
 .sidebar-collapse-top {
   flex-shrink: 0;
   display: flex;
@@ -437,12 +437,12 @@ watch(locale, () => {
   min-height: 100%;
 }
 
-/* 折叠时菜单宽度填满侧栏容器（容器为 SIDEBAR_COLLAPSED_WIDTH 43px，覆盖 el-menu 默认 64px） */
+/* When collapsed, the menu width fills the sidebar container (container is SIDEBAR_COLLAPSED_WIDTH 43px, overriding el-menu's default 64px) */
 .sidebar-el-menu.el-menu--collapse {
   width: 100% !important;
 }
 
-/* 折叠时子菜单标题（系统管理等三项）水平居中 */
+/* When collapsed, horizontally center sub-menu titles (System Management and the other two items) */
 .sidebar-el-menu.el-menu--collapse :deep(.el-sub-menu__title) {
   display: flex !important;
   justify-content: center !important;
@@ -461,7 +461,7 @@ watch(locale, () => {
   overflow: hidden !important;
 }
 
-/* 折叠时根菜单 ul 及根级 li 去掉左右内边距 */
+/* When collapsed, remove left/right padding from the root menu ul and root-level li */
 .sidebar-el-menu.el-menu--collapse :deep(.el-menu),
 .sidebar-el-menu.el-menu--collapse :deep(ul),
 .sidebar-el-menu.el-menu--collapse :deep(ul > li) {
@@ -469,7 +469,7 @@ watch(locale, () => {
   padding-right: 0 !important;
 }
 
-/* 让菜单列表随内容增高，避免底部项被裁切；由 .sidebar 负责纵向滚动 */
+/* Let the menu list grow with its content so bottom items aren't clipped; .sidebar handles vertical scrolling */
 .sidebar-el-menu :deep(ul),
 .sidebar-el-menu :deep(.el-menu) {
   height: auto !important;
@@ -495,7 +495,7 @@ watch(locale, () => {
   color: var(--theme-sidebar-active-text) !important;
 }
 
-/* 嵌套子菜单内项（二级、三级）：强制使用侧栏文字色，避免浅色主题下被 --el-text-color 覆盖导致对比度不足 */
+/* Items inside nested sub-menus (level 2 and 3): force the sidebar text color so light themes don't fall back to --el-text-color and lose contrast */
 .sidebar-el-menu :deep(.el-sub-menu .el-menu .el-menu-item),
 .sidebar-el-menu :deep(.el-sub-menu .el-menu .el-sub-menu__title),
 .sidebar-el-menu :deep(.el-sub-menu .el-sub-menu .el-menu .el-menu-item),
@@ -514,29 +514,29 @@ watch(locale, () => {
   color: var(--theme-sidebar-active-text) !important;
 }
 
-/* 展开时菜单区填满侧栏容器（容器宽度由 store.sidebarWidth 控制，可拖拽分界线调整） */
+/* When expanded, the menu area fills the sidebar container (container width is driven by store.sidebarWidth and can be adjusted by dragging the divider) */
 .sidebar-el-menu:not(.el-menu--collapse) {
   width: 100%;
 }
 
-/* 菜单项文案过长时换行显示，避免被裁切（覆盖 Element Plus 默认 overflow/ellipsis）；内边距为原值的三分之二，保留层级缩进 */
+/* Long menu labels wrap instead of being clipped (overrides Element Plus default overflow/ellipsis); padding is two-thirds of the original to keep the level indentation */
 .sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title),
 .sidebar-el-menu:not(.el-menu--collapse) :deep(.el-menu-item) {
   overflow: visible !important;
   height: auto !important;
-  min-height: 32px; /* 48 减三分之一 */
+  min-height: 32px; /* 48 minus one third */
   padding-top: 8px !important;
   padding-bottom: 8px !important;
   padding-left: 13px !important;
   padding-right: 13px !important;
   line-height: 1.4;
 }
-/* 二级菜单：在根级基础上增加缩进 */
+/* Level-2 menu: add more indentation on top of the root level */
 .sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu .el-menu .el-menu-item),
 .sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu .el-menu .el-sub-menu__title) {
   padding-left: 26px !important;
 }
-/* 三级菜单：再增加一级缩进 */
+/* Level-3 menu: add one more level of indentation */
 .sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu .el-sub-menu .el-menu .el-menu-item),
 .sidebar-el-menu:not(.el-menu--collapse) :deep(.el-sub-menu .el-sub-menu .el-menu .el-sub-menu__title) {
   padding-left: 39px !important;
@@ -566,7 +566,7 @@ watch(locale, () => {
   display: block;
 }
 
-/* 子菜单展开箭头颜色与旋转 */
+/* Sub-menu expand arrow color and rotation */
 .sidebar-el-menu :deep(.el-sub-menu__icon-arrow) {
   color: inherit;
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -576,9 +576,9 @@ watch(locale, () => {
   transform: rotate(180deg);
 }
 
-/* 子菜单展开/收起：用 max-height 做动画，值足够大以便展开后全部可见、由外层 .sidebar 滚动 */
-/* 强制子菜单区域使用侧栏背景，避免浅色主题下 Element 使用 --el-bg-color 导致浅底+浅字对比度不足 */
-/* 支持二级、三级嵌套：.el-sub-menu .el-menu 与 .el-sub-menu .el-sub-menu .el-menu */
+/* Sub-menu expand/collapse: animate via max-height, with a value large enough that everything is visible once expanded and outer .sidebar handles scrolling */
+/* Force the sub-menu area to use the sidebar background so that on light themes Element doesn't fall back to --el-bg-color and produce a low-contrast light-on-light combination */
+/* Supports level-2 and level-3 nesting: .el-sub-menu .el-menu and .el-sub-menu .el-sub-menu .el-menu */
 .sidebar-el-menu :deep(.el-sub-menu .el-menu),
 .sidebar-el-menu :deep(.el-sub-menu .el-sub-menu .el-menu) {
   background-color: var(--theme-sidebar-bg) !important;

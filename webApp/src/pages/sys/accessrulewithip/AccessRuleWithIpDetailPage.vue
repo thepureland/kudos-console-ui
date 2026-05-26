@@ -1,5 +1,5 @@
 <!--
- * 「访问规则 + IP」合一详情（sys/accessRuleIp/getAccessRuleWithIp）。
+ * Combined "access rule + IP" detail (sys/accessRuleIp/getAccessRuleWithIp).
  *
  * @author: AI: Cursor
  * @since 1.0.0

@@ -1,14 +1,14 @@
-/** 表单内容判定配置（按字段类别组合判断）。 */
+/** Form-content detection options (combined per field category). */
 export interface FormHasContentOptions {
-  /** 字符串字段：trim 后非空即认为有内容 */
+  /** String fields: considered to have content when non-empty after trimming */
   stringKeys?: string[];
-  /** 数组字段：长度 > 0 即认为有内容 */
+  /** Array fields: considered to have content when length > 0 */
   arrayKeys?: string[];
-  /** 任意值字段：非 null/undefined 且不为空字符串即认为有内容 */
+  /** Any-value fields: considered to have content when not null/undefined and not an empty string */
   valueKeys?: string[];
-  /** 布尔字段：值为 true 即认为有内容 */
+  /** Boolean fields: considered to have content when the value is true */
   trueKeys?: string[];
-  /** 自定义规则：返回 true 即认为有内容 */
+  /** Custom rules: considered to have content when the function returns true */
   customChecks?: Array<(model: Record<string, unknown>) => boolean>;
 }
 
@@ -21,7 +21,7 @@ function hasValueContent(value: unknown): boolean {
 }
 
 /**
- * 通用表单“是否填写内容”判断，供 Add/Edit 关闭前脏数据判断复用。
+ * Generic "has the form been filled in?" check, reused by the pre-close dirty check in Add/Edit dialogs.
  */
 export function hasAnyFormContent(
   model: Record<string, unknown> | null | undefined,

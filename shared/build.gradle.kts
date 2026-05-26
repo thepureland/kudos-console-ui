@@ -78,7 +78,7 @@ abstract class GenerateMockData : DefaultTask() {
             .asFile
         outFile.parentFile.mkdirs()
 
-        // 每个 json 注册三条 path：/api/xxx、/xxx、/api/admin/xxx（BackendApi 实际请求为 baseUrl + /api/admin + path）
+        // Register three paths per json: /api/xxx, /xxx, /api/admin/xxx (BackendApi actual request is baseUrl + /api/admin + path)
         val entries = files.flatMap { file ->
             val rel = root.toPath().relativize(file.toPath()).toString().replace(File.separatorChar, '/')
             val noExt = rel.removeSuffix(".json")

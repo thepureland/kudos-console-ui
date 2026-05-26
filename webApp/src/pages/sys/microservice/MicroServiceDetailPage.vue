@@ -1,4 +1,4 @@
-<!-- 微服务详情 -->
+<!-- Microservice detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -23,7 +23,7 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** 分组：从第几行开始显示分组标题（其他信息放最后） */
+/** Sections: row index at which each section title appears (other info goes last). */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'microServiceDetail.sections.basicInfo' },
   { start: 3, titleKey: 'microServiceDetail.sections.audit' },

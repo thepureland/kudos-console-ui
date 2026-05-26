@@ -1,5 +1,5 @@
 <!--
- * 组织列表：支持按子系统与租户、仅启用筛选，表格支持列可见性、操作列折角，多语言。
+ * Organization list: supports filtering by subsystem/tenant and active-only; the table supports column visibility, operation-column fold, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -237,11 +237,11 @@
         </el-table>
       </div>
       <template #pagination>
-        <!-- 组织树无分页 -->
+        <!-- Organization tree has no pagination -->
       </template>
     </list-page-layout>
 
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add and Edit share one form; mount on first open of either; the v-if/v-show is on a plain div to avoid the ElDialog non-element-root directive warning -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <organization-form-page
         :model-value="formVisible"
@@ -279,7 +279,7 @@ const {
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['abbrName', 'orgTypeDictCode', 'seqNo', 'active', 'createTime']);
 
-/** 列 key 到 i18n key 的映射（orgTypeDictCode -> orgType）；名称列固定左侧，不参与可见性配置 */
+/** Column-key to i18n-key map (orgTypeDictCode -> orgType); the name column is fixed on the left and not part of visibility config */
 const COLUMN_KEY_TO_I18N: Record<string, string> = {
   abbrName: 'abbrName',
   orgTypeDictCode: 'orgType',
@@ -308,7 +308,7 @@ class OrganizationListPage extends TenantSupportListPage {
     return 'user/organization';
   }
 
-  /** 组织类型字典项译文从后端取（表格列 transDict） */
+  /** Organization-type dict-item translations are fetched from the backend (used by transDict in the table column) */
   protected getI18nConfig() {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['organization_type'], atomicServiceCode: 'user' }];
   }
@@ -317,7 +317,7 @@ class OrganizationListPage extends TenantSupportListPage {
     return this.getRootActionPath() + '/searchTree';
   }
 
-  /** 与角色列表一致：只覆盖 createSearchParams，doSearch 用基类，保证 tenantId 随 params 一起发到 searchTree */
+  /** Same as the role list: override only createSearchParams and keep doSearch from the base class so tenantId is sent with the params to searchTree */
   protected createSearchParams(): Record<string, unknown> | null {
     const params = super.createSearchParams();
     if (!params) return null;
@@ -329,18 +329,18 @@ class OrganizationListPage extends TenantSupportListPage {
   }
 
   protected getDeleteMessage(_row: unknown): string {
-    return '将级联删除所有孩子结点（如果有的话），依然进行删除操作吗？';
+    return 'All child nodes (if any) will also be deleted. Continue with the deletion?';
   }
 
   protected getBatchDeleteMessage(rows: Array<unknown>): string {
-    return '将级联删除所有孩子结点（如果有的话），' + super.getBatchDeleteMessage(rows);
+    return 'All child nodes (if any) will also be deleted. ' + super.getBatchDeleteMessage(rows);
   }
 
   protected isCheckStrictly(): boolean {
     return false;
   }
 
-  /** 必须先选择子系统/租户再搜索，按所选租户请求组织树 */
+  /** Require selecting a subsystem/tenant before searching; load the org tree for the selected tenant */
   protected isRequireSubSysOrTenantForSearch(): boolean {
     return true;
   }
@@ -407,7 +407,7 @@ export default defineComponent({
       }))
     });
 
-    /** 组织类型列：transDict 可能返回 i18n key（含.）或原始 code；空则不再 t('') 避免 intlify 报错 */
+    /** Organization-type column: transDict may return an i18n key (with a dot) or a raw code; skip t('') on empty to avoid intlify errors */
     function formatOrgTypeLabel(code: string | null | undefined): string {
       const val = listPage.transDict('user', 'organization_type', code ?? '');
       if (!val) return '';
@@ -463,7 +463,7 @@ export default defineComponent({
   height: 100%;
 }
 .organization-list-page :deep(.list-page-card) {
-  margin-top: 3px; /* 卡片上外边距 */
+  margin-top: 3px; /* Card top margin */
 }
 .organization-list-page .list-page-toolbar .toolbar-cascader {
   margin-right: 8px;
@@ -475,7 +475,7 @@ export default defineComponent({
   margin-right: 8px;
 }
 
-/* 列可见性配置：所有列选项单列竖排（与 AccountList 一致） */
+/* Column-visibility config: all column options stacked in a single vertical column (matches AccountList) */
 .organization-list-page .column-visibility-checkboxes {
   display: flex;
   flex-direction: column;
@@ -486,7 +486,7 @@ export default defineComponent({
   margin-right: 0;
 }
 
-/* 非固定列表头可拖拽排序 */
+/* Non-fixed column headers support drag-to-reorder */
 .organization-list-page :deep(.column-header-draggable) {
   cursor: grab;
   user-select: none;

@@ -1,16 +1,18 @@
 import { backendRequest, getApiFailureMessage, isApiSuccessResponse } from "../../utils/backendRequest";
 import { tGlobal } from "../../i18n";
 
-/** 后端 ruleDetail 字段随校验注解变化，保留索引类型以承载动态规则元数据。 */
+/** Backend `ruleDetail` fields vary by validation annotation; keep an index type to carry dynamic rule metadata. */
 type RuleDetail = Record<string, any>
 type RuleDetails = RuleDetail[]
-/** async-validator 规则对象由不同解析器逐步补充 type/validator/message 等字段。 */
+/** The async-validator rule object is populated incrementally by different parsers with fields like type/validator/message. */
 type ValidatorRule = Record<string, any>
 
 /**
- * 校验规则适配器，用于将服务端返回的校验规则适配为async-validator的校验规则
- * 校验规则的国际化均由后端提供：message 为完整 key（atomicServiceCode.i18nTypeDictCode.namespace.key），
- * 合并到 vue-i18n 后为 i18nTypeDictCode.namespace.key，此处仅用去掉首段后的 key 做一次翻译，不再用完整 key 查前端文案。
+ * Validation rule adapter that converts validation rules returned by the server into async-validator rules.
+ * Validation rule i18n is provided entirely by the backend: `message` is a full key
+ * (atomicServiceCode.i18nTypeDictCode.namespace.key); after being merged into vue-i18n it becomes
+ * i18nTypeDictCode.namespace.key. Here we only translate using the key with its first segment stripped —
+ * we no longer look up frontend copy by the full key.
  *
  * @author K
  * @since 1.0.0
@@ -22,7 +24,7 @@ export class ValidationRuleAdapter {
     private destRules: Record<string, ValidatorRule[]> = {}
     private trigger: string
 
-    /** 供 vue-i18n 命名插值与文案 {xxx} 替换的字段（与后端 ruleDetail 常见字段对齐） */
+    /** Fields used for vue-i18n named interpolation and `{xxx}` placeholder replacement (aligned with common backend `ruleDetail` fields). */
     private static messageInterpolationKeys = [
         'min', 'max', 'value', 'integer', 'fraction', 'regexp', 'size', 'step', 'type', 'inclusive',
         'anotherProperty', 'logic', 'host', 'port', 'protocol',
@@ -38,8 +40,9 @@ export class ValidationRuleAdapter {
     }
 
     /**
-     * 将后端返回的 message 转为展示文案：四段式 key 去掉首段后翻译，否则原样返回（后端文案）。
-     * @param detail 首条 ruleDetail，用于 t(key, { min, max, ... })，避免占位符被 i18n 清空。
+     * Convert the backend `message` into display text: for a four-segment key, strip the first segment and translate;
+     * otherwise return as-is (the backend copy).
+     * @param detail The first `ruleDetail`, used for `t(key, { min, max, ... })` so placeholders are not blanked out by i18n.
      */
     private static resolveMessage(raw: string | null | undefined, detail?: Record<string, unknown> | null): string {
         if (raw == null || typeof raw !== 'string' || raw === '') return ''
@@ -54,7 +57,8 @@ export class ValidationRuleAdapter {
     }
 
     /**
-     * 将文案中的 {min}、{max}、{value} 等与 ruleDetail 同名字段替换（避免仅 t(key) 不传参时占位符被清空）。
+     * Replace placeholders like `{min}`, `{max}`, `{value}` in the text with the same-named fields from `ruleDetail`
+     * (avoids placeholders being blanked out when `t(key)` is called without params).
      */
     private static interpolateMessagePlaceholders(template: string, detail: Record<string, unknown> | null | undefined): string {
         if (!template || detail == null || typeof detail !== 'object') return template
@@ -68,32 +72,32 @@ export class ValidationRuleAdapter {
         return out
     }
 
-    /** resolveMessage + 按首条 ruleDetail 替换占位符（非 i18n key 的直出文案、或翻译后仍含 {xxx} 时） */
+    /** resolveMessage plus placeholder replacement using the first `ruleDetail` (for non-i18n direct text, or when translated text still contains `{xxx}`). */
     private static resolveMessageWithDetail(raw: string | null | undefined, detail: Record<string, unknown> | null | undefined): string {
         const resolved = ValidationRuleAdapter.resolveMessage(raw, detail ?? null)
         return ValidationRuleAdapter.interpolateMessagePlaceholders(resolved, detail ?? undefined)
     }
 
     /**
-     * 校验规则适配器的构造器
+     * Constructor for the validation rule adapter.
      *
-     * @param remoteRules 服务端返回的校验规则的对象
-     * @param getModel 用于获取待校验对象的函数
-     * @param trigger 校验规则触发器
-     * @param getDefaultMessage 当服务端未返回 message 时使用的默认提示（可用于国际化）
+     * @param remoteRules The validation-rules object returned by the server.
+     * @param getModel Function that returns the object to validate.
+     * @param trigger The validation rule trigger.
+     * @param getDefaultMessage Default message used when the server does not return a `message` (i18n-friendly).
      */
     constructor(remoteRules: any, getModel: () => Record<string, any>, trigger = 'blur', getDefaultMessage?: () => string) {
-        // 后端失败或旧接口可能不给规则对象，空对象可让表单继续渲染但不挂远程规则。
+        // Backend failures or older APIs may not return a rules object; an empty object lets the form keep rendering without attaching remote rules.
         this.remoteRules = remoteRules ?? {}
         this.getModel = getModel
         this.trigger = trigger
-        this.getDefaultMessage = getDefaultMessage ?? (() => '校验未通过')
+        this.getDefaultMessage = getDefaultMessage ?? (() => 'Validation failed')
     }
 
     private getDefaultMessage: () => string
 
     /**
-     * 返回async-validator校验规则对象
+     * Return the async-validator rules object.
      */
     getRules(): any {
         for (let propName in this.remoteRules) {
@@ -155,7 +159,7 @@ export class ValidationRuleAdapter {
             case "Length":
                 this.length(propName, ruleDetails, rule)
                 break
-            // MaxLength：等价于仅指定 max 的 Length（字符串）
+            // MaxLength: equivalent to a Length rule with only `max` specified (string).
             case "MaxLength":
                 this.maxLength(propName, ruleDetails, rule)
                 break
@@ -246,7 +250,7 @@ export class ValidationRuleAdapter {
             case "Size":
                 this.size(propName, ruleDetails, rule)
                 break
-            // MaxSize：等价于仅指定 max 的 Size
+            // MaxSize: equivalent to a Size rule with only `max` specified.
             case "MaxSize":
                 this.maxSize(propName, ruleDetails, rule)
                 break
@@ -271,50 +275,50 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 使用 callback 形式确保校验失败时展示 rule.message（async-validator 在仅 return false 时可能不显示文案） */
+    /** Use the callback form so `rule.message` is shown on failure (async-validator may not display text when validators merely `return false`). */
     private static validatorWithMessage(rule: any, _value: any, callback: (err?: Error) => void, pass: boolean) {
         if (pass) callback()
         else callback(new Error(rule?.message || ''))
     }
 
-    /** null约束，被校验对象可以是任何类型 */
+    /** Null constraint; the target value may be of any type. */
     private null(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
             ValidationRuleAdapter.validatorWithMessage(r, value, callback, value == null || value == '')
     }
 
-    /** 非null约束，被校验对象可以是任何类型 */
+    /** NotNull constraint; the target value may be of any type. */
     private notNull(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
             ValidationRuleAdapter.validatorWithMessage(r, value, callback, value != null && value != '')
     }
 
-    /** 非空约束, 被校验对象类型必须为以下之一：字符串、数组、集合、Map */
+    /** NotEmpty constraint; target type must be one of: string, array, Set, Map. */
     private notEmpty(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
             ValidationRuleAdapter.validatorWithMessage(r, value, callback, !this.isEmpty(value))
     }
 
-    /** 非空白约束，被校验对象类型必须为字符串 */
+    /** NotBlank constraint; target type must be string. */
     private notBlank(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "string"
         rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
             ValidationRuleAdapter.validatorWithMessage(r, value, callback, value != null && String(value).trim() !== '')
     }
 
-    /** 逻辑真约束，被校验对象类型必须为Boolean，且值为true，或者值为"true"的字符串 */
+    /** AssertTrue constraint; target type must be Boolean with value `true`, or a string `"true"`. */
     private assertTrue(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
             ValidationRuleAdapter.validatorWithMessage(r, value, callback, value == null || value == '' || value == true || value == "true")
     }
 
-    /** 逻辑假约束，被校验对象类型必须为Boolean，且值为false，或者值为"false"的字符串 */
+    /** AssertFalse constraint; target type must be Boolean with value `false`, or a string `"false"`. */
     private assertFalse(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (r: any, value: any, callback: (err?: Error) => void) =>
             ValidationRuleAdapter.validatorWithMessage(r, value, callback, value == null || value == '' || value == false || value == "false")
     }
 
-    /** 字符串代码点长度(实际字符数)约束，被校验对象类型必须为字符串 */
+    /** String code-point length (actual character count) constraint; target type must be string. */
     private codePointLength(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "string"
         rule["validator"] = (rule: any, value: any) => {
@@ -322,7 +326,7 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 远程校验 */
+    /** Remote validation. */
     private remote(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["asyncValidator"] = (_rule: any, value: any) => {
             return new Promise<void>(async (resolve, reject) => {
@@ -349,14 +353,14 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 字符串长度约束，被校验对象类型必须为字符串 */
+    /** String length constraint; target type must be string. */
     private length(propName: string, ruleDetails: Array<any>, rule: any) {
         this.codePointLength(propName, ruleDetails, rule)
     }
 
     /**
-     * 最大长度约束（等价于仅指定 max 的 Length），被校验对象类型为字符串。
-     * ruleDetails[0].max：最大长度（含）。
+     * Max-length constraint (equivalent to a Length rule with only `max` specified); target type is string.
+     * `ruleDetails[0].max`: maximum length (inclusive).
      */
     private maxLength(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "string"
@@ -370,7 +374,7 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 比较约束，支持数组类型，但是两个数组的大小必须一致 */
+    /** Compare constraint; supports array types, but both arrays must have the same size. */
     private compare(propName: string, ruleDetails: Array<any>) {
         ruleDetails.forEach((ruleDetail) => {
             const rule: ValidatorRule = {}
@@ -381,7 +385,7 @@ export class ValidationRuleAdapter {
                         return
                     }
 
-                    // 先计算依赖条件
+                    // Evaluate the depends condition first.
                     const depends = ruleDetail["depends"]
                     if (depends) {
                         if (this.isDependsNotPass(depends)) {
@@ -389,7 +393,7 @@ export class ValidationRuleAdapter {
                         }
                     }
 
-                    // 依赖条件不存在，或其表达式成立，再进行Compare比较逻辑
+                    // If there is no depends condition, or its expression holds, run the Compare logic.
                     const anotherProperty = ruleDetail["anotherProperty"]
                     const model = typeof this.getModel === "function" ? this.getModel() : null
                     if (model == null || typeof model !== "object") {
@@ -415,7 +419,7 @@ export class ValidationRuleAdapter {
         })
     }
 
-    /** 正则约束，被校验对象类型必须为字符串 */
+    /** Pattern constraint; target type must be string. */
     private pattern(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "string"
         rule["validator"] = (rule: any, value: any) => {
@@ -423,53 +427,53 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 邮箱约束，被校验对象类型必须为字符串 */
+    /** Email constraint; target type must be string. */
     private email(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "email"
-        // 为了Each或Exists约束能取到rule["validator"]
+        // Ensure `rule["validator"]` is set so Each/Exists constraints can pick it up.
         const pattern = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+\.)+[a-zA-Z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]{2,}))$/
         rule["validator"] = (rule: any, value: any) => {
             return this.isEmpty(value) || value.length <= 320 && !!value.match(pattern)
         }
     }
 
-    /** 最小值约束，被校验对象类型必须为数值 */
+    /** Min constraint; target type must be numeric. */
     private min(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "number"
         rule["validator"] = (rule: any, value: any) => this.isEmpty(value) || value >= ruleDetails[0]["value"]
     }
 
-    /** 最大值约束，被校验对象类型必须为数值 */
+    /** Max constraint; target type must be numeric. */
     private max(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "number"
         rule["validator"] = (rule: any, value: any) => this.isEmpty(value) || value <= ruleDetails[0]["value"]
     }
 
-    /** 过去时间约束，被校验对象类型必须为Date */
+    /** Past constraint; target type must be Date. */
     private past(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "date"
         rule["validator"] = (rule: any, value: any) => value == null || value < new Date()
     }
 
-    /** 未来时间约束，被校验对象类型必须为Date */
+    /** Future constraint; target type must be Date. */
     private future(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "date"
         rule["validator"] = (rule: any, value: any) => value == null || value > new Date()
     }
 
-    /** 过去或现在时间约束，被校验对象类型必须为Date */
+    /** PastOrPresent constraint; target type must be Date. */
     private pastOrPresent(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "date"
         rule["validator"] = (rule: any, value: any) => value == null || value <= new Date()
     }
 
-    /** 未来或现在时间约束，被校验对象类型必须为Date */
+    /** FutureOrPresent constraint; target type must be Date. */
     private futureOrPresent(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "date"
         rule["validator"] = (rule: any, value: any) => value == null || value >= new Date()
     }
 
-    /** 最小值约束，被校验对象类型必须为number */
+    /** DecimalMin constraint; target type must be number. */
     private decimalMin(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "number"
         rule["validator"] = (rule: any, value: any) => {
@@ -483,7 +487,7 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 最大值约束，被校验对象类型必须为number */
+    /** DecimalMax constraint; target type must be number. */
     private decimalMax(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "number"
         rule["validator"] = (rule: any, value: any) => {
@@ -497,7 +501,7 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 范围约束，被校验对象类型必须为number */
+    /** Range constraint; target type must be number. */
     private range(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "number"
         rule["validator"] = (rule: any, value: any) => {
@@ -511,7 +515,7 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 数值位数约束，被校验对象类型必须为number */
+    /** Digits constraint (integer/fraction digit limits); target type must be number. */
     private digits(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "number"
         rule["validator"] = (rule: any, value: any) => {
@@ -528,31 +532,31 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 正数约束，被校验对象类型必须为number */
+    /** Positive constraint; target type must be number. */
     private positive(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "number"
         rule["validator"] = (rule: any, value: any) => this.isEmpty(value) || value > 0
     }
 
-    /** 负数约束，被校验对象类型必须为number */
+    /** Negative constraint; target type must be number. */
     private negative(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "number"
         rule["validator"] = (rule: any, value: any) => this.isEmpty(value) || value < 0
     }
 
-    /** 非负数约束，被校验对象类型必须为number */
+    /** PositiveOrZero constraint; target type must be number. */
     private positiveOrZero(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "number"
         rule["validator"] = (rule: any, value: any) => this.isEmpty(value) || value >= 0
     }
 
-    /** 非正数约束，被校验对象类型必须为number */
+    /** NegativeOrZero constraint; target type must be number. */
     private negativeOrZero(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "number"
         rule["validator"] = (rule: any, value: any) => this.isEmpty(value) || value <= 0
     }
 
-    /** ean13条形码约束，被校验对象类型必须为number或字符串 */
+    /** EAN-13 barcode constraint; target type must be number or string. */
     private ean(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (rule: any, value: any) => {
             if (this.isEmpty(value)) {
@@ -563,22 +567,22 @@ export class ValidationRuleAdapter {
             if (type === "EAN_8" || type === "EAN8") {
                 return this.isValidEan(digits, 8)
             }
-            // 默认按 EAN-13 处理
+            // Default to EAN-13.
             return this.isValidEan(digits, 13)
         }
     }
 
-    /** luhn约束，可检测银行卡、信用卡 */
+    /** Luhn constraint; can validate bank/credit cards. */
     private luhnCheck(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (rule: any, value: any) => this.isEmpty(value) || this.checkMod10(value)
     }
 
-    /** mod10约束，可检测银行卡、信用卡 */
+    /** Mod10 constraint; can validate bank/credit cards. */
     private mod10Check(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (rule: any, value: any) => this.isEmpty(value) || this.checkMod10(value)
     }
 
-    /** mod11约束，可检测银行卡、信用卡 */
+    /** Mod11 constraint; can validate bank/credit cards. */
     private mod11Check(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (rule: any, value: any) => this.isEmpty(value) || this.checkMod11(value)
     }
@@ -597,7 +601,7 @@ export class ValidationRuleAdapter {
         return calc === checkDigit
     }
 
-    /** isbn约束 */
+    /** ISBN constraint. */
     private isbn(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (rule: any, value: any) => {
             if (this.isEmpty(value)) {
@@ -616,7 +620,7 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** url约束 */
+    /** URL constraint. */
     private url(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "url"
         rule["validator"] = (rule: any, value: any) => {
@@ -656,7 +660,7 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 尺寸约束，被校验对象类型必须为string、数组、集合、Map */
+    /** Size constraint; target type must be string, array, Set, or Map. */
     private size(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (rule: any, value: any) => {
             if (this.isEmpty(value)) {
@@ -676,9 +680,9 @@ export class ValidationRuleAdapter {
     }
 
     /**
-     * 最大尺寸约束（等价于仅指定 max 的 Size）。
-     * 被校验对象：字符串、数组、TypedArray、Set、Map 等（与 Size 一致，仅校验上界）。
-     * ruleDetails[0].max：最大元素个数（含）。
+     * Max-size constraint (equivalent to a Size rule with only `max` specified).
+     * Target types: string, array, TypedArray, Set, Map, etc. (same as Size; only the upper bound is checked).
+     * `ruleDetails[0].max`: maximum element count (inclusive).
      */
     private maxSize(propName: string, ruleDetails: Array<any>, rule: any) {
         const max = ruleDetails[0]["max"]
@@ -695,19 +699,19 @@ export class ValidationRuleAdapter {
                 return value.size <= n
             }
             if (typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView(value)) {
-                // TypedArray/DataView 在 DOM 类型里不统一暴露 length；DataView 只有 byteLength。
+                // TypedArray/DataView do not uniformly expose `length` in DOM types; DataView only has `byteLength`.
                 return ((value as { length?: number }).length ?? (value as { byteLength?: number }).byteLength ?? 0) <= n
             }
             return false
         }
     }
 
-    /** 枚举约束 */
+    /** Enum constraint. */
     private dictEnumCode(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (rule: any, value: any) => this.isEmpty(value) || ruleDetails[0]["values"].indexOf(value) != -1
     }
 
-    /** 数列约束，被检测的对象必须为数组或以半角逗号/空格/分号分隔的字符串 */
+    /** Series constraint; the target must be an array or a string separated by comma, space, or semicolon. */
     private series(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (rule: any, value: any) => {
             if (this.isEmpty(value)) {
@@ -734,7 +738,7 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 非null依赖约束，当前属性的值是否可以为null，取决于定义的表达式。 */
+    /** Not-null-depends constraint: whether the current property may be null depends on the defined expression. */
     private notNullOn(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["validator"] = (rule: any, value: any) => {
             const depends = ruleDetails[0]["depends"]
@@ -742,12 +746,12 @@ export class ValidationRuleAdapter {
                 return true
             }
 
-            // 依赖条件不存在，或其表达式成立，再进行NotNull逻辑
+            // If there's no depends condition, or its expression holds, apply NotNull logic.
             return !this.isEmpty(value)
         }
     }
 
-    /** 对数组的每一个元素应用Constraints约束，每一个元素都校验通过才算最终通过 */
+    /** Apply Constraints to every element of an array; only when every element passes does the whole rule pass. */
     private each(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "array"
         rule["validator"] = (_rule: any, value: Array<any>) => {
@@ -766,7 +770,7 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 对数组的每一个元素应用Constraints约束，只要一个元素Constraints约束校验通过就算通过 */
+    /** Apply Constraints to every element of an array; as long as at least one element passes, the whole rule passes. */
     private exist(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "array"
         rule["validator"] = (_rule: any, value: Array<any>) => {
@@ -785,7 +789,7 @@ export class ValidationRuleAdapter {
         }
     }
 
-    /** 惟一约束，被校验对象类型必须为数组 */
+    /** Uniqueness constraint; the target must be an array. */
     private uniqueElements(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "array"
         rule["validator"] = (rule: any, value: any) => new Set(value).size == value.length
@@ -821,7 +825,7 @@ export class ValidationRuleAdapter {
             const property = properties[i]
             const v1 = this.getModel()[property]
             if (v1 == undefined) {
-                throw new Error("指定的校验模型中不存在属性：" + property)
+                throw new Error("Property not found in the supplied validation model: " + property)
             }
             let v2 = null
             if (values && values.length > i) {
@@ -831,11 +835,11 @@ export class ValidationRuleAdapter {
             if (andOr) {
                 if (andOr == "AND") {
                     if (!result) {
-                        return true // 与逻辑时，只要一个条件不成立，depends就为false，就不需要进行外层的compare比较
+                        return true // AND logic: any false condition makes depends false; skip the outer compare.
                     }
                 } else {
                     if (result) {
-                        return false // 或逻辑时，只要一个条件成立，depends就为true，就需要外层的compare比较
+                        return false // OR logic: any true condition makes depends true; run the outer compare.
                     }
                 }
             } else {
@@ -976,7 +980,7 @@ export class ValidationRuleAdapter {
     }
 
     private checkISBN10(code: unknown): Boolean {
-        // 统一转字符串后再计算校验位，兼容输入框传入 number 或 string。
+        // Convert to string first before computing the check digit; supports both number and string input.
         const text = (code + '').replace(/[-\s]/g, '');
         if (!/^\d{9}[\dxX]?$/.test(text)) return false;
         let i = 0, c = 0; // c:checksum
@@ -989,7 +993,7 @@ export class ValidationRuleAdapter {
     }
 
     private checkISBN13(code: unknown): Boolean {
-        // 统一转字符串后再计算校验位，兼容输入框传入 number 或 string。
+        // Convert to string first before computing the check digit; supports both number and string input.
         const text = (code + '').replace(/[-\s]/g, '');
         if (!/^\d{12,13}$/.test(text)) return false;
         let i = 1, c = 0; // c:checksum
@@ -997,19 +1001,19 @@ export class ValidationRuleAdapter {
             c += Math.floor(Number(text.charAt(i)));
         for (c *= 3, i = 0; i < 12; i += 2)
             c += Math.floor(Number(text.charAt(i)));
-        c = (220 - c) % 10; // 220:大於(1*6+3*6)，%10==0即可。
+        c = (220 - c) % 10; // 220: greater than (1*6+3*6); only %10==0 matters.
         if (text.length == 12) return Boolean(text + c);
         return String(c) == text.charAt(12);
     }
 
     private validateSeries(type: string, step: number, values: Array<number>): Boolean {
         switch (type) {
-            case "INC_DIFF": // 递增且互不相等
+            case "INC_DIFF": // Strictly increasing, all distinct.
                 let preValue: number | null = null
                 for (let i = 0; i < values.length; i++) {
                     const value = Number(values[i])
                     if (preValue != null) {
-                        if (step == 0.0) { // 不应用步进
+                        if (step == 0.0) { // No step applied.
                             if (preValue >= value) {
                                 return false
                             }
@@ -1022,9 +1026,9 @@ export class ValidationRuleAdapter {
                     preValue = value
                 }
                 return true
-            case "DESC_DIFF": // 递减且互不相等
+            case "DESC_DIFF": // Strictly decreasing, all distinct.
                 return this.validateSeries("INC_DIFF", step, values.reverse())
-            case "INC_DIFF_DESC_DIFF": // 先增后减且互不相等
+            case "INC_DIFF_DESC_DIFF": // Strictly increasing then strictly decreasing, all distinct.
                 const maxValueIndex = this.maxValueIndex(values)
                 if (maxValueIndex == values.length - 1) {
                     return false
@@ -1037,7 +1041,7 @@ export class ValidationRuleAdapter {
                 } else {
                     return false
                 }
-            case "DESC_DIFF_INC_DIFF": // 先减后增且互不相等
+            case "DESC_DIFF_INC_DIFF": // Strictly decreasing then strictly increasing, all distinct.
                 const minValueIndex = this.minValueIndex(values)
                 if (minValueIndex == values.length - 1) {
                     return false
@@ -1050,7 +1054,7 @@ export class ValidationRuleAdapter {
                 } else {
                     return false
                 }
-            case "DIFF": // 互不相等
+            case "DIFF": // All distinct.
                 const diff = new Set(values).size == values.length
                 if (!diff) {
                     return false
@@ -1067,12 +1071,12 @@ export class ValidationRuleAdapter {
                     }
                 }
                 return true
-            case "INC_EQ": // 递增或相等
+            case "INC_EQ": // Non-decreasing (allows equal).
                 let preV: number | null = null
                 for (let i = 0; i < values.length; i++) {
                     const value = Number(values[i])
                     if (preV != null) {
-                        if (step == 0.0) { // 不应用步进
+                        if (step == 0.0) { // No step applied.
                             if (preV > value) {
                                 return false
                             }
@@ -1085,9 +1089,9 @@ export class ValidationRuleAdapter {
                     preV = value
                 }
                 return true
-            case "DESC_EQ": // 递减或相等
+            case "DESC_EQ": // Non-increasing (allows equal).
                 return this.validateSeries("INC_EQ", step, values.reverse())
-            case "INC_EQ_DESC_EQ": // 先递增或相等，再递减或相等
+            case "INC_EQ_DESC_EQ": // Non-decreasing then non-increasing.
                 const maxValueStartIndex = this.maxValueIndex(values)
                 const maxValue = values[maxValueStartIndex]
                 if (maxValueStartIndex == 0 || maxValueStartIndex == values.length - 1) {
@@ -1109,7 +1113,7 @@ export class ValidationRuleAdapter {
                 } else {
                     return false
                 }
-            case "DESC_EQ_INC_EQ": // 先递减或相等，再递增或相等
+            case "DESC_EQ_INC_EQ": // Non-increasing then non-decreasing.
                 const minValueStartIndex = this.minValueIndex(values)
                 const minValue = values[minValueStartIndex]
                 if (minValueStartIndex == 0 || minValueStartIndex == values.length - 1) {
@@ -1131,7 +1135,7 @@ export class ValidationRuleAdapter {
                 } else {
                     return false
                 }
-            case "EQ": // 全等
+            case "EQ": // All equal.
                 return new Set(values).size == 1
         }
         return false

@@ -1,7 +1,7 @@
-/** 页面组件通用 props 类型（setup/constructor 统一入口）。 */
+/** Common page component props type (unified entry for setup/constructor). */
 export type PageProps = Record<string, unknown>;
 
-/** 页面组件通用 context 类型（仅约束 emit）。 */
+/** Common page component context type (only constrains emit). */
 export type PageContext = {
   emit: (event: string, ...args: unknown[]) => void;
 };

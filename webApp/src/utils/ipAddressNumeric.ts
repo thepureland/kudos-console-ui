@@ -1,10 +1,11 @@
 /**
- * IP 访问规则表单：IPv4 与后端 uint32 互转；IPv6 为 128 位无符号整数，`ipStart`/`ipEnd` 对应库内 NUMERIC(39,0)（JSON 常为十进制字符串）。
+ * IP access rule form: IPv4 converts to/from backend uint32; IPv6 is a 128-bit unsigned integer,
+ * `ipStart`/`ipEnd` correspond to NUMERIC(39,0) in the database (JSON is typically a decimal string).
  */
 
 const U64_MASK = (1n << 64n) - 1n;
 
-/** IPV4_FULL 点分串 → uint32（与 Java 无符号转 long 写入一致） */
+/** IPV4_FULL dotted string -> uint32 (matches Java unsigned-to-long write) */
 export function ipv4PaddedToUint32(s: string): number {
   const parts = String(s).trim().split('.');
   if (parts.length !== 4) return 0;
@@ -15,7 +16,7 @@ export function ipv4PaddedToUint32(s: string): number {
   return ((a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3]) >>> 0;
 }
 
-/** uint32 → IPV4_FULL */
+/** uint32 -> IPV4_FULL */
 export function uint32ToIpv4Padded(n: number): string {
   const x = n >>> 0;
   return [24, 16, 8, 0].map((sh) => String((x >>> sh) & 255).padStart(3, '0')).join('.');
@@ -27,7 +28,7 @@ function javaLongBitsToBigUint64(n: number): bigint {
   return x & U64_MASK;
 }
 
-/** 后端 Long 可能为 JSON number 或十进制字符串（大整数时），转为无符号 64 位再参与 IPv6 拼接 */
+/** Backend Long may be a JSON number or decimal string (for big integers); convert to unsigned 64-bit before IPv6 concatenation */
 export function javaLongLikeToBigUint64(v: unknown): bigint {
   if (v == null) return 0n;
   if (typeof v === 'bigint') {
@@ -50,7 +51,7 @@ function bigUint64ToSignedBigInt(u: bigint): bigint {
   return x;
 }
 
-/** 无符号 64 位 → 可 JSON 传给后端的值（安全整数用 number，否则用十进制字符串，便于 Jackson 反序列化为 Long） */
+/** Unsigned 64-bit -> JSON-serializable value for backend (safe integers as number, otherwise decimal string for Jackson to deserialize as Long) */
 export function signedLongBigIntToParam(v: bigint): number | string {
   if (v >= BigInt(Number.MIN_SAFE_INTEGER) && v <= BigInt(Number.MAX_SAFE_INTEGER)) {
     return Number(v);
@@ -58,7 +59,7 @@ export function signedLongBigIntToParam(v: bigint): number | string {
   return v.toString();
 }
 
-/** 8 组 4 位十六进制 IPv6 全写 → 高 64 / 低 64（有符号 int64 BigInt） */
+/** 8-group 4-hex IPv6 full form -> high 64 / low 64 (signed int64 BigInt) */
 export function ipv6FullToHiLoBigInts(full: string): [bigint, bigint] {
   const parts = String(full).trim().split(':');
   if (parts.length !== 8) return [0n, 0n];
@@ -73,7 +74,7 @@ export function ipv6FullToHiLoBigInts(full: string): [bigint, bigint] {
   return [bigUint64ToSignedBigInt(hiU), bigUint64ToSignedBigInt(loU)];
 }
 
-/** 高/低 64 位（Java long：number 或十进制字符串）→ 8 组 4 位小写十六进制 */
+/** High/low 64 bits (Java long: number or decimal string) -> 8-group 4-hex lowercase */
 export function hiLoLongsToIpv6Full(hi: number | string, lo: number | string): string {
   const hiU = javaLongLikeToBigUint64(hi);
   const loU = javaLongLikeToBigUint64(lo);
@@ -94,8 +95,8 @@ export function normalizeIpv6Full(s: string | null | undefined): string {
 }
 
 /**
- * 与后端 `RegExps.Network.IPV6_FULL` 一致：8 段、段间为 `:`、每段 1～4 位十六进制（无 `::`）。
- * 勿要求每段固定 4 位，否则合法地址如 `2001:db8:…`（`db8` 仅 3 位）会被误判。
+ * Matches backend `RegExps.Network.IPV6_FULL`: 8 segments separated by `:`, each 1-4 hex digits (no `::`).
+ * Do not require exactly 4 digits per segment, otherwise valid addresses like `2001:db8:...` (`db8` is only 3 digits) would be wrongly rejected.
  */
 export function isWellFormedIpv6Full(s: string): boolean {
   const n = normalizeIpv6Full(s);
@@ -110,7 +111,7 @@ export function isWellFormedIpv6Full(s: string): boolean {
   return true;
 }
 
-/** IPV6_FULL 规范串 → 128 位无符号整数，用于起止比较 */
+/** IPV6_FULL canonical string -> 128-bit unsigned integer, for start/end comparison */
 export function ipv6FullToBigUint128(s: string): bigint {
   const n = normalizeIpv6Full(s);
   if (!isWellFormedIpv6Full(n)) return 0n;
@@ -123,7 +124,7 @@ export function ipv6FullToBigUint128(s: string): bigint {
 
 const U128_MAX = (1n << 128n) - 1n;
 
-/** 128 位无符号整数 → 8 段 4 位十六进制（小写） */
+/** 128-bit unsigned integer -> 8 segments of 4 hex digits (lowercase) */
 export function bigUint128ToIpv6Full(v: bigint): string {
   const x = v & U128_MAX;
   const out: string[] = [];
@@ -139,8 +140,8 @@ export function bigUint128ToIpv6Full(v: bigint): string {
 const IPV6_ZERO_FULL = '0000:0000:0000:0000:0000:0000:0000:0000';
 
 /**
- * 后端 `ipStart`/`ipEnd`：十进制整数字符串、BigInt 或安全整数 number → 全格式 IPv6。
- * 超过 128 位或无法解析时返回全零地址。
+ * Backend `ipStart`/`ipEnd`: decimal integer string, BigInt, or safe integer number -> full-format IPv6.
+ * Returns all-zero address when exceeding 128 bits or unparseable.
  */
 export function decimal128LikeToIpv6Full(v: unknown): string {
   let bi: bigint;

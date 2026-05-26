@@ -1,7 +1,7 @@
 /**
- * 列表页可见性相关的轻量公共状态：
- * - 列是否可见判断
- * - 表格容器挂载后的布局触发
+ * Lightweight shared visibility state for list pages:
+ * - column-visibility lookup
+ * - layout trigger after the table wrapper mounts
  */
 export function useListPageVisibilityState(
   listPage: { isColumnVisible: (key: string) => boolean },

@@ -5,14 +5,14 @@ import type { AddEditDialogContext, AddEditDialogProps } from '../core/addEditDi
 type AddEditDialogSetupResult = ReturnType<typeof useAddEditDialogSetup>;
 
 /**
- * 在基础 Add/Edit setup 配置上增加 onVisible 回调。
+ * Adds an onVisible callback on top of the base Add/Edit setup options.
  */
 export interface UseAddEditDialogSetupWithVisibleOptions extends UseAddEditDialogSetupOptions {
   onVisible?: (result: AddEditDialogSetupResult, props: AddEditDialogProps) => void | Promise<void>;
 }
 
 /**
- * 组合 useAddEditDialogSetup 与可见时回调触发逻辑。
+ * Combine useAddEditDialogSetup with logic that fires the callback when the dialog becomes visible.
  */
 export function useAddEditDialogSetupWithVisible(
   props: AddEditDialogProps,

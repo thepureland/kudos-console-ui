@@ -1,5 +1,5 @@
 <!--
- * 账号列表：左侧组织机构树、右侧表格，支持按租户、用户名筛选，表格支持列可见性、操作列折角，多语言。
+ * Account list: organization tree on the left and table on the right; supports filtering by tenant and username; the table supports column visibility, operation-column fold, and i18n.
  *
  * @author K
  * @author AI: Cursor
@@ -305,7 +305,7 @@
       </el-row>
     </el-card>
 
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add and Edit share one form; mount on first open of either; the v-if/v-show is on a plain div to avoid the ElDialog non-element-root directive warning -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <account-form-page
         :model-value="formVisible"
@@ -356,7 +356,7 @@ class AccountListPage extends TenantSupportListPage {
       searchParams: {
         username: null as string | null,
       },
-      /** 左侧树当前选中节点 id，切换时重新请求表格数据 */
+      /** Currently selected node id in the left tree; reloading table data when it changes */
       selectedOrgId: null as string | null,
       defaultProps: {
         children: 'children',
@@ -366,7 +366,7 @@ class AccountListPage extends TenantSupportListPage {
     };
   }
 
-  /** 左侧组织机构树节点点击：更新选中组织并刷新表格 */
+  /** Left org-tree node click: update the selected org and refresh the table */
   onOrganizationNodeClick(nodeData: { id?: string }): void {
     const id = nodeData?.id ?? null;
     (this.state as Record<string, unknown>).selectedOrgId = id;
@@ -387,7 +387,7 @@ class AccountListPage extends TenantSupportListPage {
     return 'user/account';
   }
 
-  /** 用户状态、用户类型字典项译文从后端取 */
+  /** User-status and user-type dict-item translations are fetched from the backend */
   protected getI18nConfig() {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['user_status', 'user_type'], atomicServiceCode: 'user' }];
   }
@@ -418,7 +418,7 @@ class AccountListPage extends TenantSupportListPage {
     if (Array.isArray(payload)) {
       (this.state as Record<string, unknown>).organizations = payload;
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '加载组织机构树失败！');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load the organization tree!');
     }
   }
 }
@@ -467,7 +467,7 @@ export default defineComponent({
       createTime: 'createTime',
     };
     const columnLabel = createI18nColumnLabelGetter(t, 'accountList.columns', columnKeyToLabelKey);
-    /** 字典项展示：若为 i18n key（含.）则 t(key)，否则直接显示 key 或 —，避免 t('NORMAL') 等报错 */
+    /** Dict-item display: if it looks like an i18n key (contains a dot), use t(key); otherwise show the key or em-dash to avoid errors from calls like t('NORMAL') */
     function formatDictCell(module: string, dictType: string, code: unknown): string {
       const key = listPage.transDict(module, dictType, code);
       if (!key) return '—';
@@ -566,11 +566,11 @@ export default defineComponent({
 }
 .account-list-card {
   height: 100%;
-  margin-top: 3px; /* 卡片上外边距 */
+  margin-top: 3px; /* Card top margin */
 }
 .account-list-card :deep(.el-card__body) {
   height: 100%;
-  padding: 8px 5px 5px 5px; /* 上内边距 8px（5+3） */
+  padding: 8px 5px 5px 5px; /* Top padding 8px (5+3) */
 }
 .account-list-row {
   height: 100%;
@@ -608,7 +608,7 @@ export default defineComponent({
   flex-shrink: 0;
 }
 
-/* 列头排序图标与文字同一行，不独占一行 */
+/* Sort icon stays on the same row as the header text instead of taking its own line */
 .account-list-page :deep(.el-table thead th .cell) {
   display: flex;
   align-items: center;
@@ -622,7 +622,7 @@ export default defineComponent({
   margin-left: 4px;
 }
 
-/* 列可见性配置：所有列选项单列竖排 */
+/* Column-visibility config: all column options stacked in a single vertical column */
 .account-list-page .column-visibility-checkboxes {
   display: flex;
   flex-direction: column;

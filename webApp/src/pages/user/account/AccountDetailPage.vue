@@ -1,4 +1,4 @@
-<!-- 账号详情 -->
+<!-- Account detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -25,7 +25,7 @@ import type { PageContext, PageProps } from '../../../components/pages/core';
 import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, useDetailDialogVisibility, SectionedDetailDialog } from '../../../components/pages/detail';
 import type { DetailPageViewModel } from '../../../components/pages/detail';
 
-/** 与 CacheDetail 一致：每行最多 2 个字段，每行一条 detail-row 底部分隔线 */
+/** Mirrors CacheDetail: up to 2 fields per row, one detail-row bottom divider per row */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'accountDetail.sections.basicInfo' },
   { start: 3, titleKey: 'accountDetail.sections.lockInfo' },
@@ -91,7 +91,7 @@ class AccountDetailPage extends BaseDetailPage {
     return 'user/account';
   }
 
-  /** 用户状态、用户类型等字典项译文从后端取 */
+  /** User-status, user-type, and similar dict-item translations are fetched from the backend */
   protected getI18nConfig() {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['user_status', 'user_type', 'user_terminal'], atomicServiceCode: 'user' }];
   }

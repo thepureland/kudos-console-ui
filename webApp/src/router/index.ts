@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
-/** 路由入口使用懒加载，避免与菜单动态组件映射形成重复静态引用。 */
+/** Use lazy loading for route entries to avoid duplicate static references with the dynamic menu-component mapping. */
 const Home = () => import('../pages/Home.vue');
 const Welcome = () => import('../pages/Welcome.vue');
 const Placeholder = () => import('../pages/Placeholder.vue');

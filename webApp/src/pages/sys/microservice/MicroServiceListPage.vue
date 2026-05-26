@@ -1,5 +1,5 @@
 <!--
- * 微服务列表：支持按编码、名称、仅启用、仅原子服务筛选，表格为树形结构（按 parentCode），支持列可见性、操作列折角、可拖拽排序列，多语言。
+ * Microservice list: filter by code, name, active-only, and atomic-service-only; the table is a tree (by parentCode) and supports column visibility, an operation-column fold toggle, drag-reorder columns, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -260,10 +260,10 @@
         </el-table>
       </div>
       <template #pagination>
-        <!-- 树列表无分页 -->
+        <!-- No pagination for tree lists -->
       </template>
     </list-page-layout>
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <micro-service-form-page
         :model-value="formVisible"
@@ -334,7 +334,7 @@ class MicroServiceListPage extends BaseListPage {
     return ['code', 'name'];
   }
 
-  /** 将扁平列表按 parentCode 挂成树（父节点为 code === item.parentCode 的节点） */
+  /** Turn a flat list into a tree by parentCode (the parent is the node whose code equals item.parentCode). */
   protected flatListToTree(flat: Record<string, unknown>[]): Record<string, unknown>[] {
     if (!flat.length) return [];
     const list = flat.map((row) => ({ ...row, children: [] as Record<string, unknown>[] }));
@@ -358,7 +358,7 @@ class MicroServiceListPage extends BaseListPage {
     return roots;
   }
 
-  /** 后端返回格式：{ data: 行数组, totalCount }；扁平数据按 parentCode 转成树后赋给 tableData */
+  /** Backend response shape: { data: row array, totalCount }; flat data is converted into a tree by parentCode before being assigned to tableData. */
   protected postSearchSuccessfully(data: unknown): void {
     const obj = data as { data: unknown[]; totalCount: number };
     const rows = (obj.data ?? []) as Record<string, unknown>[];
@@ -477,7 +477,7 @@ export default defineComponent({
   height: 100%;
 }
 .microservice-list-page :deep(.list-page-card) {
-  margin-top: 3px; /* 卡片上外边距 */
+  margin-top: 3px; /* card top outer margin */
 }
 .microservice-list-page .list-page-toolbar .toolbar-name {
   margin-right: 8px;

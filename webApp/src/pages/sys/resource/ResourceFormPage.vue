@@ -1,5 +1,5 @@
 <!--
- * 资源添加/编辑
+ * Resource add/edit
  *
  * @author: K
  * @since 1.0.0
@@ -106,9 +106,9 @@ class ResourceFormPage extends BaseAddEditPage {
         seqNo: undefined as number | undefined,
         remark: null as string | null,
       },
-      /** 上级资源级联选项（与列表页左侧树同源：loadDirectChildrenForTree），根为 level 0，懒加载子级 */
+      /** Parent-resource cascader options (same source as the list page's left tree: loadDirectChildrenForTree); root is level 0, children lazy-loaded. */
       parentCascaderOptions: [] as Array<ParentCascaderNode>,
-      /** 节点 value -> type/subsystem/level（cascader 不保留自定义字段，懒加载时用此表推断层级并查 type/sub） */
+      /** node value -> type/subsystem/level (cascader doesn't preserve custom fields, so lazy loading uses this map to infer the level and look up type/sub). */
       parentCascaderNodeMeta: {} as Record<string, { resourceTypeDictCode: string; subSystemCode?: string; level: number }>,
       cascaderProps: {
         value: 'value',
@@ -178,7 +178,7 @@ class ResourceFormPage extends BaseAddEditPage {
     }
   }
 
-  /** 编辑加载：先拉取级联前两级构建静态 options，再拉详情并 fillForm，使 Parent 能回填显示 */
+  /** Edit-mode load: first fetch the first two cascader levels to build static options, then fetch the detail and fillForm so the Parent field can be back-populated. */
   protected async loadRowObject(): Promise<void> {
     await this.buildParentCascaderOptions();
     const params = this.createRowObjectLoadParams();
@@ -213,12 +213,12 @@ class ResourceFormPage extends BaseAddEditPage {
     }
   }
 
-  /** 弹窗打开时调用，确保第一级（资源类型）已加载 */
+  /** Called when the dialog opens; ensures the first level (resource type) is loaded. */
   public async ensureParentCascaderOptions(): Promise<void> {
     await this.buildParentCascaderOptions();
   }
 
-  /** 级联节点国际化：与列表树一致。parentLevel 0=资源类型(nameKey=resource_type.id)，1=子系统(无)，1+=具体资源(nameKey=titleKey或name，含子系统的下一层) */
+  /** I18n for cascader nodes; consistent with the list tree. parentLevel 0 = resource type (nameKey = resource_type.id), 1 = subsystem (none), 1+ = specific resource (nameKey = titleKey or name, including the layer directly under the subsystem). */
   private getCascaderNodeLabel(
     item: Record<string, unknown>,
     parentLevel: number,
@@ -235,7 +235,7 @@ class ResourceFormPage extends BaseAddEditPage {
     return { nameKey, label };
   }
 
-  /** 情况1：页面打开时加载资源类型，参数传 level、active（parentId 传 null 以便后端正确返回根层） */
+  /** Case 1: on page open, load resource types; params pass level and active (parentId is null so the backend returns the root layer correctly). */
   private async buildParentCascaderOptions(): Promise<void> {
     const opts = this.state.parentCascaderOptions as ParentCascaderNode[];
     if (opts.length > 0) return;
@@ -254,7 +254,7 @@ class ResourceFormPage extends BaseAddEditPage {
     (this.state as Record<string, unknown>).parentCascaderOptions = options;
   }
 
-  /** 在 options 树中按路径查找节点 */
+  /** Find a node in the options tree by path. */
   private findNodeInOptions(opts: ParentCascaderNode[], pathSegments: string[]): ParentCascaderNode | null {
     if (pathSegments.length === 0) return null;
     const first = pathSegments[0];
@@ -265,7 +265,7 @@ class ResourceFormPage extends BaseAddEditPage {
     return this.findNodeInOptions(children, pathSegments.slice(1));
   }
 
-  /** 按路径预加载各级选项到树中，使级联能正确解析并显示回填值 */
+  /** Preload each level's options along the path into the tree so the cascader can resolve correctly and display the back-populated value. */
   private async ensureParentPathLoaded(path: string[]): Promise<void> {
     if (path.length <= 1) return;
     const opts = this.state.parentCascaderOptions as ParentCascaderNode[];
@@ -317,10 +317,10 @@ class ResourceFormPage extends BaseAddEditPage {
   }
 
   /**
-   * 懒加载上级级联子级。loadDirectChildrenForTree 传参分 4 种情况：
-   * 情况2=资源类型展开→加载子系统：只传 active、level
-   * 情况3=子系统展开→加载第一层资源：传 active、level、subSystemCode、resourceTypeDictCode
-   * 情况4=level>2：传 active、level、parentId
+   * Lazy-load parent-cascader children. There are 4 parameter shapes for loadDirectChildrenForTree:
+   * Case 2 = resource type expanded -> load subsystems: pass only active and level
+   * Case 3 = subsystem expanded -> load the first resource layer: pass active, level, subSystemCode, and resourceTypeDictCode
+   * Case 4 = level > 2: pass active, level, and parentId
    */
   private async lazyLoadParentCascader(node: ParentCascaderNode, resolve: (nodes: ParentCascaderNode[]) => void): Promise<void> {
     const meta = (this.state.parentCascaderNodeMeta as Record<string, { resourceTypeDictCode: string; subSystemCode?: string; level: number }>) ?? {};
@@ -334,14 +334,14 @@ class ResourceFormPage extends BaseAddEditPage {
     let params: Record<string, unknown>;
     if (isRequestingRoot || (expandingLevel === 0 && rootOpts.length > 0)) {
       if (isRequestingRoot) {
-        // 情况1：级联首次要数据（页面刚打开），加载资源类型，传 level=0
+        // Case 1: cascader's first data fetch (page just opened); load resource types with level=0
         params = { level: 0, parentId: null, active: true };
       } else {
-        // 情况2：资源类型展开，加载子系统，只传 active、level
+        // Case 2: resource type expanded; load subsystems with only active and level
         params = { active: true, level: 1 };
       }
     } else if (expandingLevel === 1) {
-      // 情况3：子系统展开，加载第一层资源，传 active、level、subSystemCode、resourceTypeDictCode
+      // Case 3: subsystem expanded; load the first resource layer with active, level, subSystemCode, resourceTypeDictCode
       params = {
         active: true,
         level: 2,
@@ -349,7 +349,7 @@ class ResourceFormPage extends BaseAddEditPage {
         resourceTypeDictCode: stored!.resourceTypeDictCode,
       };
     } else {
-      // 情况4：具体资源第一层及以下再展开时，传 active、level、parentId。子系统的下一层节点展开时 level 传 3
+      // Case 4: expanding the first specific-resource layer and below; pass active, level, parentId. When expanding nodes directly under a subsystem, use level=3.
       params = {
         active: true,
         level: expandingLevel === 2 ? 3 : expandingLevel,
@@ -427,7 +427,7 @@ export default defineComponent({
       },
     });
     const { t, te, locale } = useI18n();
-    /** 与列表树一致：用 nameKey 在渲染时 t(nameKey)，切换语言时随 locale 更新 */
+    /** Consistent with the list tree: call t(nameKey) at render time and re-evaluate when the locale changes. */
     const parentCascaderOptionsWithI18n = computed(() => {
       void locale.value;
       const raw = (result as { parentCascaderOptions?: { value: ParentCascaderNode[] } | ParentCascaderNode[] }).parentCascaderOptions;

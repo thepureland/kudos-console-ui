@@ -2,13 +2,13 @@ import { I18nService, APP_DEFAULT_I18N_CONFIG, localeOptions, type I18nLoadConfi
 
 const i18nService = new I18nService();
 
-/** vue-i18n 实例，供 app.use(i18n) 及 t()、d() 等使用 */
+/** vue-i18n instance, used for app.use(i18n) and t(), d(), etc. */
 export const i18n = i18nService.i18n;
 
-/** vue-i18n 的插值参数实际允许更宽的值；这里保持宽类型，避免各业务页为类型适配重复断言。 */
+/** vue-i18n's interpolation params actually allow wider values; keep wide type here to avoid repeated assertions in business pages. */
 type TranslateParams = Record<string, unknown>;
 
-/** 统一屏蔽 vue-i18n legacy/composition 模式下 global 类型差异，业务代码只通过下方 helper 调用。 */
+/** Uniformly hide the global type differences between vue-i18n legacy/composition modes; business code only calls via helpers below. */
 type I18nGlobalCompat = {
   t: (key: string, params?: TranslateParams) => string;
   d: (value: Date, key?: string) => string;
@@ -21,19 +21,19 @@ export function tGlobal(key: string, params?: TranslateParams): string {
   return i18nGlobal.t(key, params);
 }
 
-/** 日期格式化统一走 i18n 实例，避免页面类直接触碰 vue-i18n 的联合类型。 */
+/** Date formatting routes through the i18n instance, avoiding pages directly touching vue-i18n's union types. */
 export function dGlobal(value: Date, key?: string): string {
   return i18nGlobal.d(value, key);
 }
 
-/** locale 在不同 vue-i18n 类型声明中可能是字符串或 ref，这里统一读成 LocaleId。 */
+/** locale may be a string or ref under different vue-i18n type declarations; read it uniformly as LocaleId. */
 export function getGlobalLocale(): LocaleId {
   const locale = i18nGlobal.locale;
   const value = typeof locale === 'string' ? locale : locale.value;
   return value as LocaleId;
 }
 
-/** 与 getGlobalLocale 配套，支持 legacy/composition 两种 locale 持有形态。 */
+/** Companion to getGlobalLocale, supporting both legacy/composition locale-holding forms. */
 export function setGlobalLocale(locale: LocaleId): void {
   const target = i18nGlobal.locale;
   if (typeof target === 'string') {
@@ -44,7 +44,7 @@ export function setGlobalLocale(locale: LocaleId): void {
 }
 
 /**
- * 与 ValidationRuleAdapter 一致：后端四段式键（如 sys.valid-msg.default.DictItemCode）在 vue-i18n 中多为去掉首段原子服务后的路径。
+ * Matches ValidationRuleAdapter: backend four-segment keys (e.g. sys.valid-msg.default.DictItemCode) in vue-i18n typically use the path with the leading atomic-service segment dropped.
  */
 function backendMessageCandidates(message: string): string[] {
   const text = String(message ?? '').trim();
@@ -96,16 +96,16 @@ export function ensureAppMessagesLoaded(): Promise<void> {
 export type { LocaleId, I18nLoadConfig };
 export { APP_DEFAULT_I18N_CONFIG, localeOptions };
 
-/** 按配置加载国际化，列表页在 getI18nConfig 中指定 */
+/** Load i18n by config; list pages specify it in getI18nConfig */
 export const loadMessagesForConfig = i18nService.loadMessagesForConfig.bind(i18nService);
 
-/** 加载 AddEdit 页级校验 i18n（可带列表页级 cacheHolder，避免重复请求） */
+/** Load AddEdit page-level validation i18n (optionally with list-page cacheHolder to avoid duplicate requests) */
 export const loadMessagesForValidationPage = i18nService.loadMessagesForValidationPage.bind(i18nService);
 
-/** 加载应用级默认国际化（App 挂载时调用） */
+/** Load app-level default i18n (called when App mounts) */
 export const loadAppMessages = i18nService.loadAppMessages.bind(i18nService);
 
-/** 切换语言并持久化到 localStorage */
+/** Switch language and persist to localStorage */
 export function setLocale(locale: LocaleId): void {
   appMessagesLoadPromise = null;
   i18nService.setLocale(locale);

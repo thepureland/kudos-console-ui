@@ -1,4 +1,4 @@
-<!-- 参数新增/编辑 -->
+<!-- Param add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -160,7 +160,7 @@ class ParamFormPage extends BaseAddEditPage {
     return 'paramAddEdit.messages.loadFailed';
   }
 
-  /** 回填时保证 orderNum 为 number，兼容 el-input-number */
+  /** Ensure orderNum is a number on back-fill, for el-input-number compatibility. */
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
     const orderNum = this.state.formModel?.orderNum;
@@ -193,5 +193,5 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 仅参数页特有覆盖时可在此添加 */
+/* Add param-page-specific overrides here. */
 </style>

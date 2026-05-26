@@ -1,7 +1,7 @@
 <template>
   <div class="tags" v-if="showTags">
-    <!-- 可见标签 + 更多下拉 + 选项（关其他/关全部）；宽度不足自动「更多」，支持拖拽、双击关闭 -->
-    <!-- 隐藏尺子：测量标签与「更多」宽度以计算可见数量 -->
+    <!-- Visible tags + "more" dropdown + options (close others/close all); auto "more" when width is insufficient, supports drag and double-click to close -->
+    <!-- Hidden ruler: measures tag and "more" widths to compute the visible count -->
     <div class="tags-ruler" ref="rulerRef" aria-hidden="true">
       <ul class="tags-list tags-ruler-list">
         <li
@@ -47,7 +47,7 @@
         >
           <el-icon class="tags-li-icon"><component :is="tagIcon(item)" /></el-icon>
           <span class="tags-li-title">{{ tagTitle(item) }}</span>
-          <span class="tag-close" @click.stop="closeTags(index)" aria-label="关闭">×</span>
+          <span class="tag-close" @click.stop="closeTags(index)" aria-label="Close">×</span>
         </li>
         <li
           v-if="moreTags.length > 0"
@@ -71,7 +71,7 @@
                   >
                     <el-icon class="more-item-icon"><component :is="tagIcon(item)" /></el-icon>
                     <span class="more-item-title">{{ tagTitle(item) }}</span>
-                    <span class="more-item-close" @click.stop="closeTags(maxVisibleCount + i)" aria-label="关闭">×</span>
+                    <span class="more-item-close" @click.stop="closeTags(maxVisibleCount + i)" aria-label="Close">×</span>
                   </span>
                 </el-dropdown-item>
               </el-dropdown-menu>
@@ -86,7 +86,7 @@
           type="button"
           class="tags-options-trigger"
           :title="t('tags.options')"
-          aria-label="标签选项"
+          aria-label="Tag options"
         >
           <el-icon><component :is="tagIconMap['CaretBottom']" /></el-icon>
         </button>
@@ -113,11 +113,11 @@ const { t, te } = useI18n();
 const store = useStore();
 const currentMenuPath = computed(() => store.state.currentMenuPath);
 
-// ---------- 可见数量与尺子测量 ----------
+// ---------- Visible count and ruler measurement ----------
 const listRef = ref<HTMLElement | null>(null);
 const wrapRef = ref<HTMLElement | null>(null);
 const rulerRef = ref<HTMLElement | null>(null);
-/** 当前最多显示几个标签，超出放入「更多」下拉，由 ResizeObserver + 尺子测量得出 */
+/** Current maximum visible tag count; overflow goes into the "more" dropdown. Computed by ResizeObserver + ruler measurement */
 const maxVisibleCount = ref(999);
 
 const tagsList = computed(() => store.state.tagsList);
@@ -127,7 +127,7 @@ const moreTags = computed(() => tagsList.value.slice(maxVisibleCount.value));
 
 const GAP = 6;
 const LIST_PADDING_RIGHT = 8;
-/** 根据 wrapRef 宽度与尺子中各 li 宽度，计算最大可见标签数（含「更多」占位） */
+/** Compute the maximum visible tag count (including the "more" placeholder) from wrapRef's width and each li's width in the ruler */
 function measureMaxVisible() {
   const wrap = wrapRef.value;
   const ruler = rulerRef.value;
@@ -178,20 +178,20 @@ onUnmounted(() => {
 watch(tagsList, scheduleMeasure, { deep: true });
 watch(() => t('tags.more'), scheduleMeasure);
 
-// ---------- 标签文案与图标（与侧栏菜单一致） ----------
+// ---------- Tag labels and icons (matching the sidebar menu) ----------
 const isActive = (path: string) => resolvePath(path) === currentMenuPath.value;
-/** 菜单/路由文案：titleKey 存在且当前 locale 有译文时用 t(titleKey)，否则用 title（后端菜单 key 未拉取到时避免报错） */
+/** Menu/route label: use t(titleKey) when titleKey exists and the current locale has a translation, otherwise fall back to title (avoids errors when the backend menu key hasn't been fetched yet) */
 function tagTitle(item: { titleKey?: string; title?: string }) {
   if (item.titleKey && te(item.titleKey)) return t(item.titleKey);
   return item.title ?? item.titleKey ?? '';
 }
 
-/** 全量图标名 → 组件；与 Sidebar 一致，支持后端动态指定任意图标名 */
+/** Full icon-name -> component map; matches the Sidebar and supports any icon name the backend specifies */
 const tagIconMap: Record<string, unknown> = {};
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   tagIconMap[key] = markRaw(component);
 }
-/** path → icon 名，用于从 localStorage 恢复的标签无 icon 时回退 */
+/** path -> icon name, used as a fallback when tags restored from localStorage have no icon */
 const pathToIcon: Record<string, string> = {
   '/home': 'HomeFilled',
   '/tabs': 'Bell',
@@ -211,7 +211,7 @@ const pathToIcon: Record<string, string> = {
   '/rbac/group': 'User',
 };
 
-/** 标签关闭时清理该页的列表查询态，使「关闭后重新打开」回到初始状态；切换标签不关闭故保留状态 */
+/** When a tag is closed, clear that page's list query state so "close and reopen" returns to the initial state; switching tags does not close them, so their state is preserved */
 const PERSISTED_STATE_KEYS_BY_PATH: Record<string, string[]> = {
   '/sys/cache': ['cacheList.queryState'],
   '/sys/dict': ['dictList.queryState'],
@@ -232,7 +232,7 @@ function tagIcon(item: TagItem): unknown {
   const name = item.icon ?? pathToIcon[item.path];
   return name ? tagIconMap[name] ?? tagIconMap.Setting : tagIconMap.Setting;
 }
-/** 当前菜单路径变化时追加标签（仅当菜单中有该 path 时，titleKey/icon 来自后端或 mock） */
+/** Append a tag when the current menu path changes (only if the path exists in the menu; titleKey/icon come from the backend or mock) */
 function setTagsForPath(path: string) {
   if (!path) return;
   const isExist = tagsList.value.some((item) => item.path === path);
@@ -248,10 +248,10 @@ function setTagsForPath(path: string) {
   }
 }
 watch(currentMenuPath, setTagsForPath, { immediate: true });
-/** 菜单加载完成后为当前 path 补标签（如刷新后恢复 currentMenuPath） */
+/** After the menu finishes loading, add a tag for the current path (e.g. when currentMenuPath is restored after a refresh) */
 watch(() => store.state.menuData.length, () => setTagsForPath(currentMenuPath.value));
 
-// ---------- 关闭与选项 ----------
+// ---------- Close and options ----------
 function closeTags(index: number) {
   const delItem = tagsList.value[index];
   if (delItem?.path) {
@@ -299,9 +299,9 @@ function goToPath(path: string) {
   store.commit('setCurrentMenuPath', path);
 }
 
-// ---------- 拖拽排序 ----------
+// ---------- Drag and reorder ----------
 const dragFromIndex = ref<number | null>(null);
-/** 当前悬停的插入位置索引（0 = 最前，visibleTags.length = 最后） */
+/** Index of the current hover insertion point (0 = front, visibleTags.length = end) */
 const dragOverIndex = ref<number | null>(null);
 function onDragStart(e: DragEvent, index: number) {
   dragFromIndex.value = index;
@@ -330,7 +330,7 @@ function onDrop(e: DragEvent, toIndex: number) {
   doDrop(from, toIndex);
   dragOverIndex.value = null;
 }
-/** 列表容器上的 drop：用最后一次 dragover 的索引，避免在标签间隙松开时放不下 */
+/** Drop on the list container: use the index from the last dragover so dropping between tags still lands somewhere */
 function onDropList(e: DragEvent) {
   e.preventDefault();
   e.stopPropagation();
@@ -366,13 +366,13 @@ function onDragEnd() {
   display: flex;
   align-items: center;
   background: var(--theme-bg-tags);
-  padding-left: 7px; /* 与左侧菜单栏留一点间距 */
-  padding-right: 52px; /* 为右侧选项图标区留空 */
+  padding-left: 7px; /* Leave a small gap from the left sidebar */
+  padding-right: 52px; /* Reserve space for the options icon area on the right */
   box-shadow: var(--theme-shadow-tags);
   isolation: isolate;
 }
 
-/* 隐藏尺子：用于测量标签与「更多」宽度，不参与视觉布局 */
+/* Hidden ruler: used to measure tag and "more" widths, takes no part in visual layout */
 .tags-ruler {
   position: absolute;
   left: -9999px;
@@ -440,7 +440,7 @@ function onDragEnd() {
   position: relative;
 }
 
-/* 放下位置指示：在标签左侧/右侧显示竖线，不插入 DOM 避免布局抖动 */
+/* Drop position indicator: shows a vertical bar to the left/right of the tag without inserting DOM, to avoid layout jitter */
 .tags-li-drop-before::before {
   content: '';
   position: absolute;
@@ -490,7 +490,7 @@ function onDragEnd() {
   font-size: inherit;
 }
 
-/* 尺子中占位与真实图标同宽 */
+/* Ruler placeholder uses the same width as the real icon */
 .tags-ruler .tags-li-icon {
   display: inline-flex;
   width: 14px;
@@ -532,7 +532,7 @@ function onDragEnd() {
   text-decoration: none;
 }
 
-/* 视觉仍为 14×14，向右和上下扩大可点区域，不改变标签宽度、不侵入标题区 */
+/* Stays visually 14x14 but expands the clickable area to the right and vertically, without changing the tag width or encroaching on the title area */
 .tag-close {
   display: inline-flex;
   align-items: center;
@@ -571,7 +571,7 @@ function onDragEnd() {
 
 .tags-more-trigger {
   cursor: default;
-  padding-left: 10px; /* 与 .tags-li 一致 */
+  padding-left: 10px; /* Matches .tags-li */
   padding-right: 6px;
 }
 
@@ -600,7 +600,7 @@ function onDragEnd() {
   height: 36px;
   padding: 0 6px;
   background: var(--theme-bg-tags);
-  /* 左侧用轻微内阴影过渡，替代生硬竖线 */
+  /* Use a subtle inner shadow on the left as a transition, instead of a hard vertical line */
   box-shadow: inset 8px 0 10px -6px rgba(0, 0, 0, 0.06);
   z-index: 10;
 }
@@ -630,7 +630,7 @@ function onDragEnd() {
   font-size: 16px;
 }
 
-/* 「更多」下拉项：圆角矩形框，样式与标签栏一致（下拉可能 teleport 到 body，用 :deep 确保生效） */
+/* "More" dropdown items: rounded-rectangle box matching the tag-bar style (the dropdown may be teleported to body, so :deep is needed for the rules to apply) */
 :deep(.more-dropdown-item) {
   padding: 4px 8px;
 }

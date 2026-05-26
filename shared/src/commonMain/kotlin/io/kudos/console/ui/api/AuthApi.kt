@@ -11,8 +11,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 
 /**
- * 认证与用户/菜单接口（KMP 共享）
- * 与服务端打交道的逻辑集中在此，Web/Android/iOS 复用同一套
+ * Authentication and user/menu API (KMP shared).
+ * Logic that talks to the server is centralized here; Web/Android/iOS share the same implementation.
  */
 class AuthApi(private val client: HttpClient) {
 

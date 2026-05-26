@@ -1,4 +1,4 @@
-<!-- 域名新增/编辑 -->
+<!-- Domain add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -115,7 +115,7 @@ class DomainFormPage extends TenantSupportAddEditPage {
     return 'sys/domain';
   }
 
-  /** 本模块编辑拉数仍使用 /get，非原 getDetail 路径 */
+  /** Edit-mode fetch in this module still uses /get, not the original getDetail path. */
   protected getRowObjectLoadUrl(): string {
     return this.getRootActionPath() + '/get';
   }
@@ -124,7 +124,7 @@ class DomainFormPage extends TenantSupportAddEditPage {
     return 'domainAddEdit.messages.loadFailed';
   }
 
-  /** 提交前将 subSysOrTenant 拆成 systemCode、tenantId 写入 formModel（域名接口使用 systemCode 而非 subSystemCode） */
+  /** Before validation, split subSysOrTenant into systemCode and tenantId on formModel (the domain endpoint uses systemCode, not subSystemCode). */
   protected beforeValidate(): void {
     const subSysOrTenant = this.state.formModel.subSysOrTenant;
     if (!subSysOrTenant || subSysOrTenant.length === 0) return;
@@ -134,7 +134,7 @@ class DomainFormPage extends TenantSupportAddEditPage {
     }
   }
 
-  /** 提交时不带 subSysOrTenant、subSystemCode，只带 systemCode、tenantId 等后端字段 */
+  /** When submitting, omit subSysOrTenant and subSystemCode and send only backend fields like systemCode and tenantId. */
   protected createSubmitParams(): Record<string, unknown> {
     const params = super.createSubmitParams() as Record<string, unknown>;
     delete params.subSysOrTenant;
@@ -142,7 +142,7 @@ class DomainFormPage extends TenantSupportAddEditPage {
     return params;
   }
 
-  /** 回填时用 systemCode（或 subSystemCode）与 tenantId 组成 subSysOrTenant 供级联显示 */
+  /** On back-fill, build subSysOrTenant from systemCode (or subSystemCode) and tenantId so the cascader can display it. */
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
     const subSys = rowObject.systemCode ?? rowObject.subSystemCode ?? (this.state.formModel as Record<string, unknown>)?.subSystemCode;
@@ -176,5 +176,5 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 仅域名页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
+/* Add domain-page-specific overrides here; shared styles live in add-edit-dialog-common.css. */
 </style>

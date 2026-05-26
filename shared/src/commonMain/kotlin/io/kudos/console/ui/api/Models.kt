@@ -4,7 +4,7 @@ import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 import kotlinx.serialization.Serializable
 
-/** 登录成功响应（KMP 共享，与后端约定） */
+/** Successful login response (KMP shared, contract agreed with the backend). */
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 @Serializable
@@ -13,7 +13,7 @@ data class LoginResponse(
     val user: User
 )
 
-/** 当前用户信息 */
+/** Current user information. */
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 @Serializable
@@ -25,7 +25,7 @@ data class User(
     val unreadMessageCount: Int = 0
 )
 
-/** 菜单项（支持嵌套） */
+/** Menu item (supports nesting). */
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 @Serializable

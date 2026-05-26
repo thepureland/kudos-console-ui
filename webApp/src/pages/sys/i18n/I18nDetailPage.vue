@@ -1,4 +1,4 @@
-<!-- 国际化详情 -->
+<!-- I18n entry detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"

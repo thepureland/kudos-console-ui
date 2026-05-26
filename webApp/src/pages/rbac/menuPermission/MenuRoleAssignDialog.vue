@@ -1,12 +1,12 @@
 <!--
- * 菜单-角色关联对话框
+ * Menu-role assignment dialog
  *
  * @author: K
  * @since 1.0.0
  -->
 
 <template>
-  <el-dialog title="设置菜单所属角色" v-model="visible" width="20%" center @close="close">
+  <el-dialog title="Assign roles to menu" v-model="visible" width="20%" center @close="close">
     <el-checkbox-group v-model="checkedRoles">
       <el-checkbox v-for="item in roles" :value="item.id" :key="item.id" style="display:block;">
         {{ item.roleName }}
@@ -16,10 +16,10 @@
     <el-row :gutter="20">
       <el-col :span="16"/>
       <el-col :span="4">
-        <el-button type="primary" round @click="save">确定</el-button>
+        <el-button type="primary" round @click="save">OK</el-button>
       </el-col>
       <el-col :span="4">
-        <el-button type="primary" round @click="close">取消</el-button>
+        <el-button type="primary" round @click="close">Cancel</el-button>
       </el-col>
     </el-row>
   </el-dialog>
@@ -63,7 +63,7 @@ class Page extends BasePage {
       this.state.roles = payload.first
       this.state.checkedRoles = payload.second
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '数据加载失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load data!')
     }
   }
 
@@ -80,11 +80,11 @@ class Page extends BasePage {
     // @ts-ignore
     const result = await backendRequest({url: url, method: "post", params})
     if (isApiSuccessResponse(result)) {
-      ElMessage.info('授权成功！')
+      ElMessage.info('Authorization succeeded!')
       this.close()
       this.context.emit('response')
     } else {
-      ElMessage.info(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '授权失败！')
+      ElMessage.info(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Authorization failed!')
     }
   }
 

@@ -1,4 +1,4 @@
-<!-- 数据源新增/编辑 -->
+<!-- Data source add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -212,7 +212,7 @@ interface FormModel {
   remark: string | null;
 }
 
-/** 将 value 转为 number 或 undefined，供 el-input-number */
+/** Convert value to number or undefined for el-input-number */
 function toNumberOrUndefined(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
   const n = Number(value);
@@ -224,12 +224,12 @@ class DataSourceFormPage extends TenantSupportAddEditPage {
     super(props, context);
   }
 
-  /** 第一级使用子系统接口，第二级租户；与列表页一致 */
+  /** First level uses the subsystem API, second level uses tenants; matches the list page */
   protected getFirstLevelApiUrl(): string | null {
     return 'sys/system/getAllActiveSubSystemCodes';
   }
 
-  /** 仅允许选第二级（租户），与列表页一致 */
+  /** Only allow selecting the second level (tenant); matches the list page */
   protected isCheckStrictly(): boolean {
     return false;
   }
@@ -262,14 +262,14 @@ class DataSourceFormPage extends TenantSupportAddEditPage {
     return 'dataSourceAddEdit.messages.loadFailed';
   }
 
-  /** 提交时排除 subSysOrTenant（仅级联用），只提交 subSystemCode、tenantId 及后端所需字段 */
+  /** On submit, exclude subSysOrTenant (used only for the cascade) and only send subSystemCode, tenantId, and the fields the backend needs */
   protected createSubmitParams(): Record<string, unknown> {
     const params = super.createSubmitParams() as Record<string, unknown>;
     delete params.subSysOrTenant;
     return params;
   }
 
-  /** 回填时保证数字字段为 number | undefined，并兼容 microservice 对象；password 由 base fillForm 从 rowObject 回填 */
+  /** When back-filling, coerce numeric fields to number | undefined and accept microservice as either string or object; password is back-filled from rowObject by the base fillForm */
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
     const m = this.state.formModel as FormModel;
@@ -314,5 +314,5 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 仅数据源页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
+/* Add data-source-specific overrides here; shared styles live in add-edit-dialog-common.css */
 </style>

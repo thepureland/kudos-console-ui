@@ -1,14 +1,14 @@
 /**
- * 鉴权配置（构建时注入）
+ * Authentication config (injected at build time).
  *
- * REQUIRE_AUTH：是否启用登录鉴权
- * - true：user 应用，未登录时显示登录页
- * - false：sys 应用，不显示登录页，直接进入主界面
+ * REQUIRE_AUTH: whether login authentication is enabled.
+ * - true: user app — shows the login page when not authenticated.
+ * - false: sys app — skips the login page and goes straight to the main UI.
  *
- * 由 VITE_REQUIRE_AUTH 环境变量控制，构建时写入产物。
- * 默认 true（安全优先）。
+ * Controlled by the VITE_REQUIRE_AUTH env variable and baked into the build artifact.
+ * Defaults to true (secure by default).
  *
- * @see .env      - 默认 user 模式
- * @see .env.sys  - sys 模式
+ * @see .env      - default user mode
+ * @see .env.sys  - sys mode
  */
 export const REQUIRE_AUTH = import.meta.env.VITE_REQUIRE_AUTH !== 'false';

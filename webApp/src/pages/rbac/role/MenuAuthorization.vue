@@ -1,12 +1,12 @@
 <!--
- * 为角色授权菜单
+ * Grant menu permissions to a role
  *
  * @author: K
  * @since 1.0.0
  -->
 
 <template>
-  <el-dialog title="菜单授权" v-model="visible" width="30%" center @close="close">
+  <el-dialog title="Menu Authorization" v-model="visible" width="30%" center @close="close">
     <el-tree
         ref="tree"
         :data="menuData"
@@ -21,10 +21,10 @@
     <el-row :gutter="20">
       <el-col :span="18"/>
       <el-col :span="3">
-        <el-button type="primary" round @click="save">确定</el-button>
+        <el-button type="primary" round @click="save">OK</el-button>
       </el-col>
       <el-col :span="3">
-        <el-button type="primary" round @click="close">取消</el-button>
+        <el-button type="primary" round @click="close">Cancel</el-button>
       </el-col>
     </el-row>
   </el-dialog>
@@ -79,13 +79,13 @@ class Page extends BasePage {
     if (payload != null && typeof payload === 'object' && 'first' in payload) {
       this.state.menuData = payload.first
 
-      // 勾选已经为角色分配的菜单，这里注意几个问题：
-      // 1. el-tree在check-strictly设置为false时，父子互相关联
-      // 2. 在1的情况下，已勾选的项在回显时，如果父节点是选中的，将造成子节点全部选中
-      // 3. 为解决2的问题，想通过在设置勾选项前把check-strictly先设置为true，勾选后再设置为false的做法，是行不通的，会报错
-      // 4. 想通过树节点来判断是否为叶子节点，会发现找不到它已经渲染完的时间点，所以这里直接从候选数据判断
-      const checkKeys = payload.second // 要勾选的结点key（有包括非叶子结点的）
-      let checkLeafKeys = [] // 要勾选的叶子结点key
+      // Pre-check menus already assigned to the role. A few caveats:
+      // 1. When el-tree's check-strictly is false, parents and children are linked.
+      // 2. Given (1), when restoring checked items, if a parent node is selected, all of its children get selected too.
+      // 3. To work around (2) you might think of setting check-strictly to true before checking, then back to false; that doesn't work and throws.
+      // 4. Inspecting tree nodes to detect leaves doesn't work either — there's no observable moment when rendering is finished — so we determine it from the source data directly.
+      const checkKeys = payload.second // node keys to check (may include non-leaf nodes)
+      let checkLeafKeys = [] // leaf node keys to check
       for (let data of this.state.menuData) {
         this.filterLeaf(data, checkLeafKeys, checkKeys)
       }
@@ -93,7 +93,7 @@ class Page extends BasePage {
 
       this.render()
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '数据加载失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load data!')
     }
   }
 
@@ -120,10 +120,10 @@ class Page extends BasePage {
     // @ts-ignore
     const result = await backendRequest({url: url, method: 'post', params})
     if (isApiSuccessResponse(result)) {
-      ElMessage.info('授权成功！')
+      ElMessage.info('Authorization succeeded!')
       this.close()
     } else {
-      ElMessage.info(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '授权失败！')
+      ElMessage.info(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Authorization failed!')
     }
   }
 

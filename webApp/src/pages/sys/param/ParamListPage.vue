@@ -1,5 +1,5 @@
 <!--
- * 参数列表：支持按模块、参数名、参数值、仅启用筛选，表格支持分页，多语言。
+ * Param list: filter by module, param name, param value, and active-only; the table supports pagination and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -17,7 +17,7 @@
       :operation-column-hide-text="t('paramList.actions.hideOperationColumn')"
       @table-wrap-mounted="onTableWrapMounted"
     >
-      <!-- 工具栏：布局由 ListPageLayout + list-page-common 提供 -->
+      <!-- Toolbar: layout is provided by ListPageLayout + list-page-common -->
       <template #toolbar>
         <div class="toolbar-cell toolbar-name">
           <el-select
@@ -82,7 +82,7 @@
           {{ t('paramList.actions.delete') }}
         </el-button>
       </template>
-      <!-- 栏位可见性面板：含顺序列、备注列等可勾选 -->
+      <!-- Column visibility panel: includes the order column, remark column, etc. as togglable. -->
       <template #columnVisibilityPanel>
         <div class="column-visibility-title">{{ t('paramList.actions.columnVisibility') }}</div>
         <el-checkbox-group v-model="visibleColumnKeys" class="column-visibility-checkboxes">
@@ -95,7 +95,7 @@
           </el-checkbox>
         </el-checkbox-group>
       </template>
-      <!-- 参数表格 -->
+      <!-- Param table -->
       <div class="table-drag-drop-zone">
         <el-table
           ref="tableRef"
@@ -223,7 +223,7 @@
       </template>
     </list-page-layout>
 
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <param-form-page
         :model-value="formVisible"
@@ -271,7 +271,7 @@ class ParamListPage extends BaseListPage {
     return 'sys/param';
   }
 
-  /** 仅当勾选「仅启用」时传 active=true；不勾选时传 null */
+  /** Only send active=true when the "active only" checkbox is ticked; otherwise send null. */
   protected createSearchParams(): Record<string, unknown> | null {
     const params = super.createSearchParams();
     if (params && this.state.searchParams) {
@@ -289,7 +289,7 @@ class ParamListPage extends BaseListPage {
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'paramList.operationColumnPinned';
 const PARAM_LIST_STATE_STORAGE_KEY = 'paramList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'paramList.visibleColumns';
-/** 可配置可见性的列（顺序列、备注列等）；paramName 固定左侧不参与 */
+/** Columns with configurable visibility (order column, remark column, etc.); paramName is fixed on the left and not included. */
 const {
   indexColumnKey: INDEX_COLUMN_KEY,
   allColumnKeys: ALL_COLUMN_KEYS,

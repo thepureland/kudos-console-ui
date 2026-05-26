@@ -24,7 +24,7 @@
         <div class="detail-row">
           <template v-for="(field, colIndex) in item.row" :key="field.key">
             <div class="detail-item" :class="{ 'detail-item--value-span-3': field.valueSpan === 3 }">
-              <span class="detail-label">{{ field.label }}：</span>
+              <span class="detail-label">{{ field.label }}:</span>
               <span class="detail-value">
                 <el-tag
                   v-if="field.type === 'boolean'"
@@ -50,8 +50,8 @@
 
 <script lang="ts">
 /**
- * 分段详情弹窗：按 rowsWithSections 渲染分组标题与字段行，通过 formatFieldValue 按类型展示值。
- * 与 useSectionedDetail 配合使用，用于缓存详情、参数详情等。
+ * Sectioned detail dialog: renders section titles and field rows from rowsWithSections, displaying values by type via formatFieldValue.
+ * Pairs with useSectionedDetail; used for cache detail, parameter detail, and similar pages.
  */
 import { defineComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -101,7 +101,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 仅将 Element Plus 弹窗主内边距变量减半（默认约 20px → 10px） */
+/* Halve only Element Plus's dialog primary padding variable (default ~20px -> 10px) */
 .sectioned-detail-dialog :deep(.el-dialog) {
   --el-dialog-padding-primary: 10px;
 }
@@ -138,7 +138,7 @@ export default defineComponent({
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
-/* 左侧竖线同 CacheFormPage.vue .form-section__title，保留 section 淡灰背景 */
+/* Left vertical bar matches CacheFormPage.vue .form-section__title, keeping the section's light-gray background */
 .detail-section-title {
   font-size: 13px;
   font-weight: 600;
@@ -146,7 +146,7 @@ export default defineComponent({
   line-height: 1.4;
   margin: 16px 0 12px 0;
   padding: 8px 12px 8px 5px;
-  /* 竖线同色、极淡：由 --el-color-primary 与背景混合 */
+  /* Bar tinted with the same color but very faint: mix --el-color-primary with the background */
   background-color: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color));
   border-left: 3px solid var(--el-color-primary);
 }
@@ -199,7 +199,7 @@ export default defineComponent({
   font-size: 12px;
 }
 
-/* 值占 3 格：该项独占一行，label 与其它行对齐（110px），value 占剩余 */
+/* Value spans 3 columns: the item takes its own row, label stays aligned with other rows (110px), value fills the rest */
 .detail-item--value-span-3 {
   flex: 1 1 100%;
   max-width: 100%;

@@ -1,5 +1,5 @@
 <!--
- * 数据源列表：支持按名称、子系统/租户、微服务、仅启用筛选，表格支持栏位可见性、表头拖拽列顺序、操作列折角、分页，多语言。
+ * Data source list: supports filtering by name, subsystem/tenant, microservice, and active-only; the table supports column visibility, drag-to-reorder column headers, operation-column fold, pagination, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -7,7 +7,7 @@
  -->
 <template>
   <div class="data-source-list-page list-page-common">
-    <!-- 列表页布局：工具栏 + 表格区（栏位可见性/操作列折角）+ 分页 -->
+    <!-- List-page layout: toolbar + table area (column visibility/operation-column fold) + pagination -->
     <list-page-layout
       :table-wrap-ref="listLayoutRefs.tableWrapRef"
       :list-page="listPage"
@@ -18,7 +18,7 @@
       :operation-column-hide-text="t('dataSourceList.actions.hideOperationColumn')"
       @table-wrap-mounted="onTableWrapMounted"
     >
-      <!-- 工具栏：布局由 ListPageLayout + list-page-common 提供，此处仅填 slot 内容 -->
+      <!-- Toolbar: layout provided by ListPageLayout + list-page-common; only slot content here -->
       <template #toolbar>
         <div class="toolbar-cell toolbar-name">
           <div class="search-name-input-wrap" :style="{ width: nameInputWidth + 'px' }">
@@ -85,7 +85,7 @@
           {{ t('dataSourceList.actions.delete') }}
         </el-button>
       </template>
-      <!-- 栏位可见性面板：勾选控制各列显示/隐藏（列顺序在表头拖拽调整） -->
+      <!-- Column visibility panel: checkboxes control each column's show/hide (column order is adjusted by dragging the headers) -->
       <template #columnVisibilityPanel>
         <div class="column-visibility-title">{{ t('dataSourceList.actions.columnVisibility') }}</div>
         <el-checkbox-group v-model="visibleColumnKeys" class="column-visibility-checkboxes">
@@ -98,7 +98,7 @@
           </el-checkbox>
         </el-checkbox-group>
       </template>
-      <!-- 数据源表格：选择/序号/名称（固定左）+ 子系统/租户/URL/用户名/启用（可排序可隐藏）+ 操作列 -->
+      <!-- Data source table: selection/index/name (fixed left) + subsystem/tenant/URL/username/active (sortable, hideable) + operation column -->
       <div
         class="table-drag-drop-zone"
         @dragover="onTableDragOver"
@@ -288,7 +288,7 @@
         </el-table-column>
       </el-table>
       </div>
-      <!-- 分页 -->
+      <!-- Pagination -->
       <template #pagination>
         <el-pagination
           :ref="(el: unknown) => { listLayoutRefs.paginationRef.value = el as HTMLElement | null; }"
@@ -303,7 +303,7 @@
       </template>
     </list-page-layout>
 
-    <!-- 重置密码弹窗 -->
+    <!-- Reset-password dialog -->
     <el-dialog v-model="passwordDialogVisible" :title="t('dataSourceList.dialog.passwordTitle')" min-width="20%">
       <el-input v-model="newPassword" type="password" :placeholder="t('dataSourceList.placeholders.newPassword')" show-password />
       <template #footer>
@@ -314,7 +314,7 @@
       </template>
     </el-dialog>
 
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add and Edit share one form; mount on first open of either; the v-if/v-show is on a plain div to avoid the ElDialog non-element-root directive warning -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <data-source-form-page
         :model-value="formVisible"
@@ -343,19 +343,19 @@ import { TenantSupportListPage } from '../../../components/pages/support';
 import { useMicroserviceTreeOptions } from '../../../components/pages/integration';
 import { ListPageLayout } from '../../../components/pages/ui';
 
-/** 数据源列表页业务逻辑：继承租户支持列表，支持搜索、重置密码、测试数据回退。租户下拉为两级联动：第一级子系统（getAllActiveSubSystemCodes），第二级租户（getTenantsBySubSystemCode）。 */
+/** Data-source list-page business logic: extends the tenant-support list; supports search, password reset, and test-data fallback. The tenant dropdown is two-level cascading: level 1 subsystems (getAllActiveSubSystemCodes), level 2 tenants (getTenantsBySubSystemCode). */
 class DataSourceListPage extends TenantSupportListPage {
   constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.convertThis();
   }
 
-  /** 第一级使用子系统接口，第二级再按子系统加载租户 */
+  /** Level 1 uses the subsystem API; level 2 loads tenants per subsystem */
   protected getFirstLevelApiUrl(): string | null {
     return 'sys/system/getAllActiveSubSystemCodes';
   }
 
-  /** 仅允许选第二级（租户），不允许只选第一级（子系统） */
+  /** Only allow selecting level 2 (tenant); selecting only level 1 (subsystem) is not allowed */
   protected isCheckStrictly(): boolean {
     return false;
   }
@@ -366,7 +366,7 @@ class DataSourceListPage extends TenantSupportListPage {
         name: null as string | null,
         microServiceCode: null as string | null,
         active: true,
-        // subSysOrTenant 由 TenantSupportListPage.initTenantVars 在构造函数中注入
+        // subSysOrTenant is injected by TenantSupportListPage.initTenantVars in the constructor
       },
       passwordDialogVisible: false,
       newPassword: null as string | null,
@@ -392,14 +392,14 @@ class DataSourceListPage extends TenantSupportListPage {
     return ['name'];
   }
 
-  /** 打开重置密码弹窗 */
+  /** Open the reset-password dialog */
   resetPassword(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
     s.passwordDialogVisible = true;
   }
 
-  /** 提交新密码到后端并关闭弹窗 */
+  /** Submit the new password to the backend and close the dialog */
   commitNewPassword(newPassword: string | null): void {
     this.doCommitNewPassword(newPassword);
   }
@@ -425,7 +425,7 @@ class DataSourceListPage extends TenantSupportListPage {
 
 }
 
-/** 动态宽度 = 镜像文本宽 + 余量；不小于 MIN 以免输入框过窄（与原先约 200px 工具栏格相当） */
+/** Dynamic width = mirror text width + slack; never below MIN so the input doesn't get too narrow (roughly matches the original 200px toolbar cell) */
 const NAME_INPUT_PADDING = 48;
 const NAME_INPUT_MIN_WIDTH = 240;
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'dataSourceList.operationColumnPinned';
@@ -509,9 +509,9 @@ export default defineComponent({
       normalizeOrder: normalizeColumnOrder,
     });
     const visibleColumnKeys = useVisibleColumnKeys(listPage);
-    /** 微服务树（供下拉展示）与扁平选项（供表格 code->name 映射） */
+    /** Microservice tree (for the dropdown) and flat options (for the table's code -> name mapping) */
     const { microserviceTree, microserviceOptions } = useMicroserviceTreeOptions({ includeFlatOptions: true });
-    /** 表格微服务列展示：兼容多种后端字段与 microservice 展示，优先显示选项 label */
+    /** Microservice column display in the table: tolerates several backend fields and microservice shapes; prefers the option label */
     function getMicroserviceDisplayText(row: Record<string, unknown>): string {
       const raw = row.microservice ?? row.microserviceCode ?? row.microServiceCode;
       const code = typeof raw === 'string' ? raw : (raw && typeof raw === 'object' && 'code' in raw ? (raw as { code: string }).code : null);
@@ -600,8 +600,8 @@ export default defineComponent({
 <style src="../../../styles/list-page-common.css" scoped></style>
 <style scoped>
 /*
- * 数据源搜索栏：与 list-page-common 里分散的 margin-right（名称 4px、级联/微服务 2px、extra 4px）叠加后，
- * 中间几块视觉上「越间距越大」。改为工具栏统一 gap，并清零子项左右 margin；按钮紧跟在「仅启用」后（不再 margin-left:auto）。
+ * Data-source search bar: the per-cell margin-right values from list-page-common (name 4px, cascade/microservice 2px, extra 4px) stack up so the middle cells visually appear "increasingly spaced".
+ * Replace those with a uniform toolbar gap and zero out child left/right margins; the buttons follow "Active only" directly (no more margin-left:auto).
  */
 .data-source-list-page :deep(.list-page-toolbar) {
   display: flex;

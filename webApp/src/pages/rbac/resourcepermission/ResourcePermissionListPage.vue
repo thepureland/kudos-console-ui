@@ -1,5 +1,5 @@
 <!--
- * 资源权限列表：支持按子系统/租户、资源类型、资源名称筛选，展示资源权限表格。
+ * Resource permission list: supports filtering by subsystem/tenant, resource type, and resource name; displays the resource permission table.
  *
  * @author: K
  * @since 1.0.0
@@ -9,14 +9,14 @@
 <template>
   <div>
     <el-breadcrumb separator="/">
-      <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
-      <el-breadcrumb-item>系统配置</el-breadcrumb-item>
-      <el-breadcrumb-item>资源列表</el-breadcrumb-item>
+      <el-breadcrumb-item :to="{ path: '/home' }">Home</el-breadcrumb-item>
+      <el-breadcrumb-item>System Configuration</el-breadcrumb-item>
+      <el-breadcrumb-item>Resource List</el-breadcrumb-item>
     </el-breadcrumb>
 
     <el-row :gutter="20" class="toolbar">
       <el-col :span="2">
-        <el-select v-model="searchParams.resourceTypeDictCode" placeholder="资源类型" clearable class="border_red">
+        <el-select v-model="searchParams.resourceTypeDictCode" placeholder="Resource type" clearable class="border_red">
           <el-option v-for="item in getDictItems('sys', 'resource_type')"
                      :key="item.first" :value="item.first" :label="t(item.second)"/>
         </el-select>
@@ -26,12 +26,12 @@
                      :props="cascaderProps" :placeholder="t('organizationList.placeholders.subSysTenant')" class="border_red"/>
       </el-col>
       <el-col :span="2">
-        <el-input v-model="searchParams.name" placeholder="资源名称" @change="search" clearable/>
+        <el-input v-model="searchParams.name" placeholder="Resource name" @change="search" clearable/>
       </el-col>
 
       <el-col :span="14">
-        <el-button type="primary" round @click="search">搜索</el-button>
-        <el-button type="primary" round @click="resetSearchFields">重置</el-button>
+        <el-button type="primary" round @click="search">Search</el-button>
+        <el-button type="primary" round @click="resetSearchFields">Reset</el-button>
       </el-col>
     </el-row>
 
@@ -49,10 +49,10 @@
         <el-table border stripe :data="tableData" :max-height="tableMaxHeight" @selection-change="handleSelectionChange"
                   :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
           <el-table-column type="index" min-width="50"/>
-          <el-table-column label="资源名称" prop="name" :min-width="columnWidths['name'] ?? 120" sortable="custom" show-overflow-tooltip/>
+          <el-table-column label="Resource name" prop="name" :min-width="columnWidths['name'] ?? 120" sortable="custom" show-overflow-tooltip/>
           <el-table-column label="URL" prop="url" :min-width="columnWidths['url'] ?? 120" sortable="custom" show-overflow-tooltip/>
-          <el-table-column label="关联的角色" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140" show-overflow-tooltip/>
-          <el-table-column label="操作" align="center">
+          <el-table-column label="Assigned roles" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140" show-overflow-tooltip/>
+          <el-table-column label="Operations" align="center">
             <template #default="scope">
               <edit @click="handleEdit(scope.row)" class="operate-column-icon"/>
               <tickets @click="handleDetail(scope.row)" class="operate-column-icon"/>
@@ -109,7 +109,7 @@ class ResourcePermissionListPage extends TenantSupportListPage {
     return "rbac/resourcepermission"
   }
 
-  /** 资源类型字典项译文从后端取 */
+  /** Resource type dict item translations are fetched from the backend */
   protected getI18nConfig() {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' }]
   }
@@ -124,7 +124,7 @@ class ResourcePermissionListPage extends TenantSupportListPage {
     this.state.searchSource = "button"
     const subSysOrTenant = super.parseSubSysOrTenant()
     if (!this.state.searchParams.resourceTypeDictCode) {
-      ElMessage.error('请先选择资源类型！')
+      ElMessage.error('Please select a resource type first!')
       return null
     }
     if (subSysOrTenant) {
@@ -154,7 +154,7 @@ class ResourcePermissionListPage extends TenantSupportListPage {
     if (Array.isArray(payload)) {
       this.state.menus = payload
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '资源树加载失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load the resource tree!')
     }
   }
 
@@ -180,7 +180,7 @@ class ResourcePermissionListPage extends TenantSupportListPage {
       this.state.tableData = payload.data ?? []
       this.state.pagination.total = payload.totalCount ?? 0
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '数据加载失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load data!')
     }
   }
 
@@ -240,7 +240,7 @@ class ResourcePermissionListPage extends TenantSupportListPage {
       this.state.tableData = payload.data ?? []
       this.state.pagination.total = payload.totalCount ?? 0
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '数据加载失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load data!')
     }
   }
 
@@ -277,9 +277,9 @@ export default defineComponent({
       reservedWidthLeft: 0,
       reservedWidthRight: 0,
       createAutoWidthColumns: () => [
-      { key: 'name', getLabel: () => '资源名称', sortable: true, getCellText: (row: Record<string, unknown>) => String(row.name ?? '') },
+      { key: 'name', getLabel: () => 'Resource name', sortable: true, getCellText: (row: Record<string, unknown>) => String(row.name ?? '') },
       { key: 'url', getLabel: () => 'URL', sortable: true, getCellText: (row: Record<string, unknown>) => String(row.url ?? '') },
-      { key: 'roleNames', getLabel: () => '关联的角色', getCellText: (row: Record<string, unknown>) => String(row.roleNames ?? '') },
+      { key: 'roleNames', getLabel: () => 'Assigned roles', getCellText: (row: Record<string, unknown>) => String(row.roleNames ?? '') },
     ],
     });
     return {
