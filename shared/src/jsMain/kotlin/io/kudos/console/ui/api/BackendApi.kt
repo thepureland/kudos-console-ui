@@ -20,8 +20,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 /**
- * 暴露给前端的通用后端请求 API（[createBackendHttpClient]，与 Auth 的 client 分离）。
- * GET/DELETE 使用 query 参数，POST 使用 JSON body；返回响应体 JSON 字符串，由 TS 侧解析。
+ * General-purpose backend request API exposed to the frontend ([createBackendHttpClient], separate from the Auth client).
+ * GET/DELETE use query parameters, POST uses a JSON body; returns the response body as a JSON string parsed on the TS side.
  *
  * @author K
  * @since 1.0.0
@@ -55,7 +55,7 @@ class BackendApiExposed {
             is JsonObject -> element.forEach { (key, value) ->
                 appendJsonValue(key, value, append)
             }
-            else -> { /* GET/DELETE 仅支持 object 参数 */ }
+            else -> { /* GET/DELETE only supports object parameters. */ }
         }
     }
 
@@ -72,11 +72,11 @@ class BackendApiExposed {
     }
 
     /**
-     * 发起请求，返回响应体字符串（TS 侧需 JSON.parse）。
-     * @param url 相对路径，如 "sys/dictItem/getDictItemMap"
+     * Issues a request and returns the response body as a string (the TS side calls JSON.parse).
+     * @param url relative path, e.g. "sys/dictItem/getDictItemMap"
      * @param method "get" | "post" | "put" | "delete"
-     * @param paramsJson GET/DELETE 时为 query 参数；POST/PUT 默认 body，paramsInQuery=true 时为 query
-     * @param paramsInQuery 为 true 时 POST/PUT 也将 paramsJson 放到 URL query，不放到 body
+     * @param paramsJson query parameters for GET/DELETE; body by default for POST/PUT, query when paramsInQuery=true
+     * @param paramsInQuery when true, POST/PUT also place paramsJson on the URL query rather than in the body
      */
     fun request(url: String, method: String, paramsJson: String?, paramsInQuery: Boolean = false) = scope.promise {
         val t0 = perfNow()
@@ -139,7 +139,7 @@ class BackendApiExposed {
         val t2 = perfNow()
         val total = (t2 - t0).toInt()
         if (total > 1000) {
-            logSlow("[BackendApi] 慢请求 ${total}ms: $method $url | fullPath=${(t1 - t0).toInt()}ms 网络=${(t2 - t1).toInt()}ms")
+            logSlow("[BackendApi] slow request ${total}ms: $method $url | fullPath=${(t1 - t0).toInt()}ms network=${(t2 - t1).toInt()}ms")
         }
         response
     }

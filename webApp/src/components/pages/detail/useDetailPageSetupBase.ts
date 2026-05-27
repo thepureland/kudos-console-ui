@@ -8,7 +8,7 @@ export interface UseDetailPageSetupBaseOptions {
 }
 
 /**
- * 统一详情页 setup 中的分组字段构建与 page/state refs 暴露。
+ * Unifies sectioned-field construction and page/state ref exposure in detail-page setup.
  */
 export function useDetailPageSetupBase(
   page: {

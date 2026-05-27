@@ -1,5 +1,5 @@
 /**
- * 由两个元素组成的对象
+ * An object composed of two elements.
  *
  * @author K
  * @since 1.0.0

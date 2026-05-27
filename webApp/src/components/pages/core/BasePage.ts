@@ -7,7 +7,7 @@ import type { I18nLoadConfig } from "../../../i18n";
 import { DictService } from "./DictService";
 import type { PageContext, PageProps } from "./pageTypes";
 
-/** 原子服务（微服务）缓存项，与后端 SysMicroServiceCacheItem 一致 */
+/** Atomic service (microservice) cache item, matches backend SysMicroServiceCacheItem */
 export interface SysMicroServiceCacheItem {
   id: string;
   code: string;
@@ -21,8 +21,8 @@ export interface SysMicroServiceCacheItem {
 }
 
 /**
- * 页面处理抽象基类，被列表页、详情页、添加/编辑页继承。
- * 提供字典、原子服务、i18n 日期/布尔格式化及通用 close 等能力。
+ * Abstract base class for page handling; inherited by list, detail, and add/edit pages.
+ * Provides dictionary, atomic services, i18n date/boolean formatting, common close, etc.
  *
  * @author K
  * @since 1.0.0
@@ -129,7 +129,7 @@ export abstract class BasePage {
             this.state.atomicServiceList = list
         } else {
             if (!win.__kudosAtomicServices?.length && !isApiSuccessResponse(result)) {
-                ElMessage.error('原子服务列表加载失败')
+                ElMessage.error('Failed to load atomic service list')
             }
             const fallback = win.__kudosAtomicServices ?? []
             this.atomicServiceList = fallback
@@ -148,7 +148,7 @@ export abstract class BasePage {
     }
 
     public formatBool = (value: boolean) => {
-        return value ? "是" : "否"
+        return value ? "Yes" : "No"
     }
 
     public formatDate = (date: unknown) => {

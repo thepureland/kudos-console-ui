@@ -6,40 +6,40 @@ import { backendRequest } from '../utils/backendRequest';
 
 export type LocaleId = 'zh-CN' | 'zh-TW' | 'en-US';
 
-/** I18nService 只依赖 global 上的最小能力，减少对 vue-i18n 复杂泛型签名的耦合。 */
+/** I18nService relies only on a minimal global surface, reducing coupling to vue-i18n's complex generic signatures. */
 type I18nGlobalCompat = {
   locale: string | { value: string };
   mergeLocaleMessage: (locale: string, message: Record<string, unknown>) => void;
 };
 
-/** 单条配置：国际化类型 -> 命名空间列表 */
+/** Single config: i18n type -> namespace list */
 export type I18nLoadConfig = { i18nTypeDictCode: string; namespaces: string[]; atomicServiceCode?: string };
 
 const LOCALE_KEY = 'locale';
 
 /**
- * 服务端批量翻译接口：POST {I18N_API_PATH}，body 为 JSON（单 DTO）
- * 完整路径：/api/admin/sys/i18n/batchGetI18ns
- * 参数：SysI18nBatchPayload(locale, namespacesByI18nTypeDictCode, atomicServiceCodes)
- * 返回：Map<国际化类型, Map<命名空间, Map<key, 译文>>>；merge 后服务端键优先
+ * Server-side batch translation endpoint: POST {I18N_API_PATH}, body is JSON (single DTO)
+ * Full path: /api/admin/sys/i18n/batchGetI18ns
+ * Params: SysI18nBatchPayload(locale, namespacesByI18nTypeDictCode, atomicServiceCodes)
+ * Response: Map<i18nType, Map<namespace, Map<key, translation>>>; after merge, server keys take precedence
  */
 const I18N_API_PATH = 'sys/i18n/batchGetI18ns';
 
-/** 应用启动时从 batchGetI18ns 拉取的默认命名空间（可为空；字典项译文在 DictService 加载字典时按 dict-item + 字典类型编码 拉取）。valid-msg/default/sys 为后端校验规则 message 的国际化应用级缓存。 */
+/** Default namespaces fetched from batchGetI18ns at app startup (may be empty; dictionary item translations are fetched by DictService when loading a dict, using dict-item + dictType code). valid-msg/default/sys is the app-level i18n cache for backend validation rule messages. */
 export const APP_DEFAULT_I18N_CONFIG: I18nLoadConfig[] = [
-  /** accessrule：IP 访问规则等 Compare 校验 message（如 sys.valid-msg.accessrule.le-ip-start） */
+  /** accessrule: Compare-validation messages such as IP access rules (e.g. sys.valid-msg.accessrule.le-ip-start) */
   { atomicServiceCode: 'sys', i18nTypeDictCode: 'valid-msg', namespaces: ['default', 'accessrule'] },
   { atomicServiceCode: 'sys', i18nTypeDictCode: 'error-msg', namespaces: ['default', 'accessrule'] },
 ];
 
-/** 语言选项：id、地区旗帜、该语言下的名称（始终用母语显示，不受当前语言影响） */
+/** Locale options: id, regional flag, and the language's native name (always shown in the language itself, regardless of the active locale). */
 export const localeOptions: { id: LocaleId; flag: string; label: string }[] = [
   { id: 'zh-CN', flag: '🇨🇳', label: '简体中文' },
   { id: 'zh-TW', flag: '🇹🇼', label: '繁体中文(台湾)' },
   { id: 'en-US', flag: '🇺🇸', label: 'English (US)' },
 ];
 
-/** 各语言日期时间显示格式（用于 formatDate / d('datetime')） */
+/** Date-time display formats per locale (used by formatDate / d('datetime')). */
 const datetimeFormats: Record<LocaleId, Intl.DateTimeFormatOptions> = {
   'zh-CN': {
     year: 'numeric',
@@ -71,19 +71,19 @@ const datetimeFormats: Record<LocaleId, Intl.DateTimeFormatOptions> = {
 };
 
 /**
- * 国际化服务：负责 vue-i18n 实例创建、服务端翻译加载、语言切换与缓存。
+ * I18n service: owns vue-i18n instance creation, server-side translation loading, locale switching, and caching.
  *
  * @author K
  * @since 1.0.0
  */
 export class I18nService {
-  /** vue-i18n 实例，供 app.use() 及 t()、d() 等使用 */
+  /** vue-i18n instance, used by app.use() and t() / d() etc. */
   readonly i18n: I18n;
 
-  /** 已加载的 locale+atomicServiceCode+namespacesKey 缓存 */
+  /** Cache of already-loaded locale+atomicServiceCode+namespacesKey combinations. */
   private readonly loadedCache = new Set<string>();
 
-  /** 已加载「页面级校验 i18n」的 path 集合（无 cacheHolder 时使用；切换语言时清空） */
+  /** Set of paths whose page-level validation i18n has been loaded (used when no cacheHolder is provided; cleared when the locale changes). */
   private readonly validationI18nLoadedPaths = new Set<string>();
 
   constructor() {
@@ -107,7 +107,7 @@ export class I18nService {
     });
   }
 
-  /** 将扁平 key（如 "columns.name"）转为嵌套对象 */
+  /** Convert flat keys (e.g. "columns.name") to a nested object. */
   private flatToNested(flat: Record<string, string>): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(flat)) {
@@ -124,9 +124,9 @@ export class I18nService {
   }
 
   /**
-   * 从后端返回结构合并为 vue-i18n 可用的嵌套对象。
-   * - view 等类型：保留类型层，merged.view.menu，使 t('view.menu.home') 生效。
-   * - dict-item：命名空间（字典类型编码）合并到根级，使 t('cache_strategy.SINGLE_LOCAL') 等使用后端译文而非前端 locale。
+   * Merge the backend response into a nested object that vue-i18n can consume.
+   * - Types like `view`: keep the type layer (merged.view.menu) so t('view.menu.home') works.
+   * - `dict-item`: the namespace (dict type code) is merged at the root level so t('cache_strategy.SINGLE_LOCAL') and the like use the backend translation instead of the frontend locale.
    */
   private mergeBatchResponse(data: Record<string, Record<string, Record<string, string>>>): Record<string, unknown> {
     const merged: Record<string, unknown> = {};
@@ -150,7 +150,7 @@ export class I18nService {
     return merged;
   }
 
-  /** 为非 dict-item 文案额外挂一份 atomicServiceCode 前缀别名，使 t('sys.error-msg.default.200') 这类完整 key 也能命中。 */
+  /** For non-`dict-item` messages, also attach an alias prefixed by atomicServiceCode so full keys like t('sys.error-msg.default.200') resolve too. */
   private attachAtomicAliases(
     messages: Record<string, unknown>,
     atomicServiceCode: string
@@ -174,7 +174,7 @@ export class I18nService {
     };
   }
 
-  /** 生成请求的缓存 key（保证相同配置得到相同 key） */
+  /** Build the request's cache key (identical configs must produce the same key). */
   private toCacheKey(locale: string, atomic: string, namespacesByType: Record<string, string[]>): string {
     const parts = Object.entries(namespacesByType)
       .sort((a, b) => a[0].localeCompare(b[0]))
@@ -182,12 +182,12 @@ export class I18nService {
     return `${locale}---${atomic}---${parts.join(';')}`;
   }
 
-  /** 从服务端批量拉取翻译并 merge 到当前 i18n（POST body SysI18nBatchPayload） */
+  /** Batch-fetch translations from the server and merge them into the current i18n (POST body: SysI18nBatchPayload). */
   private async loadMessagesFromServer(
     namespacesByI18nTypeDictCode: Record<string, string[]>,
     atomicServiceCode: string
   ): Promise<void> {
-    // vue-i18n 在不同类型模式下 locale 可能是 string 或 ref；运行时兼容两种形态。
+    // Depending on the vue-i18n typing mode, `locale` may be a string or a ref; handle both shapes at runtime.
     const global = this.i18n.global as unknown as I18nGlobalCompat;
     const locale = (typeof global.locale === 'string' ? global.locale : global.locale.value) as LocaleId;
     try {
@@ -197,7 +197,7 @@ export class I18nService {
         atomicServiceCodes: [atomicServiceCode],
       };
       if (import.meta.env?.DEV) {
-        console.debug('[I18nService] batchGetI18ns 请求体:', JSON.stringify(params));
+        console.debug('[I18nService] batchGetI18ns request body:', JSON.stringify(params));
       }
       const res = await backendRequest({ url: I18N_API_PATH, method: 'post', params });
       const raw = (res && typeof res === 'object' && 'data' in res ? (res as { data: unknown }).data : res) as
@@ -213,29 +213,29 @@ export class I18nService {
       if (import.meta.env?.DEV) {
         const err = e as { message?: string; response?: { status?: number; data?: unknown } };
         console.warn(
-          '[I18nService] batchGetI18ns 请求失败，将使用本地语言包。',
-          '\n  请求体:', { locale, namespacesByI18nTypeDictCode, atomicServiceCodes: [atomicServiceCode] },
-          '\n  错误:', err?.message ?? e,
-          err?.response ? `\n  响应: status=${err.response.status} data=${JSON.stringify(err.response.data)}` : ''
+          '[I18nService] batchGetI18ns request failed; falling back to the local language pack.',
+          '\n  request body:', { locale, namespacesByI18nTypeDictCode, atomicServiceCodes: [atomicServiceCode] },
+          '\n  error:', err?.message ?? e,
+          err?.response ? `\n  response: status=${err.response.status} data=${JSON.stringify(err.response.data)}` : ''
         );
       }
     }
   }
 
-  /** 切换语言时清空缓存，下次打开页面时按新语言加载 */
+  /** Clear the cache on locale change; the next page open will load using the new locale. */
   clearCache(): void {
     this.loadedCache.clear();
     this.validationI18nLoadedPaths.clear();
   }
 
   /**
-   * 加载本 AddEdit 页的后端自定义校验提示 i18n（view 类型）。
-   * 若 pathCacheKey 已在 cacheHolder 或内部缓存中则跳过，避免重复请求。
-   * @param atomicServiceCode 如 'sys'
-   * @param i18nTypeDictCode 如 'view'
-   * @param namespace 如 'sys.tenant'
-   * @param pathCacheKey 缓存键，通常为 getRootActionPath()
-   * @param cacheHolder 列表页提供的 Ref<Set<string>> 或 Set<string>，用于列表页级缓存；不传则用应用级缓存
+   * Load this AddEdit page's backend-provided custom-validation message i18n (type: `view`).
+   * Skip if pathCacheKey is already in cacheHolder or the internal cache to avoid duplicate requests.
+   * @param atomicServiceCode e.g. 'sys'
+   * @param i18nTypeDictCode e.g. 'view'
+   * @param namespace e.g. 'sys.tenant'
+   * @param pathCacheKey cache key, typically getRootActionPath()
+   * @param cacheHolder list-page-supplied Ref<Set<string>> or Set<string> for list-page-level caching; falls back to the application-level cache if omitted
    */
   async loadMessagesForValidationPage(
     atomicServiceCode: string,
@@ -251,12 +251,12 @@ export class I18nService {
   }
 
   /**
-   * 按配置加载国际化，列表页在 getI18nConfig 中指定；已加载则跳过。
-   * 同 atomicServiceCode 的配置会合并为一次请求。
+   * Load i18n by config; list pages specify this via getI18nConfig and configs already loaded are skipped.
+   * Configs sharing the same atomicServiceCode are merged into a single request.
    */
   async loadMessagesForConfig(configs: I18nLoadConfig[] | null | undefined): Promise<void> {
     if (!configs?.length) return;
-    // 缓存 key 必须使用当前语言，否则切换语言后可能误用旧语言的已加载标记。
+    // The cache key must use the current locale; otherwise, after a language switch we may reuse the old locale's loaded marker.
     const global = this.i18n.global as unknown as I18nGlobalCompat;
     const locale = (typeof global.locale === 'string' ? global.locale : global.locale.value) as LocaleId;
     const byAtomic = new Map<string, Record<string, string[]>>();
@@ -276,16 +276,16 @@ export class I18nService {
   }
 
   /**
-   * 加载应用级默认国际化（App 挂载时调用）。
-   * 可配置默认命名空间，当前为空则跳过请求。
+   * Load application-level default i18n (called when the app mounts).
+   * Default namespaces can be configured; skips the request when empty.
    */
   async loadAppMessages(configs?: I18nLoadConfig[]): Promise<void> {
     await this.loadMessagesForConfig(configs ?? []);
   }
 
-  /** 切换语言并持久化到 localStorage */
+  /** Switch the locale and persist it to localStorage. */
   setLocale(locale: LocaleId): void {
-    // 同时支持 legacy 的 string locale 与 composition 的 ref locale。
+    // Supports both the legacy string `locale` and the composition-API ref `locale`.
     const global = this.i18n.global as unknown as I18nGlobalCompat;
     if (typeof global.locale === 'string') {
       global.locale = locale;

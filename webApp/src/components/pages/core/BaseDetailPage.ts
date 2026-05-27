@@ -18,7 +18,7 @@ export abstract class BaseDetailPage extends BasePage {
                 this.loadData()
             }
         } else {
-            console.error("rid不能为空！")
+            console.error("rid cannot be empty!")
         }
     }
 
@@ -56,7 +56,7 @@ export abstract class BaseDetailPage extends BasePage {
         if (isApiSuccessResponse(result) && payload != null) {
             this.postLoadDataSuccessfully(payload)
         } else {
-            ElMessage.error('数据加载失败！')
+            ElMessage.error('Failed to load data!')
         }
     }
 

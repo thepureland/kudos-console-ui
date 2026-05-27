@@ -1,4 +1,4 @@
-<!-- 组织新增/编辑 -->
+<!-- Organization add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -97,14 +97,14 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     this.loadDicts(['organization_type'], 'share');
   }
 
-  /** 租户级联与列表页一致：非严格模式 */
+  /** Tenant cascade behaves like the list page: non-strict mode */
   protected isCheckStrictly(): boolean {
     return false;
   }
 
   protected initVars(): void {
     super.initVars();
-    // 上级组织级联：非懒加载，用 organizationTree（根据 subSysOrTenant 调 loadTree，与列表页一致）
+    // Parent-org cascade: not lazy-loaded; uses organizationTree (loaded via loadTree from subSysOrTenant, mirroring the list page)
     this.state.cascaderProps = {
       value: 'id',
       label: 'name',
@@ -140,7 +140,7 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     return 'user/organization';
   }
 
-  /** 组织类型字典项译文从后端取（原子服务 share） */
+  /** Organization-type dict-item translations are fetched from the backend (share atomic service) */
   protected getI18nConfig() {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['organization_type'], atomicServiceCode: 'share' }];
   }
@@ -149,12 +149,12 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     return 'organizationAddEdit.messages.loadFailed';
   }
 
-  /** 租户变更时重新加载组织树并清空上级组织 */
+  /** When the tenant changes, reload the organization tree and clear the parent-org selection */
   onSubSysOrTenantChange(selectionFromChange?: string[]): void {
     this.loadOrganizationTree(selectionFromChange);
   }
 
-  /** 根据当前所选租户加载组织树（与列表页 loadTree 一致） */
+  /** Load the organization tree from the currently selected tenant (matches the list page's loadTree) */
   async loadOrganizationTree(selectionOverride?: string[]): Promise<void> {
     const arr = (selectionOverride ?? this.state.formModel?.subSysOrTenant) as string[] | undefined;
     if (!arr?.length) {
@@ -170,13 +170,13 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     if (Array.isArray(payload)) {
       this.state.organizationTree = payload;
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '加载组织机构树失败！');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load the organization tree!');
       this.state.organizationTree = [];
     }
     this.state.formModel.parent = [];
   }
 
-  /** 编辑时根据回填的 subSystemCode/tenantId 加载组织树 */
+  /** During edit, load the organization tree from the back-filled subSystemCode/tenantId */
   async loadOrganizationTreeForEdit(subSystemCode: string, tenantId: string | null): Promise<void> {
     const params = { subSystemCode, tenantId };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });

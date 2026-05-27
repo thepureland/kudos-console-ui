@@ -7,7 +7,7 @@ interface UseTreeSplitResizeOptions {
 }
 
 /**
- * 树/表分栏拖拽宽度控制，统一处理 mousemove/mouseup 绑定与卸载清理。
+ * Tree/table split-pane drag width control; uniformly handles mousemove/mouseup binding and unmount cleanup.
  */
 export function useTreeSplitResize(options: UseTreeSplitResizeOptions = {}) {
   const {

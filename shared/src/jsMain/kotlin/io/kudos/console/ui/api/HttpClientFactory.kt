@@ -30,7 +30,7 @@ private fun HttpClientConfig<*>.applyKudosDefaults() {
     }
 }
 
-/** Auth 等：非 2xx 抛错。 */
+/** Auth etc.: throws on non-2xx responses. */
 internal fun createHttpClient(): HttpClient =
     if (shouldUseMock()) {
         HttpClient(createMockEngine()) {
@@ -44,7 +44,7 @@ internal fun createHttpClient(): HttpClient =
         }
     }
 
-/** [BackendApi]：expectSuccess=false，4xx 仍返回响应体供前端解析业务 JSON。 */
+/** [BackendApi]: expectSuccess=false; 4xx still returns the response body so the frontend can parse business JSON. */
 internal fun createBackendHttpClient(): HttpClient =
     if (shouldUseMock()) {
         HttpClient(createMockEngine()) {

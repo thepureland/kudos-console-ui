@@ -4,7 +4,7 @@ import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiRe
 
 
 /**
- * 组织机构支持的添加/编辑页面处理抽象父类
+ * Abstract base class for add/edit pages that support organizations.
  *
  * @author K
  * @since 1.0.0
@@ -13,7 +13,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
 
     private parentCascader: any
 
-    /** @internal 需要 parentCascader 组件 ref，用于提交时取选中的父级节点 */
+    /** @internal Requires the parentCascader component ref so the selected parent node can be read on submit */
     protected constructor(
         props: Record<string, any>,
         context: { emit: (event: string, ...args: any[]) => void },
@@ -24,7 +24,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         this.convertThis()
     }
 
-    /** 在租户级联基础上增加懒加载级联配置与 formModel.parent */
+    /** On top of the tenant cascade, add lazy-loaded cascade options and formModel.parent */
     protected initVars() {
         super.initVars()
         const _self = this
@@ -42,7 +42,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         this.state.formModel.parent = []
     }
 
-    /** 子类可重写：提交时从 parent 级联取 tenantId/parentId/subSystemCode；Account 等改为从 subSysOrTenant + parent 取 */
+    /** Subclasses can override: on submit, read tenantId/parentId/subSystemCode from the parent cascade; pages like Account instead read from subSysOrTenant + parent */
     protected createSubmitParams(): any {
         const params = super.createSubmitParams()
         const nodes = this.parentCascader.value?.getCheckedNodes?.()
@@ -54,7 +54,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         return params
     }
 
-    /** 回填时用 subSystemCode、tenantId、parentIds 组装 formModel.parent 数组 */
+    /** When back-filling, assemble the formModel.parent array from subSystemCode, tenantId, and parentIds */
     protected fillForm(rowObject: any) {
         super.fillForm(rowObject)
         const parents = [rowObject.subSystemCode]
@@ -72,7 +72,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
 
     public loadTreeNodes!: (node: any, resolve: (data: any[]) => void) => void
 
-    /** 级联懒加载：根节点返回原子服务列表，子节点请求 organization 树接口 */
+    /** Cascade lazy-load: root nodes return the atomic-service list, child nodes request the organization tree endpoint */
     protected async doLoadTreeNodes(node: any, resolve: (data: any[]) => void) {
         if (node.level === 0) {
             if (this.getAtomicServices().length === 0) await this.loadAtomicServices()
@@ -91,12 +91,12 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
             if (Array.isArray(payload)) {
                 resolve(payload)
             } else {
-                ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '组织机构树加载失败！')
+                ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load the organization tree!')
             }
         }
     }
 
-    /** 从级联节点向上找到根节点，返回其 id（子系统编码） */
+    /** Walk up from a cascade node to the root and return its id (subsystem code) */
     protected getsubSystemCode(node: any): string {
         while (node.parent) {
             node = node.parent
@@ -104,7 +104,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         return node.data.id
     }
 
-    /** 从级联节点向上找到「组织=false」的节点，返回其 id 作为租户 id */
+    /** Walk up from a cascade node, find the first node with organization === false, and return its id as the tenant id */
     protected getTenantId(node: any): string | null {
         while (node.parent) {
             if (node.data.organization === false) {
@@ -115,7 +115,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         return null
     }
 
-    /** 当前节点为租户层或根则无父级 id，否则返回当前节点 id 作为 parentId */
+    /** Return null when the current node is at the tenant level or the root (no parent id); otherwise return the current node id as parentId */
     protected getParentId(node: any): string | null {
         if (node.data.organization === false || node.parent == undefined) {
             return null
@@ -123,7 +123,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         return node.data.id
     }
 
-    /** 绑定 loadTreeNodes 到 doLoadTreeNodes */
+    /** Bind loadTreeNodes to doLoadTreeNodes */
     protected convertThis() {
         super.convertThis()
         this.loadTreeNodes = (node: any, resolve: (data: any[]) => void) => {

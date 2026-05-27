@@ -2,9 +2,8 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import type { BaseListPage } from '../core/BaseListPage';
 
 /**
- * 列表页表格动态高度：根据表格容器顶部与分页栏占位，计算表格 max-height，填满内容区，避免分页下方留白。
- * 用法：在 setup 中调用并 return { tableWrapRef, paginationRef }，模板里用 ref 包住表格、给 el-pagination 加 ref，
- * el-table 使用 :max-height="tableMaxHeight"。
+ * Dynamic list-page table height: compute the table's max-height from the table wrapper's top and the pagination bar's footprint so the table fills the content area without leaving blank space below the pagination.
+ * Usage: call this in setup and return { tableWrapRef, paginationRef }; in the template, wrap the table with that ref, attach a ref to el-pagination, and bind el-table with :max-height="tableMaxHeight".
  *
  * @author: K
  * @author: AI: Cursor
@@ -14,14 +13,14 @@ export function useTableMaxHeight(listPage: BaseListPage & { state: { tableMaxHe
   const tableWrapRef = ref<HTMLElement | null>(null);
   const paginationRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
 
-  /** 从 paginationRef（可能为组件实例或 DOM）取实际 DOM 元素 */
+  /** Extract the actual DOM element from paginationRef (which may be a component instance or a DOM node) */
   function getPaginationEl(): HTMLElement | null {
     const p = paginationRef.value;
     if (!p) return null;
     return (p as { $el?: HTMLElement }).$el ?? (p as HTMLElement);
   }
 
-  /** 根据表格容器与分页元素重新计算并写入 listPage.state.tableMaxHeight */
+  /** Recompute and write listPage.state.tableMaxHeight from the table wrapper and pagination element */
   function updateTableMaxHeight() {
     listPage.updateTableMaxHeightByElements(tableWrapRef.value, getPaginationEl());
   }

@@ -1,33 +1,33 @@
 import { computed, type ComputedRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-/** 详情字段配置：labelKey 为 i18n key，key 对应 detail 属性，type 为展示方式；valueSpan 为值时占的格数（如 3 表示值占 3 格） */
+/** Detail field config: labelKey is an i18n key, key maps to a detail property, type chooses how to render; valueSpan is the number of grid columns the value occupies (e.g. 3 means the value spans 3 columns) */
 export type FieldConfig = {
   labelKey: string;
   key: string;
   type?: 'plain' | 'boolean' | 'date' | 'atomicService' | 'dict';
   dictModule?: string;
   dictCode?: string;
-  /** 值区域占的格数，如 3 表示 label 占 1 格、value 占 3 格（同一行仅此一项时生效） */
+  /** Number of grid columns the value area occupies, e.g. 3 means the label takes 1 column and the value takes 3 (only effective when this is the only field on the row) */
   valueSpan?: number;
 };
 
-/** 分组：从第几行开始显示分组标题（titleKey 为 i18n key） */
+/** Section: which row to start showing the section title on (titleKey is an i18n key) */
 export type SectionConfig = {
   start: number;
   titleKey: string;
 };
 
-/** 带 label 的字段（由 rowsWithSections 解析 labelKey 得到） */
+/** Field with a resolved label (produced by rowsWithSections from labelKey) */
 export type FieldWithLabel = FieldConfig & { label: string };
 
-/** 详情行定义。 */
+/** Detail row definition. */
 export type SectionedDetailRow = {
   sectionTitle: string | null;
   row: FieldWithLabel[];
 };
 
-/** 详情页实例需提供的方法与 state（与 BasePage 兼容） */
+/** Methods and state a detail-page instance must provide (compatible with BasePage) */
 export type SectionedDetailPage = {
   state: { detail: Record<string, unknown> | null };
   formatDate: (value: unknown) => string;
@@ -35,17 +35,17 @@ export type SectionedDetailPage = {
   transDict: (module: string, code: string, value: string) => string;
 };
 
-/** 分组详情 hook 配置。 */
+/** Sectioned-detail hook options. */
 export type UseSectionedDetailOptions = {
-  /** 空值占位文案的 i18n key，如 'cacheDetail.empty' */
+  /** i18n key for the empty-value placeholder text, e.g. 'cacheDetail.empty' */
   emptyKey: string;
-  /** 是否/否 的 i18n 前缀，如 'cacheList.common'，会取 key+'.yes' / key+'.no' */
+  /** i18n prefix for yes/no, e.g. 'cacheList.common'; will use key+'.yes' / key+'.no' */
   yesNoKey: string;
 };
 
 /**
- * 分段详情页通用逻辑：根据 ROW_FIELDS、SECTION_MAP 和当前语言生成 rowsWithSections，
- * 并提供按类型的 formatFieldValue。
+ * Shared sectioned-detail-page logic: builds rowsWithSections from ROW_FIELDS, SECTION_MAP, and the current locale,
+ * and provides a type-aware formatFieldValue.
  */
 export function useSectionedDetail(
   page: SectionedDetailPage,
@@ -69,7 +69,7 @@ export function useSectionedDetail(
     })
   );
 
-  /** 根据 field.type 从 page.state.detail 取字段值并格式化为展示文案（布尔/日期/原子服务/字典等） */
+  /** Pull the field value from page.state.detail according to field.type and format it for display (boolean/date/atomic service/dict/etc.) */
   function formatFieldValue(field: FieldConfig): string {
     const d = page.state.detail;
     if (!d) return '';

@@ -1,16 +1,16 @@
 <!--
- * 角色关联用户
+ * Role-user assignment dialog
  *
  * @author: K
  * @since 1.0.0
  -->
 <template>
-  <el-dialog title="关联用户" v-model="visible" width="25%" center @close="close">
+  <el-dialog title="Assign Users" v-model="visible" width="25%" center @close="close">
     <el-transfer
         v-model="assignedUsers"
         style="text-align: left; display: inline-block"
         filterable
-        :titles="['未关联的用户', '已关联的用户']"
+        :titles="['Unassigned Users', 'Assigned Users']"
         :format="{
           noChecked: '${total}',
           hasChecked: '${checked}/${total}',
@@ -22,8 +22,8 @@
     </el-transfer>
     <template #footer>
       <span class="dialog-footer">
-        <el-button type="primary" @click="submit">确 定</el-button>
-        <el-button @click="close">取 消</el-button>
+        <el-button type="primary" @click="submit">OK</el-button>
+        <el-button @click="close">Cancel</el-button>
       </span>
     </template>
   </el-dialog>
@@ -89,10 +89,10 @@ class UserAssignmentDialog extends BaseDetailPage {
     // @ts-ignore
     const result = await backendRequest({url: this.getRootActionPath() + "/assignUser", method: "post", params})
     if (isApiSuccessResponse(result)) {
-      ElMessage.success('保存成功！')
+      ElMessage.success('Saved successfully!')
       this.context.emit('update:modelValue', false)
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '保存失败！')
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Save failed!')
     }
   }
 

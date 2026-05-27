@@ -1,7 +1,7 @@
 <!--
-  作用：登录页“下雨+涟漪”视觉效果组件，仅负责生成雨滴/涟漪元素。
-  说明：不包含登录表单逻辑，配合 RainEffect.css 使用。
-  参考 https://blog.csdn.net/qq_35508835/article/details/116889827
+  Purpose: visual "rain + ripple" effect component for the login page; only responsible for generating raindrop/ripple elements.
+  Notes: contains no login form logic; used together with RainEffect.css.
+  Reference: https://blog.csdn.net/qq_35508835/article/details/116889827
   @author K
   @author AI: codex
   @since 1.0.0
@@ -15,7 +15,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import './RainEffect.css';
 
-// 雨层容器引用（用于动态插入雨滴/涟漪）
+// Rain-layer container ref (used to dynamically insert raindrops/ripples).
 const rainLayerRef = ref<HTMLElement | null>(null);
 
 let rainTimer: number | undefined;
@@ -23,13 +23,13 @@ let rippleTimer: number | undefined;
 let clientWidth = 0;
 let clientHeight = 0;
 
-// 读取当前视口尺寸
+// Read the current viewport size.
 function updateViewport() {
   clientWidth = document.body.clientWidth;
   clientHeight = document.body.clientHeight;
 }
 
-// 生成单个雨滴（短生命周期）
+// Spawn a single raindrop (short-lived).
 function spawnRaindrop() {
   const layer = rainLayerRef.value;
   if (!layer || !clientWidth) return;
@@ -42,7 +42,7 @@ function spawnRaindrop() {
   }, Math.floor(400 + Math.random() * 350));
 }
 
-// 生成单个涟漪（只在下半区）
+// Spawn a single ripple (only in the lower half).
 function spawnRipple() {
   const layer = rainLayerRef.value;
   if (!layer || !clientWidth || !clientHeight) return;
@@ -56,7 +56,7 @@ function spawnRipple() {
   }, 600);
 }
 
-// 启动雨滴与涟漪的循环生成
+// Start the loop that generates raindrops and ripples.
 function startRain() {
   const loopDrops = () => {
     spawnRaindrop();
@@ -70,7 +70,7 @@ function startRain() {
   loopRipples();
 }
 
-// 简单防抖，避免 resize 频繁触发
+// Simple debounce to avoid resize firing too frequently.
 function debounce<T extends (...args: never[]) => void>(fn: T, wait: number) {
   let timer: number | undefined;
   return (...args: Parameters<T>) => {
@@ -82,7 +82,7 @@ function debounce<T extends (...args: never[]) => void>(fn: T, wait: number) {
 onMounted(() => {
   updateViewport();
   startRain();
-  // 监听窗口尺寸变化
+  // Listen for window size changes.
   const onResize = debounce(updateViewport, 200);
   window.addEventListener('resize', onResize);
   (window as unknown as { __rainResize?: () => void }).__rainResize = onResize;
@@ -91,7 +91,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (rainTimer) window.clearTimeout(rainTimer);
   if (rippleTimer) window.clearTimeout(rippleTimer);
-  // 卸载 resize 监听
+  // Detach the resize listener.
   const stored = (window as unknown as { __rainResize?: () => void }).__rainResize;
   if (stored) window.removeEventListener('resize', stored);
 });

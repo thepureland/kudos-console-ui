@@ -1,5 +1,5 @@
 <!--
- * 访问规则新增/编辑：级联仅可选租户（叶子）；规则类型；租户数据由列表页注入。
+ * Access rule add/edit: cascader allows only tenant (leaf) selection; rule type; tenant data is injected by the list page.
  *
  * @author: AI: Cursor
  * @since 1.0.0
@@ -113,12 +113,12 @@ class AccessRuleFormPage extends TenantSupportAddEditPage {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['access_rule_type'], atomicServiceCode: 'sys' }];
   }
 
-  /** 与访问规则列表一致：第一级为 getAllActiveSubSystemCodes，懒加载租户 */
+  /** Consistent with the access-rule list: level 1 is getAllActiveSubSystemCodes; tenants are lazy-loaded. */
   protected getFirstLevelApiUrl(): string | null {
     return 'sys/system/getAllActiveSubSystemCodes';
   }
 
-  /** 提交前拆分级联；须选到租户（叶子），与级联 checkStrictly: false 一致 */
+  /** Before validation, split the cascader; the tenant (leaf) must be selected, matching the cascader's checkStrictly: false. */
   protected beforeValidate(): void {
     const subSysOrTenant = (this.state.formModel as AccessRuleFormModel).subSysOrTenant;
     const fm = this.state.formModel as AccessRuleFormModel;
@@ -156,7 +156,7 @@ class AccessRuleFormPage extends TenantSupportAddEditPage {
     return 'accessRuleAddEdit.messages.loadFailed';
   }
 
-  /** 后端编辑回显：仅当有租户时合并级联；平台级规则（无 tenantId）不填级联，由用户必选租户后保存 */
+  /** Backend edit back-fill: only merge the cascader when a tenant exists; platform-level rules (no tenantId) leave the cascader empty so the user must pick a tenant before saving. */
   protected fillForm(rowObject: Record<string, unknown>): void {
     BaseAddEditPage.prototype.fillForm.call(this, rowObject);
     const fm = this.state.formModel as AccessRuleFormModel;
@@ -184,7 +184,7 @@ class AccessRuleFormPage extends TenantSupportAddEditPage {
     }
   }
 
-  /** 提交字段与后端 ISysAccessRuleFormBase 一致；systemCode 来自级联第一级 */
+  /** Submission fields match the backend ISysAccessRuleFormBase; systemCode comes from the cascader's first level. */
   protected createSubmitParams(): Record<string, unknown> {
     const params = super.createSubmitParams() as Record<string, unknown>;
     delete params.subSysOrTenant;
@@ -199,11 +199,11 @@ export default defineComponent({
   name: 'AccessRuleFormPage',
   props: {
     ...commonAddEditDialogProps,
-    /** 与列表页 state.subSysOrTenants 同源，避免表单重复请求 */
+    /** Same source as the list page's state.subSysOrTenants to avoid redundant form requests. */
     listSubSysOrTenants: { type: Object, default: undefined },
     listCascaderProps: { type: Object, default: undefined },
     listAtomicServiceList: { type: Array, default: undefined },
-    /** 新增时从列表当前筛选预填：subSysOrTenant、accessRuleTypeDictCode */
+    /** On add, prefill from the list's current filters: subSysOrTenant and accessRuleTypeDictCode. */
     listSearchSnapshot: { type: Object, default: undefined },
   },
   emits: commonAddEditDialogEmits,

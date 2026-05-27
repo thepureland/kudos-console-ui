@@ -1,5 +1,5 @@
 <!--
- * 国际化列表：支持按键、国际化类型、原子服务、语言、仅启用筛选，表格前 4 列（键/值/语言/国际化类型）固定，其余列可拖拽排序，支持列可见性与操作列折角，多语言。
+ * I18n entries list: filter by key, i18n type, atomic service, locale, and active-only; the first four columns (key/value/locale/i18n type) are fixed and the rest are drag-reorderable; supports column visibility, an operation-column fold toggle, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -338,7 +338,7 @@
         />
       </template>
     </list-page-layout>
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <I18nFormPage
         :model-value="formVisible"
@@ -396,9 +396,9 @@ class I18nListPage extends BaseListPage {
         locale: null as string | null,
         active: true,
       },
-      /** 语言(locale)下拉选项（响应式，loadDicts 完成后更新） */
+      /** Locale dropdown options (reactive; updated after loadDicts finishes). */
       localeOptions: [] as Array<{ first: string; second: string }>,
-      /** 国际化类型下拉选项（响应式，second 为 i18n key，需用 t() 显示） */
+      /** I18n-type dropdown options (reactive; `second` is an i18n key and must be rendered via t()). */
       i18nTypeDictOptions: [] as Array<{ first: string; second: string }>,
     };
   }
@@ -407,7 +407,7 @@ class I18nListPage extends BaseListPage {
     return 'sys/i18n';
   }
 
-  /** 加载「国际化类型」「语言」字典项译文，供搜索栏下拉 t(item.second) 显示，全部从后端取 */
+  /** Load dict-item translations for "i18n type" and "locale" so the search bar's dropdowns can render t(item.second); all fetched from the backend. */
   protected getI18nConfig() {
     return [
       { i18nTypeDictCode: 'dict-item', namespaces: ['i18n_type', 'locale'], atomicServiceCode: 'sys' },

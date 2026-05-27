@@ -5,22 +5,22 @@ import { useAddEditDialogCloseGuard } from './useAddEditDialogCloseGuard';
 import { getGlobalLocale, loadMessagesForConfig } from '../../../i18n';
 import type { PageContext, PageProps } from '../core/pageTypes';
 
-/** 列表页 provide 此 key（值为 Ref<Set<string>>），AddEdit 注入后作为校验 i18n 的列表页级缓存，避免多次打开弹窗重复请求 */
+/** List pages provide this key (value: Ref<Set<string>>); after AddEdit injects it, it serves as the list-page-level cache for validation i18n so opening the dialog multiple times doesn't refetch */
 export const ValidationI18nCacheKey = Symbol('ValidationI18nCache');
 
-/** Add/Edit 通用 setup 配置。 */
+/** Common Add/Edit setup options. */
 export interface UseAddEditDialogSetupOptions {
-  /** 创建页面实例的工厂（如 () => new CacheAddEditPage(props, context)） */
+  /** Page-instance factory (e.g. () => new CacheAddEditPage(props, context)) */
   createPage: (props: PageProps, context: PageContext) => BaseAddEditPage;
-  /** i18n 文案前缀，如 'cacheAddEdit'，需包含 titleAdd、titleEdit、closeConfirm、buttons 等 */
+  /** i18n key prefix, e.g. 'cacheAddEdit'; must include titleAdd, titleEdit, closeConfirm, buttons, etc. */
   i18nKeyPrefix: string;
-  /** 新增模式下无快照时，根据是否有填写内容判断为 dirty */
+  /** In add mode without a snapshot, decide whether the form is dirty based on whether it has content */
   formHasContent: (model: Record<string, unknown>) => boolean;
 }
 
 /**
- * 添加/编辑弹窗通用 setup 逻辑：创建 page、watch rid/visible、关闭守卫、handleSubmit、return 模板所需 refs。
- * 与 useAddEditDialogCloseGuard 配合，供 CacheAddEdit、ParamAddEdit 等复用。
+ * Shared add/edit dialog setup logic: create page, watch rid/visible, close guard, handleSubmit, return refs the template needs.
+ * Pairs with useAddEditDialogCloseGuard; reused by CacheAddEdit, ParamAddEdit, and others.
  */
 export function useAddEditDialogSetup(
   props: PageProps,
@@ -64,12 +64,12 @@ export function useAddEditDialogSetup(
       if (modelVal === true && r != null && String(r).trim() !== '') {
         page.currentRid = String(r);
         nextTick(async () => {
-          // 复用同一个表单实例时，切到编辑模式需主动加载编辑校验规则
+          // When reusing the same form instance, switching to edit mode requires explicitly loading the edit validation rules
           await (page as unknown as { initValidationRule?: () => Promise<void> }).initValidationRule?.();
           await page.reloadRowData();
         });
       } else if (modelVal === true && (r == null || String(r).trim() === '')) {
-        // 新增：仅重置表单。校验规则与 i18n 已在 createPage 时由构造函数 initValidationRule 拉取，此处不再重复请求
+        // Add mode: only reset the form. Validation rules and i18n are already fetched by initValidationRule in the constructor during createPage, so no extra request here
         nextTick(() => (page as BaseAddEditPage).resetFormForAdd());
       }
     },
@@ -99,7 +99,7 @@ export function useAddEditDialogSetup(
   });
   registerOnEditFormLoaded();
 
-  /** 语言切换时重载本页字典项等 i18n，并重新请求后端校验规则（清除 BaseAddEditPage 内缓存） */
+  /** On locale change, reload this page's dict-item and other i18n, and re-request backend validation rules (clears the internal BaseAddEditPage cache) */
   watch(
     () => getGlobalLocale(),
     async () => {
@@ -110,7 +110,7 @@ export function useAddEditDialogSetup(
     { immediate: false }
   );
 
-  /** 模板中提交按钮调用，转发到 page.doSubmit */
+  /** Called by the submit button in the template; forwards to page.doSubmit */
   function handleSubmit(): void {
     (page as unknown as { doSubmit: () => void }).doSubmit();
   }
@@ -131,7 +131,7 @@ export function useAddEditDialogSetup(
     handleBeforeClose,
     handleCloseRequest,
     handleSubmit,
-    /** 页面类实例（reactive），供子组件 setup 调用 loadRowData、loadCascade 等 */
+    /** Reactive page-class instance, allowing child component setups to call loadRowData, loadCascade, etc. */
     page,
   };
 }

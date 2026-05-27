@@ -1,6 +1,6 @@
 import type { PropType } from 'vue';
 
-/** Add/Edit 弹窗通用 props：modelValue、rid、onSaved。 */
+/** Common Add/Edit dialog props: modelValue, rid, onSaved. */
 export const commonAddEditDialogProps = {
   modelValue: {
     type: Boolean,
@@ -16,5 +16,5 @@ export const commonAddEditDialogProps = {
   },
 };
 
-/** Add/Edit 弹窗通用 emits。 */
+/** Common Add/Edit dialog emits. */
 export const commonAddEditDialogEmits = ['update:modelValue', 'response'] as const;

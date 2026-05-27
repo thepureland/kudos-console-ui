@@ -1,4 +1,4 @@
-<!-- 组详情 -->
+<!-- Group detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -23,7 +23,7 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** 与 CacheDetail 一致：每行最多 2 个字段；其他信息放最后，备注接在内置后面。 */
+/** Same convention as CacheDetail: at most 2 fields per row; other info goes last and remark follows the built-in fields. */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'userGroupDetail.sections.basicInfo' },
   { start: 2, titleKey: 'userGroupDetail.sections.audit' },

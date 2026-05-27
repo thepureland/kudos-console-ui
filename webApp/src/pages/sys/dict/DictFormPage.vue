@@ -1,4 +1,4 @@
-<!-- 字典 新增/编辑 -->
+<!-- Dictionary add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -206,5 +206,5 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 仅字典页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
+/* Add dictionary-specific overrides here; shared styles live in add-edit-dialog-common.css */
 </style>

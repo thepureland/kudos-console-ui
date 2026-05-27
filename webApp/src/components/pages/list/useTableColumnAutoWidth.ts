@@ -1,36 +1,36 @@
 import { ref, watch, nextTick, onUnmounted } from 'vue';
 import type { Ref } from 'vue';
 
-/** 自动列宽计算列配置。 */
+/** Per-column config for auto-width calculation. */
 export interface TableColumnAutoWidthConfig {
   key: string;
-  /** 列头显示文案（用于测量宽度） */
+  /** Header display text (used to measure width) */
   getLabel: () => string;
-  /** 是否有排序图标（需预留图标宽度） */
+  /** Whether the column has a sort icon (reserve icon width) */
   sortable?: boolean;
-  /** 从行数据取单元格展示文案，用于按内容算宽；不传则只按列头宽度 */
+  /** Pull the cell display text from a row, used for content-based widths; if omitted, only the header width is considered */
   getCellText?: (row: Record<string, unknown>) => string;
 }
 
-/** 自动列宽 hook 配置。 */
+/** Auto column-width hook options. */
 export interface UseTableColumnAutoWidthOptions {
-  /** 表格外层容器 ref（用于取可用宽度和表头字体） */
+  /** Outer table container ref (used to read available width and header font) */
   containerRef: Ref<HTMLElement | null>;
-  /** 参与自动算宽的列配置（仅非固定列） */
+  /** Configs of columns participating in auto-width (non-fixed columns only) */
   columns: Ref<TableColumnAutoWidthConfig[]>;
-  /** 表格数据，用于按内容测宽 */
+  /** Table data, used for content-based measurement */
   tableData: Ref<Array<Record<string, unknown>>>;
-  /** 左侧固定列总宽度（选择列+序号列+固定名称列等），从可用宽度中扣除 */
+  /** Total width of left fixed columns (selection + index + fixed name, etc.), subtracted from the available width */
   reservedWidthLeft?: number;
-  /** 右侧固定列总宽度（如操作列），从可用宽度中扣除 */
+  /** Total width of right fixed columns (e.g. operations), subtracted from the available width */
   reservedWidthRight?: number;
-  /** 单元格左右内边距之和（px），默认 16 */
+  /** Sum of left and right cell padding (px), default 16 */
   cellPadding?: number;
-  /** 排序列预留的排序图标宽度（px），默认 24 */
+  /** Reserved sort-icon width for sortable columns (px), default 24 */
   sortIconWidth?: number;
-  /** 单列最小宽度（px），默认 60 */
+  /** Minimum column width (px), default 60 */
   minColumnWidth?: number;
-  /** 单列最大宽度（px），不传则不设上限 */
+  /** Maximum column width (px); if omitted, no upper bound */
   maxColumnWidth?: number;
 }
 
@@ -40,8 +40,8 @@ const DEFAULT_MIN_COLUMN_WIDTH = 60;
 const FALLBACK_FONT = '14px var(--el-font-family)';
 
 /**
- * 根据列名和内容长度自动算列宽，供列表页表格共用。
- * 规则：先保证列头（含排序图标）能一行显示；再在剩余空间内按列顺序优先让前面的列尽量显示全内容。
+ * Auto-compute column widths from column names and content lengths, shared across list-page tables.
+ * Rules: first ensure each header (including the sort icon) fits on one line, then within the remaining space prefer to fully display leading columns' content in order.
  */
 export function useTableColumnAutoWidth(options: UseTableColumnAutoWidthOptions) {
   const {
@@ -60,7 +60,7 @@ export function useTableColumnAutoWidth(options: UseTableColumnAutoWidthOptions)
 
   let measureEl: HTMLDivElement | null = null;
 
-  /** 获取或创建离屏测量用 div，用于测量文本宽度 */
+  /** Get or create the off-screen measurement div used to measure text width */
   function getMeasureEl(): HTMLDivElement {
     if (measureEl) return measureEl;
     measureEl = document.createElement('div');
@@ -83,7 +83,7 @@ export function useTableColumnAutoWidth(options: UseTableColumnAutoWidthOptions)
     return FALLBACK_FONT;
   }
 
-  /** 在测量元素内用指定字体渲染文本并返回宽度（px） */
+  /** Render text inside the measurement element with the given font and return the width in px */
   function measureText(text: string, font: string): number {
     if (text == null || text === '') return 0;
     const el = getMeasureEl();
@@ -98,7 +98,7 @@ export function useTableColumnAutoWidth(options: UseTableColumnAutoWidthOptions)
     return Math.ceil(w);
   }
 
-  /** 根据容器宽度、列配置与表格数据计算每列宽度并写入 columnWidths */
+  /** Compute each column's width from the container width, column configs, and table data, and write into columnWidths */
   function compute() {
     const container = containerRef.value;
     const cols = columns.value;
@@ -184,7 +184,7 @@ export function useTableColumnAutoWidth(options: UseTableColumnAutoWidthOptions)
     columnWidths.value = result;
   }
 
-  /** 在 nextTick 中执行 compute，供外部在挂载或数据变化后主动触发 */
+  /** Run compute in nextTick; callers trigger this manually after mount or data changes */
   function run() {
     nextTick(() => compute());
   }

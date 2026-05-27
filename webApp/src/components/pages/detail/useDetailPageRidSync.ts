@@ -11,7 +11,7 @@ export interface UseDetailPageRidSyncOptions {
 }
 
 /**
- * 同步 props.rid 到 page.state.rid，并在 rid 变化时触发详情刷新。
+ * Sync props.rid to page.state.rid and trigger a detail refresh when rid changes.
  */
 export function useDetailPageRidSync(
   props: PageProps,

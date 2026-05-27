@@ -1,7 +1,7 @@
 import { nextTick, watch } from 'vue';
 
 /**
- * 监听列可见性与操作列显隐，统一触发表格固定左列重布局。
+ * Watch column visibility and operation-column show/hide, triggering a unified relayout of the table's fixed-left columns.
  */
 export function useFixedLeftRelayoutWatcher(
   listPage: { state?: Record<string, unknown> },

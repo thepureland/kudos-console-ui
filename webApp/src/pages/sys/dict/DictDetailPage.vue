@@ -1,4 +1,4 @@
-<!-- 字典类型详情 -->
+<!-- Dictionary type detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -63,7 +63,7 @@ import type { PageContext, PageProps } from '../../../components/pages/core';
 import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, SectionedDetailDialog } from '../../../components/pages/detail';
 import type { DetailPageViewModel } from '../../../components/pages/detail';
 
-/** 分组：基本信息、审计信息、其他信息 */
+/** Sections: basic info, audit info, other info. */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'dictDetail.sections.basicInfo' },
   { start: 3, titleKey: 'dictDetail.sections.audit' },
@@ -121,12 +121,12 @@ class DictDetailPage extends BaseDetailPage {
     return 'sys/dict';
   }
 
-  /** 字典详情用 getDict 接口（与 mock/后端一致），参数 id */
+  /** Dictionary detail uses the getDict endpoint (matches mock/backend); parameter is id. */
   protected getDetailLoadUrl(): string {
     return this.getRootActionPath() + '/getDict';
   }
 
-  /** 始终用 state.rid 请求详情 */
+  /** Always use state.rid when requesting the detail. */
   protected createDetailLoadParams(): Record<string, unknown> {
     return { id: String(this.state.rid || this.props.rid || '') };
   }
@@ -165,7 +165,7 @@ class DictDetailPage extends BaseDetailPage {
       st.tableData = payload.data ?? [];
       st.itemsTotal = payload.totalCount ?? 0;
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('dictDetail.messages.loadItemsFailed') as string) || '字典项加载失败！');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('dictDetail.messages.loadItemsFailed') as string) || 'Failed to load dictionary items!');
     }
   }
 }

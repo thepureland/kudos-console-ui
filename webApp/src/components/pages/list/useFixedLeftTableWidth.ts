@@ -2,12 +2,12 @@ import { nextTick } from 'vue';
 import type { Ref } from 'vue';
 
 /**
- * 列表页固定左侧列总宽度：在表格 doLayout 后把 .el-table__fixed-left 的宽度设为指定像素。
- * 用于选择列+序号列+固定名称列等左侧固定区域宽度一致，避免错位。
+ * List-page fixed left column total width: after the table's doLayout, set the width of `.el-table__fixed-left` to the given pixel value.
+ * Keeps the left-fixed area (selection column + index column + fixed name column) at a consistent width and avoids misalignment.
  *
- * @param tableRef 表格组件 ref（需有 doLayout、$el）
- * @param totalWidthPx 固定左侧总宽度（px），如 39 + 50 + 120
- * @returns forceFixedLeftWidth 无参函数，调用后在下个 nextTick 内设置宽度
+ * @param tableRef table component ref (must expose doLayout and $el)
+ * @param totalWidthPx total fixed-left width in px, e.g. 39 + 50 + 120
+ * @returns forceFixedLeftWidth no-arg function; calling it sets the width on the next nextTick
  */
 export function useFixedLeftTableWidth(
   tableRef: Ref<{ doLayout?: () => void; $el?: HTMLElement } | null>,

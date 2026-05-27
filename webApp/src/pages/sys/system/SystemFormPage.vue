@@ -1,4 +1,4 @@
-<!-- 系统新增/编辑 -->
+<!-- System add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -136,7 +136,7 @@ interface FormModel {
 }
 
 class SystemFormPage extends BaseAddEditPage {
-  /** 接口返回的启用非子系统编码（未排除当前行 code） */
+  /** Active non-subsystem codes returned by the API (does not exclude the current row's code) */
   private parentCodeOptionsRaw: string[] = [];
 
   constructor(props: PageProps, context: PageContext) {
@@ -153,18 +153,18 @@ class SystemFormPage extends BaseAddEditPage {
         subSystem: true,
         remark: null,
       } as FormModel,
-      /** 父级下拉：可选项（排除自身编码，且含回填父级） */
+      /** Parent dropdown: selectable options (excludes the current code, includes any back-filled parent) */
       parentCodeOptions: [] as string[],
       parentCodeOptionsLoading: false,
     };
   }
 
-  /** 重新拉取父级编码列表（新增系统后点刷新避免缓存未更新） */
+  /** Re-fetch the parent code list (use refresh after adding a system to avoid stale cache) */
   public reloadParentSystemCodes(): Promise<void> {
     return this.loadParentSystemCodes();
   }
 
-  /** 下拉：sys/system/getAllActiveSystemCodes */
+  /** Dropdown source: sys/system/getAllActiveSystemCodes */
   private async loadParentSystemCodes(): Promise<void> {
     (this.state as Record<string, unknown>).parentCodeOptionsLoading = true;
     try {
@@ -181,7 +181,7 @@ class SystemFormPage extends BaseAddEditPage {
     this.syncParentCodeOptions();
   }
 
-  /** 根据原始列表与当前表单 code/parentCode 生成下拉选项 */
+  /** Build dropdown options from the raw list combined with the current form's code/parentCode */
   private syncParentCodeOptions(): void {
     const raw = this.parentCodeOptionsRaw;
     const selfCode = String((this.state.formModel as FormModel).code ?? '').trim();
@@ -226,7 +226,7 @@ export default defineComponent({
       formHasContent(model: Record<string, unknown>) {
         return hasAnyFormContent(model, {
           stringKeys: ['code', 'name', 'parentCode', 'remark'],
-          // 子系统默认 true，不计入 trueKeys；用户关为 false 视为有改动
+          // subSystem defaults to true so it isn't in trueKeys; the user turning it off (false) counts as a change
           customChecks: [(m) => m.subSystem === false],
         });
       },

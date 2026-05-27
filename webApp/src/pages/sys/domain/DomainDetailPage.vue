@@ -1,4 +1,4 @@
-<!-- 域名详情 -->
+<!-- Domain detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -25,7 +25,7 @@ import type { PageContext, PageProps } from '../../../components/pages/core';
 import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, SectionedDetailDialog } from '../../../components/pages/detail';
 import type { DetailPageViewModel } from '../../../components/pages/detail';
 
-/** 分组：从第几行开始显示分组标题（其他信息放最后） */
+/** Sections: row index at which each section title appears (other info goes last). */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'domainDetail.sections.basicInfo' },
   { start: 3, titleKey: 'domainDetail.sections.audit' },
@@ -81,7 +81,7 @@ class DomainDetailPage extends BaseDetailPage {
     if (payload != null && typeof payload === 'object' && !Array.isArray(payload)) {
       this.postLoadDataSuccessfully(payload);
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '数据加载失败！');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load data!');
     }
   }
 

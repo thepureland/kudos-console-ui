@@ -1,4 +1,4 @@
-<!-- 字典项详情 -->
+<!-- Dictionary item detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -23,7 +23,7 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** 分组：基本信息、审计信息、其他信息 */
+/** Sections: basic info, audit info, other info */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'dictItemDetail.sections.basicInfo' },
   { start: 3, titleKey: 'dictItemDetail.sections.audit' },

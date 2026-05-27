@@ -1,8 +1,8 @@
 /**
- * 开发时直连后端，解决前后端端口不同的问题。
- * 当 VITE_API_DIRECT=true 时，请求直接发往后端，绕过 Vite 代理。
- * 需在 main.ts 中首个 import，确保在 shared 加载前设置。
- * 后端需配置 CORS 允许前端源（如 http://localhost:8888）。
+ * Direct backend connection during development; works around frontend/backend port differences.
+ * When VITE_API_DIRECT=true, requests go straight to the backend, bypassing the Vite proxy.
+ * Must be the first import in main.ts so it is set before `shared` is loaded.
+ * The backend must allow the frontend origin (e.g. http://localhost:8888) via CORS.
  */
 const target = import.meta.env.VITE_API_DIRECT_TARGET || import.meta.env.VITE_API_PROXY_TARGET;
 if (import.meta.env.VITE_API_DIRECT === 'true' && target && typeof window !== 'undefined') {

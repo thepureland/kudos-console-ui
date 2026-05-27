@@ -1,5 +1,5 @@
 <!--
- * 角色列表：支持按子系统/租户、角色编码、角色名称、仅启用筛选，表格支持列可见性、操作列折角、列拖拽排序，多语言。
+ * Role list: filter by subsystem/tenant, role code, role name, and active-only; the table supports column visibility, an operation-column fold toggle, drag-reorder of columns, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -298,7 +298,7 @@
       </template>
     </list-page-layout>
 
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <role-form-page
         :model-value="formVisible"
@@ -372,7 +372,7 @@ class RoleListPage extends TenantSupportListPage {
     return 'rbac/role';
   }
 
-  /** 资源类型、用户状态、用户类型字典项译文从后端取（含 UserListDialog） */
+  /** Resource type, user status, and user type dict-item translations come from the backend (also used by UserListDialog). */
   protected getI18nConfig() {
     return [
       { i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' },
@@ -380,7 +380,7 @@ class RoleListPage extends TenantSupportListPage {
     ];
   }
 
-  /** 租户级联只能选第二级（必须选到具体租户），不能只选子系统 */
+  /** Tenant cascader allows only the second level (must pick a specific tenant); selecting only a subsystem is not allowed. */
   protected isCheckStrictly(): boolean {
     return false;
   }
@@ -409,7 +409,7 @@ class RoleListPage extends TenantSupportListPage {
     if (resType === 1) {
       this.state.menuAuthorizationDialogVisible = true;
     } else if (resType === 2) {
-      // 其他资源类型可扩展
+      // Other resource types can be added here
     }
   }
 
@@ -537,7 +537,7 @@ export default defineComponent({
       onTableDrop,
       showOperationColumn,
       onTableWrapMounted,
-      // 原型方法需显式暴露，否则 toRefs(listPage) 不包含
+      // Prototype methods must be exposed explicitly; toRefs(listPage) doesn't include them.
       commandValue: (item: unknown, row: Record<string, unknown>) => listPage.commandValue(item, row),
       authorize: (cmd: { item: unknown; row: Record<string, unknown> }) => listPage.authorize(cmd),
       assign: (cmd: { item: number; row: Record<string, unknown> }) => listPage.assign(cmd),
@@ -554,7 +554,7 @@ export default defineComponent({
   height: 100%;
 }
 .role-list-page :deep(.list-page-card) {
-  margin-top: 3px; /* 卡片上外边距 */
+  margin-top: 3px; /* card top outer margin */
 }
 .role-list-page .list-page-toolbar .toolbar-cascader,
 .role-list-page .list-page-toolbar .toolbar-name {
@@ -625,7 +625,7 @@ export default defineComponent({
   font-size: 14px;
 }
 
-/* 操作列内容单行显示不换行 */
+/* Keep the operation column's content on a single line without wrapping. */
 .role-list-page :deep(.operation-column-cell) {
   display: flex;
   flex-wrap: nowrap;

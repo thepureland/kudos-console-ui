@@ -1,4 +1,4 @@
-<!-- 字典项 新增/编辑（内容复制自 DictFormPage.vue） -->
+<!-- Dictionary item add/edit (content copied from DictFormPage.vue). -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -213,7 +213,7 @@ class DictItemFormPage extends BaseAddEditPage {
     model.parent = parents;
   }
 
-  /** 第三层及以下（字典项）节点名称：优先 dict-item 国际化 t(dictType.itemCode)，否则 itemName/code。需先 loadMessagesForConfig。 */
+  /** Names for level-3 and deeper (dict items): prefer dict-item i18n via t(dictType.itemCode); otherwise itemName/code. Requires loadMessagesForConfig first. */
   private transDictItemName(dictType: string, itemCode: string, itemName: string): string {
     if (!itemCode) return itemName || '';
     const key = dictType + '.' + itemCode;
@@ -221,7 +221,7 @@ class DictItemFormPage extends BaseAddEditPage {
     return (translated !== key ? translated : null) ?? itemName ?? itemCode;
   }
 
-  /** 上级级联数据加载方式与列表页树一致：level0 原子服务 → level1 字典类型 → level2 字典项 → level3+ 子项 */
+  /** Parent-cascader data loading mirrors the list page's tree: level 0 atomic service -> level 1 dict type -> level 2 dict items -> level 3+ child items. */
   private async doLoadTreeNodes(node: CascaderNode, resolve: (data: unknown[]) => void): Promise<void> {
     const activeOnly = true;
     const cache = this.state.parentCache as Record<string, string>;
@@ -235,7 +235,7 @@ class DictItemFormPage extends BaseAddEditPage {
           id: item.code,
           code: item.code,
           name: item.name,
-          disabled: true, // 第一层仅用于展开，不允许选择
+          disabled: true, // The first level is only for expansion; not selectable.
         }));
         resolve(nodes);
         this.autoSelectParentWhenAdd(node, nodes as Array<Record<string, unknown>>);
@@ -305,7 +305,7 @@ class DictItemFormPage extends BaseAddEditPage {
       });
       resolve(nodes);
     } catch {
-      ElMessage.error((i18n.global.t('dictAddEdit.messages.loadTreeFailed') as string) || '字典树加载失败！');
+      ElMessage.error((i18n.global.t('dictAddEdit.messages.loadTreeFailed') as string) || 'Failed to load dictionary tree!');
       resolve([]);
     }
   }
@@ -358,5 +358,5 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 仅字典项页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
+/* Add dict-item-page-specific overrides here; shared styles live in add-edit-dialog-common.css. */
 </style>

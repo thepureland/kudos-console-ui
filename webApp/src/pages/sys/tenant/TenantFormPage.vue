@@ -1,4 +1,4 @@
-<!-- 租户新增/编辑 -->
+<!-- Tenant add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -92,7 +92,7 @@ import type { AddEditDialogContext, AddEditDialogProps } from '../../../componen
 
 interface FormModel {
   name: string | null;
-  /** 选中的子系统编码（多选） */
+  /** Selected subsystem codes (multi-select) */
   subSystemCodes: string[];
   remark: string | null;
 }
@@ -110,7 +110,7 @@ class TenantFormPage extends BaseAddEditPage {
         subSystemCodes: [],
         remark: null,
       } as FormModel,
-      /** 子系统下拉选项：启用子系统编码列表 */
+      /** Subsystem dropdown options: list of active subsystem codes */
       subSystemCodesOptions: [] as string[],
     };
   }
@@ -119,7 +119,7 @@ class TenantFormPage extends BaseAddEditPage {
     return 'sys/tenant';
   }
 
-  /** 本模块编辑拉数仍使用 /get，非原 getDetail 路径 */
+  /** This module's edit-time fetch still uses /get, not the original getDetail path */
   protected getRowObjectLoadUrl(): string {
     return this.getRootActionPath() + '/get';
   }
@@ -128,7 +128,7 @@ class TenantFormPage extends BaseAddEditPage {
     return 'tenantAddEdit.messages.loadFailed';
   }
 
-  /** 租户新增/编辑子系统下拉：调用 sys/system/getAllActiveSubSystemCodes，结果为启用子系统编码列表 */
+  /** Tenant add/edit subsystem dropdown: call sys/system/getAllActiveSubSystemCodes; the result is the list of active subsystem codes */
   private async loadSubSystems(): Promise<void> {
     try {
       const result = await backendRequest({ url: 'sys/system/getAllActiveSubSystemCodes' });
@@ -140,7 +140,7 @@ class TenantFormPage extends BaseAddEditPage {
     }
   }
 
-  /** 回填时兼容后端返回 subSystemCodes（数组）或 subSystemCode（单值） */
+  /** When back-filling, support either subSystemCodes (array) or subSystemCode (single value) from the backend */
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
     const fm = this.state.formModel as FormModel;
@@ -174,5 +174,5 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 仅租户页特有覆盖时可在此添加，共用样式见 add-edit-dialog-common.css */
+/* Add tenant-specific overrides here; shared styles live in add-edit-dialog-common.css */
 </style>

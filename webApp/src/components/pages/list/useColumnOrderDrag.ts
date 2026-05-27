@@ -1,21 +1,21 @@
 import { computed, ref } from 'vue';
 import { nextTick } from 'vue';
 
-/** 列拖拽排序配置。 */
+/** Column drag-and-sort options. */
 export interface UseColumnOrderDragOptions {
-  /** 列顺序变更并持久化后调用（如用于 nextTick(forceFixedLeftWidth)） */
+  /** Called after the column order changes and is persisted (e.g. for nextTick(forceFixedLeftWidth)) */
   onOrderChange?: () => void;
-  /** 从 localStorage 读取后对顺序做一次规范化（如强制某列紧跟某列） */
+  /** Normalize the order once after reading from localStorage (e.g. force a column to always follow another) */
   normalizeOrder?: (order: string[]) => string[];
 }
 
 /**
- * 列表页「列顺序持久化 + 表头拖拽排序」通用逻辑。
- * 从 localStorage 读取/写入列顺序，提供 orderedColumnKeys 与拖拽事件处理函数。
+ * Shared list-page logic for "persist column order + drag-to-reorder column headers".
+ * Reads/writes the column order from localStorage and exposes orderedColumnKeys plus drag event handlers.
  *
- * @param storageKey localStorage key，如 'tenantList.columnOrder'
- * @param allColumnKeys 当前页所有可排序列的 key（不含 index/selection）
- * @param options.onOrderChange 顺序变更后调用，可选
+ * @param storageKey localStorage key, e.g. 'tenantList.columnOrder'
+ * @param allColumnKeys keys of all reorderable columns on the current page (excluding index/selection)
+ * @param options.onOrderChange called after the order changes, optional
  */
 export function useColumnOrderDrag(
   storageKey: string,
@@ -25,7 +25,7 @@ export function useColumnOrderDrag(
   const onOrderChange = options?.onOrderChange;
   const normalizeOrder = options?.normalizeOrder;
 
-  /** 从 localStorage 读取列顺序，无效或缺失时返回 allColumnKeys 副本，并可选执行 normalizeOrder */
+  /** Read the column order from localStorage; return a copy of allColumnKeys if invalid or missing, optionally running normalizeOrder */
   function loadColumnOrder(): string[] {
     if (typeof window === 'undefined') return [...allColumnKeys];
     try {
@@ -49,7 +49,7 @@ export function useColumnOrderDrag(
     }
   }
 
-  /** 将列顺序持久化到 localStorage */
+  /** Persist the column order to localStorage */
   function saveColumnOrder(order: string[]) {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(storageKey, JSON.stringify(order));
@@ -81,7 +81,7 @@ export function useColumnOrderDrag(
     columnDropTargetKey.value = toKey;
   }
 
-  /** 将拖拽列放到 toKey 位置，更新 columnOrder、持久化并触发 onOrderChange */
+  /** Move the dragged column to toKey's position, update columnOrder, persist, and trigger onOrderChange */
   function applyColumnDrop(toKey: string) {
     const fromKey = columnDragKey.value;
     columnDragKey.value = null;

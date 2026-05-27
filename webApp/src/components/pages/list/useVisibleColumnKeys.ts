@@ -1,7 +1,7 @@
 import { computed } from 'vue';
 
 /**
- * 列可见性双向绑定：读取 listPage.state.visibleColumnKeys，并写回 applyVisibleColumns。
+ * Two-way binding for column visibility: reads listPage.state.visibleColumnKeys and writes back via applyVisibleColumns.
  */
 export function useVisibleColumnKeys(listPage: {
   state: Record<string, unknown>;

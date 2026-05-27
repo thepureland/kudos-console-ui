@@ -8,7 +8,7 @@ interface UseColumnVisibilityOptionsOptions {
 }
 
 /**
- * 统一生成列可见性面板选项，避免页面内重复 computed 样板。
+ * Build column-visibility panel options in one place to avoid duplicated computed boilerplate across pages.
  */
 export function useColumnVisibilityOptions(options: UseColumnVisibilityOptionsOptions) {
   const { indexColumnKey, getIndexLabel, getColumnKeys, getColumnLabel } = options;
