@@ -5,8 +5,8 @@
       <el-card class="login-card" shadow="always">
         <template #header>
           <div class="login-header">
-            <h1 class="login-title">Kudos控制台</h1>
-            <p class="login-subtitle">请登录</p>
+            <h1 class="login-title">Kudos Console</h1>
+            <p class="login-subtitle">Please sign in</p>
           </div>
         </template>
 
@@ -18,10 +18,10 @@
           class="login-form"
           @submit.prevent="handleSubmit"
         >
-          <el-form-item label="用户名" prop="username">
+          <el-form-item label="Username" prop="username">
             <el-input
               v-model="form.username"
-              placeholder="请输入用户名"
+              placeholder="Please enter your username"
               size="large"
               clearable
               :prefix-icon="User"
@@ -30,11 +30,11 @@
             />
           </el-form-item>
 
-          <el-form-item label="密码" prop="password">
+          <el-form-item label="Password" prop="password">
             <el-input
               v-model="form.password"
               type="password"
-              placeholder="请输入密码"
+              placeholder="Please enter your password"
               size="large"
               show-password
               clearable
@@ -44,11 +44,11 @@
             />
           </el-form-item>
 
-          <el-form-item label="验证码" prop="totpCode">
+          <el-form-item label="Verification code" prop="totpCode">
             <el-input
               ref="totpInputRef"
               v-model="form.totpCode"
-              placeholder="请输入 6 位验证码"
+              placeholder="Please enter the 6-digit code"
               size="large"
               clearable
               :prefix-icon="Key"
@@ -58,7 +58,7 @@
               autocomplete="one-time-code"
               @keyup.enter="handleSubmit"
             />
-            <div class="totp-tip">请使用 Google Authenticator 等应用生成的 6 位动态码</div>
+            <div class="totp-tip">Please use the 6-digit one-time code from an app like Google Authenticator</div>
           </el-form-item>
 
           <el-form-item>
@@ -69,7 +69,7 @@
               :loading="loading"
               native-type="submit"
             >
-              {{ loading ? '登录中...' : '登录' }}
+              {{ loading ? 'Signing in...' : 'Sign in' }}
             </el-button>
           </el-form-item>
         </el-form>
@@ -103,22 +103,22 @@ const form = reactive({
 
 const rules: FormRules = {
   username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 2, message: '用户名至少 2 个字符', trigger: 'blur' },
+    { required: true, message: 'Please enter your username', trigger: 'blur' },
+    { min: 2, message: 'Username must be at least 2 characters', trigger: 'blur' },
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少 6 个字符', trigger: 'blur' },
+    { required: true, message: 'Please enter your password', trigger: 'blur' },
+    { min: 6, message: 'Password must be at least 6 characters', trigger: 'blur' },
   ],
   totpCode: [
-    { required: true, message: '请输入谷歌动态验证码', trigger: 'blur' },
-    { len: 6, message: '验证码为 6 位数字', trigger: 'blur' },
-    { pattern: /^\d{6}$/, message: '验证码为 6 位数字', trigger: 'blur' },
+    { required: true, message: 'Please enter your Google Authenticator code', trigger: 'blur' },
+    { len: 6, message: 'Verification code must be 6 digits', trigger: 'blur' },
+    { pattern: /^\d{6}$/, message: 'Verification code must be 6 digits', trigger: 'blur' },
   ],
 };
 
 const loading = ref(false);
-// 雨层容器引用（用于动态插入雨滴/涟漪）
+// Rain-layer container ref (used to dynamically insert raindrops/ripples).
 
 function focusTotp() {
   totpInputRef.value?.focus();
@@ -139,7 +139,7 @@ async function doLogin() {
   if (!validation.isValid()) {
     const msg = [validation.usernameError, validation.passwordError, validation.totpError]
       .filter(Boolean)
-      .join('；');
+      .join('; ');
     ElMessage.warning(msg);
     return;
   }
@@ -149,10 +149,10 @@ async function doLogin() {
     const api = AuthApiFactory.getInstance().getAuthApi();
     await api.login(request);
     store.commit('setAuthenticated', true);
-    ElMessage.success('登录成功');
+    ElMessage.success('Login successful');
     await router.push('/home');
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : '登录失败';
+    const msg = e instanceof Error ? e.message : 'Login failed';
     ElMessage.error(msg);
   } finally {
     loading.value = false;

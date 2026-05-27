@@ -1,5 +1,5 @@
 <!--
- * 字典列表：左侧字典类型树、右侧表格，支持工具栏筛选、栏位可见性、分页，多语言。
+ * Dictionary list: dict-type tree on the left, table on the right; supports toolbar filtering, column visibility, pagination, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -273,7 +273,7 @@
         </div>
       </div>
 
-      <!-- 字典添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+      <!-- Dict add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
       <div v-if="hasFormEverOpened" v-show="formVisible">
         <dict-form-page
           :model-value="formVisible"
@@ -283,7 +283,7 @@
           @response="onFormResponse"
         />
       </div>
-      <!-- 字典项添加/编辑共用一个表单，首次打开任一时挂载，getValidationRule 仅触发一次 -->
+      <!-- Dict-item add/edit share a single form; mounted on first open of either; getValidationRule fires only once. -->
       <div v-if="hasItemFormEverOpened" v-show="itemFormVisible">
         <dict-item-form-page
           :model-value="itemFormVisible"
@@ -356,14 +356,14 @@ class DictListPage extends BaseListPage {
       itemDetailDialogVisible: false,
       addItemDialogVisible: false,
       editItemDialogVisible: false,
-      /** 下次 search 时强制使用的 isDict（新增字典/字典项后刷新用），用后清空 */
+      /** isDict to force on the next search (used to refresh after adding a dict or dict item); cleared after use. */
       pendingSearchIsDict: null as boolean | null,
-      /** 已加载过的 dict-item 国际化配置，用于切换语言时重载 */
+      /** Dict-item i18n configs already loaded; used to reload on locale switch. */
       dictI18nLoaded: [] as Array<{ atomicServiceCode: string; dictType: string }>,
     };
   }
 
-  /** dict=false（字典项）时请求走 sys/dictItem，否则 sys/dict */
+  /** When dict=false (dict item), requests go to sys/dictItem; otherwise sys/dict. */
   protected getRootActionPath(): string {
     return (this.state.searchParams as Record<string, unknown>)?.isDict === true ? 'sys/dict' : 'sys/dictItem';
   }
@@ -444,7 +444,7 @@ class DictListPage extends BaseListPage {
     return params;
   }
 
-  /** 按 dict 标识分别请求 sys/dict/batchDelete 与 sys/dictItem/batchDelete */
+  /** Per the dict flag, call either sys/dict/batchDelete or sys/dictItem/batchDelete. */
   protected async doMultiDelete(): Promise<void> {
     const rows = this.state.selectedItems as Array<Record<string, unknown>> | undefined;
     if (!rows || rows.length === 0) {
@@ -612,7 +612,7 @@ class DictListPage extends BaseListPage {
     return (n as { data: { code: string } }).data.code;
   }
 
-  /** 第三层及以下树节点名称：优先用 dict-item 国际化 t(dictType.itemCode)，否则用 itemName 或 code。需先 loadMessagesForConfig dict-item+dictType。 */
+  /** Tree-node names for level 3 and below: prefer dict-item i18n via t(dictType.itemCode); otherwise use itemName or code. Requires loadMessagesForConfig dict-item+dictType first. */
   private transDictItemName(dictType: string, itemCode: string, itemName: string): string {
     if (!itemCode) return itemName || '';
     const key = dictType + '.' + itemCode;
@@ -749,10 +749,10 @@ class DictListPage extends BaseListPage {
   }
 
   /**
-   * 树节点展开时 pagingSearchDict 的请求参数，按层级独立构造（不再传 dict，由 URL 区分）：
-   * 第一层：active、atomicServiceCode、pageNo、pageSize
-   * 第二层：active、atomicServiceCode、dictType、pageNo、pageSize
-   * 第三层及之后：active、parentId、pageNo、pageSize
+   * pagingSearchDict params used when expanding a tree node, built per level (no `dict` param; the URL distinguishes them):
+   * Level 1: active, atomicServiceCode, pageNo, pageSize
+   * Level 2: active, atomicServiceCode, dictType, pageNo, pageSize
+   * Level 3+: active, parentId, pageNo, pageSize
    */
   private buildPagingSearchDictParams(): Record<string, unknown> {
     const sp = this.state.searchParams as Record<string, unknown>;
@@ -865,7 +865,7 @@ export default defineComponent({
     function onItemFormResponse(payload: Record<string, unknown>) {
       (currentItemFormMode.value === 'add' ? listPage.afterAddDictItem : listPage.afterEdit).call(listPage, payload);
     }
-    // 切换语言时重载已加载的 dict-item 国际化，使树节点 t(nameKey) 随新语言生效
+    // On locale switch, reload previously-loaded dict-item i18n so tree-node t(nameKey) reflects the new locale.
     watch(
       () => i18n.global.locale.value,
       () => {
@@ -877,7 +877,7 @@ export default defineComponent({
         }
       }
     );
-    /** 树节点文案：有 nameKey 则 t(nameKey) 以随 locale 更新，否则用 name/code（level0/1 无 nameKey） */
+    /** Tree-node label: when nameKey is present use t(nameKey) so it tracks the locale; otherwise fall back to name/code (levels 0/1 have no nameKey). */
     function getTreeNodeLabel(data: Record<string, unknown>): string {
       const key = data.nameKey != null ? String(data.nameKey) : '';
       if (key && te(key)) return t(key);
@@ -969,14 +969,14 @@ export default defineComponent({
   min-height: 0;
   display: flex;
   flex-direction: column;
-  margin-top: 3px; /* 卡片上外边距 */
+  margin-top: 3px; /* card top outer margin */
 }
 .dict-list-page .dict-list-card :deep(.el-card__body) {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 8px 5px 5px 5px; /* 上内边距 8px（5+3） */
+  padding: 8px 5px 5px 5px; /* top inner padding 8px (5+3) */
 }
 .dict-list-page .dict-list-split {
   flex: 1;

@@ -12,7 +12,7 @@ export type TagItem = {
   path: string;
 };
 
-/** 与 Sidebar 菜单项一致，用于 store.menuData 与按 path 查找 */
+/** Mirrors Sidebar menu items; used by `store.menuData` and for lookup by path. */
 export type MenuItem = {
   index: string;
   title: string;
@@ -21,26 +21,26 @@ export type MenuItem = {
   children?: MenuItem[];
 };
 
-// ---------- 侧栏可拖拽宽度（Home 页分界线左右拉动） ----------
-/** 侧栏展开时宽度下限（px） */
+// ---------- Draggable sidebar width (Home page splitter drag left/right) ----------
+/** Minimum sidebar width when expanded (px). */
 const SIDEBAR_WIDTH_MIN = 200;
-/** 侧栏展开时宽度上限（px） */
+/** Maximum sidebar width when expanded (px). */
 const SIDEBAR_WIDTH_MAX = 480;
-/** 侧栏展开时默认宽度（px），与原先固定 280px 一致 */
+/** Default sidebar width when expanded (px); matches the previous fixed 280px. */
 const SIDEBAR_WIDTH_DEFAULT = 280;
 
 export type RootState = {
-  /** 是否已登录（与 localStorage token 同步，登录成功后设为 true 以便 App.vue 立即切换为 router-view） */
+  /** Whether the user is logged in (kept in sync with the localStorage token; set to true after a successful login so App.vue can immediately switch to router-view). */
   isAuthenticated: boolean;
   collapse: boolean;
-  /** 侧栏展开时的宽度（px），由 Home 页分界线拖拽调整，持久化到 localStorage */
+  /** Sidebar width when expanded (px), adjusted by dragging the Home page splitter and persisted to localStorage. */
   sidebarWidth: number;
   tagsList: TagItem[];
-  /** 当前菜单页路径（点击菜单时更新，不改变地址栏） */
+  /** Current menu page path (updated when a menu item is clicked; does not change the URL). */
   currentMenuPath: string;
-  /** 关闭标签时记录的 path，下次该页激活时重置列表状态（切换标签不重置） */
+  /** Paths recorded when a tag is closed; the next time the page activates, its list state is reset (not reset on tab switching). */
   listStateResetPaths: string[];
-  /** 菜单数据（由后端接口写入），Sidebar 加载后写入，Tags/Header 按 path 取 titleKey、icon */
+  /** Menu data (populated from a backend API); written by Sidebar after loading, then read by Tags/Header to look up titleKey/icon by path. */
   menuData: MenuItem[];
 };
 
@@ -75,7 +75,7 @@ function saveTagsList(list: TagItem[]) {
 const savedCollapse =
   typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_KEYS.collapse) === 'true';
 
-/** 从 localStorage 读取上次保存的当前菜单路径，刷新后恢复原标签 */
+/** Read the previously saved current menu path from localStorage to restore the original tag after a refresh. */
 function loadSavedCurrentMenuPath(): string {
   if (typeof localStorage === 'undefined') return '/home';
   const raw = localStorage.getItem(STORAGE_KEYS.currentMenuPath);
@@ -84,7 +84,7 @@ function loadSavedCurrentMenuPath(): string {
   return VALID_MENU_PATHS.has(path) ? path : '/home';
 }
 
-/** 从 localStorage 读取上次保存的侧栏宽度，不合法或缺失时返回默认值并落在 [MIN, MAX] 内 */
+/** Read the previously saved sidebar width from localStorage; if missing or invalid, return the default value clamped to [MIN, MAX]. */
 function loadSavedSidebarWidth(): number {
   if (typeof localStorage === 'undefined') return SIDEBAR_WIDTH_DEFAULT;
   const raw = localStorage.getItem(STORAGE_KEYS.sidebarWidth);
@@ -117,14 +117,14 @@ const store = createStore<RootState>({
     menuData: [],
   },
   getters: {
-    /** 按 path 查找菜单项（path 会 normalize），用于 Tags/Header 取 titleKey、icon */
+    /** Look up a menu item by path (path is normalized); used by Tags/Header to retrieve titleKey and icon. */
     getMenuItemByPath:
       (state: RootState) =>
       (path: string): MenuItem | undefined =>
         findMenuItemByPath(state.menuData, path),
   },
   mutations: {
-    /** 登录成功后调用，使 App.vue 立即显示 router-view 而非 Login */
+    /** Called after a successful login so App.vue immediately renders router-view instead of Login. */
     setAuthenticated(state: RootState, value: boolean) {
       state.isAuthenticated = value;
     },
@@ -134,7 +134,7 @@ const store = createStore<RootState>({
         localStorage.setItem(STORAGE_KEYS.collapse, String(collapse));
       }
     },
-    /** 设置侧栏展开宽度（由 Home 页分界线拖拽调用），会钳制到 [SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX] 并持久化 */
+    /** Set the expanded sidebar width (called by the Home page splitter drag); clamps to [SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX] and persists. */
     setSidebarWidth(state: RootState, width: number) {
       const w = Math.max(SIDEBAR_WIDTH_MIN, Math.min(SIDEBAR_WIDTH_MAX, Math.round(width)));
       state.sidebarWidth = w;
@@ -183,7 +183,7 @@ const store = createStore<RootState>({
         localStorage.setItem(STORAGE_KEYS.currentMenuPath, resolved);
       }
     },
-    /** 关闭标签时调用，下次该 path 对应列表页激活时重置状态 */
+    /** Called when a tag is closed; the next time the list page for this path activates, its state is reset. */
     addListStateResetPath(state: RootState, path: string) {
       if (!state.listStateResetPaths.includes(path)) {
         state.listStateResetPaths = [...state.listStateResetPaths, path];
@@ -192,7 +192,7 @@ const store = createStore<RootState>({
     removeListStateResetPath(state: RootState, path: string) {
       state.listStateResetPaths = state.listStateResetPaths.filter((p) => p !== path);
     },
-    /** Sidebar 加载菜单后调用（来自后端 getMenus / getAuthorisedMenus 等） */
+    /** Called after Sidebar loads menus (from backend getMenus / getAuthorisedMenus, etc.). */
     setMenuData(state: RootState, list: MenuItem[]) {
       state.menuData = list ?? [];
     },

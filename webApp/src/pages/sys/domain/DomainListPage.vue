@@ -1,5 +1,5 @@
 <!--
- * 域名列表：支持按域名、子系统、租户、仅启用筛选，表格支持列可见性、操作列折角、未固定列可拖拽排序，多语言。
+ * Domain list: filter by domain, subsystem, tenant, and active-only; the table supports column visibility, an operation-column fold toggle, drag-reorder of non-fixed columns, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -266,7 +266,7 @@
       </template>
     </list-page-layout>
 
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <domain-form-page
         :model-value="formVisible"

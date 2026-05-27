@@ -1,4 +1,4 @@
-<!-- 缓存详情 -->
+<!-- Cache detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -23,7 +23,7 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** 分组：从第几行开始显示分组标题（其他信息放最后） */
+/** Sections: row index at which each section title appears (other info goes last). */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'cacheDetail.sections.basicInfo' },
   { start: 1, titleKey: 'cacheDetail.sections.config' },
@@ -86,7 +86,7 @@ export default defineComponent({
       yesNoKey: 'cacheList.common',
     });
 
-    // 列表传入的 rid（当前行 id）变化时，同步并重新拉取该 id 的详情
+    // When the rid (current row id) passed in by the list changes, sync and reload the detail for that id.
     useDetailPageRidSync(props, page);
 
     return {

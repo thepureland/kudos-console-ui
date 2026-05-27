@@ -6,7 +6,7 @@ type ClosableDropdown = {
 } | null | undefined;
 
 /**
- * 在选择变更后关闭 Cascader/TreeSelect 下拉面板。
+ * Close the Cascader/TreeSelect dropdown panel after the selection changes.
  */
 export function useCloseDropdownOnChange() {
   function closeDropdown(refOrValue: Ref<unknown> | unknown): void {

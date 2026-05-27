@@ -1,6 +1,6 @@
 <template>
   <div class="header" :class="headerTimeClass">
-    <!-- 左侧：Logo + 面包屑；右侧：全屏 / 主题 / 语言 / 消息 / 用户下拉；侧栏折叠在 sidebar 与内容区分界线处切换 -->
+    <!-- Left: logo + breadcrumb; right: fullscreen / theme / language / messages / user dropdown; sidebar collapse is toggled at the divider between sidebar and content -->
     <div class="header-left">
       <a href="#" class="logo" @click.prevent="store.commit('setCurrentMenuPath', resolvePath('/home'))">
         <span class="logo-icon" aria-hidden="true">
@@ -11,7 +11,7 @@
         </span>
         <span class="logo-text">{{ t('header.appName') }}</span>
       </a>
-      <nav class="breadcrumb" aria-label="面包屑">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
         <template v-for="(item, i) in breadcrumbItems" :key="`${item.path}__${item.titleKey}__${i}`">
           <span v-if="i > 0" class="breadcrumb-sep">/</span>
           <a
@@ -46,7 +46,7 @@
         class="icon-btn"
         :class="{ 'is-hover-lift': fullscreenBtnHover }"
         :title="isFullscreen ? t('header.exitFullscreen') : t('header.fullscreen')"
-        aria-label="全屏切换"
+        aria-label="Toggle fullscreen"
         @click="toggleFullscreen"
         @mouseenter="fullscreenBtnHover = true"
         @mouseleave="fullscreenBtnHover = false"
@@ -166,10 +166,10 @@ const { t, locale } = useI18n();
 const router = useRouter();
 const store = useStore();
 const currentMenuPath = computed(() => store.state.currentMenuPath);
-/** 仅用于窄屏时自动折叠侧栏 */
+/** Only used to auto-collapse the sidebar on narrow screens */
 const collapse = computed(() => store.state.collapse);
 
-// ---------- 图标悬停上移（JS 控制 .is-hover-lift，下拉项在“悬停或展开”时保持上移避免闪烁） ----------
+// ---------- Icon hover lift (JS controls .is-hover-lift; dropdown items stay lifted while "hovered or open" to avoid flicker) ----------
 const fullscreenBtnHover = ref(false);
 const messagesLinkHover = ref(false);
 const themeTriggerHover = ref(false);
@@ -179,7 +179,7 @@ const langDropdownVisible = ref(false);
 const userAreaHover = ref(false);
 const userDropdownVisible = ref(false);
 
-/** 根据时段给 header 加 class，用于 ::after 叠加层（与 Welcome hero 时段一致） */
+/** Tag the header with a time-of-day class used by the ::after overlay (matches the Welcome hero) */
 const headerTimeClass = computed(() => {
   const h = new Date().getHours();
   if (h >= 5 && h < 11) return 'header--time-morning';
@@ -188,7 +188,7 @@ const headerTimeClass = computed(() => {
   return 'header--time-night';
 });
 
-// ---------- 多语言 ----------
+// ---------- Internationalization ----------
 const currentLocaleId = ref<LocaleId>((locale.value as string) as LocaleId);
 const currentLocaleNativeLabel = computed(
   () => localeOptions.find((o) => o.id === currentLocaleId.value)?.label ?? currentLocaleId.value
@@ -202,14 +202,14 @@ function handleLocaleCommand(id: string) {
   setLocale(next);
 }
 
-// ---------- 面包屑 ----------
-/** 路径首段 → 面包屑父级（i18n titleKey + 点击跳转的首个子路径） */
+// ---------- Breadcrumb ----------
+/** First path segment -> breadcrumb parent (i18n titleKey + first child path navigated to on click) */
 const SEGMENT_BREADCRUMB: Record<string, { titleKey: string; firstChildPath: string }> = {
   sys: { titleKey: 'route.sys', firstChildPath: '/sys/cache' },
   user: { titleKey: 'route.user', firstChildPath: '/user/account' },
   rbac: { titleKey: 'route.rbac', firstChildPath: '/rbac/role' },
 };
-/** 三级菜单：当前路径属于某「中间级」时，面包屑插入该级（path → 中间级 titleKey） */
+/** Three-level menus: when the current path falls under an "intermediate level", insert that level into the breadcrumb (path -> intermediate-level titleKey) */
 const BREADCRUMB_MIDDLE: Record<string, { titleKey: string; path: string }> = {
   '/sys/cache': { titleKey: 'route.sysBasic', path: '/sys/basic' },
   '/sys/dict': { titleKey: 'route.sysBasic', path: '/sys/basic' },
@@ -238,8 +238,8 @@ const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
   return [{ titleKey, path }];
 });
 
-// ---------- 用户与消息 ----------
-/** 占位头像（可替换为真实用户头像 URL） */
+// ---------- User and messages ----------
+/** Placeholder avatar (can be replaced with a real user avatar URL) */
 const avatar = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="%23c0c4cc"/><circle cx="20" cy="16" r="6" fill="%23fff"/><path fill="%23fff" d="M8 38c0-6.6 5.4-12 12-12s12 5.4 12 12H8z"/></svg>'
 );
@@ -291,24 +291,24 @@ async function handleCommand(command: string) {
       localStorage.removeItem('current_username');
       router.push('/login');
     } catch {
-      // 用户取消，不执行退出
+      // User cancelled; do not log out
     }
   } else if (command === 'user') {
     store.commit('setCurrentMenuPath', resolvePath('/user/account'));
   }
 }
 
-// ---------- 主题 ----------
+// ---------- Theme ----------
 const THEME_KEY = 'theme';
 const themeList: { id: string; label: string; color: string }[] = [
-  { id: 'a-light', label: '经典蓝 · 浅色', color: '#2563EB' },
-  { id: 'a-dark', label: '经典蓝 · 深色', color: '#1E293B' },
-  { id: 'b-light', label: '高级黑金 · 浅色', color: '#A78BFA' },
-  { id: 'b-dark', label: '高级黑金 · 深色', color: '#27272A' },
-  { id: 'c-light', label: '清爽绿蓝 · 浅色', color: '#0EA5E9' },
-  { id: 'c-dark', label: '清爽绿蓝 · 深色', color: '#0B2A2A' },
-  { id: 'd-light', label: '暖色品牌 · 浅色', color: '#F97316' },
-  { id: 'd-dark', label: '暖色品牌 · 深色', color: '#7C2D12' },
+  { id: 'a-light', label: 'Classic Blue · Light', color: '#2563EB' },
+  { id: 'a-dark', label: 'Classic Blue · Dark', color: '#1E293B' },
+  { id: 'b-light', label: 'Premium Black & Gold · Light', color: '#A78BFA' },
+  { id: 'b-dark', label: 'Premium Black & Gold · Dark', color: '#27272A' },
+  { id: 'c-light', label: 'Fresh Green Blue · Light', color: '#0EA5E9' },
+  { id: 'c-dark', label: 'Fresh Green Blue · Dark', color: '#0B2A2A' },
+  { id: 'd-light', label: 'Warm Brand · Light', color: '#F97316' },
+  { id: 'd-dark', label: 'Warm Brand · Dark', color: '#7C2D12' },
 ];
 const VALID_THEME_IDS = ['a-light', 'a-dark', 'b-light', 'b-dark', 'c-light', 'c-dark', 'd-light', 'd-dark'];
 const DEFAULT_THEME = 'a-light';
@@ -319,7 +319,7 @@ function getInitialTheme(): string {
   return raw && VALID_THEME_IDS.includes(raw) ? raw : DEFAULT_THEME;
 }
 const currentThemeId = ref(getInitialTheme());
-const currentThemeLabel = computed(() => themeList.find((th) => th.id === currentThemeId.value)?.label ?? '经典蓝 · 浅色');
+const currentThemeLabel = computed(() => themeList.find((th) => th.id === currentThemeId.value)?.label ?? 'Classic Blue · Light');
 const currentThemeColor = computed(() => themeList.find((th) => th.id === currentThemeId.value)?.color ?? '#2563EB');
 function handleThemeCommand(themeId: string) {
   if (typeof document === 'undefined') return;
@@ -333,7 +333,7 @@ function handleThemeCommand(themeId: string) {
   localStorage.setItem(THEME_KEY, themeId);
 }
 
-// ---------- 全屏 ----------
+// ---------- Fullscreen ----------
 const isFullscreen = ref(false);
 function isDocFullscreen(): boolean {
   if (typeof document === 'undefined') return false;
@@ -355,7 +355,7 @@ function onFullscreenChange() {
   isFullscreen.value = isDocFullscreen();
 }
 
-// ---------- 侧栏折叠 ----------
+// ---------- Sidebar collapse ----------
 const collapseChange = () => store.commit('handleCollapse', !collapse.value);
 
 onMounted(() => {
@@ -387,7 +387,7 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-/* 时段叠加层：全铺伪元素，不覆盖主题背景；内容区 z-index 高于伪元素 */
+/* Time-of-day overlay: full-bleed pseudo element that does not cover the theme background; content z-index is higher than the pseudo */
 .header::after {
   content: '';
   position: absolute;
@@ -518,7 +518,7 @@ a.icon-btn {
   color: var(--theme-header-text);
 }
 
-/* 悬停上移：由 JS 切换 .is-hover-lift，统一在此处写 transform */
+/* Hover lift: .is-hover-lift toggled by JS, the transform lives here in one place */
 .header :deep(.icon-btn.is-hover-lift),
 .header :deep(.user-area.is-hover-lift) {
   transform: translateY(-2px) !important;
@@ -534,7 +534,7 @@ a.icon-btn {
   font-size: 18px;
 }
 
-/* 去掉三个下拉触发层的外白内蓝框（Element 默认 hover/focus 样式） */
+/* Remove the white-outside, blue-inside border on the three dropdown triggers (Element's default hover/focus styles) */
 .header-right :deep(.el-dropdown) {
   outline: none;
 }
@@ -598,7 +598,7 @@ a.icon-btn {
   color: var(--theme-header-text-muted);
 }
 
-/* 旗帜 emoji 单独一行对齐，避免被裁剪或折行 */
+/* Align the flag emoji on its own line so it isn't clipped or wrapped */
 .lang-flag {
   display: inline-flex;
   align-items: center;
@@ -715,7 +715,7 @@ html.dark .theme-option-swatch {
 }
 </style>
 <style>
-/* 非 scoped 兜底：确保 .is-hover-lift 的 transform 不被其它样式覆盖 */
+/* Non-scoped fallback: make sure .is-hover-lift's transform is not overridden by other styles */
 .header .icon-btn.is-hover-lift,
 .header .user-area.is-hover-lift {
   transform: translateY(-2px) !important;

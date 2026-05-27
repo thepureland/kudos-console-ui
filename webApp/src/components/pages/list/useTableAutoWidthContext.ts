@@ -9,9 +9,9 @@ interface UseTableAutoWidthContextOptions {
 }
 
 /**
- * 列表页自动列宽上下文的轻量封装：
- * - 统一 reserved 左右宽度常量
- * - 统一 tableDataRef / autoWidthColumns / columnWidths 样板
+ * Lightweight wrapper around the auto column-width context for list pages:
+ * - unifies reserved left/right width constants
+ * - unifies the tableDataRef / autoWidthColumns / columnWidths boilerplate
  */
 export function useTableAutoWidthContext(options: UseTableAutoWidthContextOptions): {
   RESERVED_WIDTH_LEFT: number;

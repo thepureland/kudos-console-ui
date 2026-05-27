@@ -1,5 +1,5 @@
 <!--
- * 菜单权限列表：支持按子系统/租户筛选，展示菜单权限表格。
+ * Menu permission list: filter by subsystem/tenant; renders the menu permission table.
  *
  * @author: K
  * @since 1.0.0
@@ -9,9 +9,9 @@
 <template>
   <div>
     <el-breadcrumb separator="/">
-      <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
-      <el-breadcrumb-item>权限管理</el-breadcrumb-item>
-      <el-breadcrumb-item>菜单权限列表</el-breadcrumb-item>
+      <el-breadcrumb-item :to="{ path: '/home' }">Home</el-breadcrumb-item>
+      <el-breadcrumb-item>Permission Management</el-breadcrumb-item>
+      <el-breadcrumb-item>Menu Permission List</el-breadcrumb-item>
     </el-breadcrumb>
 
     <el-card class="menu-list-card">
@@ -22,8 +22,8 @@
         </el-col>
 
         <el-col :span="16">
-          <el-button type="primary" round @click="search">搜索</el-button>
-          <el-button type="primary" round @click="resetSearchFields">重置</el-button>
+          <el-button type="primary" round @click="search">Search</el-button>
+          <el-button type="primary" round @click="resetSearchFields">Reset</el-button>
         </el-col>
       </el-row>
 
@@ -32,11 +32,11 @@
                 :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange" default-expand-all
                 row-key="id">
         <el-table-column type="index" min-width="50"/>
-        <el-table-column label="名称" prop="name" :min-width="columnWidths['name'] ?? 120" show-overflow-tooltip/>
+        <el-table-column label="Name" prop="name" :min-width="columnWidths['name'] ?? 120" show-overflow-tooltip/>
         <el-table-column label="URL" prop="url" :min-width="columnWidths['url'] ?? 120" show-overflow-tooltip/>
-        <el-table-column label="关联的角色" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140" show-overflow-tooltip/>
+        <el-table-column label="Associated Roles" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140" show-overflow-tooltip/>
 
-        <el-table-column label="操作" align="center">
+        <el-table-column label="Operation" align="center">
           <template #default="scope">
             <edit @click="handleEdit(scope.row)" class="operate-column-icon"/>
           </template>
@@ -102,9 +102,9 @@ export default defineComponent({
       reservedWidthLeft: 0,
       reservedWidthRight: 0,
       createAutoWidthColumns: () => [
-      { key: 'name', getLabel: () => '名称', getCellText: (row: Record<string, unknown>) => String(row.name ?? '') },
+      { key: 'name', getLabel: () => 'Name', getCellText: (row: Record<string, unknown>) => String(row.name ?? '') },
       { key: 'url', getLabel: () => 'URL', getCellText: (row: Record<string, unknown>) => String(row.url ?? '') },
-      { key: 'roleNames', getLabel: () => '关联的角色', getCellText: (row: Record<string, unknown>) => String(row.roleNames ?? '') },
+      { key: 'roleNames', getLabel: () => 'Associated Roles', getCellText: (row: Record<string, unknown>) => String(row.roleNames ?? '') },
     ],
     });
     return {

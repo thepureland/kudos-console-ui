@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue';
 
-/** 将 localhost 转为 127.0.0.1，避免 Node.js 解析到 IPv6(::1) 导致连接慢或超时 */
+/** Convert localhost to 127.0.0.1 to avoid Node.js resolving to IPv6 (::1), which can cause slow connections or timeouts. */
 function normalizeProxyTarget(url: string): string {
   return url.replace(/^(https?:\/\/)localhost/i, '$1127.0.0.1');
 }
@@ -23,7 +23,7 @@ function createProxyOptions(target: string) {
               const ms = Date.now() - start;
               if (ms > 1000) {
                 console.warn(
-                  `[vite proxy] 慢请求 ${ms}ms: ${req.method} ${req.url} -> ${proxyRes.statusCode}`
+                  `[vite proxy] slow request ${ms}ms: ${req.method} ${req.url} -> ${proxyRes.statusCode}`
                 );
               }
             }
@@ -34,8 +34,8 @@ function createProxyOptions(target: string) {
 }
 
 /**
- * 将体积稳定的大依赖拆到独立 chunk，降低入口包大小并提升浏览器缓存命中。
- * shared 是 Kotlin/JS workspace 产物，路径可能以包名或本地 build 目录出现，两种都兼容。
+ * Split large, size-stable dependencies into separate chunks to reduce the entry-bundle size and improve browser cache hits.
+ * `shared` is a Kotlin/JS workspace artifact; its path may appear as either a package name or a local build directory — both are handled.
  */
 function manualChunks(id: string): string | undefined {
   if (id.includes('@element-plus/icons-vue')) return 'element-icons';
@@ -80,9 +80,6 @@ export default defineConfig(({ mode }) => {
       allowedHosts: ['localhost', '127.0.0.1', 'kudos.io'],
       proxy: {
         '/api': createProxyOptions(proxyTarget),
-        '/sys': createProxyOptions(proxyTarget),
-        '/user': createProxyOptions(proxyTarget),
-        '/rbac': createProxyOptions(proxyTarget),
       },
     },
   };

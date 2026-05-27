@@ -1,5 +1,5 @@
 <!--
- * IP 访问规则详情（sys/accessRuleIp/getDetail）。
+ * IP access-rule detail (sys/accessRuleIp/getDetail).
  *
  * @author: AI: Cursor
  * @since 1.0.0

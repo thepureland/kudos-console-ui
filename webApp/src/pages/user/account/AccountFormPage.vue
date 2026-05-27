@@ -1,4 +1,4 @@
-<!-- 账号新增/编辑 -->
+<!-- Account add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -91,14 +91,14 @@ class AccountFormPage extends OrgSupportAddEditPage {
     this.loadDicts(['user_type'], 'user');
   }
 
-  /** 租户级联与列表页一致：非严格模式，选叶子节点后自动收起 */
+  /** Tenant cascade behaves like the list page: non-strict mode, auto-collapse after picking a leaf node */
   protected isCheckStrictly(): boolean {
     return false;
   }
 
   protected initVars(): void {
     super.initVars();
-    // 所属组织级联：非懒加载，用 organizationTree（根据 subSysOrTenant 调 loadTree 与列表页一致）
+    // Organization cascade: not lazy-loaded; uses organizationTree (loaded via loadTree from subSysOrTenant, mirroring the list page)
     this.state.cascaderProps = {
       value: 'id',
       label: 'name',
@@ -131,7 +131,7 @@ class AccountFormPage extends OrgSupportAddEditPage {
     return 'user/account';
   }
 
-  /** 用户类型字典项译文从后端取 */
+  /** User-type dict-item translations are fetched from the backend */
   protected getI18nConfig() {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['user_type', 'user_status'], atomicServiceCode: 'user' }];
   }
@@ -140,12 +140,12 @@ class AccountFormPage extends OrgSupportAddEditPage {
     return 'accountAddEdit.messages.loadFailed';
   }
 
-  /** 子系统/租户变更时重新加载组织树并清空所属组织（可由 @change 传入选中值，避免 v-model 未同步时读不到） */
+  /** When the subsystem/tenant changes, reload the organization tree and clear the selected org (the @change handler may pass the selected value so we don't rely on v-model being in sync yet) */
   onSubSysOrTenantChange(selectionFromChange?: string[]): void {
     this.loadOrganizationTree(selectionFromChange);
   }
 
-  /** 根据当前所选子系统/租户加载组织机构树（与列表页 loadTree 一致）。可选传入选中的值，避免 change 时 formModel 尚未更新。 */
+  /** Load the organization tree based on the currently selected subsystem/tenant (matches the list page's loadTree). Optionally pass the selection so we don't rely on formModel being updated yet at change time. */
   async loadOrganizationTree(selectionOverride?: string[]): Promise<void> {
     const arr = (selectionOverride ?? this.state.formModel?.subSysOrTenant) as string[] | undefined;
     if (!arr?.length) {
@@ -161,13 +161,13 @@ class AccountFormPage extends OrgSupportAddEditPage {
     if (Array.isArray(payload)) {
       this.state.organizationTree = payload;
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || '加载组织机构树失败！');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load the organization tree!');
       this.state.organizationTree = [];
     }
     this.state.formModel.parent = [];
   }
 
-  /** 编辑时根据回填的 subSystemCode/tenantId 加载组织树（供 fillForm 后调用） */
+  /** During edit, load the organization tree from the back-filled subSystemCode/tenantId (called after fillForm) */
   async loadOrganizationTreeForEdit(subSystemCode: string, tenantId: string | null): Promise<void> {
     const params = { subSystemCode, tenantId };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });

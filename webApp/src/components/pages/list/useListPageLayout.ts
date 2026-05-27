@@ -5,35 +5,35 @@ import type { BaseListPage } from '../core/BaseListPage';
 import { useTableMaxHeight } from './useTableMaxHeight';
 import { getGlobalLocale, loadMessagesForConfig } from '../../../i18n';
 
-/** 列可见性面板配置。 */
+/** Column-visibility panel config. */
 export interface ListPageColumnVisibilityOption {
   storageKey: string;
   columnKeys: string[];
   defaultVisibleKeys: string[];
-  /** 列 key -> 显示文案，如 key === 'index' 时返回「行序」等 */
+  /** Column key -> display label; e.g. when key === 'index' returns "Row #" */
   getColumnLabel: (key: string) => string;
 }
 
-/** 列表布局组合配置。 */
+/** Composite list-layout options. */
 export interface UseListPageLayoutOptions {
-  /** 列表状态持久化 localStorage key；不传或传空则关闭后不保留查询结果（默认不持久化） */
+  /** localStorage key for persisting list state; if omitted or empty, search results are not preserved across close/reopen (no persistence by default) */
   stateStorageKey?: string | null;
-  /** 离开页面时是否重置（默认 false）；关闭标签时由 store 记录，下次激活时再重置，以保留「切换标签」时的状态 */
+  /** Whether to reset when leaving the page (default false); on tab close the store records the path, and the reset happens on the next activation so "tab switching" preserves state */
   resetStateOnDeactivate?: boolean;
-  /** 列可见性配置，不传则不做列可见性配置与返回 */
+  /** Column-visibility config; if omitted, column visibility is neither configured nor returned */
   columnVisibility?: ListPageColumnVisibilityOption;
-  /** onMounted 中在 restorePersistedListState + updateTableMaxHeight 之后调用 */
+  /** Called inside onMounted after restorePersistedListState + updateTableMaxHeight */
   onAfterMount?: () => void;
-  /** watch 中在 persistListState + updateTableMaxHeight 之后调用 */
+  /** Called inside the watch after persistListState + updateTableMaxHeight */
   onAfterPersist?: () => void;
 }
 
-/** 带 state 的列表页实例类型。 */
+/** List-page instance type with state. */
 export type ListPageWithState = BaseListPage & { state: Record<string, unknown> };
 
 /**
- * 列表页通用布局与状态逻辑：表格高度、状态持久化、列可见性（可选）。
- * 在 setup 中调用，返回 listLayoutRefs、onTableWrapMounted、以及可选的 visibleColumnKeys/columnVisibilityOptions/isColumnVisible。
+ * Shared list-page layout and state logic: table height, state persistence, and optional column visibility.
+ * Call inside setup; returns listLayoutRefs, onTableWrapMounted, and optionally visibleColumnKeys/columnVisibilityOptions/isColumnVisible.
  */
 export function useListPageLayout(
   listPage: ListPageWithState,
@@ -69,12 +69,12 @@ export function useListPageLayout(
         ...columnVisibility.columnKeys.slice(1).map((key) => ({ key, label: columnVisibility.getColumnLabel(key) })),
       ])
     : undefined;
-  /** 判断指定列 key 是否在可见列中 */
+  /** Determine whether the given column key is in the visible-columns list */
   function isColumnVisible(key: string): boolean {
     return listPage.isColumnVisible(key);
   }
 
-  /** 表格容器挂载后调用，用于在 nextTick 中更新表格最大高度；可在此后追加列宽等逻辑 */
+  /** Called after the table wrapper mounts to update the table's max height on the next nextTick; additional logic like column widths can be appended after this */
   function onTableWrapMounted(): void {
     nextTick(updateTableMaxHeight);
   }
@@ -85,7 +85,7 @@ export function useListPageLayout(
     onAfterMount?.();
   });
 
-  /** 激活时：若该 path 是关闭标签时记录的，则重置列表状态（切换标签不重置，仅关闭后重开时重置） */
+  /** On activation: if this path was recorded when its tag was closed, reset the list state (no reset on tab switch — only when the tag was closed and then reopened) */
   onActivated(() => {
     const path = (store.state as { currentMenuPath?: string }).currentMenuPath;
     const resetPaths = (store.state as { listStateResetPaths?: string[] }).listStateResetPaths;
@@ -113,7 +113,7 @@ export function useListPageLayout(
     { deep: true }
   );
 
-  /** 语言切换时重载本页字典项等 i18n，使下拉 t(item.second) 随新语言生效 */
+  /** On locale change, reload this page's dict-item and other i18n so dropdowns using t(item.second) reflect the new language */
   watch(
     () => getGlobalLocale(),
     () => {

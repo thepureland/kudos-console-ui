@@ -1,5 +1,5 @@
 <!--
- * 访问规则 + IP 规则统一列表：查询关联视图明细行；树形分组下子系统 / 租户 / 规则类型在同一列内缩进展示。
+ * Unified access-rule + IP-rule list: query the joined view's detail rows; under tree grouping, subsystem / tenant / rule type are indented within a single column.
  *
  * @author K
  * @author AI: Cursor
@@ -385,7 +385,7 @@ function isDefaultIpv6SearchRange(start: unknown, end: unknown): boolean {
 
 type AccessRuleTableRow = Record<string, unknown>;
 
-/** 将当前页扁平明细行按 子系统 → 租户 → 规则类型 三级分组为 el-table 树形数据 */
+/** Group the current page's flat detail rows by subsystem -> tenant -> rule type into el-table tree data. */
 function buildAccessRuleTree(rows: AccessRuleTableRow[]): AccessRuleTableRow[] {
   if (!rows?.length) return [];
   const bySys = new Map<string, AccessRuleTableRow[]>();
@@ -462,7 +462,7 @@ function buildAccessRuleTree(rows: AccessRuleTableRow[]): AccessRuleTableRow[] {
 }
 
 /**
- * 主从合一列表：查询 v_sys_access_rule_with_ip；有 ipId 行为 IP 子行，无 ipId 为仅主规则占位行。
+ * Combined parent/child list: query v_sys_access_rule_with_ip; rows with ipId are IP child rows; rows without ipId are placeholders for the parent rule only.
  */
 class AccessRuleListPage extends TenantSupportListPage {
   constructor(props: PageProps, context: PageContext) {
@@ -609,7 +609,7 @@ class AccessRuleListPage extends TenantSupportListPage {
     };
   }
 
-  /** 有 IP 子行则编辑 IP 表单；否则编辑主规则 */
+  /** If there's an IP child row, edit the IP form; otherwise edit the parent rule. */
   protected doHandleEditUnified(row: Record<string, unknown>): void {
     if (row._treeGroup) return;
     const s = this.state as Record<string, unknown>;
@@ -696,7 +696,7 @@ class AccessRuleListPage extends TenantSupportListPage {
 }
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'accessRuleList.operationColumnPinned';
-/** v2：合并子系统/租户/规则类型为 treeScope 列后更换 key，避免沿用旧列 key 导致新列被隐藏 */
+/** v2: after merging subsystem/tenant/rule type into the treeScope column, change the storage key so the new column isn't hidden by the old key. */
 const COLUMN_VISIBILITY_STORAGE_KEY = 'accessRuleList.visibleColumns.v2';
 const {
   indexColumnKey: INDEX_COLUMN_KEY,
@@ -794,7 +794,7 @@ export default defineComponent({
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
 
-    /** 与 CacheListPage 缓存策略一致：字典项 second 为 i18n key，用 t(item.second)；表格内按 first 查找选项 */
+    /** Consistent with CacheListPage's cache-strategy handling: dict-item `second` is an i18n key, rendered via t(item.second); the table looks up options by `first`. */
     type DictPairOpt = { first: string; second: string };
     function dictLabelFromOptions(code: unknown, options: DictPairOpt[] | null | undefined): string {
       const c = code != null && String(code).trim() !== '' ? String(code).trim() : '';
@@ -808,7 +808,7 @@ export default defineComponent({
       return v == null || v === '' ? '—' : listPage.formatDate(v);
     }
 
-    /** 有 IP 子行时展示 IP 规则 remark；仅主规则占位行展示父规则 parentRemark */
+    /** When an IP child row exists, show the IP rule's remark; for parent-only placeholder rows, show parentRemark. */
     function formatRemarkCell(row: Record<string, unknown>): string {
       if (row._treeGroup) return '—';
       if (row.ipId) {
@@ -833,7 +833,7 @@ export default defineComponent({
       return !row._treeGroup;
     }
 
-    /** 分组行高亮；明细行仍区分 IP 段与主规则占位（样式） */
+    /** Highlight group rows; detail rows still distinguish IP rows from parent-rule placeholders (via styles). */
     function accessRuleTreeRowClassName({ row }: { row: AccessRuleTableRow }): string {
       if (row._treeGroup) return 'access-rule-list-row--tree-group';
       return row.ipId ? 'access-rule-list-row--ip' : 'access-rule-list-row--rule';
@@ -931,7 +931,7 @@ export default defineComponent({
   gap: 6px;
   min-width: 0;
 }
-/** 与筛选项同一行；避免 search/reset 被单独换到下一行 */
+/** Keep on the same row as the filters; prevent search/reset from being pushed to the next line. */
 .access-rule-list-page .toolbar-row--primary {
   flex-wrap: nowrap;
 }
@@ -1005,7 +1005,7 @@ export default defineComponent({
   flex-shrink: 0;
 }
 
-/* 树形分组行 */
+/* Tree group rows. */
 .access-rule-list-page :deep(tr.access-rule-list-row--tree-group > td.el-table__cell) {
   background-color: var(--el-fill-color-light) !important;
   font-weight: 500;
@@ -1021,7 +1021,7 @@ export default defineComponent({
   color: var(--el-text-color-placeholder);
 }
 
-/* 树形分组：子系统 / 租户 / 规则类型 同列缩进 */
+/* Tree grouping: indent subsystem / tenant / rule type within the same column. */
 .access-rule-list-page .access-rule-tree-scope-col .access-rule-tree-scope-indent--0 {
   display: inline-block;
   padding-left: 0;
@@ -1040,7 +1040,7 @@ export default defineComponent({
   padding-left: 3.75rem;
 }
 
-/* IP 明细行相对主规则占位行略作层级区分 */
+/* Slightly differentiate IP detail rows from parent-rule placeholder rows. */
 .access-rule-list-page :deep(.el-table__body tr.access-rule-list-row--ip > td.el-table__cell:first-child) {
   box-shadow: inset 3px 0 0 var(--el-color-primary-light-5);
 }

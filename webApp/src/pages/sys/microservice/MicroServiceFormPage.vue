@@ -1,4 +1,4 @@
-<!-- 微服务新增/编辑 -->
+<!-- Microservice add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -149,7 +149,7 @@ interface FormModel {
 }
 
 class MicroServiceFormPage extends BaseAddEditPage {
-  /** 接口返回的启用非原子微服务编码（未排除当前行 code） */
+  /** Codes of active non-atomic microservices returned by the API (does not yet exclude the current row's code). */
   private parentCodeOptionsRaw: string[] = [];
 
   constructor(props: PageProps, context: PageContext) {
@@ -237,7 +237,7 @@ export default defineComponent({
       formHasContent(model: Record<string, unknown>) {
         return hasAnyFormContent(model, {
           stringKeys: ['code', 'name', 'parentCode', 'context', 'remark'],
-          // 原子服务默认 true；关为否视为有改动
+          // atomicService defaults to true; switching it off counts as a change
           customChecks: [(m) => m.atomicService === false],
         });
       },

@@ -1,10 +1,10 @@
 <!--
- * Home 内容区占位：菜单 path 在 menuPathToComponent 中无对应列表页时渲染，避免 transition/keep-alive 收到空子节点导致 Vue 报错。
+ * Home content-area placeholder: rendered when the menu path has no matching list page in menuPathToComponent, so transition/keep-alive isn't handed an empty child (which would trigger a Vue error).
  -->
 <template>
   <div class="menu-page-fallback">
     <p class="menu-page-fallback__title">{{ t('placeholder.unknownMenuPage') }}</p>
-    <p class="menu-page-fallback__path">{{ t('placeholder.menuPath') }}：{{ menuPath }}</p>
+    <p class="menu-page-fallback__path">{{ t('placeholder.menuPath') }}: {{ menuPath }}</p>
   </div>
 </template>
 

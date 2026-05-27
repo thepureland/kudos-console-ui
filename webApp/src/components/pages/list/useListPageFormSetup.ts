@@ -8,9 +8,9 @@ interface UseListPageFormSetupOptions {
 }
 
 /**
- * 列表页 Add/Edit 弹窗状态编排：
- * - 统一维护 formVisible/formRid/hasFormEverOpened/currentFormMode
- * - 统一提供 onFormClose/onFormResponse
+ * Orchestrates Add/Edit dialog state on list pages:
+ * - centrally manages formVisible/formRid/hasFormEverOpened/currentFormMode
+ * - centrally provides onFormClose/onFormResponse
  */
 export function useListPageFormSetup(options: UseListPageFormSetupOptions) {
   const {

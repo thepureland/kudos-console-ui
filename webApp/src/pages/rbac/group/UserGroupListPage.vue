@@ -1,5 +1,5 @@
 <!--
- * 用户组列表：支持按组编码、组名称、仅启用筛选，表格支持列可见性、操作列折角、列拖拽排序，多语言。
+ * User group list: filter by group code, group name, and active-only; the table supports column visibility, an operation-column fold toggle, drag-reorder of columns, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -241,7 +241,7 @@
       </template>
     </list-page-layout>
 
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <user-group-form-page
         :model-value="formVisible"
@@ -297,7 +297,7 @@ class UserGroupListPage extends BaseListPage {
     return 'rbac/group';
   }
 
-  /** 仅当勾选「仅启用」时传 active=true；不勾选时传 null */
+  /** Only send active=true when the "active only" checkbox is ticked; otherwise send null. */
   protected createSearchParams(): Record<string, unknown> | null {
     const params = super.createSearchParams();
     if (params && this.state.searchParams) {
@@ -419,7 +419,7 @@ export default defineComponent({
   height: 100%;
 }
 .user-group-list-page :deep(.list-page-card) {
-  margin-top: 3px; /* 卡片上外边距 */
+  margin-top: 3px; /* card top outer margin */
 }
 .user-group-list-page .list-page-toolbar .toolbar-name {
   margin-right: 8px;
@@ -437,7 +437,7 @@ export default defineComponent({
   flex-shrink: 0;
 }
 
-/* 列头排序图标与文字同一行，不独占一行 */
+/* Keep the column-header sort icon on the same line as the text instead of on its own line */
 .user-group-list-page :deep(.el-table thead th .cell) {
   display: flex;
   align-items: center;
@@ -451,7 +451,7 @@ export default defineComponent({
   margin-left: 4px;
 }
 
-/* 列可见性配置：所有列选项单列竖排 */
+/* Column visibility config: stack all column options in a single vertical column. */
 .user-group-list-page .column-visibility-checkboxes {
   display: flex;
   flex-direction: column;
@@ -462,7 +462,7 @@ export default defineComponent({
   margin-right: 0;
 }
 
-/* 非固定列表头可拖拽排序 */
+/* Non-fixed column headers are drag-reorderable. */
 .user-group-list-page :deep(.column-header-draggable) {
   cursor: grab;
   user-select: none;

@@ -1,4 +1,4 @@
-<!-- 角色新增/编辑 -->
+<!-- Role add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -105,7 +105,7 @@ class RoleFormPage extends TenantSupportAddEditPage {
     super(props, context);
   }
 
-  /** 租户级联只能选第二级（必须选到具体租户），与角色列表一致 */
+  /** Tenant cascader can only select the second level (must pick a specific tenant); consistent with the role list. */
   protected isCheckStrictly(): boolean {
     return false;
   }

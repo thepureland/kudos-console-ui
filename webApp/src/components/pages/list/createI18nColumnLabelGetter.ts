@@ -1,9 +1,9 @@
-/** i18n 翻译函数签名。 */
+/** Signature of an i18n translate function. */
 export type ColumnTranslate = (key: string) => string;
 
 /**
- * 生成列表列标题 i18n getter，支持 key 别名映射。
- * 例：subSystemCode -> subSys，对应 t(`${prefix}.subSys`)。
+ * Build an i18n getter for list column labels, supporting key aliasing.
+ * Example: subSystemCode -> subSys, which maps to t(`${prefix}.subSys`).
  */
 export function createI18nColumnLabelGetter(
   t: ColumnTranslate,

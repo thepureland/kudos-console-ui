@@ -1,5 +1,5 @@
 <!--
- * 角色下的账号列表
+ * Account list within a role
  *
  * @author: K
  * @since 1.0.0
@@ -7,38 +7,38 @@
 
 
 <template>
-  <el-dialog title="用户列表" v-model="visible" width="50%" center @close="close">
+  <el-dialog title="User List" v-model="visible" width="50%" center @close="close">
     <el-table border stripe :data="tableData" height="94%" @selection-change="handleSelectionChange"
               :header-cell-style="{textAlign: 'center'}" @sort-change="handleSortChange">
       <el-table-column type="selection" width="39"/>
       <el-table-column type="index" width="50"/>
-      <el-table-column label="用户名" prop="username" show-overflow-tooltip/>
-      <el-table-column label="子系统" prop="subSystemCode" show-overflow-tooltip>
+      <el-table-column label="Username" prop="username" show-overflow-tooltip/>
+      <el-table-column label="Subsystem" prop="subSystemCode" show-overflow-tooltip>
         <template #default="scope">
           {{ transAtomicService(scope.row.subSystemCode) }}
         </template>
       </el-table-column>
-      <el-table-column label="用户状态" prop="userStatusDictCode" show-overflow-tooltip>
+      <el-table-column label="User Status" prop="userStatusDictCode" show-overflow-tooltip>
         <template #default="scope">
           {{ t(transDict("user", "user_status", scope.row.userStatusDictCode)) }}
         </template>
       </el-table-column>
-      <el-table-column label="用户类型" prop="userTypeDictCode" show-overflow-tooltip>
+      <el-table-column label="User Type" prop="userTypeDictCode" show-overflow-tooltip>
         <template #default="scope">
           {{ t(transDict("user", "user_type", scope.row.userTypeDictCode)) }}
         </template>
       </el-table-column>
-      <el-table-column label="最后一次登陆时间" show-overflow-tooltip>
+      <el-table-column label="Last Login Time" show-overflow-tooltip>
         <template #default="scope">
           {{ formatDate(scope.row.lastLoginTime) }}
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" show-overflow-tooltip>
+      <el-table-column label="Create Time" show-overflow-tooltip>
         <template #default="scope">
           {{ formatDate(scope.row.createTime) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center">
+      <el-table-column label="Operation" align="center">
         <template #default="scope">
           <tickets @click="handleDetail(scope.row)" class="operate-column-icon"/>
         </template>
@@ -77,7 +77,7 @@ class UserListDialog extends BaseListPage {
     return "rbac/role"
   }
 
-  /** 用户状态、用户类型字典项译文从后端取 */
+  /** User status and user type dict-item translations are fetched from the backend. */
   protected getI18nConfig() {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['user_status', 'user_type'], atomicServiceCode: 'user' }]
   }

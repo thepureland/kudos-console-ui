@@ -1,4 +1,4 @@
-<!-- 国际化新增/编辑 -->
+<!-- I18n entry add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -120,7 +120,7 @@ class I18nFormPage extends BaseAddEditPage {
     return 'sys/i18n';
   }
 
-  /** 加载「国际化类型」「语言」字典项译文，供表单下拉 t(item.second) 显示，全部从后端取 */
+  /** Load dict-item translations for "i18n type" and "locale" so the form dropdowns can show t(item.second); all fetched from the backend. */
   protected getI18nConfig() {
     return [
       { i18nTypeDictCode: 'dict-item', namespaces: ['i18n_type', 'locale'], atomicServiceCode: 'sys' },

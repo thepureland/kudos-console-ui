@@ -160,7 +160,7 @@ private fun parseSortParam(params: JsonObject): Pair<String?, String>? {
 }
 
 private fun validateAndParseCacheSearchParams(params: JsonObject): CacheSearchParams {
-    // 白名单策略：只解析允许字段；未知字段直接忽略，避免影响查询可用性
+    // Whitelist strategy: parse only allowed fields; unknown fields are ignored to avoid impacting query availability.
 
     val name = parseOptionalStringParam(params, "name") ?: ""
     val atomicServiceCode = parseOptionalStringParam(params, "atomicServiceCode") ?: ""
@@ -263,13 +263,13 @@ private fun buildDataSourceSearchResponse(path: String, requestJson: String): St
     return response.toString()
 }
 
-/** 国际化详情：根据 id 从与 search 一致的 mock 数据中查单条。 */
+/** I18n detail: look up a single row by id from the same mock data used by search. */
 private fun buildI18nGetDetailResponse(requestId: String): String {
     val mockRows = listOf(
         buildJsonObject {
             put("id", JsonPrimitive("i18n_1"))
             put("key", JsonPrimitive("common.save"))
-            put("value", JsonPrimitive("保存"))
+            put("value", JsonPrimitive("Save"))
             put("locale", JsonPrimitive("zh-CN"))
             put("i18nTypeDictCode", JsonPrimitive("dict"))
             put("atomicServiceCode", JsonPrimitive("console"))
@@ -279,7 +279,7 @@ private fun buildI18nGetDetailResponse(requestId: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("i18n_2"))
             put("key", JsonPrimitive("common.cancel"))
-            put("value", JsonPrimitive("取消"))
+            put("value", JsonPrimitive("Cancel"))
             put("locale", JsonPrimitive("zh-CN"))
             put("i18nTypeDictCode", JsonPrimitive("dict_item"))
             put("atomicServiceCode", JsonPrimitive("console"))
@@ -299,7 +299,7 @@ private fun buildI18nGetDetailResponse(requestId: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("i18n_4"))
             put("key", JsonPrimitive("sys.i18n.title"))
-            put("value", JsonPrimitive("国际化管理"))
+            put("value", JsonPrimitive("I18n Management"))
             put("locale", JsonPrimitive("zh-CN"))
             put("i18nTypeDictCode", JsonPrimitive("view"))
             put("atomicServiceCode", JsonPrimitive("service_a"))
@@ -309,7 +309,7 @@ private fun buildI18nGetDetailResponse(requestId: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("i18n_5"))
             put("key", JsonPrimitive("sys.i18n.key"))
-            put("value", JsonPrimitive("键"))
+            put("value", JsonPrimitive("Key"))
             put("locale", JsonPrimitive("zh-TW"))
             put("i18nTypeDictCode", JsonPrimitive("dict_item"))
             put("atomicServiceCode", JsonPrimitive("console"))
@@ -333,7 +333,7 @@ private fun buildI18nGetDetailResponse(requestId: String): String {
     return body
 }
 
-/** 数据源详情：从 search fixture 中按 id 查单条；无 fixture 或未找到时返回 404。 */
+/** DataSource detail: look up a single row by id from the search fixture; returns 404 if no fixture or not found. */
 private fun buildDataSourceGetDetailResponse(requestId: String): String {
     val searchPath = "/sys/dataSource/search"
     val fixture = MockJsonStore.byPath[searchPath] ?: MockJsonStore.byPath["/api/sys/dataSource/search"]
@@ -394,7 +394,7 @@ private fun buildCacheSearchResponse(path: String, requestJson: String): String 
     return response.toString()
 }
 
-/** 根据请求的 id 从 cache search 数据中查找对应行并返回详情；未找到时回退到静态 getDetail 文案。 */
+/** Look up the matching row in the cache search data by request id and return its detail; falls back to the static getDetail text when not found. */
 private fun buildCacheGetDetailResponse(requestId: String): String {
     val searchPath = "/sys/cache/search"
     val fixture = MockJsonStore.byPath[searchPath] ?: MockJsonStore.byPath["/api/sys/cache/search"]
@@ -477,18 +477,18 @@ private fun parseSortParamForParam(params: JsonObject): Pair<String?, String> {
     return if (directionValue == "DESC") propertyValue to "DESC" else propertyValue to "ASC"
 }
 
-/** 参数列表内联数据，按 module/paramName/paramValue/active 筛选、排序、分页后返回。 */
+/** Param list inline data; returned after filtering, sorting, and paging by module/paramName/paramValue/active. */
 private fun buildParamSearchResponse(requestJson: String): String {
     val params = parseParamSearchParams(parseJsonObjectOrEmpty(requestJson))
     val mockRows = listOf(
         buildJsonObject {
             put("id", JsonPrimitive("1"))
             put("paramName", JsonPrimitive("sys.name"))
-            put("paramValue", JsonPrimitive("Kudos 控制台"))
+            put("paramValue", JsonPrimitive("Kudos Console"))
             put("defaultValue", JsonPrimitive("Kudos"))
             put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
             put("seqNo", JsonPrimitive(1))
-            put("remark", JsonPrimitive("系统显示名称"))
+            put("remark", JsonPrimitive("System display name"))
             put("active", JsonPrimitive(true))
         },
         buildJsonObject {
@@ -498,7 +498,7 @@ private fun buildParamSearchResponse(requestJson: String): String {
             put("defaultValue", JsonPrimitive("10"))
             put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
             put("seqNo", JsonPrimitive(2))
-            put("remark", JsonPrimitive("默认分页大小"))
+            put("remark", JsonPrimitive("Default page size"))
             put("active", JsonPrimitive(true))
         },
         buildJsonObject {
@@ -508,7 +508,7 @@ private fun buildParamSearchResponse(requestJson: String): String {
             put("defaultValue", JsonPrimitive("1800"))
             put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
             put("seqNo", JsonPrimitive(3))
-            put("remark", JsonPrimitive("缓存过期时间(秒)"))
+            put("remark", JsonPrimitive("Cache expiration time (seconds)"))
             put("active", JsonPrimitive(true))
         },
         buildJsonObject {
@@ -518,7 +518,7 @@ private fun buildParamSearchResponse(requestJson: String): String {
             put("defaultValue", JsonPrimitive("WARN"))
             put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.getOrElse(2) { "auth" }))
             put("seqNo", JsonPrimitive(1))
-            put("remark", JsonPrimitive("日志级别"))
+            put("remark", JsonPrimitive("Log level"))
             put("active", JsonPrimitive(true))
         },
         buildJsonObject {
@@ -528,7 +528,7 @@ private fun buildParamSearchResponse(requestJson: String): String {
             put("defaultValue", JsonPrimitive("false"))
             put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.getOrElse(3) { "msg" }))
             put("seqNo", JsonPrimitive(1))
-            put("remark", JsonPrimitive("是否启用任务调度"))
+            put("remark", JsonPrimitive("Whether to enable task scheduling"))
             put("active", JsonPrimitive(false))
         },
     )
@@ -559,14 +559,14 @@ private fun buildParamSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 参数详情：根据 id 从与 search 一致的数据中查单条并补全 createTime 等字段。 */
+/** Param detail: look up a single row by id from data consistent with search and fill in fields like createTime. */
 private fun buildParamGetDetailResponse(requestId: String): String {
     val mockRows = listOf(
         "1" to mapOf(
             "paramName" to "sys.name",
-            "paramValue" to "Kudos 控制台",
+            "paramValue" to "Kudos Console",
             "defaultValue" to "Kudos",
-            "remark" to "系统显示名称",
+            "remark" to "System display name",
             "seqNo" to 1,
             "active" to true,
         ),
@@ -574,7 +574,7 @@ private fun buildParamGetDetailResponse(requestId: String): String {
             "paramName" to "sys.pageSize",
             "paramValue" to "20",
             "defaultValue" to "10",
-            "remark" to "默认分页大小",
+            "remark" to "Default page size",
             "seqNo" to 2,
             "active" to true,
         ),
@@ -582,7 +582,7 @@ private fun buildParamGetDetailResponse(requestId: String): String {
             "paramName" to "sys.cache.ttl",
             "paramValue" to "3600",
             "defaultValue" to "1800",
-            "remark" to "缓存过期时间(秒)",
+            "remark" to "Cache expiration time (seconds)",
             "seqNo" to 3,
             "active" to true,
         ),
@@ -590,7 +590,7 @@ private fun buildParamGetDetailResponse(requestId: String): String {
             "paramName" to "log.level",
             "paramValue" to "INFO",
             "defaultValue" to "WARN",
-            "remark" to "日志级别",
+            "remark" to "Log level",
             "seqNo" to 1,
             "active" to true,
         ),
@@ -598,7 +598,7 @@ private fun buildParamGetDetailResponse(requestId: String): String {
             "paramName" to "job.enabled",
             "paramValue" to "true",
             "defaultValue" to "false",
-            "remark" to "是否启用任务调度",
+            "remark" to "Whether to enable task scheduling",
             "seqNo" to 1,
             "active" to false,
         ),
@@ -722,7 +722,7 @@ private fun buildResourceSearchResponse(path: String, requestJson: String): Stri
     return response.toString()
 }
 
-/** 资源详情：从 search fixture 中按 id 查单条，并补全 parentIds 供编辑回填级联。 */
+/** Resource detail: look up a single row by id from the search fixture and fill in parentIds for cascading edit prefill. */
 private fun buildResourceGetDetailResponse(requestId: String): String {
     val searchPath = "/sys/resource/search"
     val fixture = MockJsonStore.byPath[searchPath] ?: MockJsonStore.byPath["/api/sys/resource/search"]
@@ -818,7 +818,7 @@ private val TENANT_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
     "name", "subSystemCode", "active", "createTime",
 )
 
-/** Mock 账号列表搜索：根据 username/subSystemCode/tenantId/organizationId 筛选，排序分页。 */
+/** Mock account list search: filter by username/subSystemCode/tenantId/organizationId, then sort and paginate. */
 private fun buildAccountSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val username = parseOptionalStringParam(params, "username")?.trim() ?: ""
@@ -834,7 +834,7 @@ private fun buildAccountSearchResponse(requestJson: String): String {
             put("username", JsonPrimitive("admin"))
             put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("default"))
-            put("tenantName", JsonPrimitive("默认租户"))
+            put("tenantName", JsonPrimitive("Default Tenant"))
             put("organizationId", JsonPrimitive("org_1"))
             put("userStatusDictCode", JsonPrimitive("NORMAL"))
             put("userTypeDictCode", JsonPrimitive("ADMIN"))
@@ -846,7 +846,7 @@ private fun buildAccountSearchResponse(requestJson: String): String {
             put("username", JsonPrimitive("user1"))
             put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t1"))
-            put("tenantName", JsonPrimitive("租户1"))
+            put("tenantName", JsonPrimitive("Tenant 1"))
             put("organizationId", JsonPrimitive("org_2"))
             put("userStatusDictCode", JsonPrimitive("NORMAL"))
             put("userTypeDictCode", JsonPrimitive("USER"))
@@ -858,7 +858,7 @@ private fun buildAccountSearchResponse(requestJson: String): String {
             put("username", JsonPrimitive("user2"))
             put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonPrimitive("1"))
-            put("tenantName", JsonPrimitive("租户A1"))
+            put("tenantName", JsonPrimitive("Tenant A1"))
             put("organizationId", JsonPrimitive("org_3"))
             put("userStatusDictCode", JsonPrimitive("LOCKED"))
             put("userTypeDictCode", JsonPrimitive("USER"))
@@ -890,7 +890,7 @@ private fun buildAccountSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 账号详情：根据 id 从与 search 一致的 mock 数据中查单条并补全详情字段。tenantId 需与 getAllActiveTenants 一致（console→t6/default/tenant_2，service_a→t5/1）。 */
+/** Account detail: look up a single row by id from mock data consistent with search and fill in detail fields. tenantId must match getAllActiveTenants (console -> t6/default/tenant_2, service_a -> t5/1). */
 private fun buildAccountGetDetailResponse(requestId: String): String {
     val mockRows = listOf(
         buildJsonObject {
@@ -959,21 +959,21 @@ private fun buildAccountGetDetailResponse(requestId: String): String {
     return body
 }
 
-/** Mock 组织机构树：返回 id/name/children 结构。 */
+/** Mock organization tree: returns an id/name/children structure. */
 private fun buildOrganizationLoadTreeResponse(subSystemCode: String?, tenantId: String?): String {
     val nodes = listOf(
         buildJsonObject {
             put("id", JsonPrimitive("org_1"))
-            put("name", JsonPrimitive("总部"))
+            put("name", JsonPrimitive("HQ"))
             put("children", JsonArray(listOf(
                 buildJsonObject {
                     put("id", JsonPrimitive("org_2"))
-                    put("name", JsonPrimitive("研发部"))
+                    put("name", JsonPrimitive("R&D Dept"))
                     put("children", JsonArray(emptyList()))
                 },
                 buildJsonObject {
                     put("id", JsonPrimitive("org_3"))
-                    put("name", JsonPrimitive("市场部"))
+                    put("name", JsonPrimitive("Marketing Dept"))
                     put("children", JsonArray(emptyList()))
                 },
             )))
@@ -990,7 +990,7 @@ private val ROLE_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
     "roleCode", "roleName", "subSystemCode", "active", "createTime",
 )
 
-/** Mock 角色列表搜索：根据 subSystemCode/tenantId/roleCode/roleName/active 筛选，排序分页。 */
+/** Mock role list search: filter by subSystemCode/tenantId/roleCode/roleName/active, then sort and paginate. */
 private fun buildRoleSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val subSystemCode = primitiveString(params, "subSystemCode")?.takeIf { it.isNotBlank() }
@@ -1005,30 +1005,30 @@ private fun buildRoleSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("role_1"))
             put("roleCode", JsonPrimitive("ADMIN"))
-            put("roleName", JsonPrimitive("管理员"))
+            put("roleName", JsonPrimitive("Administrator"))
             put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonNull)
-            put("remark", JsonPrimitive("系统管理员角色"))
+            put("remark", JsonPrimitive("System administrator role"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("role_2"))
             put("roleCode", JsonPrimitive("USER"))
-            put("roleName", JsonPrimitive("普通用户"))
+            put("roleName", JsonPrimitive("Regular User"))
             put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t1"))
-            put("remark", JsonPrimitive("租户普通用户"))
+            put("remark", JsonPrimitive("Tenant regular user"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("role_3"))
             put("roleCode", JsonPrimitive("GUEST"))
-            put("roleName", JsonPrimitive("访客"))
+            put("roleName", JsonPrimitive("Guest"))
             put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonNull)
-            put("remark", JsonPrimitive("只读访客"))
+            put("remark", JsonPrimitive("Read-only guest"))
             put("active", JsonPrimitive(false))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
         },
@@ -1060,36 +1060,36 @@ private fun buildRoleSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 角色详情：根据 id 从与 search 一致的 mock 数据中查单条并补全详情字段。 */
+/** Role detail: look up a single row by id from mock data consistent with search and fill in detail fields. */
 private fun buildRoleGetDetailResponse(requestId: String): String {
     val mockRows = listOf(
         buildJsonObject {
             put("id", JsonPrimitive("role_1"))
             put("roleCode", JsonPrimitive("ADMIN"))
-            put("roleName", JsonPrimitive("管理员"))
+            put("roleName", JsonPrimitive("Administrator"))
             put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonNull)
-            put("remark", JsonPrimitive("系统管理员角色"))
+            put("remark", JsonPrimitive("System administrator role"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("role_2"))
             put("roleCode", JsonPrimitive("USER"))
-            put("roleName", JsonPrimitive("普通用户"))
+            put("roleName", JsonPrimitive("Regular User"))
             put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t1"))
-            put("remark", JsonPrimitive("租户普通用户"))
+            put("remark", JsonPrimitive("Tenant regular user"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("role_3"))
             put("roleCode", JsonPrimitive("GUEST"))
-            put("roleName", JsonPrimitive("访客"))
+            put("roleName", JsonPrimitive("Guest"))
             put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonNull)
-            put("remark", JsonPrimitive("只读访客"))
+            put("remark", JsonPrimitive("Read-only guest"))
             put("active", JsonPrimitive(false))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
         },
@@ -1098,7 +1098,7 @@ private fun buildRoleGetDetailResponse(requestId: String): String {
         ?: return "{\"code\":404,\"data\":null}"
     row = buildJsonObject {
         row.forEach { (k, v) -> put(k, v) }
-        put("tenantName", JsonPrimitive(if (primitiveString(row, "tenantId") == "t1") "租户1" else ""))
+        put("tenantName", JsonPrimitive(if (primitiveString(row, "tenantId") == "t1") "Tenant 1" else ""))
         put("updateTime", JsonArray(listOf(JsonPrimitive(2024), JsonPrimitive(1), JsonPrimitive(1), JsonPrimitive(0), JsonPrimitive(0), JsonPrimitive(0))))
         put("createUser", JsonPrimitive(""))
         put("updateUser", JsonPrimitive(""))
@@ -1115,7 +1115,7 @@ private val USER_GROUP_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
     "groupCode", "groupName", "active", "createTime",
 )
 
-/** Mock 用户组（组管理）列表搜索：根据 groupCode/groupName/active 筛选，排序分页。 */
+/** Mock user group (group management) list search: filter by groupCode/groupName/active, then sort and paginate. */
 private fun buildUserGroupSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val groupCode = parseOptionalStringParam(params, "groupCode")?.trim() ?: ""
@@ -1128,24 +1128,24 @@ private fun buildUserGroupSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("group_1"))
             put("groupCode", JsonPrimitive("ADMIN_GROUP"))
-            put("groupName", JsonPrimitive("管理员组"))
-            put("remark", JsonPrimitive("系统管理员用户组"))
+            put("groupName", JsonPrimitive("Administrator Group"))
+            put("remark", JsonPrimitive("System administrator user group"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("group_2"))
             put("groupCode", JsonPrimitive("DEV_GROUP"))
-            put("groupName", JsonPrimitive("开发组"))
-            put("remark", JsonPrimitive("开发团队"))
+            put("groupName", JsonPrimitive("Development Group"))
+            put("remark", JsonPrimitive("Development team"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("group_3"))
             put("groupCode", JsonPrimitive("GUEST_GROUP"))
-            put("groupName", JsonPrimitive("访客组"))
-            put("remark", JsonPrimitive("只读访客"))
+            put("groupName", JsonPrimitive("Guest Group"))
+            put("remark", JsonPrimitive("Read-only guest"))
             put("active", JsonPrimitive(false))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
         },
@@ -1173,30 +1173,30 @@ private fun buildUserGroupSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 用户组详情：根据 id 从与 search 一致的 mock 数据中查单条并补全详情字段。 */
+/** User group detail: look up a single row by id from mock data consistent with search and fill in detail fields. */
 private fun buildUserGroupGetDetailResponse(requestId: String): String {
     val mockRows = listOf(
         buildJsonObject {
             put("id", JsonPrimitive("group_1"))
             put("groupCode", JsonPrimitive("ADMIN_GROUP"))
-            put("groupName", JsonPrimitive("管理员组"))
-            put("remark", JsonPrimitive("系统管理员用户组"))
+            put("groupName", JsonPrimitive("Administrator Group"))
+            put("remark", JsonPrimitive("System administrator user group"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("group_2"))
             put("groupCode", JsonPrimitive("DEV_GROUP"))
-            put("groupName", JsonPrimitive("开发组"))
-            put("remark", JsonPrimitive("开发团队"))
+            put("groupName", JsonPrimitive("Development Group"))
+            put("remark", JsonPrimitive("Development team"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("group_3"))
             put("groupCode", JsonPrimitive("GUEST_GROUP"))
-            put("groupName", JsonPrimitive("访客组"))
-            put("remark", JsonPrimitive("只读访客"))
+            put("groupName", JsonPrimitive("Guest Group"))
+            put("remark", JsonPrimitive("Read-only guest"))
             put("active", JsonPrimitive(false))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
         },
@@ -1219,10 +1219,10 @@ private fun buildUserGroupGetDetailResponse(requestId: String): String {
     return body
 }
 
-/** Mock 组织列表树 searchTree：与角色列表一致从 body 解析 subSystemCode/tenantId，按 tenantId 过滤返回不同树；无 tenantId 时返回空。 */
+/** Mock organization list tree searchTree: like the role list, parses subSystemCode/tenantId from the body and returns different trees filtered by tenantId; returns empty when tenantId is absent. */
 private fun buildOrganizationSearchTreeResponse(requestJson: String, tenantIdFromQuery: String? = null): String {
     val params = parseJsonObjectOrEmpty(requestJson)
-    // 与 buildRoleSearchResponse 一致：先取 body 的 tenantId / subSystemCode
+    // Consistent with buildRoleSearchResponse: first read tenantId / subSystemCode from the body.
     val subSystemCode = primitiveString(params, "subSystemCode")?.takeIf { it.isNotBlank() }
     var tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
     if (tenantId.isNullOrBlank()) {
@@ -1248,18 +1248,18 @@ private fun buildOrganizationSearchTreeResponse(requestJson: String, tenantIdFro
         put("createTime", JsonPrimitive(createTime))
         put("children", JsonArray(children))
     }
-    // 与 getAllActiveTenants 一致：console 下有 t1..t6、default、tenant_2，每个租户返回不同名称便于区分
+    // Consistent with getAllActiveTenants: under console there are t1..t6, default, tenant_2; each tenant returns a different name for distinction.
     val names = when (tenantId) {
-        "t1" -> listOf("总部(租户1)", "研发部", "市场部", "已停用部门")
-        "t2" -> listOf("总部(租户2)", "部门A", "部门B", "部门C")
-        "t3" -> listOf("总部(租户3)", "技术部", "销售部", "已停用")
-        "t4" -> listOf("总部(租户4)", "子部门1", "子部门2", "子部门3")
-        "t5" -> listOf("总部(租户5)", "运营部", "财务部", "已停用")
-        "t6" -> listOf("总部(租户6)", "研发部", "市场部", "已停用部门")
-        "default" -> listOf("总部(默认租户)", "部门A", "部门B", "部门C")
-        "tenant_2" -> listOf("总部(租户二)", "技术部", "销售部", "已停用")
-        "1" -> listOf("总部(租户A1)", "部门X", "部门Y", "已停用")
-        else -> listOf("总部($tenantId)", "子部门1", "子部门2", "子部门3")
+        "t1" -> listOf("HQ (Tenant 1)", "R&D Dept", "Marketing Dept", "Disabled Dept")
+        "t2" -> listOf("HQ (Tenant 2)", "Dept A", "Dept B", "Dept C")
+        "t3" -> listOf("HQ (Tenant 3)", "Tech Dept", "Sales Dept", "Disabled")
+        "t4" -> listOf("HQ (Tenant 4)", "Sub Dept 1", "Sub Dept 2", "Sub Dept 3")
+        "t5" -> listOf("HQ (Tenant 5)", "Operations Dept", "Finance Dept", "Disabled")
+        "t6" -> listOf("HQ (Tenant 6)", "R&D Dept", "Marketing Dept", "Disabled Dept")
+        "default" -> listOf("HQ (Default Tenant)", "Dept A", "Dept B", "Dept C")
+        "tenant_2" -> listOf("HQ (Tenant 2 CN)", "Tech Dept", "Sales Dept", "Disabled")
+        "1" -> listOf("HQ (Tenant A1)", "Dept X", "Dept Y", "Disabled")
+        else -> listOf("HQ ($tenantId)", "Sub Dept 1", "Sub Dept 2", "Sub Dept 3")
     }
     val rootName = names[0]
     val c1Name = names[1]
@@ -1289,21 +1289,21 @@ private fun buildOrganizationSearchTreeResponse(requestJson: String, tenantIdFro
     return response.toString()
 }
 
-/** 组织机构详情：根据 id 返回单条（id 与列表 searchTree、loadTree 一致为 org_1/org_2/org_3/org_4），编辑时取到的即所点的那一条。 */
+/** Organization detail: return a single row by id (the id matches the list searchTree and loadTree as org_1/org_2/org_3/org_4); on edit you get exactly the row you clicked. */
 private fun buildOrganizationGetDetailResponse(requestId: String): String {
     val nameBySuffix = mapOf(
-        "1" to "总部", "2" to "研发部", "3" to "市场部", "4" to "已停用部门"
+        "1" to "HQ", "2" to "R&D Dept", "3" to "Marketing Dept", "4" to "Disabled Dept"
     )
     val suffix = requestId.substringAfterLast('_', requestId)
-    val name = nameBySuffix[suffix] ?: "组织"
+    val name = nameBySuffix[suffix] ?: "Organization"
     val abbr = when (suffix) {
-        "1" -> "总部"
-        "2" -> "研发"
-        "3" -> "市场"
-        "4" -> "停用"
+        "1" -> "HQ"
+        "2" -> "R&D"
+        "3" -> "Marketing"
+        "4" -> "Disabled"
         else -> "—"
     }
-    // 与 loadTree 一致：org_1（总部）为根，上级为 null；org_2/org_3/org_4 的父级为 org_1；兼容带前缀的 id（如 org_console_t6_1）用 suffix 判根
+    // Consistent with loadTree: org_1 (HQ) is the root with null parent; org_2/org_3/org_4 have org_1 as parent; for prefixed ids (e.g. org_console_t6_1) the suffix is used to detect the root.
     val isRoot = suffix == "1"
     val parentIds = if (isRoot) emptyList<String>() else listOf("org_1")
     val row = buildJsonObject {
@@ -1316,7 +1316,7 @@ private fun buildOrganizationGetDetailResponse(requestId: String): String {
         put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
         put("subSystemCode", JsonPrimitive("console"))
         put("tenantId", JsonPrimitive("t6"))
-        put("tenantName", JsonPrimitive("租户1"))
+        put("tenantName", JsonPrimitive("Tenant 1"))
         put("parentId", if (isRoot) JsonNull else JsonPrimitive("org_1"))
         put("parentIds", JsonArray(parentIds.map { JsonPrimitive(it) }))
         put("remark", JsonPrimitive(""))
@@ -1332,7 +1332,7 @@ private fun buildOrganizationGetDetailResponse(requestId: String): String {
     return body
 }
 
-/** Mock 子系统列表树查询 searchTree：根据 code/name/active/subSystem 筛选，按 parentCode 构建树。 */
+/** Mock subsystem list tree query searchTree: filter by code/name/active/subSystem and build the tree by parentCode. */
 private fun buildSubsysSearchTreeResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val codeFilter = parseOptionalStringParam(params, "code")?.trim() ?: ""
@@ -1359,11 +1359,11 @@ private fun buildSubsysSearchTreeResponse(requestJson: String): String {
         put("remark", JsonPrimitive(remark))
     }
     val flat = listOf(
-        node("sys_1", "service_a", "子系统1", null, true, true, true, "业务服务A"),
-        node("sys_2", "console", "子系统2", null, true, true, true, "主控制台"),
-        node("sys_3", "service_b", "子系统3", "console", true, false, true, "业务服务B"),
-        node("sys_4", "module_x", "模块X", "service_a", false, true, false, "子模块"),
-        node("sys_5", "module_y", "模块Y", "service_a", false, true, false, ""),
+        node("sys_1", "service_a", "Subsystem 1", null, true, true, true, "Business Service A"),
+        node("sys_2", "console", "Subsystem 2", null, true, true, true, "Main Console"),
+        node("sys_3", "service_b", "Subsystem 3", "console", true, false, true, "Business Service B"),
+        node("sys_4", "module_x", "Module X", "service_a", false, true, false, "Submodule"),
+        node("sys_5", "module_y", "Module Y", "service_a", false, true, false, ""),
     )
     fun filterNode(obj: JsonObject): Boolean {
         val rowCode = primitiveString(obj, "code").orEmpty()
@@ -1403,7 +1403,7 @@ private fun buildSubsysSearchTreeResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 子系统详情：根据 id 从与 searchTree 一致的扁平数据中查单条。 */
+/** Subsystem detail: look up a single row by id from the flat data consistent with searchTree. */
 private fun buildSubsysGetDetailResponse(requestId: String): String {
     fun node(
         id: String,
@@ -1425,11 +1425,11 @@ private fun buildSubsysGetDetailResponse(requestId: String): String {
         put("remark", JsonPrimitive(remark))
     }
     val flat = listOf(
-        node("sys_1", "service_a", "子系统1", null, true, true, true, "业务服务A"),
-        node("sys_2", "console", "子系统2", null, true, true, true, "主控制台"),
-        node("sys_3", "service_b", "子系统3", "console", true, false, true, "业务服务B"),
-        node("sys_4", "module_x", "模块X", "service_a", false, true, false, "子模块"),
-        node("sys_5", "module_y", "模块Y", "service_a", false, true, false, ""),
+        node("sys_1", "service_a", "Subsystem 1", null, true, true, true, "Business Service A"),
+        node("sys_2", "console", "Subsystem 2", null, true, true, true, "Main Console"),
+        node("sys_3", "service_b", "Subsystem 3", "console", true, false, true, "Business Service B"),
+        node("sys_4", "module_x", "Module X", "service_a", false, true, false, "Submodule"),
+        node("sys_5", "module_y", "Module Y", "service_a", false, true, false, ""),
     )
     var row = flat.firstOrNull { primitiveString(it, "id") == requestId }
         ?: buildJsonObject {
@@ -1442,7 +1442,7 @@ private fun buildSubsysGetDetailResponse(requestId: String): String {
             put("builtIn", JsonPrimitive(false))
             put("remark", JsonPrimitive(""))
         }
-    // 审计信息字段（详情页展示）
+    // Audit info fields (shown on the detail page).
     row = buildJsonObject {
         row.forEach { (k, v) -> put(k, v) }
         put("createTime", JsonArray(listOf(JsonPrimitive(2024), JsonPrimitive(1), JsonPrimitive(1), JsonPrimitive(0), JsonPrimitive(0), JsonPrimitive(0))))
@@ -1457,7 +1457,7 @@ private fun buildSubsysGetDetailResponse(requestId: String): String {
     return body
 }
 
-/** Mock 微服务列表树查询 searchTree：根据 code/name/active/atomicService 筛选，按 parentCode 构建树。 */
+/** Mock microservice list tree query searchTree: filter by code/name/active/atomicService and build the tree by parentCode. */
 private fun buildMicroserviceSearchTreeResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val codeFilter = parseOptionalStringParam(params, "code")?.trim() ?: ""
@@ -1486,11 +1486,11 @@ private fun buildMicroserviceSearchTreeResponse(requestJson: String): String {
         put("remark", JsonPrimitive(remark))
     }
     val flat = listOf(
-        node("ms_1", "gateway", "网关", null, true, "/gateway", true, true, "统一网关"),
-        node("ms_2", "user-service", "用户服务", "gateway", true, "/user", true, false, "用户中心"),
-        node("ms_3", "order-service", "订单服务", "gateway", true, "/order", true, false, "订单中心"),
-        node("ms_4", "order-worker", "订单Worker", "order-service", false, "/order/worker", true, false, ""),
-        node("ms_5", "legacy-api", "遗留API", "gateway", false, "/legacy", false, true, "遗留系统"),
+        node("ms_1", "gateway", "Gateway", null, true, "/gateway", true, true, "Unified gateway"),
+        node("ms_2", "user-service", "User Service", "gateway", true, "/user", true, false, "User center"),
+        node("ms_3", "order-service", "Order Service", "gateway", true, "/order", true, false, "Order center"),
+        node("ms_4", "order-worker", "Order Worker", "order-service", false, "/order/worker", true, false, ""),
+        node("ms_5", "legacy-api", "Legacy API", "gateway", false, "/legacy", false, true, "Legacy system"),
     )
     fun filterNode(obj: JsonObject): Boolean {
         val rowCode = primitiveString(obj, "code").orEmpty()
@@ -1530,7 +1530,7 @@ private fun buildMicroserviceSearchTreeResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 微服务详情：根据 id 从与 searchTree 一致的扁平数据中查单条。 */
+/** Microservice detail: look up a single row by id from the flat data consistent with searchTree. */
 private fun buildMicroserviceGetDetailResponse(requestId: String): String {
     fun node(
         id: String,
@@ -1554,11 +1554,11 @@ private fun buildMicroserviceGetDetailResponse(requestId: String): String {
         put("remark", JsonPrimitive(remark))
     }
     val flat = listOf(
-        node("ms_1", "gateway", "网关", null, true, "/gateway", true, true, "统一网关"),
-        node("ms_2", "user-service", "用户服务", "gateway", true, "/user", true, false, "用户中心"),
-        node("ms_3", "order-service", "订单服务", "gateway", true, "/order", true, false, "订单中心"),
-        node("ms_4", "order-worker", "订单Worker", "order-service", false, "/order/worker", true, false, ""),
-        node("ms_5", "legacy-api", "遗留API", "gateway", false, "/legacy", false, true, "遗留系统"),
+        node("ms_1", "gateway", "Gateway", null, true, "/gateway", true, true, "Unified gateway"),
+        node("ms_2", "user-service", "User Service", "gateway", true, "/user", true, false, "User center"),
+        node("ms_3", "order-service", "Order Service", "gateway", true, "/order", true, false, "Order center"),
+        node("ms_4", "order-worker", "Order Worker", "order-service", false, "/order/worker", true, false, ""),
+        node("ms_5", "legacy-api", "Legacy API", "gateway", false, "/legacy", false, true, "Legacy system"),
     )
     var row = flat.firstOrNull { primitiveString(it, "id") == requestId }
         ?: buildJsonObject {
@@ -1590,7 +1590,7 @@ private val I18N_SEARCH_ALLOWED_SORT_PROPERTIES = setOf(
     "key", "value", "locale", "i18nTypeDictCode", "atomicServiceCode", "active", "builtIn",
 )
 
-/** Mock 国际化列表搜索：根据 key/i18nTypeDictCode/atomicServiceCode/locale/active 筛选，排序分页。 */
+/** Mock i18n list search: filter by key/i18nTypeDictCode/atomicServiceCode/locale/active, then sort and paginate. */
 private fun buildI18nSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val keyFilter = parseOptionalStringParam(params, "key")?.trim() ?: ""
@@ -1605,7 +1605,7 @@ private fun buildI18nSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("i18n_1"))
             put("key", JsonPrimitive("common.save"))
-            put("value", JsonPrimitive("保存"))
+            put("value", JsonPrimitive("Save"))
             put("locale", JsonPrimitive("zh-CN"))
             put("i18nTypeDictCode", JsonPrimitive("dict"))
             put("atomicServiceCode", JsonPrimitive("console"))
@@ -1615,7 +1615,7 @@ private fun buildI18nSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("i18n_2"))
             put("key", JsonPrimitive("common.cancel"))
-            put("value", JsonPrimitive("取消"))
+            put("value", JsonPrimitive("Cancel"))
             put("locale", JsonPrimitive("zh-CN"))
             put("i18nTypeDictCode", JsonPrimitive("dict_item"))
             put("atomicServiceCode", JsonPrimitive("console"))
@@ -1635,7 +1635,7 @@ private fun buildI18nSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("i18n_4"))
             put("key", JsonPrimitive("sys.i18n.title"))
-            put("value", JsonPrimitive("国际化管理"))
+            put("value", JsonPrimitive("I18n Management"))
             put("locale", JsonPrimitive("zh-CN"))
             put("i18nTypeDictCode", JsonPrimitive("view"))
             put("atomicServiceCode", JsonPrimitive("service_a"))
@@ -1645,7 +1645,7 @@ private fun buildI18nSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("id", JsonPrimitive("i18n_5"))
             put("key", JsonPrimitive("sys.i18n.key"))
-            put("value", JsonPrimitive("键"))
+            put("value", JsonPrimitive("Key"))
             put("locale", JsonPrimitive("zh-TW"))
             put("i18nTypeDictCode", JsonPrimitive("dict_item"))
             put("atomicServiceCode", JsonPrimitive("console"))
@@ -1680,7 +1680,7 @@ private fun buildI18nSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** Mock 租户列表搜索：根据 id/name/subSystemCode/active 筛选，排序分页。 */
+/** Mock tenant list search: filter by id/name/subSystemCode/active, then sort and paginate. */
 private fun buildTenantSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val id = parseOptionalStringParam(params, "id")?.trim() ?: ""
@@ -1693,21 +1693,21 @@ private fun buildTenantSearchResponse(requestJson: String): String {
     val mockRows = listOf(
         buildJsonObject {
             put("id", JsonPrimitive("tenant_1"))
-            put("name", JsonPrimitive("默认租户"))
+            put("name", JsonPrimitive("Default Tenant"))
             put("subSystemCode", JsonPrimitive("console"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("tenant_2"))
-            put("name", JsonPrimitive("租户A"))
+            put("name", JsonPrimitive("Tenant A"))
             put("subSystemCode", JsonPrimitive("console"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("tenant_3"))
-            put("name", JsonPrimitive("租户B"))
+            put("name", JsonPrimitive("Tenant B"))
             put("subSystemCode", JsonPrimitive("service_a"))
             put("active", JsonPrimitive(false))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
@@ -1738,12 +1738,12 @@ private fun buildTenantSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** Mock 租户单条获取：按 id 返回编辑用数据，供 sys/tenant/get。 */
+/** Mock tenant single fetch: return edit data by id for sys/tenant/get. */
 private fun buildTenantGetResponse(id: String): String {
     val mockRows = listOf(
         buildJsonObject {
             put("id", JsonPrimitive("tenant_1"))
-            put("name", JsonPrimitive("默认租户"))
+            put("name", JsonPrimitive("Default Tenant"))
             put("subSystemCode", JsonPrimitive("console"))
             put("remark", JsonPrimitive(""))
             put("active", JsonPrimitive(true))
@@ -1751,17 +1751,17 @@ private fun buildTenantGetResponse(id: String): String {
         },
         buildJsonObject {
             put("id", JsonPrimitive("tenant_2"))
-            put("name", JsonPrimitive("租户A"))
+            put("name", JsonPrimitive("Tenant A"))
             put("subSystemCode", JsonPrimitive("console"))
-            put("remark", JsonPrimitive("备注A"))
+            put("remark", JsonPrimitive("Remark A"))
             put("active", JsonPrimitive(true))
             put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
         },
         buildJsonObject {
             put("id", JsonPrimitive("tenant_3"))
-            put("name", JsonPrimitive("租户B"))
+            put("name", JsonPrimitive("Tenant B"))
             put("subSystemCode", JsonPrimitive("service_a"))
-            put("remark", JsonPrimitive("备注B"))
+            put("remark", JsonPrimitive("Remark B"))
             put("active", JsonPrimitive(false))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
         },
@@ -1782,7 +1782,7 @@ private fun buildTenantGetResponse(id: String): String {
     return body
 }
 
-/** Mock 域名列表搜索：根据 domain/subSystemCode/tenantId/active 筛选，排序分页。tenantId 与 getAllActiveTenants 一致。 */
+/** Mock domain list search: filter by domain/subSystemCode/tenantId/active, then sort and paginate. tenantId is consistent with getAllActiveTenants. */
 private fun buildDomainSearchResponse(requestJson: String): String {
     val params = parseDomainSearchParams(parseJsonObjectOrEmpty(requestJson))
     val mockRows = listOf(
@@ -1791,9 +1791,9 @@ private fun buildDomainSearchResponse(requestJson: String): String {
             put("domain", JsonPrimitive("console.example.com"))
             put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t6"))
-            put("tenantName", JsonPrimitive("租户6"))
+            put("tenantName", JsonPrimitive("Tenant 6"))
             put("active", JsonPrimitive(true))
-            put("remark", JsonPrimitive("控制台域名"))
+            put("remark", JsonPrimitive("Console domain"))
             put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
         },
         buildJsonObject {
@@ -1803,7 +1803,7 @@ private fun buildDomainSearchResponse(requestJson: String): String {
             put("tenantId", JsonNull)
             put("tenantName", JsonPrimitive(""))
             put("active", JsonPrimitive(true))
-            put("remark", JsonPrimitive("API 域名"))
+            put("remark", JsonPrimitive("API domain"))
             put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
         },
         buildJsonObject {
@@ -1811,9 +1811,9 @@ private fun buildDomainSearchResponse(requestJson: String): String {
             put("domain", JsonPrimitive("service-a.example.com"))
             put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonPrimitive("t5"))
-            put("tenantName", JsonPrimitive("租户5"))
+            put("tenantName", JsonPrimitive("Tenant 5"))
             put("active", JsonPrimitive(false))
-            put("remark", JsonPrimitive("服务A域名"))
+            put("remark", JsonPrimitive("Service A domain"))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
         },
     )
@@ -1844,7 +1844,7 @@ private fun buildDomainSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** Mock 域名单条获取：按 id 返回编辑用数据，供 sys/domain/get。tenantId 需与 getAllActiveTenants 一致（console→t6，service_a→t5）。 */
+/** Mock domain single fetch: return edit data by id for sys/domain/get. tenantId must match getAllActiveTenants (console -> t6, service_a -> t5). */
 private fun buildDomainGetResponse(id: String): String {
     val mockRows = listOf(
         buildJsonObject {
@@ -1852,9 +1852,9 @@ private fun buildDomainGetResponse(id: String): String {
             put("domain", JsonPrimitive("console.example.com"))
             put("subSystemCode", JsonPrimitive("console"))
             put("tenantId", JsonPrimitive("t6"))
-            put("tenantName", JsonPrimitive("租户6"))
+            put("tenantName", JsonPrimitive("Tenant 6"))
             put("active", JsonPrimitive(true))
-            put("remark", JsonPrimitive("控制台域名"))
+            put("remark", JsonPrimitive("Console domain"))
             put("createTime", JsonPrimitive("2024-01-01 10:00:00"))
         },
         buildJsonObject {
@@ -1864,7 +1864,7 @@ private fun buildDomainGetResponse(id: String): String {
             put("tenantId", JsonNull)
             put("tenantName", JsonPrimitive(""))
             put("active", JsonPrimitive(true))
-            put("remark", JsonPrimitive("API 域名"))
+            put("remark", JsonPrimitive("API domain"))
             put("createTime", JsonPrimitive("2024-01-02 10:00:00"))
         },
         buildJsonObject {
@@ -1872,9 +1872,9 @@ private fun buildDomainGetResponse(id: String): String {
             put("domain", JsonPrimitive("service-a.example.com"))
             put("subSystemCode", JsonPrimitive("service_a"))
             put("tenantId", JsonPrimitive("t5"))
-            put("tenantName", JsonPrimitive("租户5"))
+            put("tenantName", JsonPrimitive("Tenant 5"))
             put("active", JsonPrimitive(false))
-            put("remark", JsonPrimitive("服务A域名"))
+            put("remark", JsonPrimitive("Service A domain"))
             put("createTime", JsonPrimitive("2024-01-03 10:00:00"))
         },
     )
@@ -1896,7 +1896,7 @@ private fun buildDomainGetResponse(id: String): String {
     return body
 }
 
-/** Mock 字典列表搜索：按 module、dictType 等条件过滤后返回 first=行列表、second=总数。 */
+/** Mock dictionary list search: returns first=row list and second=total count after filtering by module, dictType, and other criteria. */
 private fun buildDictSearchResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val pageNo = (primitiveInt(params, "pageNo") ?: 1).coerceAtLeast(1)
@@ -1907,7 +1907,7 @@ private fun buildDictSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("dictId", JsonPrimitive("dict_1"))
             put("dictType", JsonPrimitive("dict_type"))
-            put("dictName", JsonPrimitive("字典类型"))
+            put("dictName", JsonPrimitive("Dictionary Type"))
             put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
             put("itemId", JsonNull)
             put("itemCode", JsonNull)
@@ -1919,7 +1919,7 @@ private fun buildDictSearchResponse(requestJson: String): String {
         buildJsonObject {
             put("dictId", JsonPrimitive("dict_2"))
             put("dictType", JsonPrimitive("user_status"))
-            put("dictName", JsonPrimitive("用户状态"))
+            put("dictName", JsonPrimitive("User Status"))
             put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.getOrElse(1) { "user" }))
             put("itemId", JsonNull)
             put("itemCode", JsonNull)
@@ -1947,16 +1947,16 @@ private fun buildDictSearchResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** Mock 字典按树查询：与 search 相同结构 first/second，供展开树节点时表格数据。 */
+/** Mock dictionary tree query: same first/second structure as search; supplies table data when tree nodes are expanded. */
 private fun buildDictSearchByTreeResponse(requestJson: String): String = buildDictSearchResponse(requestJson)
 
-/** 按原子服务(module)列出的字典类型(id, code)，与 buildDictSearchResponse 一致；树第二层仅展示 code 不翻译。 */
+/** Dictionary types (id, code) listed by atomic service (module), consistent with buildDictSearchResponse; the tree second level shows code only without translation. */
 private val MOCK_DICT_TYPES_BY_MODULE: Map<String, List<Pair<String, String>>> = mapOf(
     "sys" to listOf("dict_1" to "dict_type"),
     "user" to listOf("dict_2" to "user_status"),
 )
 
-/** Mock 字典树：第一层=原子服务，第二层=字典类型(仅 code)，第三层=字典项。 */
+/** Mock dictionary tree: level 1 = atomic service, level 2 = dictionary type (code only), level 3 = dictionary item. */
 private fun buildDictLoadTreeNodesResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val parentId = primitiveString(params, "parentId")?.takeIf { it.isNotBlank() }
@@ -1997,22 +1997,22 @@ private fun buildDictLoadTreeNodesResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 子系统列表（与 buildSubsysSearchTreeResponse 一致），供资源树第二级等复用。 */
+/** Subsystem list (consistent with buildSubsysSearchTreeResponse); reused for level 2 of the resource tree and elsewhere. */
 private fun buildResourceSubsystemLevelNodes(): List<JsonObject> = listOf(
-    buildJsonObject { put("id", JsonPrimitive("service_a")); put("name", JsonPrimitive("子系统1")) },
-    buildJsonObject { put("id", JsonPrimitive("console")); put("name", JsonPrimitive("子系统2")) },
-    buildJsonObject { put("id", JsonPrimitive("service_b")); put("name", JsonPrimitive("子系统3")) },
+    buildJsonObject { put("id", JsonPrimitive("service_a")); put("name", JsonPrimitive("Subsystem 1")) },
+    buildJsonObject { put("id", JsonPrimitive("console")); put("name", JsonPrimitive("Subsystem 2")) },
+    buildJsonObject { put("id", JsonPrimitive("service_b")); put("name", JsonPrimitive("Subsystem 3")) },
 )
 
-/** Mock 资源树：仅两级——第一级=资源类型（菜单/按钮），第二级=子系统；严格按 level 分支。 */
+/** Mock resource tree: only two levels - level 1 = resource type (menu/button), level 2 = subsystem; branches strictly by level. */
 private fun buildResourceLoadTreeNodesResponse(requestJson: String): String {
     val params = parseJsonObjectOrEmpty(requestJson)
     val level = primitiveInt(params, "level") ?: 0
 
     val nodes: List<JsonObject> = when (level) {
         0 -> listOf(
-            buildJsonObject { put("id", JsonPrimitive("menu")); put("name", JsonPrimitive("菜单")) },
-            buildJsonObject { put("id", JsonPrimitive("button")); put("name", JsonPrimitive("按钮")) },
+            buildJsonObject { put("id", JsonPrimitive("menu")); put("name", JsonPrimitive("Menu")) },
+            buildJsonObject { put("id", JsonPrimitive("button")); put("name", JsonPrimitive("Button")) },
         )
         1 -> buildResourceSubsystemLevelNodes()
         else -> emptyList()
@@ -2024,18 +2024,18 @@ private fun buildResourceLoadTreeNodesResponse(requestJson: String): String {
     return response.toString()
 }
 
-/** 原子服务列表：供 getAtomicServices、字典列表「原子服务」筛选等使用；选租户时第一层也复用此列表（语义上子系统=原子服务）。 */
+/** Atomic service list: used by getAtomicServices, the "atomic service" filter in the dictionary list, and so on; when selecting a tenant the first level also reuses this list (semantically subsystem = atomic service). */
 private val ATOMIC_SERVICE_CODES_ORDERED = listOf("sys", "user", "auth", "msg", "service_a", "console")
 private val ATOMIC_SERVICE_DISPLAY = mapOf(
-    "sys" to "原子服务1",
-    "user" to "原子服务2",
-    "auth" to "原子服务3",
-    "msg" to "原子服务4",
-    "service_a" to "原子服务5",
-    "console" to "原子服务6",
+    "sys" to "Atomic Service 1",
+    "user" to "Atomic Service 2",
+    "auth" to "Atomic Service 3",
+    "msg" to "Atomic Service 4",
+    "service_a" to "Atomic Service 5",
+    "console" to "Atomic Service 6",
 )
 
-/** 原子服务列表 API 返回：非字典，专用接口。 */
+/** Atomic service list API response: not a dictionary, this is a dedicated endpoint. */
 private fun buildAtomicServicesResponse(): String {
     val data = ATOMIC_SERVICE_CODES_ORDERED.map { code ->
         buildJsonObject {
@@ -2049,7 +2049,7 @@ private fun buildAtomicServicesResponse(): String {
     }.toString()
 }
 
-/** 预置字典项 mock：module---dictType -> code->name。name 均为国际化 key，前端用 t(name) 展示。 */
+/** Preset dictionary item mock: module---dictType -> code->name. The name values are all i18n keys; the frontend renders them via t(name). */
 private val MOCK_DICT_ITEM_MAP = mapOf(
     "sys---resource_type" to mapOf(
         "menu" to "resource_type.menu",
@@ -2097,7 +2097,7 @@ private val MOCK_DICT_ITEM_MAP = mapOf(
     ),
 )
 
-/** 从请求 body 解析 dictTypesByAtomicServiceCode: Map<原子服务编码, Collection<字典类型>> */
+/** Parse dictTypesByAtomicServiceCode from the request body: Map<atomic service code, Collection<dictionary type>>. */
 private fun parseDictTypesByAtomicServiceCode(requestJson: String): Map<String, List<String>> {
     if (requestJson.isBlank()) return emptyMap()
     val element = runCatching { json.parseToJsonElement(requestJson) }.getOrNull() ?: return emptyMap()
@@ -2114,7 +2114,7 @@ private fun parseDictTypesByAtomicServiceCode(requestJson: String): Map<String, 
     return result
 }
 
-/** Mock 批量获取字典项：请求 body 为 dictTypesByAtomicServiceCode，返回 data: Map<原子服务, Map<字典类型, Record<编码, 名称>>> */
+/** Mock batch get dictionary items: request body is dictTypesByAtomicServiceCode; returns data: Map<atomic service, Map<dictionary type, Record<code, name>>>. */
 private fun buildBatchGetDictItemMapResponse(requestJson: String): String {
     val byAtomic = parseDictTypesByAtomicServiceCode(requestJson)
     val dataObj = buildJsonObject {
@@ -2416,26 +2416,26 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
                 put("data", buildJsonObject {
                     put("view", buildJsonObject {
                         put("menu", buildJsonObject {
-                            put("home", JsonPrimitive("首页"))
-                            put("tabs", JsonPrimitive("消息中心"))
-                            put("sys", JsonPrimitive("系统管理"))
-                            put("sysBasic", JsonPrimitive("基础配置"))
-                            put("sysCache", JsonPrimitive("缓存管理"))
-                            put("sysDict", JsonPrimitive("字典管理"))
-                            put("sysParam", JsonPrimitive("参数配置"))
-                            put("sysDomain", JsonPrimitive("域名"))
-                            put("sysTenant", JsonPrimitive("租户"))
-                            put("sysSubsys", JsonPrimitive("子系统"))
-                            put("sysMicroservice", JsonPrimitive("微服务"))
-                            put("sysDatasource", JsonPrimitive("数据源"))
-                            put("sysResource", JsonPrimitive("资源"))
-                            put("sysI18n", JsonPrimitive("国际化"))
-                            put("user", JsonPrimitive("用户与组织"))
-                            put("userAccount", JsonPrimitive("账号管理"))
-                            put("userOrganization", JsonPrimitive("组织管理"))
-                            put("rbac", JsonPrimitive("权限管理"))
-                            put("rbacRole", JsonPrimitive("角色管理"))
-                            put("rbacGroup", JsonPrimitive("用户组"))
+                            put("home", JsonPrimitive("Home"))
+                            put("tabs", JsonPrimitive("Message Center"))
+                            put("sys", JsonPrimitive("System Management"))
+                            put("sysBasic", JsonPrimitive("Basic Configuration"))
+                            put("sysCache", JsonPrimitive("Cache Management"))
+                            put("sysDict", JsonPrimitive("Dictionary Management"))
+                            put("sysParam", JsonPrimitive("Parameter Configuration"))
+                            put("sysDomain", JsonPrimitive("Domain"))
+                            put("sysTenant", JsonPrimitive("Tenant"))
+                            put("sysSubsys", JsonPrimitive("Subsystem"))
+                            put("sysMicroservice", JsonPrimitive("Microservice"))
+                            put("sysDatasource", JsonPrimitive("Data Source"))
+                            put("sysResource", JsonPrimitive("Resource"))
+                            put("sysI18n", JsonPrimitive("I18n"))
+                            put("user", JsonPrimitive("Users & Organizations"))
+                            put("userAccount", JsonPrimitive("Account Management"))
+                            put("userOrganization", JsonPrimitive("Organization Management"))
+                            put("rbac", JsonPrimitive("Permission Management"))
+                            put("rbacRole", JsonPrimitive("Role Management"))
+                            put("rbacGroup", JsonPrimitive("User Group"))
                         })
                     })
                 })
@@ -2591,7 +2591,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/system/getAllActiveSystemCodes", "/api/sys/system/getAllActiveSystemCodes", "/api/admin/sys/system/getAllActiveSystemCodes" -> {
-            /** 与 buildSubsysSearchTreeResponse 扁平数据一致：启用且非子系统 */
+            /** Consistent with the flat data from buildSubsysSearchTreeResponse: enabled and not a subsystem. */
             val arr = JsonArray(listOf(JsonPrimitive("module_x"), JsonPrimitive("module_y")))
             val body = buildJsonObject {
                 put("code", JsonPrimitive(200))
@@ -2642,7 +2642,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/microService/getAllActiveMicroServiceCodes", "/api/sys/microService/getAllActiveMicroServiceCodes", "/api/admin/sys/microService/getAllActiveMicroServiceCodes" -> {
-            /** 与 buildMicroserviceSearchTreeResponse 一致：启用且非原子服务 → order-worker */
+            /** Consistent with buildMicroserviceSearchTreeResponse: enabled and not an atomic service -> order-worker. */
             val arr = JsonArray(listOf(JsonPrimitive("order-worker")))
             val body = buildJsonObject {
                 put("code", JsonPrimitive(200))
@@ -2678,13 +2678,13 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val data = buildJsonObject {
                 ATOMIC_SERVICE_CODES_ORDERED.forEachIndexed { index, code ->
                     put(code, buildJsonObject {
-                        put("t${index + 1}", JsonPrimitive("租户${index + 1}"))
-                        // 与 dataSource/search fixture 一致，便于编辑回填子系统/租户
+                        put("t${index + 1}", JsonPrimitive("Tenant ${index + 1}"))
+                        // Consistent with the dataSource/search fixture, to make subsystem/tenant prefill on edit easier.
                         if (code == "console") {
-                            put("default", JsonPrimitive("默认租户"))
-                            put("tenant_2", JsonPrimitive("租户二"))
+                            put("default", JsonPrimitive("Default Tenant"))
+                            put("tenant_2", JsonPrimitive("Tenant 2 (CN)"))
                         }
-                        if (code == "service_a") put("1", JsonPrimitive("租户A1"))
+                        if (code == "service_a") put("1", JsonPrimitive("Tenant A1"))
                     })
                 }
             }
@@ -2700,11 +2700,11 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val row = buildJsonObject {
                 put("dictId", JsonPrimitive("dict_$id"))
                 put("dictType", JsonPrimitive("dict_type"))
-                put("dictName", JsonPrimitive(if (isDict) "字典类型" else "字典项"))
+                put("dictName", JsonPrimitive(if (isDict) "Dictionary Type" else "Dictionary Item"))
                 put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
                 put("itemId", if (isDict) JsonNull else JsonPrimitive("item_$id"))
                 put("itemCode", if (isDict) JsonNull else JsonPrimitive("item_$id"))
-                put("itemName", if (isDict) JsonNull else JsonPrimitive("项名称"))
+                put("itemName", if (isDict) JsonNull else JsonPrimitive("Item name"))
                 put("parentCode", JsonNull)
                 put("seqNo", if (isDict) JsonNull else JsonPrimitive(0))
                 put("active", JsonPrimitive(true))
@@ -2721,7 +2721,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
                 put("id", JsonPrimitive("dict_$id"))
                 put("dictId", JsonPrimitive("dict_$id"))
                 put("dictType", JsonPrimitive("dict_type"))
-                put("dictName", JsonPrimitive("字典类型"))
+                put("dictName", JsonPrimitive("Dictionary Type"))
                 put("module", JsonPrimitive(ATOMIC_SERVICE_CODES_ORDERED.first()))
                 put("builtIn", JsonPrimitive(false))
                 put("remark", JsonPrimitive(""))
@@ -2744,7 +2744,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
                 buildJsonObject {
                     put("id", JsonPrimitive("item_${dictId}_1"))
                     put("itemCode", JsonPrimitive("item_1"))
-                    put("itemName", JsonPrimitive("项1"))
+                    put("itemName", JsonPrimitive("Item 1"))
                     put("seqNo", JsonPrimitive(0))
                     put("active", JsonPrimitive(true))
                     put("builtIn", JsonPrimitive(false))
@@ -2754,7 +2754,7 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
                 buildJsonObject {
                     put("id", JsonPrimitive("item_${dictId}_2"))
                     put("itemCode", JsonPrimitive("item_2"))
-                    put("itemName", JsonPrimitive("项2"))
+                    put("itemName", JsonPrimitive("Item 2"))
                     put("seqNo", JsonPrimitive(1))
                     put("active", JsonPrimitive(true))
                     put("builtIn", JsonPrimitive(false))

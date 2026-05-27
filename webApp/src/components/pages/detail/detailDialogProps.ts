@@ -1,4 +1,4 @@
-/** Detail 弹窗通用 props：modelValue、rid。 */
+/** Common detail-dialog props: modelValue, rid. */
 export const commonDetailDialogProps = {
   modelValue: {
     type: Boolean,
@@ -10,5 +10,5 @@ export const commonDetailDialogProps = {
   },
 };
 
-/** Detail 弹窗通用 emits。 */
+/** Common detail-dialog emits. */
 export const commonDetailDialogEmits = ['update:modelValue'] as const;

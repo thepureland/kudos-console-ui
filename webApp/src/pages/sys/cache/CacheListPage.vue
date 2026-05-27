@@ -1,5 +1,5 @@
 <!--
- * 缓存列表：支持按缓存名称、原子服务、缓存策略、仅启用等筛选，表格支持列可见性、操作列折角、列拖拽排序，含缓存管理操作（重载/踢除等），多语言。
+ * Cache list: filter by cache name, atomic service, cache strategy, active-only, etc. Table supports column visibility, operation-column fold, column drag-reordering, with cache management actions (reload/evict, etc.), multilingual.
  *
  * @author: K
  * @author: AI: Cursor
@@ -7,7 +7,7 @@
  -->
 <template>
   <div class="cache-list-page list-page-common">
-    <!-- 列表页布局：工具栏 + 表格区（栏位可见性/操作列折角）+ 分页 -->
+    <!-- List page layout: toolbar + table area (column visibility / operation-column fold) + pagination -->
     <list-page-layout
       :table-wrap-ref="listLayoutRefs.tableWrapRef"
       :list-page="listPage"
@@ -18,7 +18,7 @@
       :operation-column-hide-text="t('cacheList.actions.hideOperationColumn')"
       @table-wrap-mounted="onTableWrapMounted"
     >
-      <!-- 搜索栏：名称/原子服务/策略/Hash存储/仅启用 + 搜索、重置 -->
+      <!-- Search bar: name / atomic service / strategy / hash storage / active-only + search, reset -->
       <template #toolbar>
         <div class="toolbar-cell toolbar-name">
           <div class="search-name-input-wrap">
@@ -98,7 +98,7 @@
           </el-button>
         </div>
       </template>
-      <!-- 栏位可见性面板：勾选控制各列显示/隐藏（列顺序在表头拖拽调整） -->
+      <!-- Column visibility panel: checkboxes control show/hide of each column (column order is adjusted by dragging the header) -->
       <template #columnVisibilityPanel>
         <div class="column-visibility-title">{{ t('cacheList.actions.columnVisibility') }}</div>
         <el-checkbox-group v-model="visibleColumnKeys" class="column-visibility-checkboxes">
@@ -111,7 +111,7 @@
           </el-checkbox>
         </el-checkbox-group>
       </template>
-      <!-- 表格上方工具栏：新增、删除（布局由 ListPageLayout + list-page-common 提供） -->
+      <!-- Toolbar above the table: add, delete (layout provided by ListPageLayout + list-page-common) -->
       <template #tableToolbar>
         <el-button type="success" @click="openAddDialog">
           <el-icon><Plus /></el-icon>
@@ -122,7 +122,7 @@
           {{ t('cacheList.actions.delete') }}
         </el-button>
       </template>
-      <!-- 缓存列表表格：选择/序号/名称/原子服务/策略/启用/写缓存/写入时机/TTL/备注 + 操作列（编辑/删除/详情/管理下拉） -->
+      <!-- Cache list table: selection / index / name / atomic service / strategy / active / write-on-boot / write-in-time / TTL / remark + operation column (edit / delete / detail / manage dropdown) -->
       <div
         class="table-drag-drop-zone"
         @dragover="onTableDragOver"
@@ -394,7 +394,7 @@
         </el-table-column>
       </el-table>
       </div>
-      <!-- 分页：总数、每页条数、上一页/页码/下一页、跳转 -->
+      <!-- Pagination: total, page size, prev / pager / next, jumper -->
       <template #pagination>
         <el-pagination
           :ref="(el: unknown) => { listLayoutRefs.paginationRef.value = el as HTMLElement | null; }"
@@ -409,7 +409,7 @@
       </template>
     </list-page-layout>
 
-    <!-- 缓存操作 key 输入弹窗：重载/驱逐/检查存在/查看 value 等需输入 key 时使用 -->
+    <!-- Cache operation key input dialog: used when reload / evict / check existence / view value requires entering a key -->
     <el-dialog v-model="keyDialogVisible" :title="t('cacheList.dialog.keyTitle')" min-width="20%">
         <el-input
           ref="cacheKeyInputRef"
@@ -424,7 +424,7 @@
         </template>
       </el-dialog>
 
-    <!-- 添加/编辑共用一个表单组件，首次打开任一时挂载，getValidationRule 仅触发一次；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- The add/edit views share one form component, mounted on first open; getValidationRule is triggered only once. v-if/v-show is placed on a native div to avoid the ElDialog non-element root directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <cache-form-page
         :model-value="formVisible"
@@ -460,13 +460,13 @@ import {
   resolveThrownErrorMessage
 } from '../../../utils/backendRequest';
 
-/** 下拉菜单「管理」操作项的命令参数：操作编号 + 当前行数据 */
+/** Command payload for the "Manage" dropdown action items: action code + current row data */
 interface CacheCommandPayload {
   item: number;
   row: Record<string, unknown>;
 }
 
-/** 缓存列表页业务逻辑：搜索、表格、缓存管理操作（重载/驱逐等）及 key 弹窗 */
+/** Cache list page business logic: search, table, cache management actions (reload / evict, etc.) and key input dialog */
 class CacheListPage extends BaseListPage {
   constructor(props: PageProps, context: PageContext) {
     super(props, context);
@@ -477,7 +477,7 @@ class CacheListPage extends BaseListPage {
     });
   }
 
-  /** 初始化页面状态：搜索条件、key 弹窗可见性、当前操作与当前行 */
+  /** Initialize page state: search params, key dialog visibility, current operation, current row */
   protected initState(): Record<string, unknown> {
         return {
       searchParams: {
@@ -493,17 +493,17 @@ class CacheListPage extends BaseListPage {
       cacheKey: null as string | null,
       cacheOperation: null as string | null,
       currentRow: null as Record<string, unknown> | null,
-      /** 缓存策略下拉选项（second 为 i18n key，表格/筛选用 t() 显示） */
+      /** Cache strategy dropdown options (second is an i18n key, table/filter display via t()) */
       strategyDictOptions: [] as Array<{ first: string; second: string }>,
     };
   }
 
-  /** 接口根路径，用于请求与路由 */
+  /** API root path, used for requests and routing */
   protected getRootActionPath(): string {
     return 'sys/cache';
   }
 
-  /** 本页需加载的国际化：cacheList + cacheFormPage（弹窗共用） */
+  /** i18n required for this page: cacheList + cacheFormPage (shared dialog) */
   protected getI18nConfig() {
     return [
       { i18nTypeDictCode: 'dict-item', namespaces: ['cache_strategy'], atomicServiceCode: 'sys' },
@@ -511,20 +511,20 @@ class CacheListPage extends BaseListPage {
     ];
   }
 
-  /** 缓存行以 id 作为主键，编辑/详情/删除及管理操作均传 id */
+  /** Cache rows use id as primary key; edit / detail / delete / management actions all pass id. */
   protected getRowId(row: Record<string, unknown>): string | number {
     if (row.id != null && row.id !== '') return row.id as string | number;
     return '';
   }
 
-  /** 仅当勾选「仅启用」时传 active=true；不勾选时传 null，后端返回启用+未启用全部 */
+  /** When "active only" is checked, pass active=true; otherwise pass null and backend returns both active and inactive. */
   protected createSearchParams(): Record<string, unknown> | null {
     const params = super.createSearchParams();
     if (params && this.state.searchParams) {
       const sp = this.state.searchParams as Record<string, unknown>;
       const p = params as Record<string, unknown>;
       p.active = sp.active === true ? true : null;
-      // pagingSearch 不传 writeOnBoot、writeInTime（后端不按此筛选）
+      // pagingSearch does not pass writeOnBoot or writeInTime (backend does not filter by them)
       delete p.writeOnBoot;
       delete p.writeInTime;
     }
@@ -535,12 +535,12 @@ class CacheListPage extends BaseListPage {
     return ['name', 'atomicServiceCode', 'strategyDictCode', 'hash'];
   }
 
-  /** 构造下拉菜单命令参数，供 el-dropdown 的 command 使用 */
+  /** Build dropdown command payload, used by el-dropdown's command. */
   commandValue(item: number, row: Record<string, unknown>): CacheCommandPayload {
     return { item, row };
   }
 
-  /** 根据命令编号分发到对应缓存管理操作 */
+  /** Dispatch to the corresponding cache management action based on the command code. */
   operateCache(payload: CacheCommandPayload): void {
     const { item, row } = payload;
     if (item === 1) this.reload(row);
@@ -551,18 +551,18 @@ class CacheListPage extends BaseListPage {
     else if (item === 6) this.valueInfo(row);
   }
 
-  /** 用户确认 key 后提交当前缓存操作（重载/驱逐/检查存在等） */
+  /** After the user confirms the key, submit the current cache operation (reload / evict / check existence, etc.). */
   commitCacheOperation(key: string | null): void {
     this.doCommitCacheOperation(key);
   }
 
-  /** 调用后端缓存管理接口，关闭 key 弹窗并提示结果 */
+  /** Call the backend cache management API, close the key dialog and show the result. */
   private async doCommitCacheOperation(key: string | null): Promise<void> {
     const state = this.state as Record<string, unknown>;
     state.keyDialogVisible = false;
     const row = state.currentRow as Record<string, unknown>;
     const operation = state.cacheOperation as string;
-    // 踢除单 key / 踢除全部按后端约定使用 DELETE，其余缓存管理操作沿用默认方法。
+    // Evict single key / evict all use DELETE per the backend convention; the other cache management actions use the default method.
     const method = operation === 'evict' || operation === 'evictAll' ? 'delete' : undefined;
     const params: Record<string, unknown> = { id: row?.id };
     if (operation !== 'reloadAll' && operation !== 'evictAll') {
@@ -575,7 +575,7 @@ class CacheListPage extends BaseListPage {
         let message: string;
         if (operation === 'existsKey') {
           const exists = (result as { data?: unknown })?.data === true;
-          message = exists ? '指定的缓存key存在' : '指定的缓存key不存在';
+          message = exists ? 'Specified cache key exists' : 'Specified cache key does not exist';
         } else {
           const rawMessage =
             await resolveApiResponseMessage(result)
@@ -604,7 +604,7 @@ class CacheListPage extends BaseListPage {
     }
   }
 
-  /** 后端未返回可展示 message 时，按操作给出本地兜底成功提示。 */
+  /** When the backend does not return a displayable message, give a local fallback success message per operation. */
   private getDefaultCacheOperationSuccessMessage(operation: string): string {
     const actionKeyMap: Record<string, string> = {
       reload: 'cacheList.actions.reload',
@@ -616,10 +616,10 @@ class CacheListPage extends BaseListPage {
     };
     const actionKey = actionKeyMap[operation];
     const actionText = actionKey ? this.tr(actionKey) : this.tr('cacheList.actions.manage');
-    return `${actionText}成功`;
+    return `${actionText} succeeded`;
   }
 
-  /** 重载单 key：记录当前行与操作，打开 key 输入弹窗 */
+  /** Reload single key: record current row and operation, open the key input dialog. */
   private reload(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
@@ -627,7 +627,7 @@ class CacheListPage extends BaseListPage {
     s.keyDialogVisible = true;
   }
 
-  /** 重载整个缓存：无需 key，直接提交 */
+  /** Reload the whole cache: no key required, submit directly. */
   private reloadAll(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
@@ -635,7 +635,7 @@ class CacheListPage extends BaseListPage {
     this.commitCacheOperation(null);
   }
 
-  /** 驱逐单 key：记录当前行与操作，打开 key 输入弹窗 */
+  /** Evict single key: record current row and operation, open the key input dialog. */
   private evict(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
@@ -643,7 +643,7 @@ class CacheListPage extends BaseListPage {
     s.keyDialogVisible = true;
   }
 
-  /** 清空整个缓存：无需 key，直接提交 */
+  /** Clear the whole cache: no key required, submit directly. */
   private clear(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
@@ -651,7 +651,7 @@ class CacheListPage extends BaseListPage {
     this.commitCacheOperation(null);
   }
 
-  /** 检查 key 是否存在：记录当前行与操作，打开 key 输入弹窗 */
+  /** Check whether the key exists: record current row and operation, open the key input dialog. */
   private isExists(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
@@ -659,7 +659,7 @@ class CacheListPage extends BaseListPage {
     s.keyDialogVisible = true;
   }
 
-  /** 查看 key 对应 value 信息：记录当前行与操作，打开 key 输入弹窗 */
+  /** View the value info for a key: record current row and operation, open the key input dialog. */
   private valueInfo(row: Record<string, unknown>): void {
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
@@ -667,24 +667,24 @@ class CacheListPage extends BaseListPage {
     s.keyDialogVisible = true;
   }
 
-  /** 更新启用状态前提示「重启后生效」，再调用基类请求 */
+  /** Before updating active status, show "takes effect after restart"; then call the base class request. */
   protected async doUpdateActive(row: Record<string, unknown>): Promise<void> {
     ElMessage.info(this.tr('cacheList.messages.activeChangeTakesEffectAfterRestart'));
     await super.doUpdateActive(row);
   }
 }
 
-/** 名称搜索框：镜像 span 宽度 + 该值作为 input 的 min-width 余量 */
+/** Name search input: mirror-span width + this value as the input's min-width margin. */
 const NAME_INPUT_PADDING = 40;
-/** 原子服务下拉：镜像 span 宽度 + 该值作为 select 的 min-width 余量 */
+/** Atomic service dropdown: mirror-span width + this value as the select's min-width margin. */
 const SELECT_INPUT_PADDING = 50;
-/** 操作列「固定展开」在 localStorage 的 key */
+/** localStorage key for "operation column pinned open". */
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'cacheList.operationColumnPinned';
-/** 栏位可见性持久化的 localStorage key */
+/** localStorage key for persisting column visibility. */
 const COLUMN_VISIBILITY_STORAGE_KEY = 'cacheList.visibleColumns';
-/** 栏位顺序持久化的 localStorage key */
+/** localStorage key for persisting column order. */
 const COLUMN_ORDER_STORAGE_KEY = 'cacheList.columnOrder';
-/** 可参与排序的列 key（与栏位可见性一致） */
+/** Column keys eligible for sorting (consistent with column visibility). */
 const {
   indexColumnKey: INDEX_COLUMN_KEY,
   allColumnKeys: ALL_COLUMN_KEYS,
@@ -851,9 +851,9 @@ export default defineComponent({
                     : () => '',
       }))
     });
-    /** 栏位可见性勾选与 listPage 状态双向同步 */
+    /** Column visibility checkboxes are two-way synced with listPage state. */
     const visibleColumnKeys = useVisibleColumnKeys(listPage);
-    /** 策略列表头筛选选项：字典项 value 为 i18n key，用 t() 显示 */
+    /** Strategy column header filter options: dict item value is an i18n key, displayed via t(). */
     const strategyFilters = computed(() => {
       const items = (listPage.state.strategyDictOptions || []) as Array<{ first: string; second: string }>;
       if (items.length > 0) {
@@ -865,9 +865,9 @@ export default defineComponent({
         { text: t('cache_strategy.LOCAL_REMOTE'), value: 'LOCAL_REMOTE' },
       ];
     });
-    /** 布尔列（启用/写缓存等）表头筛选：是/否 */
+    /** Boolean column (active / writeOnBoot, etc.) header filter: Yes / No. */
     const boolFilters = computed(() => listPage.createBooleanFilters(t('cacheList.common.yes'), t('cacheList.common.no')));
-    /** 栏位可见性面板中的可选项（按当前顺序），支持拖拽排序 */
+    /** Options in the column visibility panel (in current order), supports drag reordering. */
     const columnVisibilityOptions = useColumnVisibilityOptions({
       indexColumnKey: INDEX_COLUMN_KEY,
       getIndexLabel: () => t('cacheList.columns.index'),
@@ -875,14 +875,14 @@ export default defineComponent({
       getColumnLabel: cacheListColumnLabel,
     });
 
-    /** 将布尔值格式化为「是/否」文案 */
+    /** Format a boolean as "Yes / No" text. */
     function formatBoolText(value: unknown): string {
       return listPage.formatBoolean(value, t('cacheList.common.yes'), t('cacheList.common.no'));
     }
 
-    /** 判断某列是否在「栏位可见性」中勾选 */
+    /** Check whether a column is checked in "column visibility". */
 
-    /** 表格列筛选变化时同步到 searchParams 并请求列表 */
+    /** When table column filters change, sync to searchParams and reload the list. */
     function       handleTableFilterChange(filters: Record<string, Array<string | number | boolean>>) {
       listPage.applyRemoteTableFilters(filters, {
         strategyDictCode: { paramName: 'strategyDictCode', emptyValue: null },
@@ -960,7 +960,7 @@ export default defineComponent({
 .cache-list-page .list-page-toolbar .toolbar-hash :deep(.el-input__wrapper) {
   min-width: 0;
 }
-/* 穿透 Element 表格/分页内部类，需保留在组件内使用 :deep */
+/* Pierce Element table/pagination internal classes; must use :deep inside the component. */
 :deep(.el-table .cell) {
   white-space: nowrap;
   overflow: hidden;
@@ -968,7 +968,7 @@ export default defineComponent({
   line-height: 22px;
 }
 
-/* 启用列为开关，不参与省略号，避免列窄时在开关右侧出现 … */
+/* The active column is a switch and is excluded from ellipsis to avoid "…" appearing next to it when the column is narrow. */
 :deep(.el-table th.col-cache-active-switch),
 :deep(.el-table td.col-cache-active-switch) {
   overflow: visible;
@@ -983,7 +983,7 @@ export default defineComponent({
   height: 32px;
 }
 
-/* 固定左列：锁定单元格与左侧固定块总宽，避免栏位可见性切换时被重新计算撑大 */
+/* Fixed left columns: lock cell and left fixed block total width to avoid being widened when column visibility changes. */
 :deep(.el-table__fixed-left) {
   width: 439px !important;
   max-width: 439px !important;
@@ -1021,7 +1021,7 @@ export default defineComponent({
   min-height: 0;
 }
 
-/* 可排序列的表头：仅显示列名、可拖拽，不显示 Element 自带的筛选/排序等任何图标 */
+/* Sortable column header: only show the column name, draggable, no Element built-in filter/sort icons. */
 :deep(.column-header-draggable) {
   cursor: grab;
   user-select: none;
@@ -1032,18 +1032,18 @@ export default defineComponent({
 :deep(.column-header-draggable:active) {
   cursor: grabbing;
 }
-/* 正在被拖拽的表头：半透明 + 浅底，明确「这是拖起来的那一列」 */
+/* Header currently being dragged: semi-transparent + light background to make clear "this is the column being dragged". */
 :deep(.column-header-draggable.is-dragging) {
   opacity: 0.7;
   background-color: var(--el-fill-color-light);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
-/* 当前可放置目标：左侧主题色竖条，松手即放到该列前 */
+/* Current drop target: left primary-color vertical bar; release to drop before that column. */
 :deep(.column-header-draggable.is-drop-target) {
   background-color: var(--el-color-primary-light-9);
   box-shadow: inset 4px 0 0 var(--el-color-primary);
 }
-/* 可拖拽列表头内只保留列名：先隐藏整格内所有内容，再只显示我们的列名 */
+/* In draggable column headers, keep only the column name: first hide everything in the cell, then show only our column name. */
 :deep(th .cell:has(.column-header-draggable)) {
   font-size: 0;
 }
@@ -1056,7 +1056,7 @@ export default defineComponent({
 :deep(th .cell:has(.column-header-draggable) .el-table__sort-icon) {
   display: none !important;
 }
-/* 表头列名统一颜色，不区分是否带筛选 */
+/* Uniform header column name color, regardless of whether the column has a filter. */
 :deep(.el-table th .cell),
 :deep(.el-table th .column-header-draggable) {
   color: var(--el-table-header-text-color, var(--el-text-color-regular, #606266)) !important;

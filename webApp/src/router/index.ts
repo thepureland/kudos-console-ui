@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
-/** 路由入口使用懒加载，避免与菜单动态组件映射形成重复静态引用。 */
+/** Use lazy loading for route entries to avoid duplicate static references with the dynamic menu-component mapping. */
 const Home = () => import('../pages/Home.vue');
 const Welcome = () => import('../pages/Welcome.vue');
 const Placeholder = () => import('../pages/Placeholder.vue');
@@ -17,6 +17,10 @@ const I18nListPage = () => import('../pages/sys/i18n/I18nListPage.vue');
 const AccessRuleListPage = () => import('../pages/sys/accessrule/AccessRuleListPage.vue');
 const AccountListPage = () => import('../pages/user/account/AccountListPage.vue');
 const OrganizationListPage = () => import('../pages/user/organization/OrganizationListPage.vue');
+const AccountProtectionListPage = () => import('../pages/user/accountProtection/AccountProtectionListPage.vue');
+const AccountThirdListPage = () => import('../pages/user/accountThird/AccountThirdListPage.vue');
+const ContactWayListPage = () => import('../pages/user/contactWay/ContactWayListPage.vue');
+const RememberMeListPage = () => import('../pages/user/rememberMe/RememberMeListPage.vue');
 const RoleListPage = () => import('../pages/rbac/role/RoleListPage.vue');
 const UserGroupListPage = () => import('../pages/rbac/group/UserGroupListPage.vue');
 const Login = () => import('../components/Login/Login.vue');
@@ -45,6 +49,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'sys/accessrulewithip', redirect: '/sys/accessrule' },
       { path: 'user/account', name: 'user-account', component: AccountListPage, meta: { titleKey: 'route.userAccount', icon: 'UserFilled' } },
       { path: 'user/organization', name: 'user-organization', component: OrganizationListPage, meta: { titleKey: 'route.userOrganization', icon: 'OfficeBuilding' } },
+      { path: 'user/accountprotection', name: 'user-account-protection', component: AccountProtectionListPage, meta: { titleKey: 'route.userAccountProtection', icon: 'Lock' } },
+      { path: 'user/accountthird', name: 'user-account-third', component: AccountThirdListPage, meta: { titleKey: 'route.userAccountThird', icon: 'Connection' } },
+      { path: 'user/contactway', name: 'user-contact-way', component: ContactWayListPage, meta: { titleKey: 'route.userContactWay', icon: 'Phone' } },
+      { path: 'user/rememberme', name: 'user-remember-me', component: RememberMeListPage, meta: { titleKey: 'route.userRememberMe', icon: 'Lock' } },
       { path: 'rbac/role', name: 'rbac-role', component: RoleListPage, meta: { titleKey: 'route.rbacRole', icon: 'Key' } },
       { path: 'rbac/group', name: 'rbac-group', component: UserGroupListPage, meta: { titleKey: 'route.rbacGroup', icon: 'User' } },
       { path: 'tabs', name: 'tabs', component: Placeholder, meta: { titleKey: 'route.tabs', icon: 'Bell' } },

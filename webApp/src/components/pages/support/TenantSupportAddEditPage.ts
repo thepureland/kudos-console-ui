@@ -4,19 +4,19 @@ import { backendRequest, getApiResponseData } from "../../../utils/backendReques
 import type { SysMicroServiceCacheItem } from "../core/BasePage"
 
 /**
- * 多租户支持的添加/编辑页面处理抽象父类
+ * Abstract base class for add/edit pages that support multi-tenant.
  *
  * @author K
  * @since 1.0.0
  */
 export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
 
-    /** @internal 初始化租户相关 formModel/cascaderProps 并加载第一级（子系统或原子服务）与租户数据 */
+    /** @internal Initialize tenant-related formModel/cascaderProps and load first-level (subsystem or atomic service) and tenant data */
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         this.initVars()
         if (this.useListTenantBootstrap()) {
-            // 不将列表的 options 写入 state：列表 loadTenants 完成后会整体替换 subSysOrTenants 引用，仅跳过请求即可；子类模板用 props 与 state 合并绑定
+            // Don't write the list's options into state: once the list's loadTenants finishes it will replace the whole subSysOrTenants reference; just skip the request. Subclass templates merge-bind props with state.
         } else {
             const firstLevelUrl = this.getFirstLevelApiUrl()
             if (firstLevelUrl != null) {
@@ -30,8 +30,8 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
     }
 
     /**
-     * 列表页传入与自身一致的子系统/租户级联与原子服务数据时，不再请求接口，与列表共用数据。
-     * 子类可重写；默认要求 listSubSysOrTenants、listCascaderProps、listAtomicServiceList 均传入。
+     * When the list page passes in matching subsystem/tenant cascade data and atomic-service data, skip the API calls and share the list's data.
+     * Subclasses can override; by default this requires listSubSysOrTenants, listCascaderProps, and listAtomicServiceList all to be provided.
      */
     protected useListTenantBootstrap(): boolean {
         const p = this.props as Record<string, unknown>
@@ -42,12 +42,12 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         )
     }
 
-    /** 第一级使用子系统接口时返回 URL（如 sys/system/getAllActiveSubSystemCodes），返回 null 则使用原子服务。子类可重写。 */
+    /** Return the URL when the first level uses the subsystem API (e.g. sys/system/getAllActiveSubSystemCodes); return null to use atomic services instead. Subclasses can override. */
     protected getFirstLevelApiUrl(): string | null {
         return null
     }
 
-    /** 从指定接口加载第一级列表（子系统编码等），结果写入 state.firstLevelList 与 atomicServiceList */
+    /** Load the first-level list (subsystem codes, etc.) from the given endpoint and write the result to state.firstLevelList and atomicServiceList */
     private async loadFirstLevel(url: string): Promise<void> {
         try {
             const result = await backendRequest({ url, method: "get" })
@@ -73,7 +73,7 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         }
     }
 
-    /** 懒加载：level 0 且无节点数据时返回第一级（子系统）；有 node 数据时按子系统编码请求 getTenantsBySubSystemCode 返回第二级（租户） */
+    /** Lazy load: when level 0 has no node data, return the first level (subsystems); when node data exists, fetch getTenantsBySubSystemCode by subsystem code to return the second level (tenants) */
     private async lazyLoadTenants(node: { level: number; value: string; data?: { value?: string } }, resolve: (children: Array<{ value: string; label: string; leaf?: boolean }>) => void) {
         const subSystemCode = (node.data?.value ?? node.value) as string
         const isRootRequest = node.level === 0 && !subSystemCode
@@ -99,7 +99,7 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         }
     }
 
-    /** 初始化 formModel.subSysOrTenant、cascaderProps、subSysOrTenants 等 */
+    /** Initialize formModel.subSysOrTenant, cascaderProps, subSysOrTenants, etc. */
     protected initVars() {
         let formModel = this.state.formModel
         if (!formModel) {
@@ -121,12 +121,12 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         }
     }
 
-    /** 级联是否严格模式，子类可重写 */
+    /** Whether the cascade is in strict mode; subclasses can override */
     protected isCheckStrictly(): boolean {
         return false
     }
 
-    /** 提交前将 subSysOrTenant 拆成 subSystemCode、tenantId 写入 formModel；未选时不弹窗，由表单校验提示 */
+    /** Before submit, split subSysOrTenant into subSystemCode and tenantId on formModel; if nothing is selected, don't prompt — let form validation handle it */
     protected beforeValidate() {
         const subSysOrTenant = this.state.formModel.subSysOrTenant
         if (!subSysOrTenant || subSysOrTenant.length === 0) {
@@ -138,7 +138,7 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         }
     }
 
-    /** 回填时把 subSystemCode、tenantId 合并为 subSysOrTenant 数组供级联显示 */
+    /** When back-filling, combine subSystemCode and tenantId into a subSysOrTenant array for cascade display */
     protected fillForm(rowObject: any) {
         super.fillForm(rowObject)
         const subSys = rowObject.subSystemCode ?? this.state.formModel?.subSystemCode
@@ -153,7 +153,7 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         this.state.formModel.subSysOrTenant = arr
     }
 
-    /** 按子系统拉取启用租户（getTenantsBySubSystemCode），写入 state.subSysOrTenants 供级联选择使用 */
+    /** Fetch active tenants per subsystem (getTenantsBySubSystemCode) and write them into state.subSysOrTenants for cascade selection */
     protected async loadTenants() {
         const options: Array<{ value: string; label: string; children?: Array<{ value: string; label: string }> }> = []
         const subSyses = this.getAtomicServices()
@@ -167,11 +167,11 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
                     subSysOption.children = payload.map((item) => ({ value: item.id, label: item.name }))
                 }
             } catch {
-                // 单子系统失败不阻塞其余
+                // A single subsystem failure must not block the rest
             }
         }
         this.state.subSysOrTenants = options
-        // 编辑回填时可能先于 options 设置 subSysOrTenant，级联需在 options 就绪后重新触发显示
+        // During edit back-fill, subSysOrTenant may be set before options arrive; the cascade needs to be re-triggered once options are ready
         const current = this.state.formModel?.subSysOrTenant
         if (Array.isArray(current) && current.length > 0) {
             nextTick(() => {

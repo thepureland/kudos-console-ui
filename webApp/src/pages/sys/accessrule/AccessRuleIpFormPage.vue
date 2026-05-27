@@ -1,5 +1,5 @@
 <!--
- * IP 访问规则新增/编辑：级联仅可选租户（叶子），解析父访问规则 id；提交字段与 ISysAccessRuleIpFormBase 一致（ipv4/ipv6 字符串）。
+ * IP access-rule add/edit: cascader allows only tenant (leaf) selection; resolves the parent access-rule id. Submitted fields match ISysAccessRuleIpFormBase (ipv4/ipv6 strings).
  *
  * @author: AI: Cursor
  * @since 1.0.0
@@ -140,7 +140,7 @@ interface AccessRuleIpFormModel {
   tenantId: string | null;
   subSystemCode: string | null;
   parentRuleId: string | null;
-  /** 与 ISysAccessRuleIpFormBase / getEdit 一致 */
+  /** Matches ISysAccessRuleIpFormBase / getEdit. */
   ipTypeDictCode: string | null;
   ipv4StartStr: string;
   ipv4EndStr: string;
@@ -244,7 +244,7 @@ class AccessRuleIpFormPage extends TenantSupportAddEditPage {
     }
   }
 
-  /** 编辑回显：按父规则 id 拉取访问规则，拼子系统/租户级联 */
+  /** Edit-mode back-fill: fetch the access rule by parent rule id and build the subsystem/tenant cascader. */
   public async loadCascadeForParentRule(parentRuleId: string): Promise<void> {
     if (!parentRuleId.trim()) return;
     try {
@@ -263,7 +263,7 @@ class AccessRuleIpFormPage extends TenantSupportAddEditPage {
       }
       fm.parentRuleId = parentRuleId;
     } catch {
-      /* 忽略，级联可手选 */
+      /* Ignore; the cascader can still be picked manually. */
     }
   }
 
@@ -393,7 +393,7 @@ export default defineComponent({
       }
     }
 
-    /** 与后端注解 message / initValidationRule 拉取的 valid-msg 一致（非 accessRuleIpAddEdit 下重复文案） */
+    /** Match the valid-msg fetched from backend annotation `message` / initValidationRule (avoid duplicating these strings under accessRuleIpAddEdit). */
     const validMsgGeIpStart = () => t('valid-msg.accessrule.ge-ip-start') as string;
     const validMsgIpv6FullPattern = () => t('valid-msg.default.Pattern::ipv6-full') as string;
     const validMsgNotBlank = () => t('valid-msg.default.NotBlank') as string;

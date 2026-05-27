@@ -1,5 +1,5 @@
 <!--
- * 系统列表：支持按编码、名称、仅启用、仅子系统筛选，表格为树形结构（按 parentCode），支持列可见性、操作列折角、可拖拽排序列，多语言。
+ * System list: filter by code, name, active-only, and subsystem-only; the table is a tree (by parentCode) and supports column visibility, an operation-column fold toggle, drag-reorder columns, and i18n.
  *
  * @author: K
  * @author: AI: Cursor
@@ -241,10 +241,10 @@
         </el-table>
       </div>
       <template #pagination>
-        <!-- 树列表无分页 -->
+        <!-- No pagination for tree lists -->
       </template>
     </list-page-layout>
-    <!-- 添加/编辑共用一个表单，首次打开任一时挂载；v-if/v-show 挂在原生 div 上避免 ElDialog 非元素根节点指令警告 -->
+    <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <system-form-page
         :model-value="formVisible"
@@ -318,7 +318,7 @@ class SystemListPage extends BaseListPage {
     return ['code', 'name'];
   }
 
-  /** 将扁平列表按 parentCode 挂成树（父节点为 code === item.parentCode 的节点） */
+  /** Turn a flat list into a tree by parentCode (the parent is the node whose code equals item.parentCode). */
   protected flatListToTree(flat: Record<string, unknown>[]): Record<string, unknown>[] {
     if (!flat.length) return [];
     const list = flat.map((row) => ({ ...row, children: [] as Record<string, unknown>[] }));
@@ -342,7 +342,7 @@ class SystemListPage extends BaseListPage {
     return roots;
   }
 
-  /** 支持 { data: 树数组, totalCount } 或直接数组；若为扁平列表则按 parentCode 转成树 */
+  /** Support { data: tree array, totalCount } or a bare array; if it's a flat list, convert into a tree by parentCode. */
   protected postSearchSuccessfully(data: unknown): void {
     let raw: unknown[] = [];
     if (data != null && typeof data === 'object' && Array.isArray((data as { data?: unknown }).data)) {
@@ -357,7 +357,7 @@ class SystemListPage extends BaseListPage {
     this.state.tableData = hasChildren ? rows : this.flatListToTree(rows);
   }
 
-  /** 树接口可能直接返回数组或仅 { data }，与基类仅认 { data, totalCount } 对齐：此处均视为成功并填表 */
+  /** The tree endpoint may return a bare array or just { data }; the base class only recognizes { data, totalCount }. Treat both shapes here as success and fill the table. */
   protected async doSearch() {
     const params = this.createSearchParams();
     if (!params) return;
@@ -478,7 +478,7 @@ export default defineComponent({
   height: 100%;
 }
 .system-list-page :deep(.list-page-card .el-card__body) {
-  padding-top: 8px; /* 与全局一致 */
+  padding-top: 8px; /* match the global value */
 }
 .system-list-page .list-page-toolbar .toolbar-name {
   margin-right: 8px;
