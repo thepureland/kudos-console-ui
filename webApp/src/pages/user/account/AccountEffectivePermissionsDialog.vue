@@ -1,20 +1,19 @@
 <!--
  * Effective permissions viewer for a single user.
  *
- * Aggregates client-side from kudos-ms-auth endpoints:
- *   GET /api/admin/auth/role/listRoleIdsByUser?userId=...    → direct roles
- *   GET /api/admin/auth/group/listGroupIdsByUser?userId=...  → groups the user belongs to
- *   GET /api/admin/auth/group/listRoleIds?groupId=...        → roles inherited from each group
- *   GET /api/admin/auth/role/listResourceIds?roleId=...      → resources granted by each role
- * Metadata for role/group/resource is then resolved via the respective pagingSearch.
+ * Single GET to the kudos-ms-auth aggregator:
+ *   GET /api/admin/auth/role/getEffectivePermissions?userId=...
+ *   → EffectivePermissionsVo {
+ *       directRoles: AuthRoleCacheEntry[],
+ *       groups:      AuthGroupCacheEntry[],
+ *       rolesByGroup: { [groupId]: AuthRoleCacheEntry[] },
+ *       resourcesByRole: { [roleId]: SysResourceCacheEntry[] },
+ *     }
  *
  * Three sections in one dialog:
  *   1. Roles (direct vs inherited; inherited rows show the source group)
  *   2. Groups (the user's group memberships)
  *   3. Resources (grouped by resource type; each row shows which role(s) granted it)
- *
- * Backend has no aggregator endpoint, so the dialog fans out N+M+K parallel requests where N = #groups,
- * M = #directRoles, K = #inheritedRoles. Acceptable for typical RBAC graph sizes (< few dozen).
  *
  * @author: K
  * @since 1.0.0
@@ -111,11 +110,25 @@ import { defineComponent, reactive, toRefs } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
 import { backendRequest, getApiResponseData, isApiSuccessResponse } from '../../../utils/backendRequest';
-import {
-  type TransferItem,
-  normalizeIdSet,
-  resolveAssignedItems,
-} from '../../auth/_shared/assignmentTransferUtils';
+import { type TransferItem } from '../../auth/_shared/assignmentTransferUtils';
+
+/** Shape of the backend EffectivePermissionsVo. Field-typed loosely because the cache entries
+ *  carry many fields the UI doesn't render — we only access id/code/name/url/resourceTypeDictCode. */
+interface BackendCacheEntry {
+  id?: string;
+  code?: string;
+  name?: string;
+  url?: string;
+  resourceTypeDictCode?: string;
+  // ... other AuthRoleCacheEntry / AuthGroupCacheEntry / SysResourceCacheEntry fields
+}
+
+interface EffectivePermissionsPayload {
+  directRoles?: BackendCacheEntry[];
+  groups?: BackendCacheEntry[];
+  rolesByGroup?: Record<string, BackendCacheEntry[]>;
+  resourcesByRole?: Record<string, BackendCacheEntry[]>;
+}
 
 interface RoleRow {
   key: string;
@@ -163,7 +176,7 @@ class AccountEffectivePermissionsDialog extends BaseDetailPage {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' }];
   }
 
-  /** Skip the standard single-endpoint loadData; we aggregate from many endpoints below. */
+  /** Skip the standard single-endpoint loadData; we use the aggregator below instead. */
   protected getDetailLoadUrl(): string {
     return '';
   }
@@ -176,123 +189,114 @@ class AccountEffectivePermissionsDialog extends BaseDetailPage {
       return;
     }
     try {
-      await this.aggregate(userId);
+      const result = await backendRequest({
+        url: 'auth/role/getEffectivePermissions',
+        method: 'get',
+        params: { userId },
+      });
+      if (!isApiSuccessResponse(result)) return;
+      const payload = getApiResponseData<EffectivePermissionsPayload>(result);
+      if (payload) this.materialize(payload);
     } finally {
       this.state.loading = false;
       this.render();
     }
   }
 
-  private async aggregate(userId: string): Promise<void> {
-    // Stage 1: direct roles + groups
-    const [directRoleIds, groupIds] = await Promise.all([
-      this.getIds('auth/role/listRoleIdsByUser', { userId }),
-      this.getIds('auth/group/listGroupIdsByUser', { userId }),
-    ]);
+  /** Map the backend's EffectivePermissionsVo into the dialog's view-model shape. The backend
+   *  pre-deduplicates: a role inherited from multiple groups appears once in rolesByGroup's
+   *  values but each occurrence pins a different groupId source. */
+  private materialize(payload: EffectivePermissionsPayload): void {
+    const directRoles = payload.directRoles ?? [];
+    const groups = payload.groups ?? [];
+    const rolesByGroup = payload.rolesByGroup ?? {};
+    const resourcesByRole = payload.resourcesByRole ?? {};
 
-    // Stage 2: roles per group (in parallel) + resolve role/group metadata up front
-    const [perGroupRoleIds, groupItems, directRoleItems] = await Promise.all([
-      Promise.all(groupIds.map(gid => this.getIds('auth/group/listRoleIds', { groupId: gid }).then(rids => ({ gid, rids })))),
-      resolveAssignedItems({ searchUrl: 'auth/group/pagingSearch', ids: groupIds, pickLabel: groupLabel }),
-      resolveAssignedItems({ searchUrl: 'auth/role/pagingSearch', ids: directRoleIds, pickLabel: roleLabel }),
-    ]);
-
+    // groupId -> {key, label} for tag rendering in the source column.
+    const groupItems: TransferItem[] = groups
+      .map(g => ({ key: String(g.id ?? ''), label: groupLabel(g) }))
+      .filter(g => g.key !== '');
     this.state.groupItems = groupItems;
     const groupItemById = new Map<string, TransferItem>(groupItems.map(g => [g.key, g]));
 
-    // Stage 3: build role rows (direct + inherited, deduped) and resolve inherited role metadata
-    const directRoleSet = new Set(directRoleIds);
-    const inheritedRoleIds = new Set<string>();
-    const groupsByRoleId = new Map<string, Set<string>>(); // roleId → set of groupIds contributing
-    for (const { gid, rids } of perGroupRoleIds) {
-      for (const rid of rids) {
-        if (!directRoleSet.has(rid)) inheritedRoleIds.add(rid);
+    // Invert rolesByGroup → for each role, which groups contribute it.
+    const groupsByRoleId = new Map<string, Set<string>>();
+    for (const [gid, roles] of Object.entries(rolesByGroup)) {
+      for (const r of roles) {
+        const rid = String(r.id ?? '');
+        if (!rid) continue;
         let s = groupsByRoleId.get(rid);
         if (!s) { s = new Set(); groupsByRoleId.set(rid, s); }
         s.add(gid);
       }
     }
 
-    const inheritedRoleItems = await resolveAssignedItems({
-      searchUrl: 'auth/role/pagingSearch',
-      ids: [...inheritedRoleIds],
-      pickLabel: roleLabel,
-    });
+    // Dedupe roles across direct + inherited (a direct role might also live in a group).
+    const directRoleIds = new Set(directRoles.map(r => String(r.id ?? '')).filter(Boolean));
+    const allRolesById = new Map<string, BackendCacheEntry>();
+    for (const r of directRoles) {
+      const rid = String(r.id ?? '');
+      if (rid) allRolesById.set(rid, r);
+    }
+    for (const roles of Object.values(rolesByGroup)) {
+      for (const r of roles) {
+        const rid = String(r.id ?? '');
+        if (rid && !allRolesById.has(rid)) allRolesById.set(rid, r);
+      }
+    }
 
-    const allRoleItems = [...directRoleItems, ...inheritedRoleItems];
-    // De-dup roles (a direct role might also live in a group).
-    const seenRoleKeys = new Set<string>();
     const roleRows: RoleRow[] = [];
-    for (const item of allRoleItems) {
-      if (seenRoleKeys.has(item.key)) continue;
-      seenRoleKeys.add(item.key);
-      const groups = groupsByRoleId.get(item.key);
+    for (const [rid, role] of allRolesById) {
+      const sourceGroups = groupsByRoleId.get(rid);
       roleRows.push({
-        key: item.key,
-        label: item.label,
-        direct: directRoleSet.has(item.key),
-        viaGroups: groups ? [...groups].map(gid => groupItemById.get(gid)).filter((g): g is TransferItem => !!g) : [],
+        key: rid,
+        label: roleLabel(role),
+        direct: directRoleIds.has(rid),
+        viaGroups: sourceGroups
+          ? [...sourceGroups].map(gid => groupItemById.get(gid)).filter((g): g is TransferItem => !!g)
+          : [],
       });
     }
-    // Direct roles first, then alphabetical.
+    // Direct first, then alphabetical (same ordering as before).
     roleRows.sort((a, b) => (Number(b.direct) - Number(a.direct)) || a.label.localeCompare(b.label));
     this.state.roleRows = roleRows;
 
-    // Stage 4: resources per role (parallel), then resolve resource metadata once
-    const roleKeys = [...seenRoleKeys];
-    const roleItemByKey = new Map<string, TransferItem>(allRoleItems.map(r => [r.key, r]));
-    const perRoleResourceIds = await Promise.all(
-      roleKeys.map(rid => this.getIds('auth/role/listResourceIds', { roleId: rid }).then(resIds => ({ rid, resIds }))),
+    // {key,label} for the role-source tags in the resource table.
+    const roleItemByKey = new Map<string, TransferItem>(
+      [...allRolesById].map(([rid, role]) => [rid, { key: rid, label: roleLabel(role) }]),
     );
-    const allResourceIds = new Set<string>();
-    const rolesByResourceId = new Map<string, Set<string>>(); // resourceId → set of roleIds
-    for (const { rid, resIds } of perRoleResourceIds) {
-      for (const resId of resIds) {
-        allResourceIds.add(resId);
+
+    // Invert resourcesByRole → for each resource, which roles grant it.
+    const resourceById = new Map<string, BackendCacheEntry>();
+    const rolesByResourceId = new Map<string, Set<string>>();
+    for (const [rid, resources] of Object.entries(resourcesByRole)) {
+      for (const r of resources) {
+        const resId = String(r.id ?? '');
+        if (!resId) continue;
+        if (!resourceById.has(resId)) resourceById.set(resId, r);
         let s = rolesByResourceId.get(resId);
         if (!s) { s = new Set(); rolesByResourceId.set(resId, s); }
         s.add(rid);
       }
     }
-    const resourceMeta = await this.resolveResources([...allResourceIds]);
-    const resourceRows: ResourceRow[] = resourceMeta.map(r => ({
-      key: r.id,
-      label: r.label,
-      url: r.url,
-      resourceTypeDictCode: r.resourceTypeDictCode,
-      viaRoles: [...(rolesByResourceId.get(r.id) ?? [])]
-        .map(rid => roleItemByKey.get(rid))
-        .filter((it): it is TransferItem => !!it),
-    }));
+
+    const resourceRows: ResourceRow[] = [];
+    for (const [resId, res] of resourceById) {
+      resourceRows.push({
+        key: resId,
+        label: resourceLabel(res),
+        url: res.url != null ? String(res.url) : null,
+        resourceTypeDictCode: res.resourceTypeDictCode != null ? String(res.resourceTypeDictCode) : null,
+        viaRoles: [...(rolesByResourceId.get(resId) ?? [])]
+          .map(rid => roleItemByKey.get(rid))
+          .filter((it): it is TransferItem => !!it),
+      });
+    }
     resourceRows.sort((a, b) => {
       const t = String(a.resourceTypeDictCode ?? '').localeCompare(String(b.resourceTypeDictCode ?? ''));
       return t !== 0 ? t : a.label.localeCompare(b.label);
     });
     this.state.resourceRows = resourceRows;
-  }
-
-  private async getIds(url: string, params: Record<string, unknown>): Promise<string[]> {
-    const result = await backendRequest({ url, method: 'get', params });
-    if (!isApiSuccessResponse(result)) return [];
-    return normalizeIdSet(getApiResponseData<unknown>(result));
-  }
-
-  private async resolveResources(ids: string[]): Promise<Array<{ id: string; label: string; url: string | null; resourceTypeDictCode: string | null }>> {
-    if (ids.length === 0) return [];
-    const params: Record<string, unknown> = { pageNo: 1, pageSize: Math.max(ids.length, 50), ids };
-    const result = await backendRequest({ url: 'sys/resource/pagingSearch', method: 'post', params });
-    if (!isApiSuccessResponse(result)) return [];
-    const payload = getApiResponseData<{ data?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>>(result);
-    const rows: Array<Record<string, unknown>> = Array.isArray(payload) ? payload : (payload?.data ?? []);
-    const idSet = new Set(ids.map(String));
-    return rows
-      .filter(r => idSet.has(String(r.id ?? '')))
-      .map(r => ({
-        id: String(r.id ?? ''),
-        label: resourceLabel(r),
-        url: r.url != null ? String(r.url) : null,
-        resourceTypeDictCode: r.resourceTypeDictCode != null ? String(r.resourceTypeDictCode) : null,
-      }));
   }
 
   /** Localize resource_type dict code, falling back to the raw code. */

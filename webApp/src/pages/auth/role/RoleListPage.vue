@@ -372,7 +372,6 @@ import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } fro
 import { CopyDocument, Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { backendRequest, getApiResponseData, isApiSuccessResponse } from '../../../utils/backendRequest';
-import { normalizeIdSet } from '../_shared/assignmentTransferUtils';
 import { useI18n } from 'vue-i18n';
 import RoleFormPage from './RoleFormPage.vue';
 import RoleDetailPage from './RoleDetailPage.vue';
@@ -527,35 +526,29 @@ class RoleListPage extends TenantSupportListPage {
 
   /** Counts of users + groups currently bound to a single role. Failures degrade to '?'. */
   private async fetchImpactSummary(roleId: string | number): Promise<{ users: number | string; groups: number | string }> {
-    const [usersR, groupsR] = await Promise.all([
-      backendRequest({ url: 'auth/role/listUserIds', method: 'get', params: { roleId } }),
-      backendRequest({ url: 'auth/role/listGroupIdsByRole', method: 'get', params: { roleId } }),
-    ]);
-    return {
-      users: isApiSuccessResponse(usersR) ? normalizeIdSet(getApiResponseData<unknown>(usersR)).length : '?',
-      groups: isApiSuccessResponse(groupsR) ? normalizeIdSet(getApiResponseData<unknown>(groupsR)).length : '?',
-    };
+    return this.fetchImpactByIds([String(roleId)]);
   }
 
-  /** Union of users / groups across a batch of roles (deduped). */
+  /** Counts deduped across a batch of roles. */
   private async fetchBatchImpactSummary(rows: Array<Record<string, unknown>>): Promise<{ users: number | string; groups: number | string }> {
-    const ids = rows.map(r => this.getRowId(r));
-    const allUsers = new Set<string>();
-    const allGroups = new Set<string>();
-    let failed = false;
-    await Promise.all(ids.map(async (roleId) => {
-      const [usersR, groupsR] = await Promise.all([
-        backendRequest({ url: 'auth/role/listUserIds', method: 'get', params: { roleId } }),
-        backendRequest({ url: 'auth/role/listGroupIdsByRole', method: 'get', params: { roleId } }),
-      ]);
-      if (isApiSuccessResponse(usersR)) normalizeIdSet(getApiResponseData<unknown>(usersR)).forEach(id => allUsers.add(id));
-      else failed = true;
-      if (isApiSuccessResponse(groupsR)) normalizeIdSet(getApiResponseData<unknown>(groupsR)).forEach(id => allGroups.add(id));
-      else failed = true;
-    }));
+    return this.fetchImpactByIds(rows.map(r => String(this.getRowId(r))));
+  }
+
+  /** Single POST to the new backend aggregator — replaces the 2N listUserIds + listGroupIdsByRole
+   *  fan-out the page used to make. Backend dedups across the batch; degraded display ('?') only
+   *  on outright HTTP failure so the operator still sees the confirm dialog with a partial answer. */
+  private async fetchImpactByIds(roleIds: string[]): Promise<{ users: number | string; groups: number | string }> {
+    if (roleIds.length === 0) return { users: 0, groups: 0 };
+    const result = await backendRequest({
+      url: 'auth/role/getDeleteImpact',
+      method: 'post',
+      params: roleIds as unknown as Record<string, unknown>,
+    });
+    if (!isApiSuccessResponse(result)) return { users: '?', groups: '?' };
+    const payload = getApiResponseData<{ users?: number; groups?: number }>(result);
     return {
-      users: failed ? `${allUsers.size}+?` : allUsers.size,
-      groups: failed ? `${allGroups.size}+?` : allGroups.size,
+      users: typeof payload?.users === 'number' ? payload.users : '?',
+      groups: typeof payload?.groups === 'number' ? payload.groups : '?',
     };
   }
 

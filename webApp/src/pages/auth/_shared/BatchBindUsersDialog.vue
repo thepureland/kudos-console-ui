@@ -4,12 +4,15 @@
  * Parameterized so role and group list pages can share the same UI. Caller provides:
  *   - owners:     [{ id, label }] — the rows the operator pre-selected
  *   - ownerKind:  'role' | 'group' — controls label keys
- *   - bindUrl:    e.g. 'auth/role/bindUsers' or 'auth/group/bindUsers'
- *   - paramName:  'roleId' or 'groupId' — query-string key the endpoint expects
+ *   - bindUrl:    e.g. 'auth/role/bindUsers' or 'auth/group/bindUsers'.
+ *                 The batch endpoint URL is derived by replacing 'bindUsers' with 'batchBindUsers'.
+ *   - paramName:  'roleId' or 'groupId'. The owner-ids JSON key in the batch body is derived by
+ *                 appending an 's'.
  *
  * Operator picks users via the standard server-search transfer (assignedItems starts empty —
- * "selected" means "will be bound to all owners"). On submit, fans out one bindUsers call per
- * owner, reports a count of successes/failures.
+ * "selected" means "will be bound to all owners"). Submit issues a single POST to the backend's
+ * batchBindUsers aggregator; partial failures come back in the response payload and are surfaced
+ * in a warning toast with per-owner detail (the dialog stays open in that case).
  *
  * Intentionally NOT a transfer with diff:
  *   "Unbind from N owners at once" is rarely what an operator wants; if they need to revoke
@@ -62,7 +65,7 @@
 import { computed, defineComponent, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
-import { backendRequest, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { type TransferItem, debounce, searchCandidates } from './assignmentTransferUtils';
 
 interface OwnerRef {
@@ -127,27 +130,37 @@ export default defineComponent({
     async function submit(): Promise<void> {
       if (props.owners.length === 0 || selectedUserIds.value.length === 0) return;
       submitting.value = true;
-      let ok = 0;
-      const failures: Array<{ owner: OwnerRef; reason: string }> = [];
       try {
-        // Sequential per-owner to keep error reporting clear and avoid swamping the gateway.
-        for (const owner of props.owners) {
-          const url = `${props.bindUrl}?${encodeURIComponent(props.paramName)}=${encodeURIComponent(owner.id)}`;
-          const result = await backendRequest({ url, method: 'post', params: selectedUserIds.value as unknown as Record<string, unknown> });
-          if (isApiSuccessResponse(result)) {
-            ok++;
-          } else {
-            const reason = (await resolveApiResponseMessage(result)) || getApiResponseMessage(result) || 'failed';
-            failures.push({ owner, reason });
-          }
+        // One POST to the backend's batch aggregator. We derive the batch URL and the owner-ids
+        // JSON key from the existing `bindUrl` / `paramName` props so existing call sites don't
+        // need to change. Backend per-owner transactional boundary mirrors what we used to do
+        // sequentially in this loop — partial failures come back in the response payload.
+        const batchUrl = props.bindUrl.replace(/bindUsers$/, 'batchBindUsers');
+        const ownerIdsKey = `${props.paramName}s`; // 'roleId' → 'roleIds', 'groupId' → 'groupIds'
+        const body: Record<string, unknown> = {
+          [ownerIdsKey]: props.owners.map(o => o.id),
+          userIds: selectedUserIds.value,
+        };
+        const result = await backendRequest({ url: batchUrl, method: 'post', params: body });
+        if (!isApiSuccessResponse(result)) {
+          const reason = (await resolveApiResponseMessage(result)) || getApiResponseMessage(result) || 'failed';
+          ElMessage.error(reason);
+          emit('response', { ok: 0, failed: props.owners.length });
+          return;
         }
+        const payload = getApiResponseData<{ ok?: number; failures?: Array<{ ownerId: string; reason: string }> }>(result);
+        const ok = typeof payload?.ok === 'number' ? payload.ok : 0;
+        const failures = payload?.failures ?? [];
         if (failures.length === 0) {
           ElMessage.success(t('batchBindUsers.allSucceeded', { n: ok, users: selectedUserIds.value.length }));
           emit('response', { ok, failed: 0 });
           emit('update:modelValue', false);
         } else {
           // Partial-success: keep the dialog open so the operator can see which owners failed.
-          const detail = failures.map(f => `${f.owner.label}: ${f.reason}`).join('; ');
+          const ownerLabelById = new Map(props.owners.map(o => [o.id, o.label]));
+          const detail = failures
+            .map(f => `${ownerLabelById.get(f.ownerId) ?? f.ownerId}: ${f.reason}`)
+            .join('; ');
           ElMessage.warning(t('batchBindUsers.partial', { ok, failed: failures.length, detail }));
           emit('response', { ok, failed: failures.length });
         }

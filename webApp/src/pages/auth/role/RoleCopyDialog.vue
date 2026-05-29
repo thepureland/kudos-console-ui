@@ -1,15 +1,15 @@
 <!--
  * Copy an existing role into a new one.
  *
- * Loads the source role's detail and presents a small form for the unique fields (code/name); the
- * rest (subsystem, tenant, remark) are inherited from the source. On submit:
- *   1. POST auth/role/save with the merged payload to create the new role.
- *   2. If "include resources" is checked, fetch the source role's listResourceIds and bind them
- *      to the new role via bindResources.
+ * Loads the source role's detail to show the operator what they're cloning and pre-fill the
+ * code/name suggestions. Submit issues a single POST to auth/role/copyRole which on the backend
+ * atomically (a) inserts a new role with the supplied code/name plus the source's other fields,
+ * and (b) — when "include resources" is checked — copies the source's resource grants in the
+ * same transaction. There's no save+listResourceIds+bindResources sequence to fall halfway
+ * through anymore.
  *
  * User assignments are intentionally NOT copied — a freshly-created role is usually meant for a
- * different audience than the source. If that's needed later, expose another checkbox and reuse
- * the same fan-out pattern (listUserIds + bindUsers).
+ * different audience than the source.
  *
  * @author: K
  * @since 1.0.0
@@ -53,7 +53,6 @@ import { ElMessage, type FormInstance } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
-import { normalizeIdSet } from '../_shared/assignmentTransferUtils';
 
 interface FormModel {
   roleCode: string | null;
@@ -141,56 +140,29 @@ export default defineComponent({
       if (!inst) return;
       const valid = await inst.validate().catch(() => false);
       if (!valid) return;
-      const source = dialog.sourceDetail;
-      if (!source) {
-        ElMessage.error(t('roleCopy.messages.sourceMissing'));
-        return;
-      }
       dialog.state.submitting = true;
       try {
-        // Map detail (DetailPage fields are roleCode/roleName/subSystemCode/tenantId/...) to the
-        // form-create VO (code/name/subsysCode/tenantId/remark) the backend expects.
+        // Single atomic POST replaces the old save + listResourceIds + bindResources sequence.
+        // The backend reads the source role itself, so we don't need to ship its fields here —
+        // only the override fields (code / name) and the copyResources flag.
         const fm = dialog.state.formModel as FormModel;
         const payload: Record<string, unknown> = {
+          sourceId: props.rid,
           code: fm.roleCode,
           name: fm.roleName,
-          remark: source.remark ?? null,
-          subsysCode: source.subSystemCode ?? source.subsysCode ?? null,
-          tenantId: source.tenantId ?? null,
+          copyResources: dialog.state.includeResources === true,
         };
-        const saveResult = await backendRequest({ url: 'auth/role/save', method: 'post', params: payload });
-        if (!isApiSuccessResponse(saveResult)) {
-          ElMessage.error(await resolveApiResponseMessage(saveResult) || getApiResponseMessage(saveResult) || t('roleCopy.messages.createFailed'));
+        const result = await backendRequest({ url: 'auth/role/copyRole', method: 'post', params: payload });
+        if (!isApiSuccessResponse(result)) {
+          ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || t('roleCopy.messages.createFailed'));
           return;
         }
-        const newId = extractSavedId(saveResult);
+        // Endpoint returns the new role id as a plain string (or wrapped in the standard envelope).
+        const newId = extractSavedId(result);
         if (!newId) {
           ElMessage.error(t('roleCopy.messages.idMissing'));
           return;
         }
-
-        if (dialog.state.includeResources) {
-          const sourceIdsResult = await backendRequest({
-            url: 'auth/role/listResourceIds',
-            method: 'get',
-            params: { roleId: props.rid },
-          });
-          if (isApiSuccessResponse(sourceIdsResult)) {
-            const ids = normalizeIdSet(getApiResponseData<unknown>(sourceIdsResult));
-            if (ids.length > 0) {
-              const bindUrl = `auth/role/bindResources?roleId=${encodeURIComponent(String(newId))}`;
-              const bindResult = await backendRequest({ url: bindUrl, method: 'post', params: ids as unknown as Record<string, unknown> });
-              if (!isApiSuccessResponse(bindResult)) {
-                // New role exists but resources didn't copy — warn instead of erroring out.
-                ElMessage.warning(t('roleCopy.messages.resourcesPartial'));
-                context.emit('response', { id: newId });
-                context.emit('update:modelValue', false);
-                return;
-              }
-            }
-          }
-        }
-
         ElMessage.success(t('roleCopy.messages.success'));
         context.emit('response', { id: newId });
         context.emit('update:modelValue', false);

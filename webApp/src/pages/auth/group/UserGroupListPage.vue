@@ -362,7 +362,6 @@ import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } fro
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { backendRequest, getApiResponseData, isApiSuccessResponse } from '../../../utils/backendRequest';
-import { normalizeIdSet } from '../_shared/assignmentTransferUtils';
 import { useI18n } from 'vue-i18n';
 import UserGroupFormPage from './UserGroupFormPage.vue';
 import UserGroupDetailPage from './UserGroupDetailPage.vue';
@@ -474,34 +473,26 @@ class UserGroupListPage extends TenantSupportListPage {
 
   /** Counts of users in this group + roles granted to this group. */
   private async fetchImpactSummary(groupId: string | number): Promise<{ users: number | string; roles: number | string }> {
-    const [usersR, rolesR] = await Promise.all([
-      backendRequest({ url: 'auth/group/listUserIds', method: 'get', params: { groupId } }),
-      backendRequest({ url: 'auth/group/listRoleIds', method: 'get', params: { groupId } }),
-    ]);
-    return {
-      users: isApiSuccessResponse(usersR) ? normalizeIdSet(getApiResponseData<unknown>(usersR)).length : '?',
-      roles: isApiSuccessResponse(rolesR) ? normalizeIdSet(getApiResponseData<unknown>(rolesR)).length : '?',
-    };
+    return this.fetchImpactByIds([String(groupId)]);
   }
 
   private async fetchBatchImpactSummary(rows: Array<Record<string, unknown>>): Promise<{ users: number | string; roles: number | string }> {
-    const ids = rows.map(r => this.getRowId(r));
-    const allUsers = new Set<string>();
-    const allRoles = new Set<string>();
-    let failed = false;
-    await Promise.all(ids.map(async (groupId) => {
-      const [usersR, rolesR] = await Promise.all([
-        backendRequest({ url: 'auth/group/listUserIds', method: 'get', params: { groupId } }),
-        backendRequest({ url: 'auth/group/listRoleIds', method: 'get', params: { groupId } }),
-      ]);
-      if (isApiSuccessResponse(usersR)) normalizeIdSet(getApiResponseData<unknown>(usersR)).forEach(id => allUsers.add(id));
-      else failed = true;
-      if (isApiSuccessResponse(rolesR)) normalizeIdSet(getApiResponseData<unknown>(rolesR)).forEach(id => allRoles.add(id));
-      else failed = true;
-    }));
+    return this.fetchImpactByIds(rows.map(r => String(this.getRowId(r))));
+  }
+
+  /** Backed by auth/group/getDeleteImpact — single POST replaces the 2N fan-out the page used to make. */
+  private async fetchImpactByIds(groupIds: string[]): Promise<{ users: number | string; roles: number | string }> {
+    if (groupIds.length === 0) return { users: 0, roles: 0 };
+    const result = await backendRequest({
+      url: 'auth/group/getDeleteImpact',
+      method: 'post',
+      params: groupIds as unknown as Record<string, unknown>,
+    });
+    if (!isApiSuccessResponse(result)) return { users: '?', roles: '?' };
+    const payload = getApiResponseData<{ users?: number; roles?: number }>(result);
     return {
-      users: failed ? `${allUsers.size}+?` : allUsers.size,
-      roles: failed ? `${allRoles.size}+?` : allRoles.size,
+      users: typeof payload?.users === 'number' ? payload.users : '?',
+      roles: typeof payload?.roles === 'number' ? payload.roles : '?',
     };
   }
 
