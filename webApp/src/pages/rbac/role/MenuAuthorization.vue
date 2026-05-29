@@ -1,158 +1,249 @@
 <!--
- * Grant menu permissions to a role
+ * Grant menu permissions to a role (tree-based picker).
+ *
+ * Aligns with kudos-ms-auth's AuthRoleAdminController:
+ *   GET    /api/admin/auth/role/listResourceIds?roleId=...                   → Set<resourceId>
+ *   POST   /api/admin/auth/role/bindResources?roleId=...   body=[ids]        → newly created count
+ *   DELETE /api/admin/auth/role/unbindResource?roleId=...&resourceId=...     → boolean
+ *
+ * Menu tree comes from sys/resource/pagingSearch filtered by resourceTypeDictCode='1';
+ * we build the tree client-side from a flat (parentId-linked) list since we want everything
+ * eagerly, not lazy-loaded as in ResourceListPage.
+ *
+ * Restore strategy when check-strictly=false: el-tree links parents↔children, so if we
+ * default-check a parent that has unselected children, those children get force-selected.
+ * To avoid that we only restore leaf ids, mirroring the original implementation's intent.
  *
  * @author: K
  * @since 1.0.0
  -->
-
 <template>
-  <el-dialog title="Menu Authorization" v-model="visible" width="30%" center @close="close">
+  <el-dialog :title="t('menuAuthorization.title')" v-model="visible" width="38%" center @close="close">
     <el-tree
-        ref="tree"
+        ref="treeRef"
         :data="menuData"
         show-checkbox
         node-key="id"
-        :check-strictly="checkStrictly"
+        :check-strictly="false"
         default-expand-all
         :default-checked-keys="defaultCheckedKeys"
-        :props="defaultProps"
+        :props="treeProps"
     />
-
-    <el-row :gutter="20">
-      <el-col :span="18"/>
-      <el-col :span="3">
-        <el-button type="primary" round @click="save">OK</el-button>
-      </el-col>
-      <el-col :span="3">
-        <el-button type="primary" round @click="close">Cancel</el-button>
-      </el-col>
-    </el-row>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="close">{{ t('menuAuthorization.cancel') }}</el-button>
+        <el-button type="primary" @click="save">{{ t('menuAuthorization.confirm') }}</el-button>
+      </span>
+    </template>
   </el-dialog>
 </template>
 
 <script lang='ts'>
-import {defineComponent, reactive, ref, toRefs} from "vue"
-import {ElMessage, ElTree} from "element-plus";
-import { BasePage } from '../../../components/pages/core/BasePage';
+import { defineComponent, reactive, ref, toRefs } from 'vue';
+import { ElMessage, ElTree } from 'element-plus';
+import { useI18n } from 'vue-i18n';
+import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
-class Page extends BasePage {
+interface MenuNode {
+  id: string;
+  name?: string | null;
+  title?: string | null;
+  parentId?: string | null;
+  children?: MenuNode[];
+}
 
-  public defaultProps: any
-  public tree: any
+class MenuAuthorization extends BaseDetailPage {
+  public treeRef = ref<InstanceType<typeof ElTree> | null>(null);
+  public treeProps = { children: 'children', label: (data: MenuNode) => data.title || data.name || data.id };
+  /** All known resource ids (whole tree) — used to limit unbinds to menu-type ids only. */
+  private menuIdSet: Set<string> = new Set();
+  /** Snapshot of the assigned set as loaded; doSubmit() diffs against this. */
+  private originalAssignedIds: Set<string> = new Set();
 
-  constructor(props, context) {
-    super(props, context)
-    this.tree = ref<InstanceType<typeof ElTree>>()
-    this.defaultProps = {
-      children: 'children',
-      label: 'title',
-    }
-    this.loadData()
+  constructor(props: any, context: any) {
+    super(props, context);
   }
 
-  protected initBaseState(): any {
-    return {
-      rid: '',
-    }
-  }
-
-  protected getRootActionPath(): String {
-    return "rbac/role"
+  protected getRootActionPath(): string {
+    return 'rbac/role';
   }
 
   protected initState(): any {
     return {
-      menuData: [],
-      defaultCheckedKeys: [],
-    }
+      menuData: [] as MenuNode[],
+      defaultCheckedKeys: [] as string[],
+    };
   }
 
-  private async loadData() {
-    const params = {
-      roleId: this.props.rid
-    }
-    const url = this.getRootActionPath() + "/getMenuPermissions"
-    // @ts-ignore
-    const result = await backendRequest({url: url, params})
-    const payload = getApiResponseData<{ first?: unknown; second?: unknown }>(result)
-    if (payload != null && typeof payload === 'object' && 'first' in payload) {
-      this.state.menuData = payload.first
+  protected getDetailLoadUrl(): string {
+    return this.getRootActionPath() + '/listResourceIds';
+  }
 
-      // Pre-check menus already assigned to the role. A few caveats:
-      // 1. When el-tree's check-strictly is false, parents and children are linked.
-      // 2. Given (1), when restoring checked items, if a parent node is selected, all of its children get selected too.
-      // 3. To work around (2) you might think of setting check-strictly to true before checking, then back to false; that doesn't work and throws.
-      // 4. Inspecting tree nodes to detect leaves doesn't work either — there's no observable moment when rendering is finished — so we determine it from the source data directly.
-      const checkKeys = payload.second // node keys to check (may include non-leaf nodes)
-      let checkLeafKeys = [] // leaf node keys to check
-      for (let data of this.state.menuData) {
-        this.filterLeaf(data, checkLeafKeys, checkKeys)
+  protected createDetailLoadParams(): any {
+    return { roleId: this.props.rid };
+  }
+
+  protected async preLoad(): Promise<void> {
+    const tree = await this.fetchMenuTree();
+    this.state.menuData = tree;
+    this.menuIdSet = new Set();
+    this.collectIds(tree, this.menuIdSet);
+  }
+
+  protected postLoadDataSuccessfully(data: unknown): void {
+    const allAssigned: string[] = Array.isArray(data)
+      ? data.map(String)
+      : (data && typeof data === 'object'
+          ? Array.from(Object.values(data as Record<string, unknown>)).map(String)
+          : []);
+    // Scope to menu-type ids; pre-check only leaves to avoid el-tree parent-child cascade flipping
+    // grandchildren on.
+    const scoped = allAssigned.filter(id => this.menuIdSet.has(id));
+    this.originalAssignedIds = new Set(scoped);
+    const leafChecks: string[] = [];
+    this.collectLeafChecks(this.state.menuData as MenuNode[], this.originalAssignedIds, leafChecks);
+    this.state.defaultCheckedKeys = leafChecks;
+    super.postLoadDataSuccessfully(data);
+  }
+
+  private async fetchMenuTree(): Promise<MenuNode[]> {
+    const params: Record<string, unknown> = {
+      pageNo: 1,
+      pageSize: 1000,
+      resourceTypeDictCode: '1',
+    };
+    const result = await backendRequest({ url: 'sys/resource/pagingSearch', method: 'post', params });
+    if (!isApiSuccessResponse(result)) {
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load menus');
+      return [];
+    }
+    const payload = getApiResponseData<{ data?: MenuNode[] } | MenuNode[]>(result);
+    const flat: MenuNode[] = Array.isArray(payload) ? payload : (payload?.data ?? []);
+    return this.buildTree(flat);
+  }
+
+  private buildTree(flat: MenuNode[]): MenuNode[] {
+    const byId = new Map<string, MenuNode>();
+    flat.forEach(item => { byId.set(String(item.id), { ...item, children: [] }); });
+    const roots: MenuNode[] = [];
+    byId.forEach(node => {
+      const parentId = node.parentId == null || node.parentId === '' ? null : String(node.parentId);
+      if (parentId && byId.has(parentId)) {
+        byId.get(parentId)!.children!.push(node);
+      } else {
+        roots.push(node);
       }
-      this.state.defaultCheckedKeys = checkLeafKeys
-
-      this.render()
-    } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load data!')
-    }
+    });
+    // Strip empty children arrays so el-tree treats them as leaves.
+    const normalize = (nodes: MenuNode[]): void => {
+      nodes.forEach(n => {
+        if (n.children && n.children.length === 0) delete n.children;
+        else if (n.children) normalize(n.children);
+      });
+    };
+    normalize(roots);
+    return roots;
   }
 
-  private filterLeaf(nodeData, checkLeafKeys, checkKeys) {
-    if (nodeData.children) {
-      for(let childNode of nodeData.children) {
-        this.filterLeaf(childNode, checkLeafKeys, checkKeys)
+  private collectIds(nodes: MenuNode[] | undefined, sink: Set<string>): void {
+    if (!nodes) return;
+    nodes.forEach(n => {
+      sink.add(String(n.id));
+      if (n.children) this.collectIds(n.children, sink);
+    });
+  }
+
+  private collectLeafChecks(nodes: MenuNode[] | undefined, assigned: Set<string>, sink: string[]): void {
+    if (!nodes) return;
+    for (const n of nodes) {
+      if (n.children && n.children.length > 0) {
+        this.collectLeafChecks(n.children, assigned, sink);
+      } else if (assigned.has(String(n.id))) {
+        sink.push(String(n.id));
       }
-    } else {
-      if (checkKeys.indexOf(nodeData.id) != -1) {
-        checkLeafKeys.push(nodeData.id)
+    }
+  }
+
+  public save!: () => void;
+
+  protected async doSave(): Promise<void> {
+    const tree = this.treeRef.value;
+    if (!tree) return;
+    // Include parent nodes whose entire subtree is selected by passing leafOnly=false.
+    const checked = new Set<string>((tree.getCheckedKeys(false) as Array<string | number>).map(k => String(k)));
+    const halfChecked = new Set<string>((tree.getHalfCheckedKeys() as Array<string | number>).map(k => String(k)));
+    // Persist both fully and partially checked parents — partial means "some children granted",
+    // which still implies the parent menu node itself should be visible.
+    halfChecked.forEach(k => checked.add(k));
+
+    const toBind: string[] = [];
+    checked.forEach(id => { if (!this.originalAssignedIds.has(id)) toBind.push(id); });
+    const toUnbind: string[] = [];
+    this.originalAssignedIds.forEach(id => { if (!checked.has(id)) toUnbind.push(id); });
+
+    try {
+      if (toBind.length > 0) {
+        const bindUrl = `${this.getRootActionPath()}/bindResources?roleId=${encodeURIComponent(this.props.rid)}`;
+        const bindResult = await backendRequest({ url: bindUrl, method: 'post', params: toBind as unknown as Record<string, unknown> });
+        if (!isApiSuccessResponse(bindResult)) {
+          ElMessage.error(await resolveApiResponseMessage(bindResult) || getApiResponseMessage(bindResult) || 'Authorization failed');
+          return;
+        }
       }
+      for (const resourceId of toUnbind) {
+        const unbindResult = await backendRequest({
+          url: this.getRootActionPath() + '/unbindResource',
+          method: 'delete',
+          params: { roleId: this.props.rid, resourceId },
+        });
+        if (!isApiSuccessResponse(unbindResult)) {
+          ElMessage.error(await resolveApiResponseMessage(unbindResult) || getApiResponseMessage(unbindResult) || 'Authorization failed');
+          return;
+        }
+      }
+      ElMessage.success(this.tr('menuAuthorization.success'));
+      this.context.emit('update:modelValue', false);
+    } catch (err) {
+      ElMessage.error(String(err));
     }
   }
 
-  public save: () => void
-
-  private async doSave() {
-    const params = {
-      roleId: this.props.rid,
-      resourceIds: this.tree.value!.getCheckedKeys(false)
-    }
-    const url = this.getRootActionPath() + "/setRolePermissions"
-    // @ts-ignore
-    const result = await backendRequest({url: url, method: 'post', params})
-    if (isApiSuccessResponse(result)) {
-      ElMessage.info('Authorization succeeded!')
-      this.close()
-    } else {
-      ElMessage.info(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Authorization failed!')
+  /** Local i18n helper; t() isn't directly accessible from a class method. */
+  private tr(key: string): string {
+    try {
+      const win = window as unknown as { __kudosI18nTranslate?: (k: string) => string };
+      const fn = win.__kudosI18nTranslate;
+      return typeof fn === 'function' ? fn(key) : key;
+    } catch {
+      return key;
     }
   }
 
-  protected convertThis() {
-    super.convertThis()
-    this.save = () => {
-      this.doSave()
-    }
+  protected convertThis(): void {
+    super.convertThis();
+    this.save = () => { this.doSave(); };
   }
-
 }
 
 export default defineComponent({
-  name: "~MenuAuthorization",
+  name: 'MenuAuthorization',
   props: {
     modelValue: Boolean,
-    rid: String
+    rid: String,
   },
   emits: ['update:modelValue'],
   setup(props, context) {
-    const page = reactive(new Page(props, context))
+    const { t } = useI18n();
+    const page = reactive(new MenuAuthorization(props, context));
     return {
+      t,
       ...toRefs(page),
-      ...toRefs(page.state)
-    }
-  }
-})
+      ...toRefs(page.state),
+    };
+  },
+});
 </script>
 
 <style lang='css' scoped>
-
 </style>

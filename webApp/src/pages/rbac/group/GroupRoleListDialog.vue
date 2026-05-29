@@ -1,40 +1,39 @@
 <!--
- * Read-only list of users currently assigned to a role.
+ * Read-only list of roles currently bound to a group.
  *
- * Backend (kudos-ms-auth AuthRoleAdminController):
- *   GET /api/admin/auth/role/listUserIds?roleId=...  → Set<userId>
- * User metadata is resolved via user/account/pagingSearch.
+ * Backend (kudos-ms-auth AuthGroupAdminController):
+ *   GET /api/admin/auth/group/listRoleIds?groupId=...  → Set<roleId>
+ * Role metadata is resolved via rbac/role/pagingSearch.
  *
  * @author: K
  * @since 1.0.0
  -->
 <template>
-  <el-dialog :title="t('roleUserList.title')" v-model="visible" width="60%" center @close="close">
+  <el-dialog :title="t('groupRoleList.title')" v-model="visible" width="50%" center @close="close">
     <el-table border stripe :data="tableData" max-height="480"
               :header-cell-style="{textAlign: 'center'}">
       <el-table-column type="index" width="50"/>
-      <el-table-column :label="t('roleUserList.columns.username')" prop="username" show-overflow-tooltip/>
-      <el-table-column :label="t('roleUserList.columns.subSystemCode')" prop="subSystemCode" show-overflow-tooltip>
+      <el-table-column :label="t('groupRoleList.columns.roleCode')" prop="roleCode" show-overflow-tooltip>
+        <template #default="scope">
+          {{ scope.row.roleCode ?? scope.row.code }}
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('groupRoleList.columns.roleName')" prop="roleName" show-overflow-tooltip>
+        <template #default="scope">
+          {{ scope.row.roleName ?? scope.row.name }}
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('groupRoleList.columns.subSystemCode')" prop="subSystemCode" show-overflow-tooltip>
         <template #default="scope">
           {{ transAtomicService(scope.row.subSystemCode) }}
         </template>
       </el-table-column>
-      <el-table-column :label="t('roleUserList.columns.userStatus')" prop="userStatusDictCode" show-overflow-tooltip>
+      <el-table-column :label="t('groupRoleList.columns.active')" prop="active" width="80">
         <template #default="scope">
-          {{ t(transDict('user', 'user_status', scope.row.userStatusDictCode)) }}
+          {{ scope.row.active ? t('groupRoleList.common.yes') : t('groupRoleList.common.no') }}
         </template>
       </el-table-column>
-      <el-table-column :label="t('roleUserList.columns.userType')" prop="userTypeDictCode" show-overflow-tooltip>
-        <template #default="scope">
-          {{ t(transDict('user', 'user_type', scope.row.userTypeDictCode)) }}
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('roleUserList.columns.lastLogin')" show-overflow-tooltip>
-        <template #default="scope">
-          {{ formatDate(scope.row.lastLoginTime) }}
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('roleUserList.columns.createTime')" show-overflow-tooltip>
+      <el-table-column :label="t('groupRoleList.columns.createTime')" show-overflow-tooltip>
         <template #default="scope">
           {{ formatDate(scope.row.createTime) }}
         </template>
@@ -42,7 +41,7 @@
     </el-table>
     <template #footer>
       <span class="dialog-footer">
-        <el-button type="primary" @click="close">{{ t('roleUserList.close') }}</el-button>
+        <el-button type="primary" @click="close">{{ t('groupRoleList.close') }}</el-button>
       </span>
     </template>
   </el-dialog>
@@ -55,14 +54,13 @@ import { useI18n } from 'vue-i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
-class UserListDialog extends BaseDetailPage {
+class GroupRoleListDialog extends BaseDetailPage {
   constructor(props: any, context: any) {
     super(props, context);
-    this.loadDicts(['user_status', 'user_type'], 'user');
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/role';
+    return 'rbac/group';
   }
 
   protected initState(): any {
@@ -71,16 +69,12 @@ class UserListDialog extends BaseDetailPage {
     };
   }
 
-  protected getI18nConfig() {
-    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['user_status', 'user_type'], atomicServiceCode: 'user' }];
-  }
-
   protected getDetailLoadUrl(): string {
-    return this.getRootActionPath() + '/listUserIds';
+    return this.getRootActionPath() + '/listRoleIds';
   }
 
   protected createDetailLoadParams(): any {
-    return { roleId: this.props.rid };
+    return { groupId: this.props.rid };
   }
 
   protected async preLoad(): Promise<void> {
@@ -96,20 +90,20 @@ class UserListDialog extends BaseDetailPage {
     if (ids.length === 0) {
       this.state.tableData = [];
     } else {
-      this.resolveUsers(ids).then(rows => { this.state.tableData = rows; });
+      this.resolveRoles(ids).then(rows => { this.state.tableData = rows; });
     }
     super.postLoadDataSuccessfully(data);
   }
 
-  private async resolveUsers(ids: string[]): Promise<Array<Record<string, unknown>>> {
+  private async resolveRoles(ids: string[]): Promise<Array<Record<string, unknown>>> {
     const params: Record<string, unknown> = {
       pageNo: 1,
       pageSize: Math.max(ids.length, 50),
       ids,
     };
-    const result = await backendRequest({ url: 'user/account/pagingSearch', method: 'post', params });
+    const result = await backendRequest({ url: 'rbac/role/pagingSearch', method: 'post', params });
     if (!isApiSuccessResponse(result)) {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load users');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load roles');
       return [];
     }
     const payload = getApiResponseData<{ data?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>>(result);
@@ -117,12 +111,12 @@ class UserListDialog extends BaseDetailPage {
       ? payload
       : (payload?.data ?? []);
     const idSet = new Set(ids.map(String));
-    return rows.filter(r => idSet.has(String(r.id ?? r.userId ?? '')));
+    return rows.filter(r => idSet.has(String(r.id ?? '')));
   }
 }
 
 export default defineComponent({
-  name: 'UserListDialog',
+  name: 'GroupRoleListDialog',
   props: {
     modelValue: Boolean,
     rid: String,
@@ -130,7 +124,7 @@ export default defineComponent({
   emits: ['update:modelValue'],
   setup(props, context) {
     const { t } = useI18n();
-    const dialog = reactive(new UserListDialog(props, context));
+    const dialog = reactive(new GroupRoleListDialog(props, context));
     return {
       t,
       ...toRefs(dialog),

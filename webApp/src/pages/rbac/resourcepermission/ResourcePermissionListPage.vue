@@ -52,10 +52,23 @@
           <el-table-column label="Resource name" prop="name" :min-width="columnWidths['name'] ?? 120" sortable="custom" show-overflow-tooltip/>
           <el-table-column label="URL" prop="url" :min-width="columnWidths['url'] ?? 120" sortable="custom" show-overflow-tooltip/>
           <el-table-column label="Assigned roles" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140" show-overflow-tooltip/>
-          <el-table-column label="Operations" align="center">
+          <el-table-column :label="t('resourcePermissionList.columns.operation')" align="center" min-width="120">
             <template #default="scope">
-              <edit @click="handleEdit(scope.row)" class="operate-column-icon"/>
-              <tickets @click="handleDetail(scope.row)" class="operate-column-icon"/>
+              <el-tooltip :content="t('resourcePermissionList.actions.edit')" placement="top" :enterable="false">
+                <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
+                  <Edit />
+                </el-icon>
+              </el-tooltip>
+              <el-tooltip :content="t('resourcePermissionList.actions.detail')" placement="top" :enterable="false">
+                <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
+                  <Tickets />
+                </el-icon>
+              </el-tooltip>
+              <el-tooltip :content="t('resourcePermissionList.actions.viewRoles')" placement="top" :enterable="false">
+                <el-icon :size="20" class="operate-column-icon" @click="openRoleList(scope.row)">
+                  <View />
+                </el-icon>
+              </el-tooltip>
             </template>
           </el-table-column>
         </el-table>
@@ -64,6 +77,7 @@
       </el-main>
     </el-container>
 
+    <resource-role-list-dialog v-if="roleListDialogVisible" v-model="roleListDialogVisible" :rid="rid"/>
 
   </div>
 </template>
@@ -72,10 +86,12 @@
 import { defineComponent, reactive, toRefs, ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
+import { Edit, Tickets, View } from '@element-plus/icons-vue';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { useListPageLayout, useTableAutoWidthContext } from '../../../components/pages/list';
 import { TenantSupportListPage } from '../../../components/pages/support';
+import ResourceRoleListDialog from '../role/ResourceRoleListDialog.vue';
 
 class ResourcePermissionListPage extends TenantSupportListPage {
 
@@ -101,8 +117,14 @@ class ResourcePermissionListPage extends TenantSupportListPage {
       },
       resourceTypes: [],
       searchSource: null,
-      menus: []
+      menus: [],
+      roleListDialogVisible: false,
     }
+  }
+
+  openRoleList(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.roleListDialogVisible = true;
   }
 
   protected getRootActionPath(): String {
@@ -259,7 +281,7 @@ class ResourcePermissionListPage extends TenantSupportListPage {
 
 export default defineComponent({
   name: "~index",
-  components: {},
+  components: { ResourceRoleListDialog, Edit, Tickets, View },
   setup(props, context) {
     const { t } = useI18n();
     const tree = ref();
@@ -289,6 +311,7 @@ export default defineComponent({
       tree,
       ...listLayoutRefs,
       columnWidths,
+      openRoleList: (row: Record<string, unknown>) => listPage.openRoleList(row),
     };
   },
 })
