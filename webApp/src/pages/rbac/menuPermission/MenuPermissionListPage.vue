@@ -36,9 +36,18 @@
         <el-table-column label="URL" prop="url" :min-width="columnWidths['url'] ?? 120" show-overflow-tooltip/>
         <el-table-column label="Associated Roles" prop="roleNames" :min-width="columnWidths['roleNames'] ?? 140" show-overflow-tooltip/>
 
-        <el-table-column label="Operation" align="center">
+        <el-table-column :label="t('menuPermissionList.columns.operation')" align="center" min-width="120">
           <template #default="scope">
-            <edit @click="handleEdit(scope.row)" class="operate-column-icon"/>
+            <el-tooltip :content="t('menuPermissionList.actions.edit')" placement="top" :enterable="false">
+              <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
+                <Edit />
+              </el-icon>
+            </el-tooltip>
+            <el-tooltip :content="t('menuPermissionList.actions.viewRoles')" placement="top" :enterable="false">
+              <el-icon :size="20" class="operate-column-icon" @click="openRoleList(scope.row)">
+                <View />
+              </el-icon>
+            </el-tooltip>
           </template>
         </el-table-column>
       </el-table>
@@ -46,6 +55,7 @@
 
       <menu-role-assign-dialog v-if="editDialogVisible" v-model="editDialogVisible" @response="afterEdit"
                                :rid="rid" :subSystemCode="subSystemCode" :tenantId="tenantId"/>
+      <resource-role-list-dialog v-if="roleListDialogVisible" v-model="roleListDialogVisible" :rid="rid"/>
 
     </el-card>
 
@@ -55,7 +65,9 @@
 <script lang='ts'>
 import { defineComponent, reactive, toRefs, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Edit, View } from '@element-plus/icons-vue';
 import MenuRoleAssignDialog from './MenuRoleAssignDialog.vue';
+import ResourceRoleListDialog from '../role/ResourceRoleListDialog.vue';
 import { useListPageLayout, useTableAutoWidthContext } from '../../../components/pages/list';
 import { TenantSupportListPage } from '../../../components/pages/support';
 
@@ -67,6 +79,9 @@ class MenuPermissionListPage extends TenantSupportListPage {
   }
 
   protected initState(): any {
+    return {
+      roleListDialogVisible: false,
+    };
   }
 
   protected getRootActionPath(): String {
@@ -81,11 +96,16 @@ class MenuPermissionListPage extends TenantSupportListPage {
     return false
   }
 
+  openRoleList(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.roleListDialogVisible = true;
+  }
+
 }
 
 export default defineComponent({
   name: "~index",
-  components: {MenuRoleAssignDialog},
+  components: { MenuRoleAssignDialog, ResourceRoleListDialog, Edit, View },
   setup(props, context) {
     const { t } = useI18n();
     const listPage = reactive(new MenuPermissionListPage(props, context)) as MenuPermissionListPage & { state: Record<string, unknown> };
@@ -113,6 +133,7 @@ export default defineComponent({
       ...toRefs(listPage),
       ...listLayoutRefs,
       columnWidths,
+      openRoleList: (row: Record<string, unknown>) => listPage.openRoleList(row),
     };
   },
 })

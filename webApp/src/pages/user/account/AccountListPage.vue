@@ -260,14 +260,14 @@
                   :label="t('accountList.columns.operation')"
                   align="center"
                     fixed="right"
-                    min-width="68"
+                    min-width="340"
                     class-name="operation-column"
                 >
                   <template #header>
                     <div class="operation-column-hover-area">{{ t('accountList.columns.operation') }}</div>
                   </template>
                   <template #default="scope">
-                    <div class="operation-column-hover-area">
+                    <div class="operation-column-hover-area operation-column-cell">
                       <el-tooltip :content="t('accountList.actions.edit')" placement="top" :enterable="false">
                         <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
                           <Edit />
@@ -283,6 +283,15 @@
                           <Tickets />
                         </el-icon>
                       </el-tooltip>
+                      <el-button size="small" type="primary" @click="openRolesDialog(scope.row)">
+                        {{ t('accountList.actions.assignRoles') }}
+                      </el-button>
+                      <el-button size="small" type="primary" @click="openGroupsDialog(scope.row)">
+                        {{ t('accountList.actions.assignGroups') }}
+                      </el-button>
+                      <el-button size="small" @click="openPermissionsDialog(scope.row)">
+                        {{ t('accountList.actions.permissions') }}
+                      </el-button>
                     </div>
                   </template>
                 </el-table-column>
@@ -315,6 +324,25 @@
       />
     </div>
     <AccountDetailPage v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
+    <account-roles-dialog
+      v-if="rolesDialogVisible"
+      v-model="rolesDialogVisible"
+      :rid="rid"
+      :sub-system-code="rowSubSystemCode"
+      :tenant-id="rowTenantId"
+    />
+    <account-groups-dialog
+      v-if="groupsDialogVisible"
+      v-model="groupsDialogVisible"
+      :rid="rid"
+      :sub-system-code="rowSubSystemCode"
+      :tenant-id="rowTenantId"
+    />
+    <account-effective-permissions-dialog
+      v-if="permissionsDialogVisible"
+      v-model="permissionsDialogVisible"
+      :rid="rid"
+    />
   </div>
 </template>
 
@@ -324,6 +352,9 @@ import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/
 import { useI18n } from 'vue-i18n';
 import AccountFormPage from './AccountFormPage.vue';
 import AccountDetailPage from './AccountDetailPage.vue';
+import AccountRolesDialog from './AccountRolesDialog.vue';
+import AccountGroupsDialog from './AccountGroupsDialog.vue';
+import AccountEffectivePermissionsDialog from './AccountEffectivePermissionsDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
 import { ElMessage } from 'element-plus';
@@ -363,7 +394,32 @@ class AccountListPage extends TenantSupportListPage {
         label: 'name',
       },
       organizations: [] as unknown[],
+      rolesDialogVisible: false,
+      groupsDialogVisible: false,
+      permissionsDialogVisible: false,
+      /** Subsystem / tenant pulled from the clicked row — separate from the toolbar cascader's selection. */
+      rowSubSystemCode: null as string | null,
+      rowTenantId: null as string | null,
     };
+  }
+
+  openRolesDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.rowSubSystemCode = row.subSystemCode ?? null;
+    this.state.rowTenantId = row.tenantId ?? null;
+    this.state.rolesDialogVisible = true;
+  }
+
+  openGroupsDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.rowSubSystemCode = row.subSystemCode ?? null;
+    this.state.rowTenantId = row.tenantId ?? null;
+    this.state.groupsDialogVisible = true;
+  }
+
+  openPermissionsDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.permissionsDialogVisible = true;
   }
 
   /** Left org-tree node click: update the selected org and refresh the table */
@@ -425,7 +481,7 @@ class AccountListPage extends TenantSupportListPage {
 
 export default defineComponent({
   name: 'AccountListPage',
-  components: { AccountFormPage, AccountDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { AccountFormPage, AccountDetailPage, AccountRolesDialog, AccountGroupsDialog, AccountEffectivePermissionsDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
@@ -554,6 +610,9 @@ export default defineComponent({
       onOrgNodeClick,
       onSubSysOrTenantChange,
       formatDictCell,
+      openRolesDialog: (row: Record<string, unknown>) => listPage.openRolesDialog(row),
+      openGroupsDialog: (row: Record<string, unknown>) => listPage.openGroupsDialog(row),
+      openPermissionsDialog: (row: Record<string, unknown>) => listPage.openPermissionsDialog(row),
     };
   },
 });
@@ -631,5 +690,21 @@ export default defineComponent({
 }
 .account-list-page .column-visibility-checkboxes :deep(.el-checkbox) {
   margin-right: 0;
+}
+
+/* Keep the operation column's content on a single line without wrapping. */
+.account-list-page :deep(.operation-column-cell) {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.account-list-page :deep(.operation-column-cell .operate-column-icon) {
+  flex-shrink: 0;
+}
+.account-list-page :deep(.operation-column-cell .el-button) {
+  flex-shrink: 0;
 }
 </style>

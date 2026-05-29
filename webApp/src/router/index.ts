@@ -15,6 +15,7 @@ const SystemListPage = () => import('../pages/sys/system/SystemListPage.vue');
 const MicroServiceListPage = () => import('../pages/sys/microservice/MicroServiceListPage.vue');
 const I18nListPage = () => import('../pages/sys/i18n/I18nListPage.vue');
 const AccessRuleListPage = () => import('../pages/sys/accessrule/AccessRuleListPage.vue');
+const AuditLogListPage = () => import('../pages/sys/auditLog/AuditLogListPage.vue');
 const AccountListPage = () => import('../pages/user/account/AccountListPage.vue');
 const OrganizationListPage = () => import('../pages/user/organization/OrganizationListPage.vue');
 const AccountProtectionListPage = () => import('../pages/user/accountProtection/AccountProtectionListPage.vue');
@@ -45,6 +46,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'sys/resource', name: 'sys-resource', component: ResourceListPage, meta: { titleKey: 'route.sysResource', icon: 'Document' } },
       { path: 'sys/i18n', name: 'sys-i18n', component: I18nListPage, meta: { titleKey: 'route.sysI18n', icon: 'Setting' } },
       { path: 'sys/accessrule', name: 'sys-accessrule', component: AccessRuleListPage, meta: { titleKey: 'route.sysAccessRule', icon: 'Lock' } },
+      { path: 'sys/auditlog', name: 'sys-auditlog', component: AuditLogListPage, meta: { titleKey: 'route.sysAuditLog', icon: 'Document' } },
       { path: 'sys/accessruleip', redirect: '/sys/accessrule' },
       { path: 'sys/accessrulewithip', redirect: '/sys/accessrule' },
       { path: 'user/account', name: 'user-account', component: AccountListPage, meta: { titleKey: 'route.userAccount', icon: 'UserFilled' } },

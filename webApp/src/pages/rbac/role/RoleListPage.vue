@@ -74,6 +74,9 @@
           <el-icon><Delete /></el-icon>
           {{ t('roleList.actions.delete') }}
         </el-button>
+        <el-button type="primary" :disabled="!hasSelection" @click="openBatchBindUsers">
+          {{ t('roleList.actions.batchBindUsers') }}
+        </el-button>
       </template>
       <template #columnVisibilityPanel>
         <div class="column-visibility-title">{{ t('roleList.actions.columnVisibility') }}</div>
@@ -241,19 +244,40 @@
             </template>
             <template #default="scope">
               <div class="operation-column-hover-area operation-column-cell">
-                <el-tooltip :content="t('roleList.actions.edit')" placement="top" :enterable="false">
-                  <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
+                <el-tooltip
+                  :content="scope.row.builtIn ? t('roleList.actions.builtInLocked') : t('roleList.actions.edit')"
+                  placement="top"
+                  :enterable="false"
+                >
+                  <el-icon
+                    :size="20"
+                    :class="['operate-column-icon', { 'operate-column-icon--disabled': scope.row.builtIn }]"
+                    @click="scope.row.builtIn ? undefined : handleEdit(scope.row)"
+                  >
                     <Edit />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('roleList.actions.delete')" placement="top" :enterable="false">
-                  <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
+                <el-tooltip
+                  :content="scope.row.builtIn ? t('roleList.actions.builtInLocked') : t('roleList.actions.delete')"
+                  placement="top"
+                  :enterable="false"
+                >
+                  <el-icon
+                    :size="20"
+                    :class="['operate-column-icon', { 'operate-column-icon--disabled': scope.row.builtIn }]"
+                    @click="scope.row.builtIn ? undefined : handleDelete(scope.row)"
+                  >
                     <Delete />
                   </el-icon>
                 </el-tooltip>
                 <el-tooltip :content="t('roleList.actions.detail')" placement="top" :enterable="false">
                   <el-icon :size="20" class="operate-column-icon" @click="handleDetail(scope.row)">
                     <Tickets />
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip :content="t('roleList.actions.copy')" placement="top" :enterable="false">
+                  <el-icon :size="20" class="operate-column-icon" @click="openCopyDialog(scope.row)">
+                    <CopyDocument />
                   </el-icon>
                 </el-tooltip>
                 <el-dropdown split-button size="small" type="primary" @command="(cmd) => authorize(cmd)" style="margin-right: 8px;">
@@ -313,22 +337,51 @@
       v-if="userAssignmentDialogVisible"
       v-model="userAssignmentDialogVisible"
       :rid="rid"
-      :sub-sys-dict-code="subSystemCode"
+      :sub-system-code="subSystemCode"
       :tenant-id="tenantId"
     />
     <user-list-dialog v-if="userListDialogVisible" v-model="userListDialogVisible" :rid="rid" />
+    <role-resource-assignment-dialog
+      v-if="resourceAssignmentDialogVisible"
+      v-model="resourceAssignmentDialogVisible"
+      :rid="rid"
+      :resource-type-dict-code="resourceTypeDictCode"
+      :resource-type-label-key="resourceTypeLabelKey"
+      :sub-system-code="subSystemCode"
+      :tenant-id="tenantId"
+    />
+    <role-copy-dialog
+      v-if="copyDialogVisible"
+      v-model="copyDialogVisible"
+      :rid="rid"
+      @response="onCopyResponse"
+    />
+    <batch-bind-users-dialog
+      v-if="batchBindUsersVisible"
+      v-model="batchBindUsersVisible"
+      :owners="batchOwners"
+      owner-kind="role"
+      bind-url="rbac/role/bindUsers"
+      param-name="roleId"
+    />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
-import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { CopyDocument, Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { backendRequest, getApiResponseData, isApiSuccessResponse } from '../../../utils/backendRequest';
+import { normalizeIdSet } from '../_shared/assignmentTransferUtils';
 import { useI18n } from 'vue-i18n';
 import RoleFormPage from './RoleFormPage.vue';
 import RoleDetailPage from './RoleDetailPage.vue';
 import MenuAuthorization from './MenuAuthorization.vue';
 import UserListDialog from './UserListDialog.vue';
 import UserAssignmentDialog from './UserAssignmentDialog.vue';
+import RoleResourceAssignmentDialog from './RoleResourceAssignmentDialog.vue';
+import RoleCopyDialog from './RoleCopyDialog.vue';
+import BatchBindUsersDialog from '../_shared/BatchBindUsersDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
 import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
@@ -365,7 +418,34 @@ class RoleListPage extends TenantSupportListPage {
       menuAuthorizationDialogVisible: false,
       userAssignmentDialogVisible: false,
       userListDialogVisible: false,
+      resourceAssignmentDialogVisible: false,
+      resourceTypeDictCode: null as string | null,
+      resourceTypeLabelKey: null as string | null,
+      copyDialogVisible: false,
+      batchBindUsersVisible: false,
+      /** Snapshot of selected rows at the moment the batch dialog opens (avoids drift if selection changes). */
+      batchOwners: [] as Array<{ id: string; label: string }>,
     };
+  }
+
+  openBatchBindUsers(): void {
+    const rows = (this.state.selectedItems ?? []) as Array<Record<string, unknown>>;
+    if (rows.length === 0) return;
+    this.state.batchOwners = rows.map(r => ({
+      id: String(this.getRowId(r)),
+      label: String(r.roleName ?? r.roleCode ?? r.name ?? r.code ?? r.id ?? ''),
+    }));
+    this.state.batchBindUsersVisible = true;
+  }
+
+  openCopyDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.copyDialogVisible = true;
+  }
+
+  onCopyResponse(): void {
+    // Refresh the list so the new role shows up immediately.
+    this.search();
   }
 
   protected getRootActionPath(): string {
@@ -402,14 +482,103 @@ class RoleListPage extends TenantSupportListPage {
     return { item, row };
   }
 
+  /** Filter out built-in rows on batch delete and warn the user; built-in rows cannot be deleted by design. */
+  protected async doMultiDelete(): Promise<void> {
+    const all = (this.state.selectedItems ?? []) as Array<Record<string, unknown>>;
+    if (all.length === 0) { return super.doMultiDelete(); }
+    const targets = all.filter(r => r.builtIn !== true);
+    const skipped = all.length - targets.length;
+    if (skipped > 0) ElMessage.warning(this.tr('roleList.actions.builtInSkipped', { n: skipped }));
+    if (targets.length === 0) return;
+    this.state.selectedItems = targets;
+    // Aggregate impact across all selected roles (union of all users / groups).
+    const summary = await this.fetchBatchImpactSummary(targets);
+    this._cachedBatchDeleteMessage = this.tr('roleList.actions.batchDeleteConfirmWithImpact', {
+      n: targets.length, users: summary.users, groups: summary.groups,
+    });
+    try {
+      await super.doMultiDelete();
+    } finally {
+      this._cachedBatchDeleteMessage = null;
+    }
+  }
+
+  /** Per-row delete: fetch the impact (users + groups still bound to this role) and show a richer confirm. */
+  protected async doHandleDelete(row: Record<string, unknown>): Promise<void> {
+    const summary = await this.fetchImpactSummary(this.getRowId(row));
+    this._cachedDeleteMessage = this.tr('roleList.actions.deleteConfirmWithImpact', {
+      users: summary.users, groups: summary.groups,
+    });
+    try {
+      await super.doHandleDelete(row);
+    } finally {
+      this._cachedDeleteMessage = null;
+    }
+  }
+
+  /** Per-row message picker; falls back to the framework default when no impact has been pre-fetched. */
+  protected getDeleteMessage(row: Record<string, unknown>): string {
+    return this._cachedDeleteMessage ?? super.getDeleteMessage(row);
+  }
+
+  protected getBatchDeleteMessage(rows: Array<Record<string, unknown>>): string {
+    return this._cachedBatchDeleteMessage ?? super.getBatchDeleteMessage(rows);
+  }
+
+  /** Counts of users + groups currently bound to a single role. Failures degrade to '?'. */
+  private async fetchImpactSummary(roleId: string | number): Promise<{ users: number | string; groups: number | string }> {
+    const [usersR, groupsR] = await Promise.all([
+      backendRequest({ url: 'rbac/role/listUserIds', method: 'get', params: { roleId } }),
+      backendRequest({ url: 'rbac/role/listGroupIdsByRole', method: 'get', params: { roleId } }),
+    ]);
+    return {
+      users: isApiSuccessResponse(usersR) ? normalizeIdSet(getApiResponseData<unknown>(usersR)).length : '?',
+      groups: isApiSuccessResponse(groupsR) ? normalizeIdSet(getApiResponseData<unknown>(groupsR)).length : '?',
+    };
+  }
+
+  /** Union of users / groups across a batch of roles (deduped). */
+  private async fetchBatchImpactSummary(rows: Array<Record<string, unknown>>): Promise<{ users: number | string; groups: number | string }> {
+    const ids = rows.map(r => this.getRowId(r));
+    const allUsers = new Set<string>();
+    const allGroups = new Set<string>();
+    let failed = false;
+    await Promise.all(ids.map(async (roleId) => {
+      const [usersR, groupsR] = await Promise.all([
+        backendRequest({ url: 'rbac/role/listUserIds', method: 'get', params: { roleId } }),
+        backendRequest({ url: 'rbac/role/listGroupIdsByRole', method: 'get', params: { roleId } }),
+      ]);
+      if (isApiSuccessResponse(usersR)) normalizeIdSet(getApiResponseData<unknown>(usersR)).forEach(id => allUsers.add(id));
+      else failed = true;
+      if (isApiSuccessResponse(groupsR)) normalizeIdSet(getApiResponseData<unknown>(groupsR)).forEach(id => allGroups.add(id));
+      else failed = true;
+    }));
+    return {
+      users: failed ? `${allUsers.size}+?` : allUsers.size,
+      groups: failed ? `${allGroups.size}+?` : allGroups.size,
+    };
+  }
+
+  /** Cached message slots used by getDeleteMessage / getBatchDeleteMessage — set by the async overrides above. */
+  private _cachedDeleteMessage: string | null = null;
+  private _cachedBatchDeleteMessage: string | null = null;
+
   authorize(commandValue: { item: unknown; row: Record<string, unknown> }): void {
     const { item, row } = commandValue;
     this.state.rid = this.getRowId(row);
-    const resType = (item as { first?: number })?.first;
-    if (resType === 1) {
+    this.state.subSystemCode = row.subSystemCode;
+    this.state.tenantId = row.tenantId;
+    const dictItem = item as { first?: number | string; second?: string } | undefined;
+    const resType = dictItem?.first;
+    // Resource type 1 = menu (handled by the dedicated tree dialog); any other type falls through
+    // to the generic flat-transfer dialog. dictItem.second is the i18n key for the type label
+    // (e.g. 'resource_type.2'), which the dialog uses to render its title.
+    if (resType === 1 || resType === '1') {
       this.state.menuAuthorizationDialogVisible = true;
-    } else if (resType === 2) {
-      // Other resource types can be added here
+    } else if (resType != null) {
+      this.state.resourceTypeDictCode = String(resType);
+      this.state.resourceTypeLabelKey = dictItem?.second ?? null;
+      this.state.resourceAssignmentDialogVisible = true;
     }
   }
 
@@ -434,6 +603,10 @@ export default defineComponent({
     MenuAuthorization,
     UserAssignmentDialog,
     UserListDialog,
+    RoleResourceAssignmentDialog,
+    RoleCopyDialog,
+    BatchBindUsersDialog,
+    CopyDocument,
     ListPageLayout,
     Edit,
     Delete,
@@ -541,6 +714,10 @@ export default defineComponent({
       commandValue: (item: unknown, row: Record<string, unknown>) => listPage.commandValue(item, row),
       authorize: (cmd: { item: unknown; row: Record<string, unknown> }) => listPage.authorize(cmd),
       assign: (cmd: { item: number; row: Record<string, unknown> }) => listPage.assign(cmd),
+      openCopyDialog: (row: Record<string, unknown>) => listPage.openCopyDialog(row),
+      onCopyResponse: () => listPage.onCopyResponse(),
+      openBatchBindUsers: () => listPage.openBatchBindUsers(),
+      hasSelection: computed(() => ((listPage.state.selectedItems ?? []) as Array<unknown>).length > 0),
       getDictItems: (module: string, dictType: string) => listPage.getDictItems(module, dictType),
       transDict: (module: string, dictType: string, code: string | null | undefined) => t(listPage.transDict(module, dictType, code)),
     };
@@ -636,6 +813,11 @@ export default defineComponent({
 }
 .role-list-page :deep(.operation-column-cell .operate-column-icon) {
   flex-shrink: 0;
+}
+.role-list-page :deep(.operate-column-icon--disabled) {
+  color: var(--el-text-color-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 .role-list-page :deep(.operation-column-cell .el-dropdown) {
   flex-shrink: 0;

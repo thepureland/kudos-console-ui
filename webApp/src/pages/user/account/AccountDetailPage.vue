@@ -24,6 +24,7 @@ import { BaseDetailPage } from '../../../components/pages/core';
 import type { PageContext, PageProps } from '../../../components/pages/core';
 import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, useDetailDialogVisibility, SectionedDetailDialog } from '../../../components/pages/detail';
 import type { DetailPageViewModel } from '../../../components/pages/detail';
+import { backendRequest, getApiResponseData, isApiSuccessResponse } from '../../../utils/backendRequest';
 
 /** Mirrors CacheDetail: up to 2 fields per row, one detail-row bottom divider per row */
 const SECTION_MAP: SectionConfig[] = [
@@ -33,6 +34,7 @@ const SECTION_MAP: SectionConfig[] = [
   { start: 7, titleKey: 'accountDetail.sections.registerInfo' },
   { start: 8, titleKey: 'accountDetail.sections.audit' },
   { start: 10, titleKey: 'accountDetail.sections.otherInfo' },
+  { start: 12, titleKey: 'accountDetail.sections.permissions' },
 ];
 
 const ROW_FIELDS: FieldConfig[][] = [
@@ -84,6 +86,12 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'accountDetail.fields.tenantName', key: 'tenantName' },
     { labelKey: 'accountDetail.fields.remark', key: 'remark' },
   ],
+  [
+    { labelKey: 'accountDetail.fields.currentRoles', key: '_rolesText' },
+  ],
+  [
+    { labelKey: 'accountDetail.fields.currentGroups', key: '_groupsText' },
+  ],
 ];
 
 class AccountDetailPage extends BaseDetailPage {
@@ -102,6 +110,64 @@ class AccountDetailPage extends BaseDetailPage {
       { dictTypes: ['sys'], atomicServiceCode: 'sys' },
       { dictTypes: ['user_status', 'user_type', 'user_terminal'], atomicServiceCode: 'user' },
     ]);
+  }
+
+  /** After the main detail loads, fan out to fetch the user's roles + groups and patch the detail object so the new sections render. */
+  protected postLoadDataSuccessfully(data: unknown): void {
+    super.postLoadDataSuccessfully(data);
+    const userId = String(this.props.rid ?? this.state.rid ?? '');
+    if (!userId) return;
+    void this.loadRolesAndGroups(userId);
+  }
+
+  private async loadRolesAndGroups(userId: string): Promise<void> {
+    const [roleNames, groupNames] = await Promise.all([
+      this.fetchRoleNames(userId),
+      this.fetchGroupNames(userId),
+    ]);
+    // Detail is reactive; assigning new keys triggers the new sections to render.
+    if (this.state.detail && typeof this.state.detail === 'object') {
+      (this.state.detail as Record<string, unknown>)._rolesText = roleNames.length ? roleNames.join(', ') : '—';
+      (this.state.detail as Record<string, unknown>)._groupsText = groupNames.length ? groupNames.join(', ') : '—';
+    }
+  }
+
+  private async fetchRoleNames(userId: string): Promise<string[]> {
+    const idsResult = await backendRequest({ url: 'rbac/role/listRoleIdsByUser', method: 'get', params: { userId } });
+    if (!isApiSuccessResponse(idsResult)) return [];
+    const idsPayload = getApiResponseData<unknown>(idsResult);
+    const ids: string[] = Array.isArray(idsPayload)
+      ? idsPayload.map(String)
+      : (idsPayload && typeof idsPayload === 'object'
+          ? Array.from(Object.values(idsPayload as Record<string, unknown>)).map(String)
+          : []);
+    if (ids.length === 0) return [];
+    const rows = await this.resolveByIds('rbac/role/pagingSearch', ids);
+    return rows.map(r => String((r as Record<string, unknown>).roleName ?? (r as Record<string, unknown>).name ?? (r as Record<string, unknown>).roleCode ?? (r as Record<string, unknown>).id ?? ''));
+  }
+
+  private async fetchGroupNames(userId: string): Promise<string[]> {
+    const idsResult = await backendRequest({ url: 'rbac/group/listGroupIdsByUser', method: 'get', params: { userId } });
+    if (!isApiSuccessResponse(idsResult)) return [];
+    const idsPayload = getApiResponseData<unknown>(idsResult);
+    const ids: string[] = Array.isArray(idsPayload)
+      ? idsPayload.map(String)
+      : (idsPayload && typeof idsPayload === 'object'
+          ? Array.from(Object.values(idsPayload as Record<string, unknown>)).map(String)
+          : []);
+    if (ids.length === 0) return [];
+    const rows = await this.resolveByIds('rbac/group/pagingSearch', ids);
+    return rows.map(r => String((r as Record<string, unknown>).groupName ?? (r as Record<string, unknown>).name ?? (r as Record<string, unknown>).groupCode ?? (r as Record<string, unknown>).id ?? ''));
+  }
+
+  private async resolveByIds(url: string, ids: string[]): Promise<unknown[]> {
+    const params: Record<string, unknown> = { pageNo: 1, pageSize: Math.max(ids.length, 50), ids };
+    const result = await backendRequest({ url, method: 'post', params });
+    if (!isApiSuccessResponse(result)) return [];
+    const payload = getApiResponseData<{ data?: unknown[] } | unknown[]>(result);
+    const rows: unknown[] = Array.isArray(payload) ? payload : (payload?.data ?? []);
+    const idSet = new Set(ids.map(String));
+    return rows.filter(r => idSet.has(String((r as Record<string, unknown>).id ?? '')));
   }
 }
 

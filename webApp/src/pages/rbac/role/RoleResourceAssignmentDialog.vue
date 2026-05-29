@@ -1,26 +1,33 @@
 <!--
- * Role-user assignment dialog with server-side candidate search.
+ * Role-resource assignment dialog (flat transfer; for non-menu resource types).
  *
  * Backend (AuthRoleAdminController, kudos-ms-auth):
- *   GET    /api/admin/auth/role/listUserIds?roleId=...           → Set<userId>
- *   POST   /api/admin/auth/role/bindUsers?roleId=...  body=[ids] → newly created count
- *   DELETE /api/admin/auth/role/unbindUser?roleId=...&userId=... → boolean
+ *   GET    /api/admin/auth/role/listResourceIds?roleId=...           → Set<resourceId>
+ *   POST   /api/admin/auth/role/bindResources?roleId=...  body=[ids] → newly created count
+ *   DELETE /api/admin/auth/role/unbindResource?roleId=...&resourceId=... → boolean
  *
- * See GroupUserAssignmentDialog for the filterMethod-as-debounced-search trick.
+ * Candidates come from sys/resource/pagingSearch filtered by resourceTypeDictCode + (optional)
+ * subSystemCode, page-at-a-time via the filterMethod-debounced-search pattern. Menus (type='1')
+ * use the dedicated MenuAuthorization tree dialog; this component is mounted only for other
+ * resource types (button, API, data field, ...).
+ *
+ * Scoping rule: the assigned-id set returned by listResourceIds covers ALL resource types on
+ * the role; we narrow it down to candidates of this resource type only so this dialog can't
+ * accidentally unbind menus or other types it doesn't render.
  *
  * @author: K
  * @since 1.0.0
  -->
 <template>
-  <el-dialog :title="t('roleUserAssignment.title')" v-model="visible" width="40%" center @close="close">
+  <el-dialog :title="title" v-model="visible" width="42%" center @close="close">
     <div class="paged-transfer">
       <el-transfer
-        v-model="assignedUserIds"
+        v-model="assignedResourceIds"
         style="text-align: left; display: inline-block"
         filterable
         :filter-method="filterMethod"
-        :filter-placeholder="t('roleUserAssignment.searchPlaceholder')"
-        :titles="[t('roleUserAssignment.unassigned'), t('roleUserAssignment.assigned')]"
+        :filter-placeholder="t('roleResourceAssignment.searchPlaceholder')"
+        :titles="[t('roleResourceAssignment.unassigned'), t('roleResourceAssignment.assigned')]"
         :format="{
           noChecked: '${total}',
           hasChecked: '${checked}/${total}',
@@ -31,13 +38,13 @@
         </template>
       </el-transfer>
       <div class="paged-transfer__hint">
-        {{ t('roleUserAssignment.candidatesHint', { shown: candidateItems.length, total: candidateTotal < 0 ? '?' : candidateTotal }) }}
+        {{ t('roleResourceAssignment.candidatesHint', { shown: candidateItems.length, total: candidateTotal < 0 ? '?' : candidateTotal }) }}
       </div>
     </div>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="close">{{ t('roleUserAssignment.cancel') }}</el-button>
-        <el-button type="primary" @click="submit">{{ t('roleUserAssignment.confirm') }}</el-button>
+        <el-button @click="close">{{ t('roleResourceAssignment.cancel') }}</el-button>
+        <el-button type="primary" @click="submit">{{ t('roleResourceAssignment.confirm') }}</el-button>
       </span>
     </template>
   </el-dialog>
@@ -58,9 +65,9 @@ import {
   searchCandidates,
 } from '../_shared/assignmentTransferUtils';
 
-const userLabel = (row: Record<string, unknown>) => String(row.username ?? row.realName ?? row.id ?? '');
+const resourceLabel = (row: Record<string, unknown>) => String(row.name ?? row.code ?? row.url ?? row.id ?? '');
 
-class RoleUserAssignmentDialog extends BaseDetailPage {
+class RoleResourceAssignmentDialog extends BaseDetailPage {
   private originalAssignedIds: Set<string> = new Set();
   private lastKeyword = '';
 
@@ -76,13 +83,13 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
     return {
       candidateItems: [] as TransferItem[],
       assignedItems: [] as TransferItem[],
-      assignedUserIds: [] as string[],
+      assignedResourceIds: [] as string[],
       candidateTotal: 0,
     };
   }
 
   protected getDetailLoadUrl(): string {
-    return this.getRootActionPath() + '/listUserIds';
+    return this.getRootActionPath() + '/listResourceIds';
   }
 
   protected createDetailLoadParams(): any {
@@ -94,33 +101,36 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
   }
 
   protected postLoadDataSuccessfully(data: unknown): void {
-    const ids = normalizeIdSet(data);
-    this.originalAssignedIds = new Set(ids);
-    this.state.assignedUserIds = [...ids];
-    this.resolveAssigned(ids).then(items => { this.state.assignedItems = items; });
+    const allIds = normalizeIdSet(data);
+    // Resolve metadata for all assigned IDs but narrow them to this resource type only.
+    // This dialog only owns resources of one type — unbinding others would be a bug.
+    void resolveAssignedItems({
+      searchUrl: 'sys/resource/pagingSearch',
+      ids: allIds,
+      baseParams: { resourceTypeDictCode: this.props.resourceTypeDictCode },
+      pickLabel: resourceLabel,
+    }).then(items => {
+      this.state.assignedItems = items;
+      const scopedIds = items.map(i => i.key);
+      this.originalAssignedIds = new Set(scopedIds);
+      this.state.assignedResourceIds = scopedIds;
+    });
     super.postLoadDataSuccessfully(data);
   }
 
-  private async resolveAssigned(ids: string[]): Promise<TransferItem[]> {
-    return resolveAssignedItems({
-      searchUrl: 'user/account/pagingSearch',
-      ids,
-      pickLabel: userLabel,
-    });
-  }
-
   private async refetchCandidates(keyword: string): Promise<void> {
-    const baseParams: Record<string, unknown> = {};
+    const baseParams: Record<string, unknown> = {
+      resourceTypeDictCode: this.props.resourceTypeDictCode,
+    };
     if (this.props.subSystemCode) baseParams.subSystemCode = this.props.subSystemCode;
-    if (this.props.tenantId) baseParams.tenantId = this.props.tenantId;
     const result = await searchCandidates({
-      searchUrl: 'user/account/pagingSearch',
+      searchUrl: 'sys/resource/pagingSearch',
       keyword,
-      keywordField: 'username',
+      keywordField: 'name',
       baseParams,
       pageNo: 1,
       pageSize: 50,
-      pickLabel: userLabel,
+      pickLabel: resourceLabel,
     });
     this.state.candidateItems = result.items;
     this.state.candidateTotal = result.totalCount;
@@ -132,7 +142,7 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
   public submit!: () => void;
 
   protected async doSubmit(): Promise<void> {
-    const current = new Set<string>(this.state.assignedUserIds as string[]);
+    const current = new Set<string>(this.state.assignedResourceIds as string[]);
     const toBind: string[] = [];
     current.forEach(id => { if (!this.originalAssignedIds.has(id)) toBind.push(id); });
     const toUnbind: string[] = [];
@@ -140,18 +150,18 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
 
     try {
       if (toBind.length > 0) {
-        const bindUrl = `${this.getRootActionPath()}/bindUsers?roleId=${encodeURIComponent(this.props.rid)}`;
+        const bindUrl = `${this.getRootActionPath()}/bindResources?roleId=${encodeURIComponent(this.props.rid)}`;
         const bindResult = await backendRequest({ url: bindUrl, method: 'post', params: toBind as unknown as Record<string, unknown> });
         if (!isApiSuccessResponse(bindResult)) {
           ElMessage.error(await resolveApiResponseMessage(bindResult) || getApiResponseMessage(bindResult) || 'Bind failed');
           return;
         }
       }
-      for (const userId of toUnbind) {
+      for (const resourceId of toUnbind) {
         const unbindResult = await backendRequest({
-          url: this.getRootActionPath() + '/unbindUser',
+          url: this.getRootActionPath() + '/unbindResource',
           method: 'delete',
-          params: { roleId: this.props.rid, userId },
+          params: { roleId: this.props.rid, resourceId },
         });
         if (!isApiSuccessResponse(unbindResult)) {
           ElMessage.error(await resolveApiResponseMessage(unbindResult) || getApiResponseMessage(unbindResult) || 'Unbind failed');
@@ -181,23 +191,33 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
 }
 
 export default defineComponent({
-  name: 'UserAssignmentDialog',
+  name: 'RoleResourceAssignmentDialog',
   props: {
     modelValue: Boolean,
     rid: String,
+    resourceTypeDictCode: { type: String, required: true },
+    resourceTypeLabelKey: String,
     subSystemCode: String,
     tenantId: String,
   },
   emits: ['update:modelValue'],
   setup(props, context) {
-    const { t } = useI18n();
-    const dialog = reactive(new RoleUserAssignmentDialog(props, context));
+    const { t, te } = useI18n();
+    const dialog = reactive(new RoleResourceAssignmentDialog(props, context));
+    const title = computed(() => {
+      const fallback = t('roleResourceAssignment.title');
+      const key = props.resourceTypeLabelKey;
+      if (!key) return fallback;
+      const translated = te(key) ? t(key) : key;
+      return t('roleResourceAssignment.titleWithType', { type: translated });
+    });
     const transferData = computed<TransferItem[]>(() => mergeTransferData(
       (dialog.state as any).candidateItems as TransferItem[],
       (dialog.state as any).assignedItems as TransferItem[],
     ));
     return {
       t,
+      title,
       transferData,
       ...toRefs(dialog),
       ...toRefs(dialog.state),
