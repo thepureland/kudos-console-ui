@@ -57,7 +57,7 @@ import {
   normalizeIdSet,
   resolveAssignedItems,
   searchCandidates,
-} from '../../rbac/_shared/assignmentTransferUtils';
+} from '../../auth/_shared/assignmentTransferUtils';
 
 const roleLabel = (row: Record<string, unknown>) => String(row.roleName ?? row.name ?? row.roleCode ?? row.code ?? row.id ?? '');
 
@@ -70,7 +70,7 @@ class AccountRolesDialog extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/role';
+    return 'auth/role';
   }
 
   protected initState(): any {
@@ -104,7 +104,7 @@ class AccountRolesDialog extends BaseDetailPage {
 
   private async resolveAssigned(ids: string[]): Promise<TransferItem[]> {
     return resolveAssignedItems({
-      searchUrl: 'rbac/role/pagingSearch',
+      searchUrl: 'auth/role/pagingSearch',
       ids,
       pickLabel: roleLabel,
     });
@@ -115,7 +115,7 @@ class AccountRolesDialog extends BaseDetailPage {
     if (this.props.subSystemCode) baseParams.subSystemCode = this.props.subSystemCode;
     if (this.props.tenantId) baseParams.tenantId = this.props.tenantId;
     const result = await searchCandidates({
-      searchUrl: 'rbac/role/pagingSearch',
+      searchUrl: 'auth/role/pagingSearch',
       keyword,
       keywordField: 'name',
       baseParams,

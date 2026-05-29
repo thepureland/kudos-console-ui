@@ -3,7 +3,7 @@
  *
  * Backend (kudos-ms-auth AuthRoleAdminController):
  *   GET /api/admin/auth/role/listRoleIdsByResource?resourceId=...  → Set<roleId>
- * Role metadata is resolved via rbac/role/pagingSearch.
+ * Role metadata is resolved via auth/role/pagingSearch.
  *
  * @author: K
  * @since 1.0.0
@@ -49,7 +49,7 @@ class ResourceRoleListDialog extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/role';
+    return 'auth/role';
   }
 
   protected initState(): any {
@@ -90,7 +90,7 @@ class ResourceRoleListDialog extends BaseDetailPage {
       pageSize: Math.max(ids.length, 50),
       ids,
     };
-    const result = await backendRequest({ url: 'rbac/role/pagingSearch', method: 'post', params });
+    const result = await backendRequest({ url: 'auth/role/pagingSearch', method: 'post', params });
     if (!isApiSuccessResponse(result)) {
       ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load roles');
       return [];

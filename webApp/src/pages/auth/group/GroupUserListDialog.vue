@@ -1,40 +1,35 @@
 <!--
- * Read-only list of users currently assigned to a role.
+ * Read-only list of users currently in a group.
  *
- * Backend (kudos-ms-auth AuthRoleAdminController):
- *   GET /api/admin/auth/role/listUserIds?roleId=...  → Set<userId>
- * User metadata is resolved via user/account/pagingSearch.
+ * Backend (kudos-ms-auth AuthGroupAdminController):
+ *   GET /api/admin/auth/group/listUserIds?groupId=...  → Set<userId>
+ * The dialog then resolves user metadata via user/account/pagingSearch.
  *
  * @author: K
  * @since 1.0.0
  -->
 <template>
-  <el-dialog :title="t('roleUserList.title')" v-model="visible" width="60%" center @close="close">
+  <el-dialog :title="t('groupUserList.title')" v-model="visible" width="50%" center @close="close">
     <el-table border stripe :data="tableData" max-height="480"
               :header-cell-style="{textAlign: 'center'}">
       <el-table-column type="index" width="50"/>
-      <el-table-column :label="t('roleUserList.columns.username')" prop="username" show-overflow-tooltip/>
-      <el-table-column :label="t('roleUserList.columns.subSystemCode')" prop="subSystemCode" show-overflow-tooltip>
+      <el-table-column :label="t('groupUserList.columns.username')" prop="username" show-overflow-tooltip/>
+      <el-table-column :label="t('groupUserList.columns.subSystemCode')" prop="subSystemCode" show-overflow-tooltip>
         <template #default="scope">
           {{ transAtomicService(scope.row.subSystemCode) }}
         </template>
       </el-table-column>
-      <el-table-column :label="t('roleUserList.columns.userStatus')" prop="userStatusDictCode" show-overflow-tooltip>
+      <el-table-column :label="t('groupUserList.columns.userStatus')" prop="userStatusDictCode" show-overflow-tooltip>
         <template #default="scope">
           {{ t(transDict('user', 'user_status', scope.row.userStatusDictCode)) }}
         </template>
       </el-table-column>
-      <el-table-column :label="t('roleUserList.columns.userType')" prop="userTypeDictCode" show-overflow-tooltip>
+      <el-table-column :label="t('groupUserList.columns.userType')" prop="userTypeDictCode" show-overflow-tooltip>
         <template #default="scope">
           {{ t(transDict('user', 'user_type', scope.row.userTypeDictCode)) }}
         </template>
       </el-table-column>
-      <el-table-column :label="t('roleUserList.columns.lastLogin')" show-overflow-tooltip>
-        <template #default="scope">
-          {{ formatDate(scope.row.lastLoginTime) }}
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('roleUserList.columns.createTime')" show-overflow-tooltip>
+      <el-table-column :label="t('groupUserList.columns.createTime')" show-overflow-tooltip>
         <template #default="scope">
           {{ formatDate(scope.row.createTime) }}
         </template>
@@ -42,7 +37,7 @@
     </el-table>
     <template #footer>
       <span class="dialog-footer">
-        <el-button type="primary" @click="close">{{ t('roleUserList.close') }}</el-button>
+        <el-button type="primary" @click="close">{{ t('groupUserList.close') }}</el-button>
       </span>
     </template>
   </el-dialog>
@@ -55,14 +50,14 @@ import { useI18n } from 'vue-i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
-class UserListDialog extends BaseDetailPage {
+class GroupUserListDialog extends BaseDetailPage {
   constructor(props: any, context: any) {
     super(props, context);
     this.loadDicts(['user_status', 'user_type'], 'user');
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/role';
+    return 'auth/group';
   }
 
   protected initState(): any {
@@ -75,12 +70,13 @@ class UserListDialog extends BaseDetailPage {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['user_status', 'user_type'], atomicServiceCode: 'user' }];
   }
 
+  /** loadData() fetches the assigned user-id set; postLoadDataSuccessfully fans out to the user-account search. */
   protected getDetailLoadUrl(): string {
     return this.getRootActionPath() + '/listUserIds';
   }
 
   protected createDetailLoadParams(): any {
-    return { roleId: this.props.rid };
+    return { groupId: this.props.rid };
   }
 
   protected async preLoad(): Promise<void> {
@@ -122,7 +118,7 @@ class UserListDialog extends BaseDetailPage {
 }
 
 export default defineComponent({
-  name: 'UserListDialog',
+  name: 'GroupUserListDialog',
   props: {
     modelValue: Boolean,
     rid: String,
@@ -130,7 +126,7 @@ export default defineComponent({
   emits: ['update:modelValue'],
   setup(props, context) {
     const { t } = useI18n();
-    const dialog = reactive(new UserListDialog(props, context));
+    const dialog = reactive(new GroupUserListDialog(props, context));
     return {
       t,
       ...toRefs(dialog),

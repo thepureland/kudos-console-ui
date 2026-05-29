@@ -1,27 +1,30 @@
 <!--
- * Group-role assignment dialog with server-side candidate search.
+ * Group-user assignment dialog with server-side candidate search.
  *
  * Backend (AuthGroupAdminController, kudos-ms-auth):
- *   GET    /api/admin/auth/group/listRoleIds?groupId=...           → Set<roleId>
- *   POST   /api/admin/auth/group/bindRoles?groupId=...  body=[ids] → newly created count
- *   DELETE /api/admin/auth/group/unbindRole?groupId=...&roleId=... → boolean
+ *   GET    /api/admin/auth/group/listUserIds?groupId=...           → Set<userId>
+ *   POST   /api/admin/auth/group/bindUsers?groupId=...  body=[ids] → newly created count
+ *   DELETE /api/admin/auth/group/unbindUser?groupId=...&userId=... → boolean
  *
- * Candidates come from rbac/role/pagingSearch one debounced page at a time. See
- * GroupUserAssignmentDialog for the search-via-filterMethod pattern explanation.
+ * Candidates come from user/account/pagingSearch one debounced page at a time. The transfer's
+ * filter input is repurposed: filter-method always returns true (no client-side filtering) and
+ * triggers a debounced server fetch when the keyword changes. Already-assigned items are kept
+ * pinned in the transfer's data so they always render on the right side regardless of the
+ * current candidate page.
  *
  * @author: K
  * @since 1.0.0
  -->
 <template>
-  <el-dialog :title="t('groupRoleAssignment.title')" v-model="visible" width="40%" center @close="close">
+  <el-dialog :title="t('groupUserAssignment.title')" v-model="visible" width="40%" center @close="close">
     <div class="paged-transfer">
       <el-transfer
-        v-model="assignedRoleIds"
+        v-model="assignedUserIds"
         style="text-align: left; display: inline-block"
         filterable
         :filter-method="filterMethod"
-        :filter-placeholder="t('groupRoleAssignment.searchPlaceholder')"
-        :titles="[t('groupRoleAssignment.unassigned'), t('groupRoleAssignment.assigned')]"
+        :filter-placeholder="t('groupUserAssignment.searchPlaceholder')"
+        :titles="[t('groupUserAssignment.unassigned'), t('groupUserAssignment.assigned')]"
         :format="{
           noChecked: '${total}',
           hasChecked: '${checked}/${total}',
@@ -32,13 +35,13 @@
         </template>
       </el-transfer>
       <div class="paged-transfer__hint">
-        {{ t('groupRoleAssignment.candidatesHint', { shown: candidateItems.length, total: candidateTotal < 0 ? '?' : candidateTotal }) }}
+        {{ t('groupUserAssignment.candidatesHint', { shown: candidateItems.length, total: candidateTotal < 0 ? '?' : candidateTotal }) }}
       </div>
     </div>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="close">{{ t('groupRoleAssignment.cancel') }}</el-button>
-        <el-button type="primary" @click="submit">{{ t('groupRoleAssignment.confirm') }}</el-button>
+        <el-button @click="close">{{ t('groupUserAssignment.cancel') }}</el-button>
+        <el-button type="primary" @click="submit">{{ t('groupUserAssignment.confirm') }}</el-button>
       </span>
     </template>
   </el-dialog>
@@ -59,10 +62,9 @@ import {
   searchCandidates,
 } from '../_shared/assignmentTransferUtils';
 
-const roleLabel = (row: Record<string, unknown>) => String(row.roleName ?? row.name ?? row.roleCode ?? row.code ?? row.id ?? '');
-
-class GroupRoleAssignmentDialog extends BaseDetailPage {
+class GroupUserAssignmentDialog extends BaseDetailPage {
   private originalAssignedIds: Set<string> = new Set();
+  /** Last keyword pumped through el-transfer's filter input, for change-detection inside filterMethod. */
   private lastKeyword = '';
 
   constructor(props: any, context: any) {
@@ -70,20 +72,23 @@ class GroupRoleAssignmentDialog extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/group';
+    return 'auth/group';
   }
 
   protected initState(): any {
     return {
+      /** Candidates fetched server-side for the current keyword. */
       candidateItems: [] as TransferItem[],
+      /** Already-assigned items, fully resolved on load — pinned into transferData so they always show on the right. */
       assignedItems: [] as TransferItem[],
-      assignedRoleIds: [] as string[],
+      /** v-model for the transfer: the keys currently on the right side. */
+      assignedUserIds: [] as string[],
       candidateTotal: 0,
     };
   }
 
   protected getDetailLoadUrl(): string {
-    return this.getRootActionPath() + '/listRoleIds';
+    return this.getRootActionPath() + '/listUserIds';
   }
 
   protected createDetailLoadParams(): any {
@@ -91,42 +96,46 @@ class GroupRoleAssignmentDialog extends BaseDetailPage {
   }
 
   protected async preLoad(): Promise<void> {
+    // Initial candidate page (no keyword).
     await this.refetchCandidates('');
   }
 
   protected postLoadDataSuccessfully(data: unknown): void {
     const ids = normalizeIdSet(data);
     this.originalAssignedIds = new Set(ids);
-    this.state.assignedRoleIds = [...ids];
+    this.state.assignedUserIds = [...ids];
+    // Resolve the assigned items asynchronously so labels render on the right side.
     this.resolveAssigned(ids).then(items => { this.state.assignedItems = items; });
     super.postLoadDataSuccessfully(data);
   }
 
   private async resolveAssigned(ids: string[]): Promise<TransferItem[]> {
     return resolveAssignedItems({
-      searchUrl: 'rbac/role/pagingSearch',
+      searchUrl: 'user/account/pagingSearch',
       ids,
-      pickLabel: roleLabel,
+      pickLabel: row => String(row.username ?? row.realName ?? row.id ?? ''),
     });
   }
 
+  /** Fetch one page of candidates from the backend; called on open and on filter input change. */
   private async refetchCandidates(keyword: string): Promise<void> {
-    const baseParams: Record<string, unknown> = { active: true };
+    const baseParams: Record<string, unknown> = {};
     if (this.props.subSystemCode) baseParams.subSystemCode = this.props.subSystemCode;
     if (this.props.tenantId) baseParams.tenantId = this.props.tenantId;
     const result = await searchCandidates({
-      searchUrl: 'rbac/role/pagingSearch',
+      searchUrl: 'user/account/pagingSearch',
       keyword,
-      keywordField: 'name',
+      keywordField: 'username',
       baseParams,
       pageNo: 1,
       pageSize: 50,
-      pickLabel: roleLabel,
+      pickLabel: row => String(row.username ?? row.realName ?? row.id ?? ''),
     });
     this.state.candidateItems = result.items;
     this.state.candidateTotal = result.totalCount;
   }
 
+  /** Repurposed el-transfer filter-method: never filters client-side, only kicks off a debounced server fetch. */
   public filterMethod!: (query: string, item: TransferItem) => boolean;
 
   private debouncedSearch = debounce((kw: string) => { void this.refetchCandidates(kw); }, 300);
@@ -134,7 +143,7 @@ class GroupRoleAssignmentDialog extends BaseDetailPage {
   public submit!: () => void;
 
   protected async doSubmit(): Promise<void> {
-    const current = new Set<string>(this.state.assignedRoleIds as string[]);
+    const current = new Set<string>(this.state.assignedUserIds as string[]);
     const toBind: string[] = [];
     current.forEach(id => { if (!this.originalAssignedIds.has(id)) toBind.push(id); });
     const toUnbind: string[] = [];
@@ -142,18 +151,18 @@ class GroupRoleAssignmentDialog extends BaseDetailPage {
 
     try {
       if (toBind.length > 0) {
-        const bindUrl = `${this.getRootActionPath()}/bindRoles?groupId=${encodeURIComponent(this.props.rid)}`;
+        const bindUrl = `${this.getRootActionPath()}/bindUsers?groupId=${encodeURIComponent(this.props.rid)}`;
         const bindResult = await backendRequest({ url: bindUrl, method: 'post', params: toBind as unknown as Record<string, unknown> });
         if (!isApiSuccessResponse(bindResult)) {
           ElMessage.error(await resolveApiResponseMessage(bindResult) || getApiResponseMessage(bindResult) || 'Bind failed');
           return;
         }
       }
-      for (const roleId of toUnbind) {
+      for (const userId of toUnbind) {
         const unbindResult = await backendRequest({
-          url: this.getRootActionPath() + '/unbindRole',
+          url: this.getRootActionPath() + '/unbindUser',
           method: 'delete',
-          params: { groupId: this.props.rid, roleId },
+          params: { groupId: this.props.rid, userId },
         });
         if (!isApiSuccessResponse(unbindResult)) {
           ElMessage.error(await resolveApiResponseMessage(unbindResult) || getApiResponseMessage(unbindResult) || 'Unbind failed');
@@ -167,6 +176,7 @@ class GroupRoleAssignmentDialog extends BaseDetailPage {
     }
   }
 
+  // Throw away unused payload signature; el-transfer calls this for every (query, item) tuple.
   private doFilter(query: string, _item: TransferItem): boolean {
     if (query !== this.lastKeyword) {
       this.lastKeyword = query;
@@ -183,7 +193,7 @@ class GroupRoleAssignmentDialog extends BaseDetailPage {
 }
 
 export default defineComponent({
-  name: 'GroupRoleAssignmentDialog',
+  name: 'GroupUserAssignmentDialog',
   props: {
     modelValue: Boolean,
     rid: String,
@@ -193,7 +203,7 @@ export default defineComponent({
   emits: ['update:modelValue'],
   setup(props, context) {
     const { t } = useI18n();
-    const dialog = reactive(new GroupRoleAssignmentDialog(props, context));
+    const dialog = reactive(new GroupUserAssignmentDialog(props, context));
     const transferData = computed<TransferItem[]>(() => mergeTransferData(
       (dialog.state as any).candidateItems as TransferItem[],
       (dialog.state as any).assignedItems as TransferItem[],

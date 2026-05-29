@@ -22,8 +22,8 @@ const AccountProtectionListPage = () => import('../pages/user/accountProtection/
 const AccountThirdListPage = () => import('../pages/user/accountThird/AccountThirdListPage.vue');
 const ContactWayListPage = () => import('../pages/user/contactWay/ContactWayListPage.vue');
 const RememberMeListPage = () => import('../pages/user/rememberMe/RememberMeListPage.vue');
-const RoleListPage = () => import('../pages/rbac/role/RoleListPage.vue');
-const UserGroupListPage = () => import('../pages/rbac/group/UserGroupListPage.vue');
+const RoleListPage = () => import('../pages/auth/role/RoleListPage.vue');
+const UserGroupListPage = () => import('../pages/auth/group/UserGroupListPage.vue');
 const Login = () => import('../components/Login/Login.vue');
 const NotFound = () => import('../pages/404.vue');
 
@@ -55,8 +55,11 @@ const routes: RouteRecordRaw[] = [
       { path: 'user/accountthird', name: 'user-account-third', component: AccountThirdListPage, meta: { titleKey: 'route.userAccountThird', icon: 'Connection' } },
       { path: 'user/contactway', name: 'user-contact-way', component: ContactWayListPage, meta: { titleKey: 'route.userContactWay', icon: 'Phone' } },
       { path: 'user/rememberme', name: 'user-remember-me', component: RememberMeListPage, meta: { titleKey: 'route.userRememberMe', icon: 'Lock' } },
-      { path: 'rbac/role', name: 'rbac-role', component: RoleListPage, meta: { titleKey: 'route.rbacRole', icon: 'Key' } },
-      { path: 'rbac/group', name: 'rbac-group', component: UserGroupListPage, meta: { titleKey: 'route.rbacGroup', icon: 'User' } },
+      { path: 'auth/role', name: 'auth-role', component: RoleListPage, meta: { titleKey: 'route.authRole', icon: 'Key' } },
+      { path: 'auth/group', name: 'auth-group', component: UserGroupListPage, meta: { titleKey: 'route.authGroup', icon: 'User' } },
+      // Backwards-compat: existing bookmarks / external links to /rbac/role and /rbac/group keep working.
+      { path: 'rbac/role', redirect: '/auth/role' },
+      { path: 'rbac/group', redirect: '/auth/group' },
       { path: 'tabs', name: 'tabs', component: Placeholder, meta: { titleKey: 'route.tabs', icon: 'Bell' } },
     ],
   },
