@@ -128,7 +128,7 @@ class ResourcePermissionListPage extends TenantSupportListPage {
   }
 
   protected getRootActionPath(): String {
-    return "rbac/resourcepermission"
+    return "auth/resourcepermission"
   }
 
   /** Resource type dict item translations are fetched from the backend */
@@ -256,7 +256,7 @@ class ResourcePermissionListPage extends TenantSupportListPage {
       }]
     }
     // @ts-ignore
-    const result = await backendRequest({url: "rbac/resourcepermission/searchTree", method: "post", params})
+    const result = await backendRequest({url: "auth/resourcepermission/searchTree", method: "post", params})
     const payload = getApiResponseData<{ data?: unknown[]; totalCount?: number }>(result)
     if (payload != null && typeof payload === 'object' && 'data' in payload && 'totalCount' in payload) {
       this.state.tableData = payload.data ?? []

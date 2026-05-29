@@ -4,7 +4,7 @@
  * Parameterized so role and group list pages can share the same UI. Caller provides:
  *   - owners:     [{ id, label }] — the rows the operator pre-selected
  *   - ownerKind:  'role' | 'group' — controls label keys
- *   - bindUrl:    e.g. 'rbac/role/bindUsers' or 'rbac/group/bindUsers'
+ *   - bindUrl:    e.g. 'auth/role/bindUsers' or 'auth/group/bindUsers'
  *   - paramName:  'roleId' or 'groupId' — query-string key the endpoint expects
  *
  * Operator picks users via the standard server-search transfer (assignedItems starts empty —
@@ -77,7 +77,7 @@ export default defineComponent({
     owners: { type: Array as () => OwnerRef[], required: true },
     /** 'role' | 'group' — title/label namespacing. */
     ownerKind: { type: String, default: 'role' },
-    /** e.g. 'rbac/role/bindUsers' or 'rbac/group/bindUsers'. */
+    /** e.g. 'auth/role/bindUsers' or 'auth/group/bindUsers'. */
     bindUrl: { type: String, required: true },
     /** Query-string key the bind endpoint expects, e.g. 'roleId' or 'groupId'. */
     paramName: { type: String, required: true },

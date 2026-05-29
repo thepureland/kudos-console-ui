@@ -351,7 +351,7 @@
       v-model="batchBindUsersVisible"
       :owners="batchOwners"
       owner-kind="group"
-      bind-url="rbac/group/bindUsers"
+      bind-url="auth/group/bindUsers"
       param-name="groupId"
     />
   </div>
@@ -475,8 +475,8 @@ class UserGroupListPage extends TenantSupportListPage {
   /** Counts of users in this group + roles granted to this group. */
   private async fetchImpactSummary(groupId: string | number): Promise<{ users: number | string; roles: number | string }> {
     const [usersR, rolesR] = await Promise.all([
-      backendRequest({ url: 'rbac/group/listUserIds', method: 'get', params: { groupId } }),
-      backendRequest({ url: 'rbac/group/listRoleIds', method: 'get', params: { groupId } }),
+      backendRequest({ url: 'auth/group/listUserIds', method: 'get', params: { groupId } }),
+      backendRequest({ url: 'auth/group/listRoleIds', method: 'get', params: { groupId } }),
     ]);
     return {
       users: isApiSuccessResponse(usersR) ? normalizeIdSet(getApiResponseData<unknown>(usersR)).length : '?',
@@ -491,8 +491,8 @@ class UserGroupListPage extends TenantSupportListPage {
     let failed = false;
     await Promise.all(ids.map(async (groupId) => {
       const [usersR, rolesR] = await Promise.all([
-        backendRequest({ url: 'rbac/group/listUserIds', method: 'get', params: { groupId } }),
-        backendRequest({ url: 'rbac/group/listRoleIds', method: 'get', params: { groupId } }),
+        backendRequest({ url: 'auth/group/listUserIds', method: 'get', params: { groupId } }),
+        backendRequest({ url: 'auth/group/listRoleIds', method: 'get', params: { groupId } }),
       ]);
       if (isApiSuccessResponse(usersR)) normalizeIdSet(getApiResponseData<unknown>(usersR)).forEach(id => allUsers.add(id));
       else failed = true;
@@ -533,7 +533,7 @@ class UserGroupListPage extends TenantSupportListPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/group';
+    return 'auth/group';
   }
 
   /** Only send active=true when the "active only" checkbox is ticked; otherwise send null. */

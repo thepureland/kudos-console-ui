@@ -6,7 +6,7 @@
  -->
 
 <template>
-  <el-dialog title="Assign roles to menu" v-model="visible" width="20%" center @close="close">
+  <el-dialog title="Assign Roles to Menu" v-model="visible" width="20%" center @close="close">
     <el-checkbox-group v-model="checkedRoles">
       <el-checkbox v-for="item in roles" :value="item.id" :key="item.id" style="display:block;">
         {{ item.roleName }}
@@ -39,7 +39,7 @@ class Page extends BasePage {
   }
 
   protected getRootActionPath(): String {
-    return "rbac/role"
+    return "auth/role"
   }
 
   protected initState(): any {

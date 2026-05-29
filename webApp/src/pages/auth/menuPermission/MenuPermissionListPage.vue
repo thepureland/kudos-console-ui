@@ -85,7 +85,7 @@ class MenuPermissionListPage extends TenantSupportListPage {
   }
 
   protected getRootActionPath(): String {
-    return "rbac/resourcepermission"
+    return "auth/resourcepermission"
   }
 
   protected getSearchUrl(): String {

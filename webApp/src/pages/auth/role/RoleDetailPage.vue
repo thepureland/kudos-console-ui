@@ -1,9 +1,9 @@
-<!-- Group detail -->
+<!-- Role detail -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
-    title-key="userGroupDetail.title"
-    empty-key="userGroupDetail.empty"
+    title-key="roleDetail.title"
+    empty-key="roleDetail.empty"
     width="67%"
     :rows-with-sections="rowsWithSections"
     :detail="detail"
@@ -23,43 +23,46 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** Same convention as CacheDetail: at most 2 fields per row; other info goes last and remark follows the built-in fields. */
+/** Mirrors CacheDetail: at most 2 fields per row; other info goes last and remark follows the active flag. */
 const SECTION_MAP: SectionConfig[] = [
-  { start: 0, titleKey: 'userGroupDetail.sections.basicInfo' },
-  { start: 2, titleKey: 'userGroupDetail.sections.audit' },
-  { start: 4, titleKey: 'userGroupDetail.sections.otherInfo' },
+  { start: 0, titleKey: 'roleDetail.sections.basicInfo' },
+  { start: 2, titleKey: 'roleDetail.sections.audit' },
+  { start: 4, titleKey: 'roleDetail.sections.otherInfo' },
 ];
 
 const ROW_FIELDS: FieldConfig[][] = [
   [
-    { labelKey: 'userGroupDetail.fields.id', key: 'id' },
-    { labelKey: 'userGroupDetail.fields.groupCode', key: 'groupCode' },
+    { labelKey: 'roleDetail.fields.id', key: 'id' },
+    { labelKey: 'roleDetail.fields.roleCode', key: 'roleCode' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.groupName', key: 'groupName' },
-    { labelKey: 'userGroupDetail.fields.active', key: 'active', type: 'boolean' },
+    { labelKey: 'roleDetail.fields.roleName', key: 'roleName' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.createTime', key: 'createTime', type: 'date' },
-    { labelKey: 'userGroupDetail.fields.updateTime', key: 'updateTime', type: 'date' },
+    { labelKey: 'roleDetail.fields.createTime', key: 'createTime', type: 'date' },
+    { labelKey: 'roleDetail.fields.updateTime', key: 'updateTime', type: 'date' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.createUser', key: 'createUser' },
-    { labelKey: 'userGroupDetail.fields.updateUser', key: 'updateUser' },
+    { labelKey: 'roleDetail.fields.createUser', key: 'createUser' },
+    { labelKey: 'roleDetail.fields.updateUser', key: 'updateUser' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.subSystemCode', key: 'subSystemCode', type: 'atomicService' },
-    { labelKey: 'userGroupDetail.fields.ownerId', key: 'ownerId' },
+    { labelKey: 'roleDetail.fields.subSystemCode', key: 'subSystemCode', type: 'atomicService' },
+    { labelKey: 'roleDetail.fields.tenantId', key: 'tenantId' },
   ],
   [
-    { labelKey: 'userGroupDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
-    { labelKey: 'userGroupDetail.fields.remark', key: 'remark' },
+    { labelKey: 'roleDetail.fields.tenantName', key: 'tenantName' },
+    { labelKey: 'roleDetail.fields.builtIn', key: 'builtIn', type: 'boolean' },
+  ],
+  [
+    { labelKey: 'roleDetail.fields.active', key: 'active', type: 'boolean' },
+    { labelKey: 'roleDetail.fields.remark', key: 'remark' },
   ],
 ];
 
-class UserGroupDetailPage extends BaseDetailPage {
+class RoleDetailPage extends BaseDetailPage {
   protected getRootActionPath(): string {
-    return 'rbac/group';
+    return 'auth/role';
   }
 
   protected async preLoad(): Promise<void> {
@@ -68,22 +71,22 @@ class UserGroupDetailPage extends BaseDetailPage {
 }
 
 export default defineComponent({
-  name: 'UserGroupDetailPage',
+  name: 'RoleDetailPage',
   components: { SectionedDetailDialog },
   props: {
     ...commonDetailDialogProps,
   },
   emits: commonDetailDialogEmits,
   setup(props: PageProps, context: PageContext) {
-    const page = reactive(new UserGroupDetailPage(props, context)) as UserGroupDetailPage & {
+    const page = reactive(new RoleDetailPage(props, context)) as RoleDetailPage & {
       state: { detail: Record<string, unknown> | null };
       transAtomicService: (code: string) => string;
       formatDate: (value: unknown) => string;
     };
 
     const { rowsWithSections, formatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {
-      emptyKey: 'userGroupDetail.empty',
-      yesNoKey: 'userGroupList.common',
+      emptyKey: 'roleDetail.empty',
+      yesNoKey: 'roleList.common',
     });
 
     useDetailPageRidSync(props, page);

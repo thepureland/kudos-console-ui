@@ -1,11 +1,11 @@
-<!-- Role add/edit -->
+<!-- User group add/edit -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
     :title="dialogTitle"
     width="520px"
     center
-    class="add-edit-dialog role-add-edit-dialog"
+    class="add-edit-dialog usergroup-add-edit-dialog"
     align-center
     :append-to-body="false"
     :close-on-click-modal="false"
@@ -21,49 +21,35 @@
       class="add-edit-dialog-form"
     >
       <section class="form-section">
-        <div class="form-section__title">{{ t('roleAddEdit.sections.basicInfo') }}</div>
-        <el-form-item :label="t('roleAddEdit.labels.roleCode')" prop="roleCode" class="is-required">
+        <div class="form-section__title">{{ t('userGroupAddEdit.sections.basicInfo') }}</div>
+        <el-form-item :label="t('userGroupAddEdit.labels.groupCode')" prop="groupCode" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
               <el-input
-                v-model="formModel.roleCode"
-                :placeholder="t('roleAddEdit.placeholders.roleCode')"
+                v-model="formModel.groupCode"
+                :placeholder="t('userGroupAddEdit.placeholders.groupCode')"
                 clearable
                 size="default"
               />
             </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item :label="t('roleAddEdit.labels.roleName')" prop="roleName" class="is-required">
+        <el-form-item :label="t('userGroupAddEdit.labels.groupName')" prop="groupName" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
               <el-input
-                v-model="formModel.roleName"
-                :placeholder="t('roleAddEdit.placeholders.roleName')"
+                v-model="formModel.groupName"
+                :placeholder="t('userGroupAddEdit.placeholders.groupName')"
                 clearable
                 size="default"
-              />
-            </el-col>
-          </el-row>
-        </el-form-item>
-        <el-form-item :label="t('roleAddEdit.labels.subSysOrTenant')" prop="subSysOrTenant" class="is-required">
-          <el-row :gutter="12" class="form-item-row">
-            <el-col :span="24">
-              <el-cascader
-                v-model="formModel.subSysOrTenant"
-                :options="subSysOrTenants"
-                :props="cascaderProps"
-                :placeholder="t('roleAddEdit.placeholders.subSysOrTenant')"
-                clearable
-                class="form-select-full"
               />
             </el-col>
           </el-row>
         </el-form-item>
       </section>
       <section class="form-section">
-        <div class="form-section__title">{{ t('roleAddEdit.sections.other') }}</div>
-        <el-form-item :label="t('roleAddEdit.labels.remark')" prop="remark">
+        <div class="form-section__title">{{ t('userGroupAddEdit.sections.other') }}</div>
+        <el-form-item :label="t('userGroupAddEdit.labels.remark')" prop="remark">
           <el-input
             v-model="formModel.remark"
             type="textarea"
@@ -78,8 +64,8 @@
     </el-form>
     <template #footer>
       <div class="add-edit-dialog-footer">
-        <el-button @click="handleCloseRequest">{{ t('roleAddEdit.buttons.cancel') }}</el-button>
-        <el-button type="primary" @click.prevent="handleSubmit">{{ t('roleAddEdit.buttons.confirm') }}</el-button>
+        <el-button @click="handleCloseRequest">{{ t('userGroupAddEdit.buttons.cancel') }}</el-button>
+        <el-button type="primary" @click.prevent="handleSubmit">{{ t('userGroupAddEdit.buttons.confirm') }}</el-button>
       </div>
     </template>
   </el-dialog>
@@ -88,61 +74,54 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import '../../../styles/add-edit-dialog-common.css';
+import { BaseAddEditPage } from '../../../components/pages/core';
 import type { PageContext, PageProps } from '../../../components/pages/core';
 import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
 import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
-import { TenantSupportAddEditPage } from '../../../components/pages/support';
 
 interface FormModel {
-  roleCode: string | null;
-  roleName: string | null;
+  groupCode: string | null;
+  groupName: string | null;
   remark: string | null;
-  subSysOrTenant?: string[] | null;
 }
 
-class RoleFormPage extends TenantSupportAddEditPage {
+class UserGroupFormPage extends BaseAddEditPage {
   constructor(props: PageProps, context: PageContext) {
     super(props, context);
-  }
-
-  /** Tenant cascader can only select the second level (must pick a specific tenant); consistent with the role list. */
-  protected isCheckStrictly(): boolean {
-    return false;
   }
 
   protected initState(): Record<string, unknown> {
     return {
       formModel: {
-        roleCode: null,
-        roleName: null,
+        groupCode: null,
+        groupName: null,
         remark: null,
       } as FormModel,
     };
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/role';
+    return 'auth/group';
   }
 
   protected getLoadFailedMessageKey(): string {
-    return 'roleAddEdit.messages.loadFailed';
+    return 'userGroupAddEdit.messages.loadFailed';
   }
 }
 
 export default defineComponent({
-  name: 'RoleFormPage',
+  name: 'UserGroupFormPage',
   props: {
     ...commonAddEditDialogProps,
   },
   emits: commonAddEditDialogEmits,
   setup(props: AddEditDialogProps, context: AddEditDialogContext) {
     return useAddEditDialogSetupWithVisible(props, context, {
-      createPage: (p, c) => new RoleFormPage(p, c),
-      i18nKeyPrefix: 'roleAddEdit',
+      createPage: (p, c) => new UserGroupFormPage(p, c),
+      i18nKeyPrefix: 'userGroupAddEdit',
       formHasContent(model: Record<string, unknown>) {
         return hasAnyFormContent(model, {
-          stringKeys: ['roleCode', 'roleName', 'remark'],
-          arrayKeys: ['subSysOrTenant'],
+          stringKeys: ['groupCode', 'groupName', 'remark'],
         });
       },
     });

@@ -56,7 +56,7 @@ import {
   normalizeIdSet,
   resolveAssignedItems,
   searchCandidates,
-} from '../../rbac/_shared/assignmentTransferUtils';
+} from '../../auth/_shared/assignmentTransferUtils';
 
 const groupLabel = (row: Record<string, unknown>) => String(row.groupName ?? row.name ?? row.groupCode ?? row.code ?? row.id ?? '');
 
@@ -69,7 +69,7 @@ class AccountGroupsDialog extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/group';
+    return 'auth/group';
   }
 
   protected initState(): any {
@@ -103,7 +103,7 @@ class AccountGroupsDialog extends BaseDetailPage {
 
   private async resolveAssigned(ids: string[]): Promise<TransferItem[]> {
     return resolveAssignedItems({
-      searchUrl: 'rbac/group/pagingSearch',
+      searchUrl: 'auth/group/pagingSearch',
       ids,
       pickLabel: groupLabel,
     });
@@ -114,7 +114,7 @@ class AccountGroupsDialog extends BaseDetailPage {
     if (this.props.subSystemCode) baseParams.subSystemCode = this.props.subSystemCode;
     if (this.props.tenantId) baseParams.tenantId = this.props.tenantId;
     const result = await searchCandidates({
-      searchUrl: 'rbac/group/pagingSearch',
+      searchUrl: 'auth/group/pagingSearch',
       keyword,
       keywordField: 'name',
       baseParams,
