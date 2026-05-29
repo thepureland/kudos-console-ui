@@ -133,7 +133,7 @@ class AccountDetailPage extends BaseDetailPage {
   }
 
   private async fetchRoleNames(userId: string): Promise<string[]> {
-    const idsResult = await backendRequest({ url: 'rbac/role/listRoleIdsByUser', method: 'get', params: { userId } });
+    const idsResult = await backendRequest({ url: 'auth/role/listRoleIdsByUser', method: 'get', params: { userId } });
     if (!isApiSuccessResponse(idsResult)) return [];
     const idsPayload = getApiResponseData<unknown>(idsResult);
     const ids: string[] = Array.isArray(idsPayload)
@@ -142,12 +142,12 @@ class AccountDetailPage extends BaseDetailPage {
           ? Array.from(Object.values(idsPayload as Record<string, unknown>)).map(String)
           : []);
     if (ids.length === 0) return [];
-    const rows = await this.resolveByIds('rbac/role/pagingSearch', ids);
+    const rows = await this.resolveByIds('auth/role/pagingSearch', ids);
     return rows.map(r => String((r as Record<string, unknown>).roleName ?? (r as Record<string, unknown>).name ?? (r as Record<string, unknown>).roleCode ?? (r as Record<string, unknown>).id ?? ''));
   }
 
   private async fetchGroupNames(userId: string): Promise<string[]> {
-    const idsResult = await backendRequest({ url: 'rbac/group/listGroupIdsByUser', method: 'get', params: { userId } });
+    const idsResult = await backendRequest({ url: 'auth/group/listGroupIdsByUser', method: 'get', params: { userId } });
     if (!isApiSuccessResponse(idsResult)) return [];
     const idsPayload = getApiResponseData<unknown>(idsResult);
     const ids: string[] = Array.isArray(idsPayload)
@@ -156,7 +156,7 @@ class AccountDetailPage extends BaseDetailPage {
           ? Array.from(Object.values(idsPayload as Record<string, unknown>)).map(String)
           : []);
     if (ids.length === 0) return [];
-    const rows = await this.resolveByIds('rbac/group/pagingSearch', ids);
+    const rows = await this.resolveByIds('auth/group/pagingSearch', ids);
     return rows.map(r => String((r as Record<string, unknown>).groupName ?? (r as Record<string, unknown>).name ?? (r as Record<string, unknown>).groupCode ?? (r as Record<string, unknown>).id ?? ''));
   }
 

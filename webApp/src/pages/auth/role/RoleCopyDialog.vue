@@ -3,7 +3,7 @@
  *
  * Loads the source role's detail and presents a small form for the unique fields (code/name); the
  * rest (subsystem, tenant, remark) are inherited from the source. On submit:
- *   1. POST rbac/role/save with the merged payload to create the new role.
+ *   1. POST auth/role/save with the merged payload to create the new role.
  *   2. If "include resources" is checked, fetch the source role's listResourceIds and bind them
  *      to the new role via bindResources.
  *
@@ -91,7 +91,7 @@ class RoleCopyDialog extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/role';
+    return 'auth/role';
   }
 
   protected initState(): any {
@@ -158,7 +158,7 @@ export default defineComponent({
           subsysCode: source.subSystemCode ?? source.subsysCode ?? null,
           tenantId: source.tenantId ?? null,
         };
-        const saveResult = await backendRequest({ url: 'rbac/role/save', method: 'post', params: payload });
+        const saveResult = await backendRequest({ url: 'auth/role/save', method: 'post', params: payload });
         if (!isApiSuccessResponse(saveResult)) {
           ElMessage.error(await resolveApiResponseMessage(saveResult) || getApiResponseMessage(saveResult) || t('roleCopy.messages.createFailed'));
           return;
@@ -171,14 +171,14 @@ export default defineComponent({
 
         if (dialog.state.includeResources) {
           const sourceIdsResult = await backendRequest({
-            url: 'rbac/role/listResourceIds',
+            url: 'auth/role/listResourceIds',
             method: 'get',
             params: { roleId: props.rid },
           });
           if (isApiSuccessResponse(sourceIdsResult)) {
             const ids = normalizeIdSet(getApiResponseData<unknown>(sourceIdsResult));
             if (ids.length > 0) {
-              const bindUrl = `rbac/role/bindResources?roleId=${encodeURIComponent(String(newId))}`;
+              const bindUrl = `auth/role/bindResources?roleId=${encodeURIComponent(String(newId))}`;
               const bindResult = await backendRequest({ url: bindUrl, method: 'post', params: ids as unknown as Record<string, unknown> });
               if (!isApiSuccessResponse(bindResult)) {
                 // New role exists but resources didn't copy — warn instead of erroring out.

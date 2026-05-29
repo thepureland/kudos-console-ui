@@ -81,7 +81,7 @@ const shortcutItems = [
   { path: '/home', titleKey: 'welcome.home', descKey: 'welcome.homeDesc', icon: HomeFilled },
   { path: '/sys/cache', titleKey: 'welcome.cache', descKey: 'welcome.cacheDesc', icon: Setting },
   { path: '/user/account', titleKey: 'welcome.account', descKey: 'welcome.accountDesc', icon: User },
-  { path: '/rbac/role', titleKey: 'welcome.role', descKey: 'welcome.roleDesc', icon: Lock },
+  { path: '/auth/role', titleKey: 'welcome.role', descKey: 'welcome.roleDesc', icon: Lock },
 ];
 </script>
 

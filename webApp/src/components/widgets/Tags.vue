@@ -207,8 +207,8 @@ const pathToIcon: Record<string, string> = {
   '/sys/i18n': 'Setting',
   '/user/account': 'UserFilled',
   '/user/organization': 'OfficeBuilding',
-  '/rbac/role': 'Key',
-  '/rbac/group': 'User',
+  '/auth/role': 'Key',
+  '/auth/group': 'User',
 };
 
 /** When a tag is closed, clear that page's list query state so "close and reopen" returns to the initial state; switching tags does not close them, so their state is preserved */
