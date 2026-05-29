@@ -115,7 +115,7 @@ import {
   type TransferItem,
   normalizeIdSet,
   resolveAssignedItems,
-} from '../../rbac/_shared/assignmentTransferUtils';
+} from '../../auth/_shared/assignmentTransferUtils';
 
 interface RoleRow {
   key: string;
@@ -186,15 +186,15 @@ class AccountEffectivePermissionsDialog extends BaseDetailPage {
   private async aggregate(userId: string): Promise<void> {
     // Stage 1: direct roles + groups
     const [directRoleIds, groupIds] = await Promise.all([
-      this.getIds('rbac/role/listRoleIdsByUser', { userId }),
-      this.getIds('rbac/group/listGroupIdsByUser', { userId }),
+      this.getIds('auth/role/listRoleIdsByUser', { userId }),
+      this.getIds('auth/group/listGroupIdsByUser', { userId }),
     ]);
 
     // Stage 2: roles per group (in parallel) + resolve role/group metadata up front
     const [perGroupRoleIds, groupItems, directRoleItems] = await Promise.all([
-      Promise.all(groupIds.map(gid => this.getIds('rbac/group/listRoleIds', { groupId: gid }).then(rids => ({ gid, rids })))),
-      resolveAssignedItems({ searchUrl: 'rbac/group/pagingSearch', ids: groupIds, pickLabel: groupLabel }),
-      resolveAssignedItems({ searchUrl: 'rbac/role/pagingSearch', ids: directRoleIds, pickLabel: roleLabel }),
+      Promise.all(groupIds.map(gid => this.getIds('auth/group/listRoleIds', { groupId: gid }).then(rids => ({ gid, rids })))),
+      resolveAssignedItems({ searchUrl: 'auth/group/pagingSearch', ids: groupIds, pickLabel: groupLabel }),
+      resolveAssignedItems({ searchUrl: 'auth/role/pagingSearch', ids: directRoleIds, pickLabel: roleLabel }),
     ]);
 
     this.state.groupItems = groupItems;
@@ -214,7 +214,7 @@ class AccountEffectivePermissionsDialog extends BaseDetailPage {
     }
 
     const inheritedRoleItems = await resolveAssignedItems({
-      searchUrl: 'rbac/role/pagingSearch',
+      searchUrl: 'auth/role/pagingSearch',
       ids: [...inheritedRoleIds],
       pickLabel: roleLabel,
     });
@@ -242,7 +242,7 @@ class AccountEffectivePermissionsDialog extends BaseDetailPage {
     const roleKeys = [...seenRoleKeys];
     const roleItemByKey = new Map<string, TransferItem>(allRoleItems.map(r => [r.key, r]));
     const perRoleResourceIds = await Promise.all(
-      roleKeys.map(rid => this.getIds('rbac/role/listResourceIds', { roleId: rid }).then(resIds => ({ rid, resIds }))),
+      roleKeys.map(rid => this.getIds('auth/role/listResourceIds', { roleId: rid }).then(resIds => ({ rid, resIds }))),
     );
     const allResourceIds = new Set<string>();
     const rolesByResourceId = new Map<string, Set<string>>(); // resourceId → set of roleIds

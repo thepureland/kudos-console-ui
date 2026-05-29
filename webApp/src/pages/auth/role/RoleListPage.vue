@@ -361,7 +361,7 @@
       v-model="batchBindUsersVisible"
       :owners="batchOwners"
       owner-kind="role"
-      bind-url="rbac/role/bindUsers"
+      bind-url="auth/role/bindUsers"
       param-name="roleId"
     />
   </div>
@@ -449,7 +449,7 @@ class RoleListPage extends TenantSupportListPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/role';
+    return 'auth/role';
   }
 
   /** Resource type, user status, and user type dict-item translations come from the backend (also used by UserListDialog). */
@@ -528,8 +528,8 @@ class RoleListPage extends TenantSupportListPage {
   /** Counts of users + groups currently bound to a single role. Failures degrade to '?'. */
   private async fetchImpactSummary(roleId: string | number): Promise<{ users: number | string; groups: number | string }> {
     const [usersR, groupsR] = await Promise.all([
-      backendRequest({ url: 'rbac/role/listUserIds', method: 'get', params: { roleId } }),
-      backendRequest({ url: 'rbac/role/listGroupIdsByRole', method: 'get', params: { roleId } }),
+      backendRequest({ url: 'auth/role/listUserIds', method: 'get', params: { roleId } }),
+      backendRequest({ url: 'auth/role/listGroupIdsByRole', method: 'get', params: { roleId } }),
     ]);
     return {
       users: isApiSuccessResponse(usersR) ? normalizeIdSet(getApiResponseData<unknown>(usersR)).length : '?',
@@ -545,8 +545,8 @@ class RoleListPage extends TenantSupportListPage {
     let failed = false;
     await Promise.all(ids.map(async (roleId) => {
       const [usersR, groupsR] = await Promise.all([
-        backendRequest({ url: 'rbac/role/listUserIds', method: 'get', params: { roleId } }),
-        backendRequest({ url: 'rbac/role/listGroupIdsByRole', method: 'get', params: { roleId } }),
+        backendRequest({ url: 'auth/role/listUserIds', method: 'get', params: { roleId } }),
+        backendRequest({ url: 'auth/role/listGroupIdsByRole', method: 'get', params: { roleId } }),
       ]);
       if (isApiSuccessResponse(usersR)) normalizeIdSet(getApiResponseData<unknown>(usersR)).forEach(id => allUsers.add(id));
       else failed = true;

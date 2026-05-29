@@ -207,7 +207,7 @@ function handleLocaleCommand(id: string) {
 const SEGMENT_BREADCRUMB: Record<string, { titleKey: string; firstChildPath: string }> = {
   sys: { titleKey: 'route.sys', firstChildPath: '/sys/cache' },
   user: { titleKey: 'route.user', firstChildPath: '/user/account' },
-  rbac: { titleKey: 'route.rbac', firstChildPath: '/rbac/role' },
+  auth: { titleKey: 'route.auth', firstChildPath: '/auth/role' },
 };
 /** Three-level menus: when the current path falls under an "intermediate level", insert that level into the breadcrumb (path -> intermediate-level titleKey) */
 const BREADCRUMB_MIDDLE: Record<string, { titleKey: string; path: string }> = {

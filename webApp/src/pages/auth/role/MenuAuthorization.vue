@@ -66,7 +66,7 @@ class MenuAuthorization extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/role';
+    return 'auth/role';
   }
 
   protected initState(): any {

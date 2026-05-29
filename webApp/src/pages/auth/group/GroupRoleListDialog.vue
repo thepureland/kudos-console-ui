@@ -3,7 +3,7 @@
  *
  * Backend (kudos-ms-auth AuthGroupAdminController):
  *   GET /api/admin/auth/group/listRoleIds?groupId=...  → Set<roleId>
- * Role metadata is resolved via rbac/role/pagingSearch.
+ * Role metadata is resolved via auth/role/pagingSearch.
  *
  * @author: K
  * @since 1.0.0
@@ -60,7 +60,7 @@ class GroupRoleListDialog extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/group';
+    return 'auth/group';
   }
 
   protected initState(): any {
@@ -101,7 +101,7 @@ class GroupRoleListDialog extends BaseDetailPage {
       pageSize: Math.max(ids.length, 50),
       ids,
     };
-    const result = await backendRequest({ url: 'rbac/role/pagingSearch', method: 'post', params });
+    const result = await backendRequest({ url: 'auth/role/pagingSearch', method: 'post', params });
     if (!isApiSuccessResponse(result)) {
       ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load roles');
       return [];
