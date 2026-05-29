@@ -1,26 +1,26 @@
 <!--
- * Role-user assignment dialog with server-side candidate search.
+ * User → groups assignment (reverse of group → users), with server-side candidate search.
  *
- * Backend (AuthRoleAdminController, kudos-ms-auth):
- *   GET    /api/admin/auth/role/listUserIds?roleId=...           → Set<userId>
- *   POST   /api/admin/auth/role/bindUsers?roleId=...  body=[ids] → newly created count
- *   DELETE /api/admin/auth/role/unbindUser?roleId=...&userId=... → boolean
+ * Backend (AuthGroupAdminController, kudos-ms-auth):
+ *   GET    /api/admin/auth/group/listGroupIdsByUser?userId=...           → Set<groupId>
+ *   POST   /api/admin/auth/group/bindUsers?groupId=...   body=[userIds]  → newly created count
+ *   DELETE /api/admin/auth/group/unbindUser?groupId=...&userId=...       → boolean
  *
- * See GroupUserAssignmentDialog for the filterMethod-as-debounced-search trick.
+ * Same per-group iteration as AccountRolesDialog (no "bind groups to user" endpoint on the backend).
  *
  * @author: K
  * @since 1.0.0
  -->
 <template>
-  <el-dialog :title="t('roleUserAssignment.title')" v-model="visible" width="40%" center @close="close">
+  <el-dialog :title="t('accountGroups.title')" v-model="visible" width="40%" center @close="close">
     <div class="paged-transfer">
       <el-transfer
-        v-model="assignedUserIds"
+        v-model="assignedGroupIds"
         style="text-align: left; display: inline-block"
         filterable
         :filter-method="filterMethod"
-        :filter-placeholder="t('roleUserAssignment.searchPlaceholder')"
-        :titles="[t('roleUserAssignment.unassigned'), t('roleUserAssignment.assigned')]"
+        :filter-placeholder="t('accountGroups.searchPlaceholder')"
+        :titles="[t('accountGroups.unassigned'), t('accountGroups.assigned')]"
         :format="{
           noChecked: '${total}',
           hasChecked: '${checked}/${total}',
@@ -31,13 +31,13 @@
         </template>
       </el-transfer>
       <div class="paged-transfer__hint">
-        {{ t('roleUserAssignment.candidatesHint', { shown: candidateItems.length, total: candidateTotal < 0 ? '?' : candidateTotal }) }}
+        {{ t('accountGroups.candidatesHint', { shown: candidateItems.length, total: candidateTotal < 0 ? '?' : candidateTotal }) }}
       </div>
     </div>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="close">{{ t('roleUserAssignment.cancel') }}</el-button>
-        <el-button type="primary" @click="submit">{{ t('roleUserAssignment.confirm') }}</el-button>
+        <el-button @click="close">{{ t('accountGroups.cancel') }}</el-button>
+        <el-button type="primary" @click="submit">{{ t('accountGroups.confirm') }}</el-button>
       </span>
     </template>
   </el-dialog>
@@ -56,11 +56,11 @@ import {
   normalizeIdSet,
   resolveAssignedItems,
   searchCandidates,
-} from '../_shared/assignmentTransferUtils';
+} from '../../rbac/_shared/assignmentTransferUtils';
 
-const userLabel = (row: Record<string, unknown>) => String(row.username ?? row.realName ?? row.id ?? '');
+const groupLabel = (row: Record<string, unknown>) => String(row.groupName ?? row.name ?? row.groupCode ?? row.code ?? row.id ?? '');
 
-class RoleUserAssignmentDialog extends BaseDetailPage {
+class AccountGroupsDialog extends BaseDetailPage {
   private originalAssignedIds: Set<string> = new Set();
   private lastKeyword = '';
 
@@ -69,24 +69,24 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
   }
 
   protected getRootActionPath(): string {
-    return 'rbac/role';
+    return 'rbac/group';
   }
 
   protected initState(): any {
     return {
       candidateItems: [] as TransferItem[],
       assignedItems: [] as TransferItem[],
-      assignedUserIds: [] as string[],
+      assignedGroupIds: [] as string[],
       candidateTotal: 0,
     };
   }
 
   protected getDetailLoadUrl(): string {
-    return this.getRootActionPath() + '/listUserIds';
+    return this.getRootActionPath() + '/listGroupIdsByUser';
   }
 
   protected createDetailLoadParams(): any {
-    return { roleId: this.props.rid };
+    return { userId: this.props.rid };
   }
 
   protected async preLoad(): Promise<void> {
@@ -96,31 +96,31 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
   protected postLoadDataSuccessfully(data: unknown): void {
     const ids = normalizeIdSet(data);
     this.originalAssignedIds = new Set(ids);
-    this.state.assignedUserIds = [...ids];
+    this.state.assignedGroupIds = [...ids];
     this.resolveAssigned(ids).then(items => { this.state.assignedItems = items; });
     super.postLoadDataSuccessfully(data);
   }
 
   private async resolveAssigned(ids: string[]): Promise<TransferItem[]> {
     return resolveAssignedItems({
-      searchUrl: 'user/account/pagingSearch',
+      searchUrl: 'rbac/group/pagingSearch',
       ids,
-      pickLabel: userLabel,
+      pickLabel: groupLabel,
     });
   }
 
   private async refetchCandidates(keyword: string): Promise<void> {
-    const baseParams: Record<string, unknown> = {};
+    const baseParams: Record<string, unknown> = { active: true };
     if (this.props.subSystemCode) baseParams.subSystemCode = this.props.subSystemCode;
     if (this.props.tenantId) baseParams.tenantId = this.props.tenantId;
     const result = await searchCandidates({
-      searchUrl: 'user/account/pagingSearch',
+      searchUrl: 'rbac/group/pagingSearch',
       keyword,
-      keywordField: 'username',
+      keywordField: 'name',
       baseParams,
       pageNo: 1,
       pageSize: 50,
-      pickLabel: userLabel,
+      pickLabel: groupLabel,
     });
     this.state.candidateItems = result.items;
     this.state.candidateTotal = result.totalCount;
@@ -132,26 +132,27 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
   public submit!: () => void;
 
   protected async doSubmit(): Promise<void> {
-    const current = new Set<string>(this.state.assignedUserIds as string[]);
+    const current = new Set<string>(this.state.assignedGroupIds as string[]);
     const toBind: string[] = [];
     current.forEach(id => { if (!this.originalAssignedIds.has(id)) toBind.push(id); });
     const toUnbind: string[] = [];
     this.originalAssignedIds.forEach(id => { if (!current.has(id)) toUnbind.push(id); });
 
+    const userId = this.props.rid;
     try {
-      if (toBind.length > 0) {
-        const bindUrl = `${this.getRootActionPath()}/bindUsers?roleId=${encodeURIComponent(this.props.rid)}`;
-        const bindResult = await backendRequest({ url: bindUrl, method: 'post', params: toBind as unknown as Record<string, unknown> });
+      for (const groupId of toBind) {
+        const bindUrl = `${this.getRootActionPath()}/bindUsers?groupId=${encodeURIComponent(groupId)}`;
+        const bindResult = await backendRequest({ url: bindUrl, method: 'post', params: [userId] as unknown as Record<string, unknown> });
         if (!isApiSuccessResponse(bindResult)) {
           ElMessage.error(await resolveApiResponseMessage(bindResult) || getApiResponseMessage(bindResult) || 'Bind failed');
           return;
         }
       }
-      for (const userId of toUnbind) {
+      for (const groupId of toUnbind) {
         const unbindResult = await backendRequest({
           url: this.getRootActionPath() + '/unbindUser',
           method: 'delete',
-          params: { roleId: this.props.rid, userId },
+          params: { groupId, userId },
         });
         if (!isApiSuccessResponse(unbindResult)) {
           ElMessage.error(await resolveApiResponseMessage(unbindResult) || getApiResponseMessage(unbindResult) || 'Unbind failed');
@@ -181,7 +182,7 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
 }
 
 export default defineComponent({
-  name: 'UserAssignmentDialog',
+  name: 'AccountGroupsDialog',
   props: {
     modelValue: Boolean,
     rid: String,
@@ -191,7 +192,7 @@ export default defineComponent({
   emits: ['update:modelValue'],
   setup(props, context) {
     const { t } = useI18n();
-    const dialog = reactive(new RoleUserAssignmentDialog(props, context));
+    const dialog = reactive(new AccountGroupsDialog(props, context));
     const transferData = computed<TransferItem[]>(() => mergeTransferData(
       (dialog.state as any).candidateItems as TransferItem[],
       (dialog.state as any).assignedItems as TransferItem[],
