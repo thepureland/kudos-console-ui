@@ -18,6 +18,17 @@
       @table-wrap-mounted="onTableWrapMounted"
     >
       <template #toolbar>
+        <div class="toolbar-cell toolbar-cascader">
+          <el-cascader
+            v-model="searchParams.subSysOrTenant"
+            :options="subSysOrTenants"
+            :props="cascaderProps"
+            :placeholder="t('userGroupList.placeholders.subSysOrTenant')"
+            clearable
+            class="search-cascader"
+            @change="search"
+          />
+        </div>
         <div class="toolbar-cell toolbar-name">
           <el-input
             v-model="searchParams.groupCode"
@@ -62,6 +73,9 @@
         <el-button type="danger" @click="multiDelete">
           <el-icon><Delete /></el-icon>
           {{ t('userGroupList.actions.delete') }}
+        </el-button>
+        <el-button type="primary" :disabled="!hasSelection" @click="openBatchBindUsers">
+          {{ t('userGroupList.actions.batchBindUsers') }}
         </el-button>
       </template>
       <template #columnVisibilityPanel>
@@ -121,6 +135,29 @@
                   @drop="onHeaderDrop($event, 'groupName')"
                   @dragend="onHeaderDragEnd"
                 >{{ t('userGroupList.columns.groupName') }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-else-if="key === 'subSystemCode' && isColumnVisible('subSystemCode')"
+              prop="subSystemCode"
+              :min-width="columnWidths['subSystemCode'] ?? 100"
+              sortable="custom"
+              show-overflow-tooltip
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="subSystemCode"
+                  :class="{ 'is-dragging': columnDragKey === 'subSystemCode', 'is-drop-target': columnDropTargetKey === 'subSystemCode' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'subSystemCode')"
+                  @dragover="onHeaderDragOver($event, 'subSystemCode')"
+                  @drop="onHeaderDrop($event, 'subSystemCode')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('userGroupList.columns.subSystemCode') }}</div>
+              </template>
+              <template #default="scope">
+                {{ transAtomicService(scope.row.subSystemCode) }}
               </template>
             </el-table-column>
             <el-table-column
@@ -198,7 +235,7 @@
             :label="t('userGroupList.columns.operation')"
             align="center"
             fixed="right"
-            min-width="68"
+            min-width="260"
             class-name="operation-column"
             label-class-name="operation-column"
           >
@@ -206,14 +243,30 @@
               <div class="operation-column-hover-area">{{ t('userGroupList.columns.operation') }}</div>
             </template>
             <template #default="scope">
-              <div class="operation-column-hover-area">
-                <el-tooltip :content="t('userGroupList.actions.edit')" placement="top" :enterable="false">
-                  <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)">
+              <div class="operation-column-hover-area operation-column-cell">
+                <el-tooltip
+                  :content="scope.row.builtIn ? t('userGroupList.actions.builtInLocked') : t('userGroupList.actions.edit')"
+                  placement="top"
+                  :enterable="false"
+                >
+                  <el-icon
+                    :size="20"
+                    :class="['operate-column-icon', { 'operate-column-icon--disabled': scope.row.builtIn }]"
+                    @click="scope.row.builtIn ? undefined : handleEdit(scope.row)"
+                  >
                     <Edit />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('userGroupList.actions.delete')" placement="top" :enterable="false">
-                  <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)">
+                <el-tooltip
+                  :content="scope.row.builtIn ? t('userGroupList.actions.builtInLocked') : t('userGroupList.actions.delete')"
+                  placement="top"
+                  :enterable="false"
+                >
+                  <el-icon
+                    :size="20"
+                    :class="['operate-column-icon', { 'operate-column-icon--disabled': scope.row.builtIn }]"
+                    @click="scope.row.builtIn ? undefined : handleDelete(scope.row)"
+                  >
                     <Delete />
                   </el-icon>
                 </el-tooltip>
@@ -222,6 +275,24 @@
                     <Tickets />
                   </el-icon>
                 </el-tooltip>
+                <el-dropdown split-button size="small" type="primary" @command="(cmd) => onUserCommand(cmd)" style="margin-right: 8px;">
+                  {{ t('userGroupList.actions.user') }}
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item :command="commandValue(1, scope.row)">{{ t('userGroupList.actions.assignUser') }}</el-dropdown-item>
+                      <el-dropdown-item :command="commandValue(2, scope.row)">{{ t('userGroupList.actions.viewUser') }}</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+                <el-dropdown split-button size="small" type="primary" @command="(cmd) => onRoleCommand(cmd)">
+                  {{ t('userGroupList.actions.role') }}
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item :command="commandValue(1, scope.row)">{{ t('userGroupList.actions.assignRole') }}</el-dropdown-item>
+                      <el-dropdown-item :command="commandValue(2, scope.row)">{{ t('userGroupList.actions.viewRole') }}</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
               </div>
             </template>
           </el-table-column>
@@ -251,18 +322,58 @@
       />
     </div>
     <UserGroupDetailPage v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
+    <group-user-assignment-dialog
+      v-if="userAssignmentDialogVisible"
+      v-model="userAssignmentDialogVisible"
+      :rid="rid"
+      :sub-system-code="subSystemCode"
+      :tenant-id="tenantId"
+    />
+    <group-user-list-dialog
+      v-if="userListDialogVisible"
+      v-model="userListDialogVisible"
+      :rid="rid"
+    />
+    <group-role-assignment-dialog
+      v-if="roleAssignmentDialogVisible"
+      v-model="roleAssignmentDialogVisible"
+      :rid="rid"
+      :sub-system-code="subSystemCode"
+      :tenant-id="tenantId"
+    />
+    <group-role-list-dialog
+      v-if="roleListDialogVisible"
+      v-model="roleListDialogVisible"
+      :rid="rid"
+    />
+    <batch-bind-users-dialog
+      v-if="batchBindUsersVisible"
+      v-model="batchBindUsersVisible"
+      :owners="batchOwners"
+      owner-kind="group"
+      bind-url="rbac/group/bindUsers"
+      param-name="groupId"
+    />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { backendRequest, getApiResponseData, isApiSuccessResponse } from '../../../utils/backendRequest';
+import { normalizeIdSet } from '../_shared/assignmentTransferUtils';
 import { useI18n } from 'vue-i18n';
 import UserGroupFormPage from './UserGroupFormPage.vue';
 import UserGroupDetailPage from './UserGroupDetailPage.vue';
+import GroupUserAssignmentDialog from './GroupUserAssignmentDialog.vue';
+import GroupUserListDialog from './GroupUserListDialog.vue';
+import GroupRoleAssignmentDialog from './GroupRoleAssignmentDialog.vue';
+import GroupRoleListDialog from './GroupRoleListDialog.vue';
+import BatchBindUsersDialog from '../_shared/BatchBindUsersDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
-import { BaseListPage } from '../../../components/pages/core';
 import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
+import { TenantSupportListPage } from '../../../components/pages/support';
 import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useOperationColumnVisible, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, createI18nColumnLabelGetter, useColumnOrderDrag } from '../../../components/pages/list';
 import { ListPageLayout } from '../../../components/pages/ui';
 
@@ -275,22 +386,150 @@ const {
   allColumnKeys: ALL_COLUMN_KEYS,
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
-} = createColumnVisibilityConfig(['groupName', 'remark', 'active', 'createTime']);
+} = createColumnVisibilityConfig(['groupName', 'subSystemCode', 'remark', 'active', 'createTime']);
 
-class UserGroupListPage extends BaseListPage {
+class UserGroupListPage extends TenantSupportListPage {
   constructor(props: PageProps, context: PageContext) {
     super(props, context);
     this.convertThis();
   }
 
+  /** Tenant cascader allows only the second level (must pick a specific tenant); matches RoleListPage. */
+  protected isCheckStrictly(): boolean {
+    return false;
+  }
+
   protected initState(): Record<string, unknown> {
         return {
       searchParams: {
+        subSysOrTenant: null as string[] | null,
         groupCode: null as string | null,
         groupName: null as string | null,
         active: true,
       },
+      userAssignmentDialogVisible: false,
+      userListDialogVisible: false,
+      roleAssignmentDialogVisible: false,
+      roleListDialogVisible: false,
+      subSystemCode: null as string | null,
+      tenantId: null as string | null,
+      batchBindUsersVisible: false,
+      batchOwners: [] as Array<{ id: string; label: string }>,
     };
+  }
+
+  openBatchBindUsers(): void {
+    const rows = (this.state.selectedItems ?? []) as Array<Record<string, unknown>>;
+    if (rows.length === 0) return;
+    this.state.batchOwners = rows.map(r => ({
+      id: String(this.getRowId(r)),
+      label: String(r.groupName ?? r.groupCode ?? r.name ?? r.code ?? r.id ?? ''),
+    }));
+    this.state.batchBindUsersVisible = true;
+  }
+
+  commandValue(item: number, row: Record<string, unknown>): { item: number; row: Record<string, unknown> } {
+    return { item, row };
+  }
+
+  /** Filter out built-in rows on batch delete and warn the user. */
+  protected async doMultiDelete(): Promise<void> {
+    const all = (this.state.selectedItems ?? []) as Array<Record<string, unknown>>;
+    if (all.length === 0) { return super.doMultiDelete(); }
+    const targets = all.filter(r => r.builtIn !== true);
+    const skipped = all.length - targets.length;
+    if (skipped > 0) ElMessage.warning(this.tr('userGroupList.actions.builtInSkipped', { n: skipped }));
+    if (targets.length === 0) return;
+    this.state.selectedItems = targets;
+    const summary = await this.fetchBatchImpactSummary(targets);
+    this._cachedBatchDeleteMessage = this.tr('userGroupList.actions.batchDeleteConfirmWithImpact', {
+      n: targets.length, users: summary.users, roles: summary.roles,
+    });
+    try {
+      await super.doMultiDelete();
+    } finally {
+      this._cachedBatchDeleteMessage = null;
+    }
+  }
+
+  protected async doHandleDelete(row: Record<string, unknown>): Promise<void> {
+    const summary = await this.fetchImpactSummary(this.getRowId(row));
+    this._cachedDeleteMessage = this.tr('userGroupList.actions.deleteConfirmWithImpact', {
+      users: summary.users, roles: summary.roles,
+    });
+    try {
+      await super.doHandleDelete(row);
+    } finally {
+      this._cachedDeleteMessage = null;
+    }
+  }
+
+  protected getDeleteMessage(row: Record<string, unknown>): string {
+    return this._cachedDeleteMessage ?? super.getDeleteMessage(row);
+  }
+
+  protected getBatchDeleteMessage(rows: Array<Record<string, unknown>>): string {
+    return this._cachedBatchDeleteMessage ?? super.getBatchDeleteMessage(rows);
+  }
+
+  /** Counts of users in this group + roles granted to this group. */
+  private async fetchImpactSummary(groupId: string | number): Promise<{ users: number | string; roles: number | string }> {
+    const [usersR, rolesR] = await Promise.all([
+      backendRequest({ url: 'rbac/group/listUserIds', method: 'get', params: { groupId } }),
+      backendRequest({ url: 'rbac/group/listRoleIds', method: 'get', params: { groupId } }),
+    ]);
+    return {
+      users: isApiSuccessResponse(usersR) ? normalizeIdSet(getApiResponseData<unknown>(usersR)).length : '?',
+      roles: isApiSuccessResponse(rolesR) ? normalizeIdSet(getApiResponseData<unknown>(rolesR)).length : '?',
+    };
+  }
+
+  private async fetchBatchImpactSummary(rows: Array<Record<string, unknown>>): Promise<{ users: number | string; roles: number | string }> {
+    const ids = rows.map(r => this.getRowId(r));
+    const allUsers = new Set<string>();
+    const allRoles = new Set<string>();
+    let failed = false;
+    await Promise.all(ids.map(async (groupId) => {
+      const [usersR, rolesR] = await Promise.all([
+        backendRequest({ url: 'rbac/group/listUserIds', method: 'get', params: { groupId } }),
+        backendRequest({ url: 'rbac/group/listRoleIds', method: 'get', params: { groupId } }),
+      ]);
+      if (isApiSuccessResponse(usersR)) normalizeIdSet(getApiResponseData<unknown>(usersR)).forEach(id => allUsers.add(id));
+      else failed = true;
+      if (isApiSuccessResponse(rolesR)) normalizeIdSet(getApiResponseData<unknown>(rolesR)).forEach(id => allRoles.add(id));
+      else failed = true;
+    }));
+    return {
+      users: failed ? `${allUsers.size}+?` : allUsers.size,
+      roles: failed ? `${allRoles.size}+?` : allRoles.size,
+    };
+  }
+
+  private _cachedDeleteMessage: string | null = null;
+  private _cachedBatchDeleteMessage: string | null = null;
+
+  onUserCommand(commandValue: { item: number; row: Record<string, unknown> }): void {
+    const { item, row } = commandValue;
+    this.state.rid = this.getRowId(row);
+    this.state.subSystemCode = row.subSystemCode ?? null;
+    this.state.tenantId = row.tenantId ?? null;
+    if (item === 1) {
+      this.state.userAssignmentDialogVisible = true;
+    } else {
+      this.state.userListDialogVisible = true;
+    }
+  }
+
+  onRoleCommand(commandValue: { item: number; row: Record<string, unknown> }): void {
+    const { item, row } = commandValue;
+    this.state.rid = this.getRowId(row);
+    this.state.subSystemCode = row.subSystemCode ?? null;
+    this.state.tenantId = row.tenantId ?? null;
+    if (item === 1) {
+      this.state.roleAssignmentDialogVisible = true;
+    } else {
+      this.state.roleListDialogVisible = true;
+    }
   }
 
   protected getRootActionPath(): string {
@@ -314,7 +553,7 @@ class UserGroupListPage extends BaseListPage {
 
 export default defineComponent({
   name: 'UserGroupListPage',
-  components: { UserGroupFormPage, UserGroupDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { UserGroupFormPage, UserGroupDetailPage, GroupUserAssignmentDialog, GroupUserListDialog, GroupRoleAssignmentDialog, GroupRoleListDialog, BatchBindUsersDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
@@ -359,15 +598,17 @@ export default defineComponent({
       orderedColumnKeys.value.map((key) => ({
         key,
         getLabel: () => columnLabel(key),
-        sortable: key === 'groupName' || key === 'createTime',
+        sortable: key === 'groupName' || key === 'subSystemCode' || key === 'createTime',
         getCellText:
           key === 'groupName'
             ? (row: Record<string, unknown>) => String(row.groupName ?? '')
-            : key === 'remark'
-              ? (row: Record<string, unknown>) => String(row.remark ?? '')
-              : key === 'createTime'
-                ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
-                : () => '',
+            : key === 'subSystemCode'
+              ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSystemCode as string)
+              : key === 'remark'
+                ? (row: Record<string, unknown>) => String(row.remark ?? '')
+                : key === 'createTime'
+                  ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
+                  : () => '',
       }))
     });
 
@@ -408,6 +649,11 @@ export default defineComponent({
       onTableDrop,
       showOperationColumn,
       onTableWrapMounted,
+      commandValue: (item: number, row: Record<string, unknown>) => listPage.commandValue(item, row),
+      onUserCommand: (cmd: { item: number; row: Record<string, unknown> }) => listPage.onUserCommand(cmd),
+      onRoleCommand: (cmd: { item: number; row: Record<string, unknown> }) => listPage.onRoleCommand(cmd),
+      openBatchBindUsers: () => listPage.openBatchBindUsers(),
+      hasSelection: computed(() => ((listPage.state.selectedItems ?? []) as Array<unknown>).length > 0),
     };
   },
 });
@@ -421,11 +667,15 @@ export default defineComponent({
 .user-group-list-page :deep(.list-page-card) {
   margin-top: 3px; /* card top outer margin */
 }
+.user-group-list-page .list-page-toolbar .toolbar-cascader,
 .user-group-list-page .list-page-toolbar .toolbar-name {
   margin-right: 8px;
 }
 .user-group-list-page .list-page-toolbar .toolbar-name .search-name-input {
   min-width: 140px;
+}
+.user-group-list-page .list-page-toolbar .search-cascader {
+  min-width: 160px;
 }
 .user-group-list-page .list-page-toolbar .toolbar-extra {
   margin-right: 8px;
@@ -487,5 +737,26 @@ export default defineComponent({
 }
 .user-group-list-page :deep(th .cell:has(.column-header-draggable) .column-header-draggable) {
   font-size: 14px;
+}
+
+/* Keep the operation column's content on a single line without wrapping. */
+.user-group-list-page :deep(.operation-column-cell) {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.user-group-list-page :deep(.operation-column-cell .operate-column-icon) {
+  flex-shrink: 0;
+}
+.user-group-list-page :deep(.operation-column-cell .el-dropdown) {
+  flex-shrink: 0;
+}
+.user-group-list-page :deep(.operate-column-icon--disabled) {
+  color: var(--el-text-color-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 </style>
