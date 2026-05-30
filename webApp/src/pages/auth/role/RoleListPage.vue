@@ -77,6 +77,10 @@
         <el-button type="primary" :disabled="!hasSelection" @click="openBatchBindUsers">
           {{ t('roleList.actions.batchBindUsers') }}
         </el-button>
+        <el-button @click="purgeExpiredGrants">
+          <el-icon><Clock /></el-icon>
+          {{ t('roleList.actions.purgeExpired') }}
+        </el-button>
       </template>
       <template #columnVisibilityPanel>
         <div class="column-visibility-title">{{ t('roleList.actions.columnVisibility') }}</div>
@@ -285,6 +289,11 @@
                     <Filter />
                   </el-icon>
                 </el-tooltip>
+                <el-tooltip :content="t('roleList.actions.temporalGrant')" placement="top" :enterable="false">
+                  <el-icon :size="20" class="operate-column-icon" @click="openTemporalGrantDialog(scope.row)">
+                    <Clock />
+                  </el-icon>
+                </el-tooltip>
                 <el-dropdown split-button size="small" type="primary" @command="(cmd) => authorize(cmd)" style="margin-right: 8px;">
                   {{ t('roleList.actions.authorize') }}
                   <template #dropdown>
@@ -367,6 +376,12 @@
       :rid="rid"
       @response="onDataScopeResponse"
     />
+    <role-temporal-grant-dialog
+      v-if="temporalGrantDialogVisible"
+      v-model="temporalGrantDialogVisible"
+      :rid="rid"
+      @response="onTemporalGrantResponse"
+    />
     <batch-bind-users-dialog
       v-if="batchBindUsersVisible"
       v-model="batchBindUsersVisible"
@@ -380,9 +395,9 @@
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
-import { CopyDocument, Delete, Edit, Filter, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
-import { backendRequest, getApiResponseData, isApiSuccessResponse } from '../../../utils/backendRequest';
+import { Clock, CopyDocument, Delete, Edit, Filter, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { useI18n } from 'vue-i18n';
 import RoleFormPage from './RoleFormPage.vue';
 import RoleDetailPage from './RoleDetailPage.vue';
@@ -392,6 +407,7 @@ import UserAssignmentDialog from './UserAssignmentDialog.vue';
 import RoleResourceAssignmentDialog from './RoleResourceAssignmentDialog.vue';
 import RoleCopyDialog from './RoleCopyDialog.vue';
 import RoleDataScopeDialog from './RoleDataScopeDialog.vue';
+import RoleTemporalGrantDialog from './RoleTemporalGrantDialog.vue';
 import BatchBindUsersDialog from '../_shared/BatchBindUsersDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
@@ -434,6 +450,7 @@ class RoleListPage extends TenantSupportListPage {
       resourceTypeLabelKey: null as string | null,
       copyDialogVisible: false,
       dataScopeDialogVisible: false,
+      temporalGrantDialogVisible: false,
       batchBindUsersVisible: false,
       /** Snapshot of selected rows at the moment the batch dialog opens (avoids drift if selection changes). */
       batchOwners: [] as Array<{ id: string; label: string }>,
@@ -469,6 +486,17 @@ class RoleListPage extends TenantSupportListPage {
     // Refresh so the (potentially) changed scope is reflected in the row.
     this.search();
   }
+
+  openTemporalGrantDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.temporalGrantDialogVisible = true;
+  }
+
+  onTemporalGrantResponse(): void {
+    // No list column changes from a grant, but refresh keeps things consistent.
+    this.search();
+  }
+
 
   protected getRootActionPath(): string {
     return 'auth/role';
@@ -622,9 +650,11 @@ export default defineComponent({
     RoleResourceAssignmentDialog,
     RoleCopyDialog,
     RoleDataScopeDialog,
+    RoleTemporalGrantDialog,
     BatchBindUsersDialog,
     CopyDocument,
     Filter,
+    Clock,
     ListPageLayout,
     Edit,
     Delete,
@@ -732,9 +762,31 @@ export default defineComponent({
       commandValue: (item: unknown, row: Record<string, unknown>) => listPage.commandValue(item, row),
       authorize: (cmd: { item: unknown; row: Record<string, unknown> }) => listPage.authorize(cmd),
       assign: (cmd: { item: number; row: Record<string, unknown> }) => listPage.assign(cmd),
+      openDataScopeDialog: (row: Record<string, unknown>) => listPage.openDataScopeDialog(row),
+      onDataScopeResponse: () => listPage.onDataScopeResponse(),
+      openTemporalGrantDialog: (row: Record<string, unknown>) => listPage.openTemporalGrantDialog(row),
+      onTemporalGrantResponse: () => listPage.onTemporalGrantResponse(),
       openCopyDialog: (row: Record<string, unknown>) => listPage.openCopyDialog(row),
       onCopyResponse: () => listPage.onCopyResponse(),
       openBatchBindUsers: () => listPage.openBatchBindUsers(),
+      purgeExpiredGrants: async () => {
+        try {
+          await ElMessageBox.confirm(
+            t('roleList.actions.purgeExpiredConfirm'),
+            t('roleList.actions.purgeExpired'),
+            { type: 'warning' },
+          );
+        } catch {
+          return;
+        }
+        const result = await backendRequest({ url: 'auth/roleUserTemporal/purgeExpired', method: 'post' });
+        if (!isApiSuccessResponse(result)) {
+          ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || t('roleList.actions.purgeExpiredFailed'));
+          return;
+        }
+        const count = getApiResponseData<number>(result) ?? 0;
+        ElMessage.success(t('roleList.actions.purgeExpiredDone', { n: count }));
+      },
       hasSelection: computed(() => ((listPage.state.selectedItems ?? []) as Array<unknown>).length > 0),
       getDictItems: (module: string, dictType: string) => listPage.getDictItems(module, dictType),
       transDict: (module: string, dictType: string, code: string | null | undefined) => t(listPage.transDict(module, dictType, code)),
