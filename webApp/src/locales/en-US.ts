@@ -1309,7 +1309,7 @@ export default {
     placeholders: { subSysOrTenant: 'Tenant', roleCode: 'Role Code', roleName: 'Role Name' },
     common: { yes: 'Yes', no: 'No' },
     columns: { index: 'Row No.', roleCode: 'Role Code', roleName: 'Role Name', subSystemCode: 'Subsystem', remark: 'Remark', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
-    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', copy: 'Copy as new role', dataScope: 'Data Scope', batchBindUsers: 'Batch bind users', activeOnly: 'Active Only', authorize: 'Authorize', user: 'User', assignUser: 'Assign User', viewUser: 'View User', builtInLocked: 'Built-in (cannot edit or delete)', builtInSkipped: '{n} built-in row(s) skipped (cannot be deleted)', deleteConfirmWithImpact: 'This role is currently bound to {users} user(s) and {groups} group(s). Deleting will unbind these. Continue?', batchDeleteConfirmWithImpact: 'Delete {n} role(s)? They are currently bound to {users} user(s) and {groups} group(s) (deduped). Continue?', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', copy: 'Copy as new role', dataScope: 'Data Scope', temporalGrant: 'Temporal Grant', purgeExpired: 'Purge Expired', purgeExpiredConfirm: 'Delete all expired role grants? This cannot be undone.', purgeExpiredDone: 'Purged {n} expired grant(s)', purgeExpiredFailed: 'Failed to purge expired grants', batchBindUsers: 'Batch bind users', activeOnly: 'Active Only', authorize: 'Authorize', user: 'User', assignUser: 'Assign User', viewUser: 'View User', builtInLocked: 'Built-in (cannot edit or delete)', builtInSkipped: '{n} built-in row(s) skipped (cannot be deleted)', deleteConfirmWithImpact: 'This role is currently bound to {users} user(s) and {groups} group(s). Deleting will unbind these. Continue?', batchDeleteConfirmWithImpact: 'Delete {n} role(s)? They are currently bound to {users} user(s) and {groups} group(s) (deduped). Continue?', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
   roleCopy: {
     title: 'Copy Role',
@@ -1376,6 +1376,22 @@ export default {
     cancel: 'Cancel',
     searchPlaceholder: 'Search by resource name',
     candidatesHint: 'Showing {shown} of {total} (refine your search if results are truncated)',
+  },
+  roleTemporalGrant: {
+    title: 'Temporal Grant',
+    labels: { role: 'Role', user: 'User', startTime: 'Start', endTime: 'End' },
+    placeholders: {
+      user: 'Search and pick a user',
+      startTime: 'Effective immediately if empty',
+      endTime: 'Never expires if empty',
+    },
+    hint: 'Empty start = effective immediately; empty end = never expires. Re-granting replaces the previous window.',
+    validation: {
+      requiredUser: 'Please pick a user',
+      startAfterEnd: 'Start must not be after end',
+    },
+    buttons: { cancel: 'Cancel', confirm: 'Grant' },
+    messages: { success: 'Temporal grant saved', failed: 'Failed to save grant' },
   },
   roleDataScope: {
     title: 'Data Scope',
