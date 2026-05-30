@@ -1309,7 +1309,7 @@ export default {
     placeholders: { subSysOrTenant: '租户', roleCode: '角色编码', roleName: '角色名称' },
     common: { yes: '是', no: '否' },
     columns: { index: '行序', roleCode: '角色编码', roleName: '角色名称', subSystemCode: '子系统', remark: '备注', active: '启用', createTime: '创建时间', operation: '操作' },
-    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', copy: '复制为新角色', batchBindUsers: '批量关联用户', activeOnly: '仅启用', authorize: '授权', user: '用户', assignUser: '关联用户', viewUser: '查看用户', builtInLocked: '内置数据，不可编辑或删除', builtInSkipped: '已跳过 {n} 条内置数据（不可删除）', deleteConfirmWithImpact: '该角色当前关联 {users} 个用户、{groups} 个用户组，删除将解除这些关联。确认删除？', batchDeleteConfirmWithImpact: '将删除 {n} 个角色（合计关联 {users} 个用户、{groups} 个用户组，已去重）。确认？', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
+    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', copy: '复制为新角色', dataScope: '数据权限', batchBindUsers: '批量关联用户', activeOnly: '仅启用', authorize: '授权', user: '用户', assignUser: '关联用户', viewUser: '查看用户', builtInLocked: '内置数据，不可编辑或删除', builtInSkipped: '已跳过 {n} 条内置数据（不可删除）', deleteConfirmWithImpact: '该角色当前关联 {users} 个用户、{groups} 个用户组，删除将解除这些关联。确认删除？', batchDeleteConfirmWithImpact: '将删除 {n} 个角色（合计关联 {users} 个用户、{groups} 个用户组，已去重）。确认？', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
   roleCopy: {
     title: '复制角色',
@@ -1376,6 +1376,27 @@ export default {
     cancel: '取 消',
     searchPlaceholder: '按资源名称搜索',
     candidatesHint: '已显示 {shown} / {total} 条，结果被截断请细化搜索',
+  },
+  roleDataScope: {
+    title: '数据权限',
+    labels: { scope: '范围', orgs: '机构' },
+    placeholders: { orgs: '选择可访问的机构' },
+    scopes: {
+      ALL: '全部数据',
+      ORG_AND_CHILD: '本机构及子机构',
+      ORG: '仅本机构',
+      SELF: '仅本人数据',
+      CUSTOM: '自定义机构',
+    },
+    descriptions: {
+      ALL: '不做行级限制——持有者可见租户内全部数据。',
+      ORG_AND_CHILD: '持有者可见本机构及其所有下级机构的数据。',
+      ORG: '持有者仅可见本机构的数据。',
+      SELF: '持有者仅可见本人创建的数据。',
+      CUSTOM: '持有者可见下方所选机构的数据。',
+    },
+    buttons: { cancel: '取消', confirm: '确定' },
+    messages: { success: '数据权限已更新', failed: '更新数据权限失败' },
   },
   roleDetail: {
     title: '角色详情',
