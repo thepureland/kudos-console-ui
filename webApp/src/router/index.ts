@@ -24,6 +24,7 @@ const ContactWayListPage = () => import('../pages/user/contactWay/ContactWayList
 const RememberMeListPage = () => import('../pages/user/rememberMe/RememberMeListPage.vue');
 const RoleListPage = () => import('../pages/auth/role/RoleListPage.vue');
 const UserGroupListPage = () => import('../pages/auth/group/UserGroupListPage.vue');
+const RoleExclusionListPage = () => import('../pages/auth/roleExclusion/RoleExclusionListPage.vue');
 const Login = () => import('../components/Login/Login.vue');
 const NotFound = () => import('../pages/404.vue');
 
@@ -57,6 +58,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'user/rememberme', name: 'user-remember-me', component: RememberMeListPage, meta: { titleKey: 'route.userRememberMe', icon: 'Lock' } },
       { path: 'auth/role', name: 'auth-role', component: RoleListPage, meta: { titleKey: 'route.authRole', icon: 'Key' } },
       { path: 'auth/group', name: 'auth-group', component: UserGroupListPage, meta: { titleKey: 'route.authGroup', icon: 'User' } },
+      { path: 'auth/roleexclusion', name: 'auth-roleexclusion', component: RoleExclusionListPage, meta: { titleKey: 'route.authRoleExclusion', icon: 'CircleClose' } },
       // Backwards-compat: existing bookmarks / external links to /rbac/role and /rbac/group keep working.
       { path: 'rbac/role', redirect: '/auth/role' },
       { path: 'rbac/group', redirect: '/auth/group' },
