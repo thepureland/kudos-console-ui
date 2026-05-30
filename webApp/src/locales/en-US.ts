@@ -1309,7 +1309,7 @@ export default {
     placeholders: { subSysOrTenant: 'Tenant', roleCode: 'Role Code', roleName: 'Role Name' },
     common: { yes: 'Yes', no: 'No' },
     columns: { index: 'Row No.', roleCode: 'Role Code', roleName: 'Role Name', subSystemCode: 'Subsystem', remark: 'Remark', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
-    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', copy: 'Copy as new role', batchBindUsers: 'Batch bind users', activeOnly: 'Active Only', authorize: 'Authorize', user: 'User', assignUser: 'Assign User', viewUser: 'View User', builtInLocked: 'Built-in (cannot edit or delete)', builtInSkipped: '{n} built-in row(s) skipped (cannot be deleted)', deleteConfirmWithImpact: 'This role is currently bound to {users} user(s) and {groups} group(s). Deleting will unbind these. Continue?', batchDeleteConfirmWithImpact: 'Delete {n} role(s)? They are currently bound to {users} user(s) and {groups} group(s) (deduped). Continue?', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', copy: 'Copy as new role', dataScope: 'Data Scope', batchBindUsers: 'Batch bind users', activeOnly: 'Active Only', authorize: 'Authorize', user: 'User', assignUser: 'Assign User', viewUser: 'View User', builtInLocked: 'Built-in (cannot edit or delete)', builtInSkipped: '{n} built-in row(s) skipped (cannot be deleted)', deleteConfirmWithImpact: 'This role is currently bound to {users} user(s) and {groups} group(s). Deleting will unbind these. Continue?', batchDeleteConfirmWithImpact: 'Delete {n} role(s)? They are currently bound to {users} user(s) and {groups} group(s) (deduped). Continue?', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
   roleCopy: {
     title: 'Copy Role',
@@ -1376,6 +1376,27 @@ export default {
     cancel: 'Cancel',
     searchPlaceholder: 'Search by resource name',
     candidatesHint: 'Showing {shown} of {total} (refine your search if results are truncated)',
+  },
+  roleDataScope: {
+    title: 'Data Scope',
+    labels: { scope: 'Scope', orgs: 'Orgs' },
+    placeholders: { orgs: 'Pick the accessible organizations' },
+    scopes: {
+      ALL: 'All data',
+      ORG_AND_CHILD: 'Own org & sub-orgs',
+      ORG: 'Own org only',
+      SELF: 'Own data only',
+      CUSTOM: 'Custom orgs',
+    },
+    descriptions: {
+      ALL: 'No row restriction — holders see all data in the tenant.',
+      ORG_AND_CHILD: "Holders see data of their own organization and all its descendants.",
+      ORG: "Holders see only data of their own organization.",
+      SELF: 'Holders see only the rows they created.',
+      CUSTOM: 'Holders see data of the organizations you pick below.',
+    },
+    buttons: { cancel: 'Cancel', confirm: 'OK' },
+    messages: { success: 'Data scope updated', failed: 'Failed to update data scope' },
   },
   roleDetail: {
     title: 'Role Detail',

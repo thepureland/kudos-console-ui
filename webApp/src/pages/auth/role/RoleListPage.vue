@@ -280,6 +280,11 @@
                     <CopyDocument />
                   </el-icon>
                 </el-tooltip>
+                <el-tooltip :content="t('roleList.actions.dataScope')" placement="top" :enterable="false">
+                  <el-icon :size="20" class="operate-column-icon" @click="openDataScopeDialog(scope.row)">
+                    <Filter />
+                  </el-icon>
+                </el-tooltip>
                 <el-dropdown split-button size="small" type="primary" @command="(cmd) => authorize(cmd)" style="margin-right: 8px;">
                   {{ t('roleList.actions.authorize') }}
                   <template #dropdown>
@@ -356,6 +361,12 @@
       :rid="rid"
       @response="onCopyResponse"
     />
+    <role-data-scope-dialog
+      v-if="dataScopeDialogVisible"
+      v-model="dataScopeDialogVisible"
+      :rid="rid"
+      @response="onDataScopeResponse"
+    />
     <batch-bind-users-dialog
       v-if="batchBindUsersVisible"
       v-model="batchBindUsersVisible"
@@ -369,7 +380,7 @@
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
-import { CopyDocument, Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { CopyDocument, Delete, Edit, Filter, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { backendRequest, getApiResponseData, isApiSuccessResponse } from '../../../utils/backendRequest';
 import { useI18n } from 'vue-i18n';
@@ -380,6 +391,7 @@ import UserListDialog from './UserListDialog.vue';
 import UserAssignmentDialog from './UserAssignmentDialog.vue';
 import RoleResourceAssignmentDialog from './RoleResourceAssignmentDialog.vue';
 import RoleCopyDialog from './RoleCopyDialog.vue';
+import RoleDataScopeDialog from './RoleDataScopeDialog.vue';
 import BatchBindUsersDialog from '../_shared/BatchBindUsersDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
@@ -421,6 +433,7 @@ class RoleListPage extends TenantSupportListPage {
       resourceTypeDictCode: null as string | null,
       resourceTypeLabelKey: null as string | null,
       copyDialogVisible: false,
+      dataScopeDialogVisible: false,
       batchBindUsersVisible: false,
       /** Snapshot of selected rows at the moment the batch dialog opens (avoids drift if selection changes). */
       batchOwners: [] as Array<{ id: string; label: string }>,
@@ -444,6 +457,16 @@ class RoleListPage extends TenantSupportListPage {
 
   onCopyResponse(): void {
     // Refresh the list so the new role shows up immediately.
+    this.search();
+  }
+
+  openDataScopeDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.dataScopeDialogVisible = true;
+  }
+
+  onDataScopeResponse(): void {
+    // Refresh so the (potentially) changed scope is reflected in the row.
     this.search();
   }
 
@@ -598,8 +621,10 @@ export default defineComponent({
     UserListDialog,
     RoleResourceAssignmentDialog,
     RoleCopyDialog,
+    RoleDataScopeDialog,
     BatchBindUsersDialog,
     CopyDocument,
+    Filter,
     ListPageLayout,
     Edit,
     Delete,
