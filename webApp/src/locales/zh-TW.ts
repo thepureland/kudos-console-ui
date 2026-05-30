@@ -1309,7 +1309,7 @@ export default {
     placeholders: { subSysOrTenant: '租戶', roleCode: '角色編碼', roleName: '角色名稱' },
     common: { yes: '是', no: '否' },
     columns: { index: '行序', roleCode: '角色編碼', roleName: '角色名稱', subSystemCode: '子系統', remark: '備註', active: '啟用', createTime: '建立時間', operation: '操作' },
-    actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', copy: '複製為新角色', dataScope: '資料權限', batchBindUsers: '批次關聯用戶', activeOnly: '僅啟用', authorize: '授權', user: '用戶', assignUser: '關聯用戶', viewUser: '查看用戶', builtInLocked: '內建資料，不可編輯或刪除', builtInSkipped: '已跳過 {n} 條內建資料（不可刪除）', deleteConfirmWithImpact: '該角色目前關聯 {users} 個用戶、{groups} 個用戶組，刪除將解除這些關聯。確認刪除？', batchDeleteConfirmWithImpact: '將刪除 {n} 個角色（合計關聯 {users} 個用戶、{groups} 個用戶組，已去重）。確認？', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
+    actions: { search: '搜尋', reset: '重置', add: '新增', edit: '編輯', detail: '詳情', delete: '刪除', copy: '複製為新角色', dataScope: '資料權限', temporalGrant: '時效授權', purgeExpired: '清除過期', purgeExpiredConfirm: '確定刪除所有已過期的角色授權嗎？此操作不可恢復。', purgeExpiredDone: '已清除 {n} 條過期授權', purgeExpiredFailed: '清除過期授權失敗', batchBindUsers: '批次關聯用戶', activeOnly: '僅啟用', authorize: '授權', user: '用戶', assignUser: '關聯用戶', viewUser: '查看用戶', builtInLocked: '內建資料，不可編輯或刪除', builtInSkipped: '已跳過 {n} 條內建資料（不可刪除）', deleteConfirmWithImpact: '該角色目前關聯 {users} 個用戶、{groups} 個用戶組，刪除將解除這些關聯。確認刪除？', batchDeleteConfirmWithImpact: '將刪除 {n} 個角色（合計關聯 {users} 個用戶、{groups} 個用戶組，已去重）。確認？', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定', columnVisibility: '欄位可見性' },
   },
   roleCopy: {
     title: '複製角色',
@@ -1376,6 +1376,22 @@ export default {
     cancel: '取 消',
     searchPlaceholder: '依資源名稱搜尋',
     candidatesHint: '已顯示 {shown} / {total} 條，結果被截斷請細化搜尋',
+  },
+  roleTemporalGrant: {
+    title: '時效授權',
+    labels: { role: '角色', user: '用戶', startTime: '生效時間', endTime: '失效時間' },
+    placeholders: {
+      user: '搜尋並選擇用戶',
+      startTime: '為空表示立即生效',
+      endTime: '為空表示永不失效',
+    },
+    hint: '生效時間為空=立即生效；失效時間為空=永不失效。重複授權會替換原有時間窗口。',
+    validation: {
+      requiredUser: '請選擇用戶',
+      startAfterEnd: '生效時間不能晚於失效時間',
+    },
+    buttons: { cancel: '取消', confirm: '授權' },
+    messages: { success: '時效授權已儲存', failed: '儲存授權失敗' },
   },
   roleDataScope: {
     title: '資料權限',
