@@ -58,6 +58,11 @@
             <el-option v-for="r in roleFilterOptions" :key="r.id" :value="r.id" :label="r.label" />
           </el-select>
         </div>
+        <div class="toolbar-extra">
+          <el-checkbox v-model="mineOnly" class="mine-only-checkbox" @change="onMineOnlyChange">
+            {{ t('grantRequestList.actions.mineOnly') }}
+          </el-checkbox>
+        </div>
         <div class="toolbar-buttons">
           <el-button type="primary" round @click="search">
             <el-icon><Search /></el-icon>
@@ -183,6 +188,7 @@
 import { defineComponent, reactive, toRefs, ref, computed } from 'vue';
 import { Check, Close, Plus, RefreshLeft, Remove, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { AuthApiFactory } from 'shared';
 import { useI18n } from 'vue-i18n';
 import GrantRequestFormPage from './GrantRequestFormPage.vue';
 import GrantRequestDetailPage from './GrantRequestDetailPage.vue';
@@ -210,6 +216,7 @@ class GrantRequestListPage extends BaseListPage {
       searchParams: {
         status: null as string | null,
         roleId: null as string | null,
+        requesterId: null as string | null,
       },
     };
   }
@@ -297,6 +304,25 @@ export default defineComponent({
     }
     void searchRoleFilter('');
 
+    // -- "Mine Only" toggle: filter by the current logged-in user's requesterId --
+    const mineOnly = ref(false);
+    async function onMineOnlyChange(checked: boolean | string | number): Promise<void> {
+      const sp = listPage.state.searchParams as Record<string, unknown>;
+      if (checked) {
+        try {
+          const api = AuthApiFactory.getInstance().getAuthApi();
+          const me = await api.getMe();
+          sp.requesterId = (me as unknown as { id?: string })?.id ?? null;
+        } catch {
+          sp.requesterId = null;
+          mineOnly.value = false;
+        }
+      } else {
+        sp.requesterId = null;
+      }
+      listPage.search();
+    }
+
     // -- Submit dialog --
     const submitDialogVisible = ref(false);
     function openSubmitDialog(): void { submitDialogVisible.value = true; }
@@ -365,6 +391,8 @@ export default defineComponent({
       roleFilterOptions,
       roleFilterLoading,
       searchRoleFilter,
+      mineOnly,
+      onMineOnlyChange,
       submitDialogVisible,
       openSubmitDialog,
       detailDialogVisible,
@@ -418,5 +446,9 @@ export default defineComponent({
 }
 .grant-request-list-page :deep(.op-reject) {
   color: var(--el-color-danger);
+}
+.grant-request-list-page .mine-only-checkbox {
+  white-space: nowrap;
+  margin-left: 4px;
 }
 </style>

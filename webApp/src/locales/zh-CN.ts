@@ -1670,7 +1670,7 @@ export default {
     placeholders: { statusFilter: '按状态筛选', roleFilter: '按角色筛选' },
     status: { PENDING: '待审批', APPROVED: '已通过', REJECTED: '已驳回', CANCELLED: '已取消' },
     columns: { index: '序号', role: '角色', user: '用户', status: '状态', reason: '申请理由', requester: '申请人', requestTime: '申请时间', approver: '审批人', decisionComment: '审批意见', decisionTime: '审批时间', operation: '操作' },
-    actions: { search: '查询', reset: '重置', submit: '发起申请', detail: '详情', approve: '通过', reject: '驳回', cancel: '撤销申请', dismiss: '关闭', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置' },
+    actions: { search: '查询', reset: '重置', submit: '发起申请', detail: '详情', approve: '通过', reject: '驳回', cancel: '撤销申请', dismiss: '关闭', mineOnly: '我的申请', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置' },
     confirm: { cancelTitle: '撤销申请', cancelBody: '确定撤销这条待审批的授权申请吗？此操作不可恢复。' },
     messages: { cancelSuccess: '申请已撤销', cancelFailed: '撤销申请失败' },
   },

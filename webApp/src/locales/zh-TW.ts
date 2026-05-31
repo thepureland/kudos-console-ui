@@ -1669,7 +1669,7 @@ export default {
     placeholders: { statusFilter: '按狀態篩選', roleFilter: '按角色篩選' },
     status: { PENDING: '待審批', APPROVED: '已通過', REJECTED: '已駁回', CANCELLED: '已取消' },
     columns: { index: '序號', role: '角色', user: '用戶', status: '狀態', reason: '申請理由', requester: '申請人', requestTime: '申請時間', approver: '審批人', decisionComment: '審批意見', decisionTime: '審批時間', operation: '操作' },
-    actions: { search: '查詢', reset: '重置', submit: '發起申請', detail: '詳情', approve: '通過', reject: '駁回', cancel: '撤銷申請', dismiss: '關閉', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定' },
+    actions: { search: '查詢', reset: '重置', submit: '發起申請', detail: '詳情', approve: '通過', reject: '駁回', cancel: '撤銷申請', dismiss: '關閉', mineOnly: '我的申請', showOperationColumn: '顯示操作欄', hideOperationColumn: '隱藏操作欄', showColumnPanel: '顯示欄位設定', hideColumnPanel: '隱藏欄位設定' },
     confirm: { cancelTitle: '撤銷申請', cancelBody: '確定撤銷這條待審批的授權申請嗎？此操作不可恢復。' },
     messages: { cancelSuccess: '申請已撤銷', cancelFailed: '撤銷申請失敗' },
   },

@@ -1676,6 +1676,7 @@ export default {
     actions: {
       search: 'Search', reset: 'Reset', submit: 'New Request', detail: 'Detail',
       approve: 'Approve', reject: 'Reject', cancel: 'Cancel Request', dismiss: 'Dismiss',
+      mineOnly: 'My Requests',
       showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column',
       showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings',
     },
