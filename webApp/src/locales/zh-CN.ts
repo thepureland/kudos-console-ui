@@ -1312,8 +1312,9 @@ export default {
   roleList: {
     placeholders: { subSysOrTenant: '租户', roleCode: '角色编码', roleName: '角色名称' },
     common: { yes: '是', no: '否' },
-    columns: { index: '行序', roleCode: '角色编码', roleName: '角色名称', subSystemCode: '子系统', remark: '备注', active: '启用', createTime: '创建时间', operation: '操作' },
-    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', copy: '复制为新角色', dataScope: '数据权限', temporalGrant: '时效授权', purgeExpired: '清除过期', purgeExpiredConfirm: '确定删除所有已过期的角色授权吗？此操作不可恢复。', purgeExpiredDone: '已清除 {n} 条过期授权', purgeExpiredFailed: '清除过期授权失败', batchBindUsers: '批量关联用户', activeOnly: '仅启用', authorize: '授权', user: '用户', assignUser: '关联用户', viewUser: '查看用户', builtInLocked: '内置数据，不可编辑或删除', builtInSkipped: '已跳过 {n} 条内置数据（不可删除）', deleteConfirmWithImpact: '该角色当前关联 {users} 个用户、{groups} 个用户组，删除将解除这些关联。确认删除？', batchDeleteConfirmWithImpact: '将删除 {n} 个角色（合计关联 {users} 个用户、{groups} 个用户组，已去重）。确认？', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
+    columns: { index: '行序', roleCode: '角色编码', roleName: '角色名称', subSystemCode: '子系统', dataScope: '数据权限', remark: '备注', active: '启用', createTime: '创建时间', operation: '操作' },
+    dataScopes: { ALL: '全部', ORG_AND_CHILD: '本机构及子', ORG: '本机构', SELF: '本人', CUSTOM: '自定义' },
+    actions: { search: '搜索', reset: '重置', add: '添加', edit: '编辑', detail: '详情', delete: '删除', copy: '复制为新角色', dataScope: '数据权限', temporalGrant: '新建时效授权', temporalGrants: '查看授权', purgeExpired: '清除过期', purgeExpiredConfirm: '确定删除所有已过期的角色授权吗？此操作不可恢复。', purgeExpiredDone: '已清除 {n} 条过期授权', purgeExpiredFailed: '清除过期授权失败', batchBindUsers: '批量关联用户', activeOnly: '仅启用', authorize: '授权', user: '用户', assignUser: '关联用户', viewUser: '查看用户', builtInLocked: '内置数据，不可编辑或删除', builtInSkipped: '已跳过 {n} 条内置数据（不可删除）', deleteConfirmWithImpact: '该角色当前关联 {users} 个用户、{groups} 个用户组，删除将解除这些关联。确认删除？', batchDeleteConfirmWithImpact: '将删除 {n} 个角色（合计关联 {users} 个用户、{groups} 个用户组，已去重）。确认？', showOperationColumn: '显示操作列', hideOperationColumn: '隐藏操作列', showColumnPanel: '显示列设置', hideColumnPanel: '隐藏列设置', columnVisibility: '列可见性' },
   },
   roleCopy: {
     title: '复制角色',
@@ -1380,6 +1381,15 @@ export default {
     cancel: '取 消',
     searchPlaceholder: '按资源名称搜索',
     candidatesHint: '已显示 {shown} / {total} 条，结果被截断请细化搜索',
+  },
+  roleTemporalGrants: {
+    title: '时效授权列表',
+    close: '关闭',
+    empty: '该角色暂无时效授权记录。',
+    permanent: '—',
+    status: { active: '有效', expired: '已过期', future: '未生效' },
+    columns: { user: '用户', status: '状态', startTime: '生效时间', endTime: '失效时间', operation: '操作' },
+    actions: { regrant: '为此用户新建授权' },
   },
   roleTemporalGrant: {
     title: '时效授权',

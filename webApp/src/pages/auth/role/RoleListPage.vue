@@ -165,6 +165,34 @@
               </template>
             </el-table-column>
             <el-table-column
+              v-else-if="key === 'dataScope' && isColumnVisible('dataScope')"
+              prop="dataScope"
+              :min-width="columnWidths['dataScope'] ?? 130"
+              show-overflow-tooltip
+            >
+              <template #header>
+                <div
+                  class="column-header-draggable"
+                  data-column-key="dataScope"
+                  :class="{ 'is-dragging': columnDragKey === 'dataScope', 'is-drop-target': columnDropTargetKey === 'dataScope' }"
+                  draggable="true"
+                  @dragstart="onHeaderDragStart($event, 'dataScope')"
+                  @dragover="onHeaderDragOver($event, 'dataScope')"
+                  @drop="onHeaderDrop($event, 'dataScope')"
+                  @dragend="onHeaderDragEnd"
+                >{{ t('roleList.columns.dataScope') }}</div>
+              </template>
+              <template #default="scope">
+                <el-tag
+                  v-if="scope.row.dataScope && scope.row.dataScope !== 'ALL'"
+                  size="small"
+                  type="warning"
+                  disable-transitions
+                >{{ t(`roleList.dataScopes.${scope.row.dataScope}`) }}</el-tag>
+                <span v-else class="ds-all">{{ t('roleList.dataScopes.ALL') }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
               v-else-if="key === 'remark' && isColumnVisible('remark')"
               prop="remark"
               :min-width="columnWidths['remark'] ?? 140"
@@ -289,8 +317,8 @@
                     <Filter />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('roleList.actions.temporalGrant')" placement="top" :enterable="false">
-                  <el-icon :size="20" class="operate-column-icon" @click="openTemporalGrantDialog(scope.row)">
+                <el-tooltip :content="t('roleList.actions.temporalGrants')" placement="top" :enterable="false">
+                  <el-icon :size="20" class="operate-column-icon" @click="openTemporalGrantsDialog(scope.row)">
                     <Clock />
                   </el-icon>
                 </el-tooltip>
@@ -376,6 +404,14 @@
       :rid="rid"
       @response="onDataScopeResponse"
     />
+    <!-- View all grants for a role -->
+    <role-temporal-grants-dialog
+      v-if="temporalGrantsDialogVisible"
+      v-model="temporalGrantsDialogVisible"
+      :rid="rid"
+      @regrant="onRegrantFromView"
+    />
+    <!-- Grant form (opened from the view dialog or directly) -->
     <role-temporal-grant-dialog
       v-if="temporalGrantDialogVisible"
       v-model="temporalGrantDialogVisible"
@@ -408,6 +444,7 @@ import RoleResourceAssignmentDialog from './RoleResourceAssignmentDialog.vue';
 import RoleCopyDialog from './RoleCopyDialog.vue';
 import RoleDataScopeDialog from './RoleDataScopeDialog.vue';
 import RoleTemporalGrantDialog from './RoleTemporalGrantDialog.vue';
+import RoleTemporalGrantsDialog from './RoleTemporalGrantsDialog.vue';
 import BatchBindUsersDialog from '../_shared/BatchBindUsersDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
@@ -425,7 +462,7 @@ const {
   allColumnKeys: ALL_COLUMN_KEYS,
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
-} = createColumnVisibilityConfig(['roleName', 'subSystemCode', 'remark', 'active', 'createTime']);
+} = createColumnVisibilityConfig(['roleName', 'subSystemCode', 'dataScope', 'remark', 'active', 'createTime']);
 
 class RoleListPage extends TenantSupportListPage {
   constructor(props: PageProps, context: PageContext) {
@@ -450,6 +487,7 @@ class RoleListPage extends TenantSupportListPage {
       resourceTypeLabelKey: null as string | null,
       copyDialogVisible: false,
       dataScopeDialogVisible: false,
+      temporalGrantsDialogVisible: false,
       temporalGrantDialogVisible: false,
       batchBindUsersVisible: false,
       /** Snapshot of selected rows at the moment the batch dialog opens (avoids drift if selection changes). */
@@ -485,6 +523,11 @@ class RoleListPage extends TenantSupportListPage {
   onDataScopeResponse(): void {
     // Refresh so the (potentially) changed scope is reflected in the row.
     this.search();
+  }
+
+  openTemporalGrantsDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.temporalGrantsDialogVisible = true;
   }
 
   openTemporalGrantDialog(row: Record<string, unknown>): void {
@@ -651,6 +694,7 @@ export default defineComponent({
     RoleCopyDialog,
     RoleDataScopeDialog,
     RoleTemporalGrantDialog,
+    RoleTemporalGrantsDialog,
     BatchBindUsersDialog,
     CopyDocument,
     Filter,
@@ -711,12 +755,14 @@ export default defineComponent({
         getCellText:
           key === 'subSystemCode'
             ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSystemCode)
-            : key === 'roleName'
-              ? (row: Record<string, unknown>) => String(row.roleName ?? '')
-              : key === 'remark'
-                ? (row: Record<string, unknown>) => String(row.remark ?? '')
-                : key === 'createTime'
-                  ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
+            : key === 'dataScope'
+              ? (row: Record<string, unknown>) => String(row.dataScope ?? 'ALL')
+              : key === 'roleName'
+                ? (row: Record<string, unknown>) => String(row.roleName ?? '')
+                : key === 'remark'
+                  ? (row: Record<string, unknown>) => String(row.remark ?? '')
+                  : key === 'createTime'
+                    ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
                   : () => '',
       }))
     });
@@ -764,6 +810,14 @@ export default defineComponent({
       assign: (cmd: { item: number; row: Record<string, unknown> }) => listPage.assign(cmd),
       openDataScopeDialog: (row: Record<string, unknown>) => listPage.openDataScopeDialog(row),
       onDataScopeResponse: () => listPage.onDataScopeResponse(),
+      openTemporalGrantsDialog: (row: Record<string, unknown>) => listPage.openTemporalGrantsDialog(row),
+      onRegrantFromView: (userId: string) => {
+        // Keep rid pointing at the same role, open the grant form pre-populated in future state.
+        listPage.state.temporalGrantsDialogVisible = false;
+        listPage.state.temporalGrantDialogVisible = true;
+        // The grant form will pick up rid from state; pass userId hint via a brief state field.
+        (listPage.state as Record<string, unknown>)._regrantUserId = userId;
+      },
       openTemporalGrantDialog: (row: Record<string, unknown>) => listPage.openTemporalGrantDialog(row),
       onTemporalGrantResponse: () => listPage.onTemporalGrantResponse(),
       openCopyDialog: (row: Record<string, unknown>) => listPage.openCopyDialog(row),
@@ -891,5 +945,9 @@ export default defineComponent({
 }
 .role-list-page :deep(.operation-column-cell .el-dropdown) {
   flex-shrink: 0;
+}
+.role-list-page .ds-all {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
 }
 </style>

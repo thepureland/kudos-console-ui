@@ -1312,8 +1312,9 @@ export default {
   roleList: {
     placeholders: { subSysOrTenant: 'Tenant', roleCode: 'Role Code', roleName: 'Role Name' },
     common: { yes: 'Yes', no: 'No' },
-    columns: { index: 'Row No.', roleCode: 'Role Code', roleName: 'Role Name', subSystemCode: 'Subsystem', remark: 'Remark', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
-    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', copy: 'Copy as new role', dataScope: 'Data Scope', temporalGrant: 'Temporal Grant', purgeExpired: 'Purge Expired', purgeExpiredConfirm: 'Delete all expired role grants? This cannot be undone.', purgeExpiredDone: 'Purged {n} expired grant(s)', purgeExpiredFailed: 'Failed to purge expired grants', batchBindUsers: 'Batch bind users', activeOnly: 'Active Only', authorize: 'Authorize', user: 'User', assignUser: 'Assign User', viewUser: 'View User', builtInLocked: 'Built-in (cannot edit or delete)', builtInSkipped: '{n} built-in row(s) skipped (cannot be deleted)', deleteConfirmWithImpact: 'This role is currently bound to {users} user(s) and {groups} group(s). Deleting will unbind these. Continue?', batchDeleteConfirmWithImpact: 'Delete {n} role(s)? They are currently bound to {users} user(s) and {groups} group(s) (deduped). Continue?', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
+    columns: { index: 'Row No.', roleCode: 'Role Code', roleName: 'Role Name', subSystemCode: 'Subsystem', dataScope: 'Data Scope', remark: 'Remark', active: 'Active', createTime: 'Create Time', operation: 'Operation' },
+    dataScopes: { ALL: 'All', ORG_AND_CHILD: 'Org+Sub', ORG: 'Org', SELF: 'Self', CUSTOM: 'Custom' },
+    actions: { search: 'Search', reset: 'Reset', add: 'Add', edit: 'Edit', detail: 'Detail', delete: 'Delete', copy: 'Copy as new role', dataScope: 'Data Scope', temporalGrant: 'New Temporal Grant', temporalGrants: 'View Grants', purgeExpired: 'Purge Expired', purgeExpiredConfirm: 'Delete all expired role grants? This cannot be undone.', purgeExpiredDone: 'Purged {n} expired grant(s)', purgeExpiredFailed: 'Failed to purge expired grants', batchBindUsers: 'Batch bind users', activeOnly: 'Active Only', authorize: 'Authorize', user: 'User', assignUser: 'Assign User', viewUser: 'View User', builtInLocked: 'Built-in (cannot edit or delete)', builtInSkipped: '{n} built-in row(s) skipped (cannot be deleted)', deleteConfirmWithImpact: 'This role is currently bound to {users} user(s) and {groups} group(s). Deleting will unbind these. Continue?', batchDeleteConfirmWithImpact: 'Delete {n} role(s)? They are currently bound to {users} user(s) and {groups} group(s) (deduped). Continue?', showOperationColumn: 'Show Operation Column', hideOperationColumn: 'Hide Operation Column', showColumnPanel: 'Show Column Settings', hideColumnPanel: 'Hide Column Settings', columnVisibility: 'Column Visibility' },
   },
   roleCopy: {
     title: 'Copy Role',
@@ -1380,6 +1381,15 @@ export default {
     cancel: 'Cancel',
     searchPlaceholder: 'Search by resource name',
     candidatesHint: 'Showing {shown} of {total} (refine your search if results are truncated)',
+  },
+  roleTemporalGrants: {
+    title: 'Temporal Grants',
+    close: 'Close',
+    empty: 'No temporal grants for this role.',
+    permanent: '—',
+    status: { active: 'Active', expired: 'Expired', future: 'Pending' },
+    columns: { user: 'User', status: 'Status', startTime: 'Start', endTime: 'End', operation: 'Operation' },
+    actions: { regrant: 'New grant for this user' },
   },
   roleTemporalGrant: {
     title: 'Temporal Grant',
