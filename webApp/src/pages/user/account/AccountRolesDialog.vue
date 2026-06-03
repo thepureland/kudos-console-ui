@@ -46,6 +46,7 @@
 
 <script lang='ts'>
 import { computed, defineComponent, reactive, toRefs } from 'vue';
+import { tGlobal } from '../../../i18n';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
@@ -145,7 +146,7 @@ class AccountRolesDialog extends BaseDetailPage {
         const bindUrl = `${this.getRootActionPath()}/bindUsers?roleId=${encodeURIComponent(roleId)}`;
         const bindResult = await backendRequest({ url: bindUrl, method: 'post', params: [userId] as unknown as Record<string, unknown> });
         if (!isApiSuccessResponse(bindResult)) {
-          ElMessage.error(await resolveApiResponseMessage(bindResult) || getApiResponseMessage(bindResult) || 'Bind failed');
+          ElMessage.error(await resolveApiResponseMessage(bindResult) || getApiResponseMessage(bindResult) || tGlobal('assignmentCommon.bindFailed'));
           return;
         }
       }
@@ -156,11 +157,11 @@ class AccountRolesDialog extends BaseDetailPage {
           params: { roleId, userId },
         });
         if (!isApiSuccessResponse(unbindResult)) {
-          ElMessage.error(await resolveApiResponseMessage(unbindResult) || getApiResponseMessage(unbindResult) || 'Unbind failed');
+          ElMessage.error(await resolveApiResponseMessage(unbindResult) || getApiResponseMessage(unbindResult) || tGlobal('assignmentCommon.unbindFailed'));
           return;
         }
       }
-      ElMessage.success('Saved successfully');
+      ElMessage.success(tGlobal('assignmentCommon.saveSuccess'));
       this.context.emit('update:modelValue', false);
     } catch (err) {
       ElMessage.error(String(err));

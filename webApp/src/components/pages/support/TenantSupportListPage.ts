@@ -1,5 +1,6 @@
 import { ElMessage } from "element-plus"
 import { BaseListPage } from "../core/BaseListPage"
+import { tGlobal } from '../../../i18n';
 import { Pair } from "../../model/Pair"
 import { backendRequest, getApiResponseData } from "../../../utils/backendRequest"
 import type { SysMicroServiceCacheItem } from "../core/BasePage"
@@ -134,7 +135,7 @@ export abstract class TenantSupportListPage extends BaseListPage {
     protected parseSubSysOrTenant(): Pair | null {
         const subSysOrTenant = this.state.searchParams.subSysOrTenant
         if (this.isRequireSubSysOrTenantForSearch() && (subSysOrTenant == null || subSysOrTenant.length < 2)) {
-            ElMessage.error('Please select a subsystem and then a tenant first!')
+            ElMessage.error(tGlobal('listPage.selectSubSysTenantFirst'))
             return null
         }
         const pair = new Pair(null, null)

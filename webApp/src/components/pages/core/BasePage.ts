@@ -2,7 +2,7 @@ import { reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Pair } from "../../model/Pair";
 import { backendRequest, getApiResponseData, isApiSuccessResponse } from "../../../utils/backendRequest";
-import { dGlobal, loadMessagesForConfig } from "../../../i18n";
+import { dGlobal, loadMessagesForConfig, tGlobal } from "../../../i18n";
 import type { I18nLoadConfig } from "../../../i18n";
 import { DictService } from "./DictService";
 import type { PageContext, PageProps } from "./pageTypes";
@@ -129,7 +129,7 @@ export abstract class BasePage {
             this.state.atomicServiceList = list
         } else {
             if (!win.__kudosAtomicServices?.length && !isApiSuccessResponse(result)) {
-                ElMessage.error('Failed to load atomic service list')
+                ElMessage.error(tGlobal('listPage.atomicServiceLoadFailed'))
             }
             const fallback = win.__kudosAtomicServices ?? []
             this.atomicServiceList = fallback

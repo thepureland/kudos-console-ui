@@ -1,5 +1,6 @@
 import { BasePage } from "./BasePage"
 import { ElMessage } from "element-plus"
+import { tGlobal } from '../../../i18n';
 import { backendRequest, getApiResponseData, isApiSuccessResponse } from "../../../utils/backendRequest"
 
 export abstract class BaseDetailPage extends BasePage {
@@ -56,7 +57,7 @@ export abstract class BaseDetailPage extends BasePage {
         if (isApiSuccessResponse(result) && payload != null) {
             this.postLoadDataSuccessfully(payload)
         } else {
-            ElMessage.error('Failed to load data!')
+            ElMessage.error(tGlobal('listPage.loadDataFailed'))
         }
     }
 

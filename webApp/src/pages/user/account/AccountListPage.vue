@@ -260,7 +260,7 @@
                   :label="t('accountList.columns.operation')"
                   align="center"
                     fixed="right"
-                    min-width="340"
+                    min-width="420"
                     class-name="operation-column"
                 >
                   <template #header>
@@ -292,6 +292,24 @@
                       <el-button size="small" @click="openPermissionsDialog(scope.row)">
                         {{ t('accountList.actions.permissions') }}
                       </el-button>
+                      <el-dropdown trigger="click" @command="(cmd: string) => onSecurityCommand(cmd, scope.row)">
+                        <el-button size="small" type="warning">
+                          {{ t('accountSecurity.trigger') }}<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                        </el-button>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item command="toggleActive">
+                              {{ scope.row.active ? t('accountSecurity.menu.disable') : t('accountSecurity.menu.enable') }}
+                            </el-dropdown-item>
+                            <el-dropdown-item command="resetPassword" divided>{{ t('accountSecurity.menu.resetPassword') }}</el-dropdown-item>
+                            <el-dropdown-item command="resetSecurityPassword">{{ t('accountSecurity.menu.resetSecurityPassword') }}</el-dropdown-item>
+                            <el-dropdown-item command="resetAuthKey" divided>{{ t('accountSecurity.menu.resetAuthKey') }}</el-dropdown-item>
+                            <el-dropdown-item command="cleanAuthKey">{{ t('accountSecurity.menu.cleanAuthKey') }}</el-dropdown-item>
+                            <el-dropdown-item command="freeze" divided>{{ t('accountSecurity.menu.freeze') }}</el-dropdown-item>
+                            <el-dropdown-item command="unfreeze">{{ t('accountSecurity.menu.unfreeze') }}</el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
                     </div>
                   </template>
                 </el-table-column>
@@ -343,22 +361,32 @@
       v-model="permissionsDialogVisible"
       :rid="rid"
     />
+    <account-security-dialog
+      v-if="securityDialogVisible"
+      v-model="securityDialogVisible"
+      :rid="rid"
+      :username="securityUsername"
+      :mode="securityMode"
+      @response="search"
+    />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
-import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { tGlobal } from '../../../i18n';
+import { ArrowDown, Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import AccountFormPage from './AccountFormPage.vue';
 import AccountDetailPage from './AccountDetailPage.vue';
 import AccountRolesDialog from './AccountRolesDialog.vue';
 import AccountGroupsDialog from './AccountGroupsDialog.vue';
 import AccountEffectivePermissionsDialog from './AccountEffectivePermissionsDialog.vue';
+import AccountSecurityDialog from './AccountSecurityDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
-import { ElMessage } from 'element-plus';
-import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
 import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, createI18nColumnLabelGetter, useFixedLeftTableWidth, useFixedLeftRelayoutWatcher, useColumnOrderDrag } from '../../../components/pages/list';
 import { TenantSupportListPage } from '../../../components/pages/support';
@@ -397,6 +425,10 @@ class AccountListPage extends TenantSupportListPage {
       rolesDialogVisible: false,
       groupsDialogVisible: false,
       permissionsDialogVisible: false,
+      /** Security-operations dialog (reset password / 2FA / freeze) */
+      securityDialogVisible: false,
+      securityMode: '' as string,
+      securityUsername: '' as string,
       /** Subsystem / tenant pulled from the clicked row — separate from the toolbar cascader's selection. */
       rowSubSystemCode: null as string | null,
       rowTenantId: null as string | null,
@@ -420,6 +452,68 @@ class AccountListPage extends TenantSupportListPage {
   openPermissionsDialog(row: Record<string, unknown>): void {
     this.state.rid = this.getRowId(row);
     this.state.permissionsDialogVisible = true;
+  }
+
+  /** Dispatch the per-row security dropdown: input-driven ops open a dialog; the rest run inline after a confirm. */
+  onSecurityCommand(command: string, row: Record<string, unknown>): void {
+    switch (command) {
+      case 'toggleActive': void this.doToggleActive(row); break;
+      case 'cleanAuthKey': void this.doCleanAuthKey(row); break;
+      case 'unfreeze': void this.doUnfreeze(row); break;
+      case 'resetPassword':
+      case 'resetSecurityPassword':
+      case 'resetAuthKey':
+      case 'freeze':
+        this.openSecurityDialog(command, row);
+        break;
+    }
+  }
+
+  private openSecurityDialog(mode: string, row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.securityUsername = String(row.username ?? '');
+    this.state.securityMode = mode;
+    this.state.securityDialogVisible = true;
+  }
+
+  private async confirm(messageKey: string, name: string): Promise<boolean> {
+    const result = await ElMessageBox.confirm(
+      this.tr(messageKey, { name }),
+      this.tr('accountSecurity.confirm.title'),
+      {
+        confirmButtonText: this.tr('accountSecurity.confirm.confirmButton'),
+        cancelButtonText: this.tr('accountSecurity.confirm.cancelButton'),
+        type: 'warning',
+      },
+    ).catch((err) => err);
+    return result === 'confirm';
+  }
+
+  private async runSecurityAction(url: string, params: Record<string, unknown>, method: 'post' | 'put'): Promise<void> {
+    const result = await backendRequest({ url, method, params, paramsInQuery: true });
+    if (isApiSuccessResponse(result)) {
+      ElMessage.success(this.tr('accountSecurity.messages.success'));
+      this.search();
+    } else {
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || this.tr('accountSecurity.messages.failed'));
+    }
+  }
+
+  private async doToggleActive(row: Record<string, unknown>): Promise<void> {
+    const name = String(row.username ?? '');
+    const next = !row.active;
+    if (!await this.confirm(next ? 'accountSecurity.confirm.enable' : 'accountSecurity.confirm.disable', name)) return;
+    await this.runSecurityAction('user/account/updateActive', { id: this.getRowId(row), active: next }, 'put');
+  }
+
+  private async doCleanAuthKey(row: Record<string, unknown>): Promise<void> {
+    if (!await this.confirm('accountSecurity.confirm.cleanAuthKey', String(row.username ?? ''))) return;
+    await this.runSecurityAction('user/account/cleanAuthKey', { id: this.getRowId(row) }, 'post');
+  }
+
+  private async doUnfreeze(row: Record<string, unknown>): Promise<void> {
+    if (!await this.confirm('accountSecurity.confirm.unfreeze', String(row.username ?? ''))) return;
+    await this.runSecurityAction('user/account/unfreezeAccount', { id: this.getRowId(row) }, 'post');
   }
 
   /** Left org-tree node click: update the selected org and refresh the table */
@@ -474,14 +568,14 @@ class AccountListPage extends TenantSupportListPage {
     if (Array.isArray(payload)) {
       (this.state as Record<string, unknown>).organizations = payload;
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load the organization tree!');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.orgTreeLoadFailed'));
     }
   }
 }
 
 export default defineComponent({
   name: 'AccountListPage',
-  components: { AccountFormPage, AccountDetailPage, AccountRolesDialog, AccountGroupsDialog, AccountEffectivePermissionsDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { AccountFormPage, AccountDetailPage, AccountRolesDialog, AccountGroupsDialog, AccountEffectivePermissionsDialog, AccountSecurityDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus, ArrowDown },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
@@ -613,6 +707,7 @@ export default defineComponent({
       openRolesDialog: (row: Record<string, unknown>) => listPage.openRolesDialog(row),
       openGroupsDialog: (row: Record<string, unknown>) => listPage.openGroupsDialog(row),
       openPermissionsDialog: (row: Record<string, unknown>) => listPage.openPermissionsDialog(row),
+      onSecurityCommand: (cmd: string, row: Record<string, unknown>) => listPage.onSecurityCommand(cmd, row),
     };
   },
 });

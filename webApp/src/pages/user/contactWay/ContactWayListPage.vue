@@ -36,7 +36,6 @@
         </div>
       </template>
       <template #tableToolbar>
-        <el-button type="success" @click="openAddDialog"><el-icon><Plus /></el-icon>{{ t('contactWayList.actions.add') }}</el-button>
         <el-button type="danger" @click="multiDelete"><el-icon><Delete /></el-icon>{{ t('contactWayList.actions.delete') }}</el-button>
       </template>
       <template #columnVisibilityPanel>
@@ -66,9 +65,6 @@
             <template #header><div class="operation-column-hover-area">{{ t('contactWayList.columns.operation') }}</div></template>
             <template #default="scope">
               <div class="operation-column-hover-area">
-                <el-tooltip :content="t('contactWayList.actions.edit')" placement="top" :enterable="false">
-                  <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)"><Edit /></el-icon>
-                </el-tooltip>
                 <el-tooltip :content="t('contactWayList.actions.delete')" placement="top" :enterable="false">
                   <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)"><Delete /></el-icon>
                 </el-tooltip>
@@ -94,29 +90,19 @@
       </template>
     </list-page-layout>
 
-    <div v-if="hasFormEverOpened" v-show="formVisible">
-      <contact-way-form-page
-        :model-value="formVisible"
-        :rid="formRid"
-        :on-saved="handleFormSaved"
-        @update:modelValue="onFormClose"
-        @response="onFormResponse"
-      />
-    </div>
     <contact-way-detail-page v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref } from 'vue';
-import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { Delete, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
-import ContactWayFormPage from './ContactWayFormPage.vue';
 import ContactWayDetailPage from './ContactWayDetailPage.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { BaseListPage } from '../../../components/pages/core';
 import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
-import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useTableAutoWidthContext, useFixedLeftTableWidth, useFixedLeftRelayoutWatcher, useListPageVisibilityState } from '../../../components/pages/list';
+import { useListPageLayout, useValidationI18nCacheProvider, useTableAutoWidthContext, useFixedLeftTableWidth, useFixedLeftRelayoutWatcher, useListPageVisibilityState } from '../../../components/pages/list';
 import { ListPageLayout } from '../../../components/pages/ui';
 
 class ContactWayListPage extends BaseListPage {
@@ -148,10 +134,6 @@ class ContactWayListPage extends BaseListPage {
     }
     return params;
   }
-
-  protected getAfterAddSearchParamKeys(): string[] {
-    return ['userId', 'contactWayDictCode', 'contactWayValue'];
-  }
 }
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'contactWayList.operationColumnPinned';
@@ -165,16 +147,11 @@ const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 160;
 
 export default defineComponent({
   name: 'ContactWayListPage',
-  components: { ContactWayFormPage, ContactWayDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { ContactWayDetailPage, ListPageLayout, Delete, Tickets, Search, RefreshLeft },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
     const listPage = reactive(new ContactWayListPage(props, context)) as ContactWayListPage & { state: Record<string, unknown> };
-    const state = listPage.state as Record<string, unknown>;
-    const { formVisible, formRid, hasFormEverOpened, currentFormMode, onFormClose, onFormResponse } = useListPageFormSetup({ state, listPage, addHandlerName: 'doAfterAdd', editHandlerName: 'doAfterEdit' });
-    function handleFormSaved(params: Record<string, unknown>) {
-      (currentFormMode.value === 'add' ? listPage.doAfterAdd : listPage.doAfterEdit).call(listPage, params);
-    }
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted, visibleColumnKeys, columnVisibilityOptions } = useListPageLayout(listPage, {
       columnVisibility: {
         storageKey: COLUMN_VISIBILITY_STORAGE_KEY,
@@ -207,7 +184,6 @@ export default defineComponent({
       ...toRefs(listPage.state), ...toRefs(listPage),
       t, listLayoutRefs, tableRef, onTableWrapMounted,
       visibleColumnKeys, columnVisibilityOptions, isColumnVisible, columnWidths,
-      formVisible, formRid, hasFormEverOpened, onFormClose, onFormResponse, handleFormSaved,
     };
   },
 });

@@ -97,5 +97,48 @@
         "children": null
       }
     ]
+  },
+  {
+    "path": "/msg",
+    "name": "menu.msg",
+    "icon": "Message",
+    "children": [
+      {
+        "path": "/msg/template",
+        "name": "menu.msgTemplate",
+        "icon": "Document",
+        "children": null
+      },
+      {
+        "path": "/msg/instance",
+        "name": "menu.msgInstance",
+        "icon": "Tickets",
+        "children": null
+      },
+      {
+        "path": "/msg/send",
+        "name": "menu.msgSend",
+        "icon": "Promotion",
+        "children": null
+      },
+      {
+        "path": "/msg/receive",
+        "name": "menu.msgReceive",
+        "icon": "Message",
+        "children": null
+      },
+      {
+        "path": "/msg/unreceived",
+        "name": "menu.msgUnreceived",
+        "icon": "Warning",
+        "children": null
+      },
+      {
+        "path": "/msg/receiverGroup",
+        "name": "menu.msgReceiverGroup",
+        "icon": "UserFilled",
+        "children": null
+      }
+    ]
   }
 ]

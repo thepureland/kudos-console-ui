@@ -179,22 +179,31 @@
       </section>
     </el-form>
     <template #footer>
-      <div class="add-edit-dialog-footer">
-        <el-button @click="handleCloseRequest">{{ t('dataSourceAddEdit.buttons.cancel') }}</el-button>
-        <el-button type="primary" @click.prevent="handleSubmit">{{ t('dataSourceAddEdit.buttons.confirm') }}</el-button>
+      <div class="add-edit-dialog-footer datasource-footer">
+        <div class="datasource-footer-left">
+          <el-button :loading="testing" @click="testConnection">{{ t('dataSourceAddEdit.buttons.testConnection') }}</el-button>
+          <el-button @click="encryptPassword">{{ t('dataSourceAddEdit.buttons.encrypt') }}</el-button>
+        </div>
+        <div class="datasource-footer-right">
+          <el-button @click="handleCloseRequest">{{ t('dataSourceAddEdit.buttons.cancel') }}</el-button>
+          <el-button type="primary" @click.prevent="handleSubmit">{{ t('dataSourceAddEdit.buttons.confirm') }}</el-button>
+        </div>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import '../../../styles/add-edit-dialog-common.css';
 import type { PageContext, PageProps } from '../../../components/pages/core';
 import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent } from '../../../components/pages/form';
 import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 import { TenantSupportAddEditPage } from '../../../components/pages/support';
 import { useMicroserviceTreeOptions } from '../../../components/pages/integration';
+import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
 interface FormModel {
   name: string | null;
@@ -295,6 +304,7 @@ export default defineComponent({
   },
   emits: commonAddEditDialogEmits,
   setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    const { t } = useI18n();
     const { microserviceTree } = useMicroserviceTreeOptions();
     const setupReturn = useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new DataSourceFormPage(p, c),
@@ -308,11 +318,59 @@ export default defineComponent({
         });
       },
     });
-    return { ...setupReturn, microserviceTree };
+    const page = (setupReturn as unknown as { page: { state: { formModel: FormModel } } }).page;
+    const testing = ref(false);
+
+    /** Test the connection using the form's current url/username/password (before saving). */
+    async function testConnection(): Promise<void> {
+      const m = page.state.formModel;
+      if (!m?.url || !m?.username) { ElMessage.warning(t('dataSourceAddEdit.test.missingFields')); return; }
+      testing.value = true;
+      try {
+        const result = await backendRequest({ url: 'sys/dataSource/datasourceTest', method: 'post', params: { url: m.url, username: m.username, password: m.password ?? null } });
+        if (isApiSuccessResponse(result) && getApiResponseData<boolean>(result) === true) {
+          ElMessage.success(t('dataSourceAddEdit.test.success'));
+        } else {
+          ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || t('dataSourceAddEdit.test.failed'));
+        }
+      } catch {
+        ElMessage.error(t('dataSourceAddEdit.test.failed'));
+      } finally {
+        testing.value = false;
+      }
+    }
+
+    /** Encrypt the typed password (AES) and show the ciphertext for copying — does not modify the field. */
+    async function encryptPassword(): Promise<void> {
+      const plain = page.state.formModel?.password;
+      if (!plain) { ElMessage.warning(t('dataSourceAddEdit.encrypt.empty')); return; }
+      try {
+        const result = await backendRequest({ url: 'sys/dataSource/encrypt', method: 'post', params: { plain }, paramsInQuery: true });
+        const cipher = getApiResponseData<string>(result);
+        if (!isApiSuccessResponse(result) || !cipher) { ElMessage.error(t('dataSourceAddEdit.encrypt.failed')); return; }
+        await ElMessageBox.alert(String(cipher), t('dataSourceAddEdit.encrypt.title'), { confirmButtonText: 'OK', callback: () => {} });
+        try { await navigator.clipboard.writeText(String(cipher)); ElMessage.success(t('dataSourceAddEdit.encrypt.copied')); } catch { /* clipboard may be unavailable */ }
+      } catch {
+        ElMessage.error(t('dataSourceAddEdit.encrypt.failed'));
+      }
+    }
+
+    return { ...setupReturn, microserviceTree, t, testing, testConnection, encryptPassword };
   },
 });
 </script>
 
 <style scoped>
 /* Add data-source-specific overrides here; shared styles live in add-edit-dialog-common.css */
+.datasource-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.datasource-footer-left,
+.datasource-footer-right {
+  display: flex;
+  gap: 8px;
+}
 </style>

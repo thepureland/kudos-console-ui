@@ -42,6 +42,7 @@
 import { defineComponent, reactive, ref, toRefs } from 'vue';
 import { ElMessage, ElTree } from 'element-plus';
 import { useI18n } from 'vue-i18n';
+import { tGlobal } from '../../../i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
@@ -115,7 +116,7 @@ class MenuAuthorization extends BaseDetailPage {
     };
     const result = await backendRequest({ url: 'sys/resource/pagingSearch', method: 'post', params });
     if (!isApiSuccessResponse(result)) {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load menus');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.loadFailed'));
       return [];
     }
     const payload = getApiResponseData<{ data?: MenuNode[] } | MenuNode[]>(result);
@@ -187,7 +188,7 @@ class MenuAuthorization extends BaseDetailPage {
         const bindUrl = `${this.getRootActionPath()}/bindResources?roleId=${encodeURIComponent(this.props.rid)}`;
         const bindResult = await backendRequest({ url: bindUrl, method: 'post', params: toBind as unknown as Record<string, unknown> });
         if (!isApiSuccessResponse(bindResult)) {
-          ElMessage.error(await resolveApiResponseMessage(bindResult) || getApiResponseMessage(bindResult) || 'Authorization failed');
+          ElMessage.error(await resolveApiResponseMessage(bindResult) || getApiResponseMessage(bindResult) || tGlobal('assignmentCommon.authFailed'));
           return;
         }
       }
@@ -198,14 +199,14 @@ class MenuAuthorization extends BaseDetailPage {
           params: { roleId: this.props.rid, resourceId },
         });
         if (!isApiSuccessResponse(unbindResult)) {
-          ElMessage.error(await resolveApiResponseMessage(unbindResult) || getApiResponseMessage(unbindResult) || 'Authorization failed');
+          ElMessage.error(await resolveApiResponseMessage(unbindResult) || getApiResponseMessage(unbindResult) || tGlobal('assignmentCommon.authFailed'));
           return;
         }
       }
       ElMessage.success(this.tr('menuAuthorization.success'));
       this.context.emit('update:modelValue', false);
     } catch (err) {
-      ElMessage.error(String(err));
+      ElMessage.error(tGlobal('assignmentCommon.opFailed'));
     }
   }
 

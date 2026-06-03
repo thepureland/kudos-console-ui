@@ -28,6 +28,7 @@ export class ValidationRuleAdapter {
     private static messageInterpolationKeys = [
         'min', 'max', 'value', 'integer', 'fraction', 'regexp', 'size', 'step', 'type', 'inclusive',
         'anotherProperty', 'logic', 'host', 'port', 'protocol',
+        'days', 'hours', 'minutes', 'seconds', 'millis', 'nanos',
     ] as const
 
     private static buildMessageInterpolationParams(detail: Record<string, unknown> | null | undefined): Record<string, unknown> | undefined {
@@ -191,10 +192,10 @@ export class ValidationRuleAdapter {
                 this.futureOrPresent(propName, ruleDetails, rule)
                 break
             case "DurationMin":
-                //TODO
+                this.durationMin(propName, ruleDetails, rule)
                 break
             case "DurationMax":
-                //TODO
+                this.durationMax(propName, ruleDetails, rule)
                 break
             case "DecimalMin":
                 this.decimalMin(propName, ruleDetails, rule)
@@ -224,7 +225,7 @@ export class ValidationRuleAdapter {
                 this.luhnCheck(propName, ruleDetails, rule)
                 break
             case "Currency":
-                //TODO
+                this.currency(propName, ruleDetails, rule)
                 break
             case "EAN":
                 this.ean(propName, ruleDetails, rule)
@@ -242,7 +243,7 @@ export class ValidationRuleAdapter {
                 this.isbn(propName, ruleDetails, rule)
                 break
             case "ParameterScriptAssert":
-                //TODO
+                this.parameterScriptAssert(propName, ruleDetails, rule)
                 break
             case "URL":
                 this.url(propName, ruleDetails, rule)
@@ -471,6 +472,94 @@ export class ValidationRuleAdapter {
     private futureOrPresent(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "date"
         rule["validator"] = (rule: any, value: any) => value == null || value >= new Date()
+    }
+
+    /**
+     * DurationMin constraint: the Duration value must be longer than (or equal to, when inclusive) the
+     * configured threshold. Lenient: an empty or non-ISO-8601 value defers to backend validation.
+     */
+    private durationMin(propName: string, ruleDetails: Array<any>, rule: any) {
+        rule["validator"] = (_rule: any, value: any) => {
+            if (this.isEmpty(value)) return true
+            const ms = this.parseDurationToMillis(value)
+            if (ms == null) return true
+            const inclusive = ruleDetails[0]["inclusive"] !== false
+            const threshold = this.durationDetailToMillis(ruleDetails[0])
+            return inclusive ? ms >= threshold : ms > threshold
+        }
+    }
+
+    /**
+     * DurationMax constraint: the Duration value must be shorter than (or equal to, when inclusive) the
+     * configured threshold. Lenient: an empty or non-ISO-8601 value defers to backend validation.
+     */
+    private durationMax(propName: string, ruleDetails: Array<any>, rule: any) {
+        rule["validator"] = (_rule: any, value: any) => {
+            if (this.isEmpty(value)) return true
+            const ms = this.parseDurationToMillis(value)
+            if (ms == null) return true
+            const inclusive = ruleDetails[0]["inclusive"] !== false
+            const threshold = this.durationDetailToMillis(ruleDetails[0])
+            return inclusive ? ms <= threshold : ms < threshold
+        }
+    }
+
+    /** Sum a DurationMin/Max ruleDetail's {days,hours,minutes,seconds,millis,nanos} into milliseconds. */
+    private durationDetailToMillis(d: Record<string, any>): number {
+        const num = (k: string) => {
+            const n = Number(d?.[k])
+            return Number.isFinite(n) ? n : 0
+        }
+        return num('days') * 86400000 + num('hours') * 3600000 + num('minutes') * 60000
+            + num('seconds') * 1000 + num('millis') + num('nanos') / 1e6
+    }
+
+    /** Parse an ISO-8601 duration string (e.g. PT1H30M, P2DT3H, PT0.5S) into milliseconds; null if not parseable. */
+    private parseDurationToMillis(value: any): number | null {
+        if (!this.isString(value)) return null
+        const m = String(value).trim().match(/^([+-]?)P(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i)
+        if (!m || (m[2] == null && m[3] == null && m[4] == null && m[5] == null)) return null
+        const sign = m[1] === '-' ? -1 : 1
+        const days = Number(m[2] || 0), hours = Number(m[3] || 0), minutes = Number(m[4] || 0), seconds = Number(m[5] || 0)
+        return sign * (days * 86400000 + hours * 3600000 + minutes * 60000 + seconds * 1000)
+    }
+
+    /**
+     * Currency constraint: the monetary value's ISO-4217 currency code must be one of the accepted codes.
+     * Lenient: an empty value, an empty accepted list, or a value whose currency can't be determined
+     * client-side defers to backend validation.
+     */
+    private currency(propName: string, ruleDetails: Array<any>, rule: any) {
+        rule["validator"] = (_rule: any, value: any) => {
+            if (this.isEmpty(value)) return true
+            const accepted = ruleDetails[0]["value"]
+            if (!Array.isArray(accepted) || accepted.length === 0) return true
+            const code = this.extractCurrencyCode(value)
+            if (code == null) return true
+            return accepted.map((c: any) => String(c).toUpperCase()).indexOf(code.toUpperCase()) !== -1
+        }
+    }
+
+    /** Best-effort ISO-4217 code extraction: a 3-letter string, or an object carrying currency/currencyCode/code. */
+    private extractCurrencyCode(value: any): string | null {
+        if (this.isString(value)) {
+            const t = String(value).trim()
+            return /^[A-Za-z]{3}$/.test(t) ? t : null
+        }
+        if (value && typeof value === 'object') {
+            const c = value.currency ?? value.currencyCode ?? value.code
+            if (typeof c === 'string' && /^[A-Za-z]{3}$/.test(c.trim())) return c.trim()
+        }
+        return null
+    }
+
+    /**
+     * ParameterScriptAssert is a server-side, method-level (cross-parameter) script constraint; it can't be
+     * meaningfully evaluated against a single form field in the browser, so it defers entirely to backend
+     * validation (explicit pass-through rather than a dangling no-op rule).
+     */
+    private parameterScriptAssert(propName: string, ruleDetails: Array<any>, rule: any) {
+        rule["validator"] = () => true
     }
 
     /** DecimalMin constraint; target type must be number. */

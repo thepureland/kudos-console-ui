@@ -6,7 +6,7 @@
         <template #header>
           <div class="login-header">
             <h1 class="login-title">Kudos Console</h1>
-            <p class="login-subtitle">Please sign in</p>
+            <p class="login-subtitle">{{ t('login.subtitle') }}</p>
           </div>
         </template>
 
@@ -18,10 +18,10 @@
           class="login-form"
           @submit.prevent="handleSubmit"
         >
-          <el-form-item label="Username" prop="username">
+          <el-form-item :label="t('login.username')" prop="username">
             <el-input
               v-model="form.username"
-              placeholder="Please enter your username"
+              :placeholder="t('login.usernamePlaceholder')"
               size="large"
               clearable
               :prefix-icon="User"
@@ -30,11 +30,11 @@
             />
           </el-form-item>
 
-          <el-form-item label="Password" prop="password">
+          <el-form-item :label="t('login.password')" prop="password">
             <el-input
               v-model="form.password"
               type="password"
-              placeholder="Please enter your password"
+              :placeholder="t('login.passwordPlaceholder')"
               size="large"
               show-password
               clearable
@@ -44,11 +44,11 @@
             />
           </el-form-item>
 
-          <el-form-item label="Verification code" prop="totpCode">
+          <el-form-item :label="t('login.totp')" prop="totpCode">
             <el-input
               ref="totpInputRef"
               v-model="form.totpCode"
-              placeholder="Please enter the 6-digit code"
+              :placeholder="t('login.totpPlaceholder')"
               size="large"
               clearable
               :prefix-icon="Key"
@@ -58,7 +58,7 @@
               autocomplete="one-time-code"
               @keyup.enter="handleSubmit"
             />
-            <div class="totp-tip">Please use the 6-digit one-time code from an app like Google Authenticator</div>
+            <div class="totp-tip">{{ t('login.totpTip') }}</div>
           </el-form-item>
 
           <el-form-item>
@@ -69,7 +69,7 @@
               :loading="loading"
               native-type="submit"
             >
-              {{ loading ? 'Signing in...' : 'Sign in' }}
+              {{ loading ? t('login.signingIn') : t('login.signIn') }}
             </el-button>
           </el-form-item>
         </el-form>
@@ -82,6 +82,7 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
+import { useI18n } from 'vue-i18n';
 import { User, Lock, Key } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
@@ -89,6 +90,7 @@ import { LoginRequest, AuthApiFactory } from 'shared';
 import RainEffect from './RainEffect.vue';
 import './Login.css';
 
+const { t } = useI18n();
 const router = useRouter();
 const store = useStore();
 
@@ -103,17 +105,17 @@ const form = reactive({
 
 const rules: FormRules = {
   username: [
-    { required: true, message: 'Please enter your username', trigger: 'blur' },
-    { min: 2, message: 'Username must be at least 2 characters', trigger: 'blur' },
+    { required: true, message: t('login.validation.requiredUsername'), trigger: 'blur' },
+    { min: 2, message: t('login.validation.usernameMin'), trigger: 'blur' },
   ],
   password: [
-    { required: true, message: 'Please enter your password', trigger: 'blur' },
-    { min: 6, message: 'Password must be at least 6 characters', trigger: 'blur' },
+    { required: true, message: t('login.validation.requiredPassword'), trigger: 'blur' },
+    { min: 6, message: t('login.validation.passwordMin'), trigger: 'blur' },
   ],
   totpCode: [
-    { required: true, message: 'Please enter your Google Authenticator code', trigger: 'blur' },
-    { len: 6, message: 'Verification code must be 6 digits', trigger: 'blur' },
-    { pattern: /^\d{6}$/, message: 'Verification code must be 6 digits', trigger: 'blur' },
+    { required: true, message: t('login.validation.requiredTotp'), trigger: 'blur' },
+    { len: 6, message: t('login.validation.totpLen'), trigger: 'blur' },
+    { pattern: /^\d{6}$/, message: t('login.validation.totpLen'), trigger: 'blur' },
   ],
 };
 
@@ -149,10 +151,10 @@ async function doLogin() {
     const api = AuthApiFactory.getInstance().getAuthApi();
     await api.login(request);
     store.commit('setAuthenticated', true);
-    ElMessage.success('Login successful');
+    ElMessage.success(t('login.loginSuccess'));
     await router.push('/home');
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Login failed';
+    const msg = e instanceof Error ? e.message : t('login.loginFailed');
     ElMessage.error(msg);
   } finally {
     loading.value = false;

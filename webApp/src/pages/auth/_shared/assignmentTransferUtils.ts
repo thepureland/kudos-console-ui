@@ -21,6 +21,7 @@ import {
     isApiSuccessResponse,
     resolveApiResponseMessage,
 } from "../../../utils/backendRequest"
+import { tGlobal } from '../../../i18n';
 import { ElMessage } from "element-plus"
 
 export interface TransferItem {
@@ -113,7 +114,7 @@ export async function searchCandidates(opts: SearchCandidatesOptions): Promise<S
         ElMessage.error(
             (await resolveApiResponseMessage(result)) ||
                 getApiResponseMessage(result) ||
-                "Failed to load candidates",
+                tGlobal('listPage.loadFailed'),
         )
         return { items: [], totalCount: 0 }
     }

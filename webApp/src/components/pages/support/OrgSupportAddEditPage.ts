@@ -1,5 +1,6 @@
 import { ElMessage } from "element-plus"
 import { TenantSupportAddEditPage } from "./TenantSupportAddEditPage"
+import { tGlobal } from '../../../i18n';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from "../../../utils/backendRequest"
 
 
@@ -91,7 +92,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
             if (Array.isArray(payload)) {
                 resolve(payload)
             } else {
-                ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load the organization tree!')
+                ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.orgTreeLoadFailed'))
             }
         }
     }

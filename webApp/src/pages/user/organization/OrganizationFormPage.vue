@@ -79,6 +79,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
+import { tGlobal } from '../../../i18n';
 import { ElMessage } from 'element-plus';
 import { Pair } from '../../../components/model/Pair';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
@@ -170,7 +171,7 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     if (Array.isArray(payload)) {
       this.state.organizationTree = payload;
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load the organization tree!');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.orgTreeLoadFailed'));
       this.state.organizationTree = [];
     }
     this.state.formModel.parent = [];

@@ -51,6 +51,7 @@
 import { computed, defineComponent, reactive, ref, toRefs } from 'vue';
 import { ElMessage, type FormInstance } from 'element-plus';
 import { useI18n } from 'vue-i18n';
+import { tGlobal } from '../../../i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
@@ -167,7 +168,7 @@ export default defineComponent({
         context.emit('response', { id: newId });
         context.emit('update:modelValue', false);
       } catch (err) {
-        ElMessage.error(String(err));
+        ElMessage.error(tGlobal('assignmentCommon.opFailed'));
       } finally {
         dialog.state.submitting = false;
       }

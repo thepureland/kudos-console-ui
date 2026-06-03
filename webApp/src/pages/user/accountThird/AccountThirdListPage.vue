@@ -63,9 +63,6 @@
         </div>
       </template>
       <template #tableToolbar>
-        <el-button type="success" @click="openAddDialog">
-          <el-icon><Plus /></el-icon>{{ t('accountThirdList.actions.add') }}
-        </el-button>
         <el-button type="danger" @click="multiDelete">
           <el-icon><Delete /></el-icon>{{ t('accountThirdList.actions.delete') }}
         </el-button>
@@ -114,9 +111,6 @@
             <template #header><div class="operation-column-hover-area">{{ t('accountThirdList.columns.operation') }}</div></template>
             <template #default="scope">
               <div class="operation-column-hover-area">
-                <el-tooltip :content="t('accountThirdList.actions.edit')" placement="top" :enterable="false">
-                  <el-icon :size="20" class="operate-column-icon" @click="handleEdit(scope.row)"><Edit /></el-icon>
-                </el-tooltip>
                 <el-tooltip :content="t('accountThirdList.actions.delete')" placement="top" :enterable="false">
                   <el-icon :size="20" class="operate-column-icon" @click="handleDelete(scope.row)"><Delete /></el-icon>
                 </el-tooltip>
@@ -142,29 +136,19 @@
       </template>
     </list-page-layout>
 
-    <div v-if="hasFormEverOpened" v-show="formVisible">
-      <account-third-form-page
-        :model-value="formVisible"
-        :rid="formRid"
-        :on-saved="handleFormSaved"
-        @update:modelValue="onFormClose"
-        @response="onFormResponse"
-      />
-    </div>
     <account-third-detail-page v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref } from 'vue';
-import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { Delete, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
-import AccountThirdFormPage from './AccountThirdFormPage.vue';
 import AccountThirdDetailPage from './AccountThirdDetailPage.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { BaseListPage } from '../../../components/pages/core';
 import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
-import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useTableAutoWidthContext, useFixedLeftTableWidth, useFixedLeftRelayoutWatcher, useListPageVisibilityState } from '../../../components/pages/list';
+import { useListPageLayout, useValidationI18nCacheProvider, useTableAutoWidthContext, useFixedLeftTableWidth, useFixedLeftRelayoutWatcher, useListPageVisibilityState } from '../../../components/pages/list';
 import { ListPageLayout } from '../../../components/pages/ui';
 
 class AccountThirdListPage extends BaseListPage {
@@ -196,10 +180,6 @@ class AccountThirdListPage extends BaseListPage {
     }
     return params;
   }
-
-  protected getAfterAddSearchParamKeys(): string[] {
-    return ['userId', 'accountProviderDictCode', 'subject'];
-  }
 }
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'accountThirdList.operationColumnPinned';
@@ -213,16 +193,11 @@ const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 160;
 
 export default defineComponent({
   name: 'AccountThirdListPage',
-  components: { AccountThirdFormPage, AccountThirdDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { AccountThirdDetailPage, ListPageLayout, Delete, Tickets, Search, RefreshLeft },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
     const listPage = reactive(new AccountThirdListPage(props, context)) as AccountThirdListPage & { state: Record<string, unknown> };
-    const state = listPage.state as Record<string, unknown>;
-    const { formVisible, formRid, hasFormEverOpened, currentFormMode, onFormClose, onFormResponse } = useListPageFormSetup({ state, listPage, addHandlerName: 'doAfterAdd', editHandlerName: 'doAfterEdit' });
-    function handleFormSaved(params: Record<string, unknown>) {
-      (currentFormMode.value === 'add' ? listPage.doAfterAdd : listPage.doAfterEdit).call(listPage, params);
-    }
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted, visibleColumnKeys, columnVisibilityOptions } = useListPageLayout(listPage, {
       columnVisibility: {
         storageKey: COLUMN_VISIBILITY_STORAGE_KEY,
@@ -255,7 +230,6 @@ export default defineComponent({
       ...toRefs(listPage.state), ...toRefs(listPage),
       t, listLayoutRefs, tableRef, onTableWrapMounted,
       visibleColumnKeys, columnVisibilityOptions, isColumnVisible, columnWidths,
-      formVisible, formRid, hasFormEverOpened, onFormClose, onFormResponse, handleFormSaved,
     };
   },
 });

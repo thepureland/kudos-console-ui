@@ -67,6 +67,7 @@
 import { defineComponent, ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
+import { tGlobal } from '../../../i18n';
 import '../../../styles/add-edit-dialog-common.css';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
@@ -166,7 +167,7 @@ export default defineComponent({
         context.emit('response');
         context.emit('update:modelValue', false);
       } catch (err) {
-        ElMessage.error(String(err));
+        ElMessage.error(tGlobal('assignmentCommon.opFailed'));
       } finally {
         submitting.value = false;
       }

@@ -14,6 +14,7 @@
 
 <script lang="ts">
 import { defineComponent, reactive } from 'vue';
+import { tGlobal } from '../../../i18n';
 import {
   type FieldConfig,
   type SectionConfig,
@@ -81,7 +82,7 @@ class DomainDetailPage extends BaseDetailPage {
     if (payload != null && typeof payload === 'object' && !Array.isArray(payload)) {
       this.postLoadDataSuccessfully(payload);
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load data!');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.loadDataFailed'));
     }
   }
 

@@ -207,7 +207,7 @@
             v-if="showOperationColumn"
             :label="t('organizationList.columns.operation')"
             align="center"
-            min-width="68"
+            min-width="92"
             class-name="operation-column"
             label-class-name="operation-column"
           >
@@ -231,6 +231,11 @@
                     <Tickets />
                   </el-icon>
                 </el-tooltip>
+                <el-tooltip :content="t('organizationList.actions.move')" placement="top" :enterable="false">
+                  <el-icon :size="20" class="operate-column-icon" @click="openMoveDialog(scope.row)">
+                    <Rank />
+                  </el-icon>
+                </el-tooltip>
               </div>
             </template>
           </el-table-column>
@@ -251,6 +256,16 @@
       />
     </div>
     <OrganizationDetailPage v-if="detailDialogVisible" v-model="detailDialogVisible" :rid="rid" />
+    <org-move-dialog
+      v-if="moveDialogVisible"
+      v-model="moveDialogVisible"
+      :rid="moveRid"
+      :sub-system-code="subSystemCode"
+      :tenant-id="tenantId"
+      :current-parent-id="moveParentId"
+      :current-sort-num="moveSortNum"
+      @response="search"
+    />
   </div>
 </template>
 
@@ -258,9 +273,10 @@
 import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { Delete, Edit, Plus, Rank, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import OrganizationFormPage from './OrganizationFormPage.vue';
 import OrganizationDetailPage from './OrganizationDetailPage.vue';
+import OrgMoveDialog from './OrgMoveDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
 import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
@@ -301,7 +317,19 @@ class OrganizationListPage extends TenantSupportListPage {
         subSysOrTenant: null as string[] | null,
         active: true,
       },
+      moveDialogVisible: false,
+      moveRid: '' as string,
+      moveParentId: null as string | null,
+      moveSortNum: 0 as number,
     };
+  }
+
+  /** Open the move dialog for a row (reparent / reorder via moveOrg). */
+  openMoveDialog(row: Record<string, unknown>): void {
+    this.state.moveRid = this.getRowId(row);
+    this.state.moveParentId = (row.parentId ?? null) as string | null;
+    this.state.moveSortNum = typeof row.seqNo === 'number' ? row.seqNo : Number(row.seqNo ?? 0) || 0;
+    this.state.moveDialogVisible = true;
   }
 
   protected getRootActionPath(): string {
@@ -348,7 +376,7 @@ class OrganizationListPage extends TenantSupportListPage {
 
 export default defineComponent({
   name: 'OrganizationListPage',
-  components: { OrganizationFormPage, OrganizationDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { OrganizationFormPage, OrganizationDetailPage, OrgMoveDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus, Rank },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
@@ -452,6 +480,7 @@ export default defineComponent({
       onTableDrop,
       showOperationColumn,
       onTableWrapMounted,
+      openMoveDialog: (row: Record<string, unknown>) => listPage.openMoveDialog(row),
     };
   },
 });

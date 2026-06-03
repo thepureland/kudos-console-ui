@@ -54,6 +54,7 @@
 import { computed, defineComponent, reactive, toRefs } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
+import { tGlobal } from '../../../i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import {
@@ -153,7 +154,7 @@ class RoleResourceAssignmentDialog extends BaseDetailPage {
         const bindUrl = `${this.getRootActionPath()}/bindResources?roleId=${encodeURIComponent(this.props.rid)}`;
         const bindResult = await backendRequest({ url: bindUrl, method: 'post', params: toBind as unknown as Record<string, unknown> });
         if (!isApiSuccessResponse(bindResult)) {
-          ElMessage.error(await resolveApiResponseMessage(bindResult) || getApiResponseMessage(bindResult) || 'Bind failed');
+          ElMessage.error(await resolveApiResponseMessage(bindResult) || getApiResponseMessage(bindResult) || tGlobal('assignmentCommon.bindFailed'));
           return;
         }
       }
@@ -164,14 +165,14 @@ class RoleResourceAssignmentDialog extends BaseDetailPage {
           params: { roleId: this.props.rid, resourceId },
         });
         if (!isApiSuccessResponse(unbindResult)) {
-          ElMessage.error(await resolveApiResponseMessage(unbindResult) || getApiResponseMessage(unbindResult) || 'Unbind failed');
+          ElMessage.error(await resolveApiResponseMessage(unbindResult) || getApiResponseMessage(unbindResult) || tGlobal('assignmentCommon.unbindFailed'));
           return;
         }
       }
-      ElMessage.success('Saved successfully');
+      ElMessage.success(tGlobal('assignmentCommon.saveSuccess'));
       this.context.emit('update:modelValue', false);
     } catch (err) {
-      ElMessage.error(String(err));
+      ElMessage.error(tGlobal('assignmentCommon.opFailed'));
     }
   }
 

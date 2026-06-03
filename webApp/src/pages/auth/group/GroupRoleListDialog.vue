@@ -49,6 +49,7 @@
 
 <script lang='ts'>
 import { defineComponent, reactive, toRefs } from 'vue';
+import { tGlobal } from '../../../i18n';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
@@ -103,7 +104,7 @@ class GroupRoleListDialog extends BaseDetailPage {
     };
     const result = await backendRequest({ url: 'auth/role/pagingSearch', method: 'post', params });
     if (!isApiSuccessResponse(result)) {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || 'Failed to load roles');
+      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.loadFailed'));
       return [];
     }
     const payload = getApiResponseData<{ data?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>>(result);
