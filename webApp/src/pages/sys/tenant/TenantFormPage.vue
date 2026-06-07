@@ -140,13 +140,18 @@ class TenantFormPage extends BaseAddEditPage {
     }
   }
 
-  /** When back-filling, support either subSystemCodes (array) or subSystemCode (single value) from the backend */
+  /**
+   * Back-fill the form from the loaded row object.
+   * The backend may return either an array (`subSystemCodes`) or a legacy
+   * single-value field (`subSystemCode`) — both are normalised to string[].
+   */
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
     const fm = this.state.formModel as FormModel;
     if (Array.isArray(rowObject.subSystemCodes)) {
       fm.subSystemCodes = (rowObject.subSystemCodes as unknown[]).map((x) => String(x ?? '')).filter((c) => c !== '');
     } else if (rowObject.subSystemCode != null && rowObject.subSystemCode !== '') {
+      // Legacy single-code field — wrap in array for the multi-select
       fm.subSystemCodes = [String(rowObject.subSystemCode)];
     }
   }

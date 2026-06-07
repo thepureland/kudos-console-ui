@@ -123,7 +123,7 @@ export default defineComponent({
         context.emit('response');
         context.emit('update:modelValue', false);
       } catch (err) {
-        ElMessage.error(String(err) || t('organizationMove.messages.failed'));
+        ElMessage.error((err instanceof Error ? err.message : String(err)) || t('organizationMove.messages.failed'));
       } finally {
         submitting.value = false;
       }

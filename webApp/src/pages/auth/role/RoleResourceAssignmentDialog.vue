@@ -56,7 +56,7 @@ import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { tGlobal } from '../../../i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
-import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import {
   type TransferItem,
   debounce,
@@ -186,7 +186,8 @@ class RoleResourceAssignmentDialog extends BaseDetailPage {
 
   protected convertThis(): void {
     super.convertThis();
-    this.submit = () => { this.doSubmit(); };
+    // Wrap async methods for template binding; `void` discards the promise (errors are handled inside).
+    this.submit = () => { void this.doSubmit(); };
     this.filterMethod = (query: string, item: TransferItem) => this.doFilter(query, item);
   }
 }

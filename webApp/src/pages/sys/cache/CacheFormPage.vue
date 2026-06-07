@@ -248,6 +248,8 @@ type StrategyOption = { first: string; second: string };
 class CacheFormPage extends BaseAddEditPage {
   constructor(props: PageProps, context: PageContext) {
     super(props, context);
+    // When the parent list page passes `atomicServiceList` in as a prop, reuse it to
+    // avoid a redundant API call; fall back to the base-class loader when it's absent.
     const list = (props as { atomicServiceList?: SysMicroServiceCacheItem[] }).atomicServiceList;
     if (Array.isArray(list) && list.length > 0) {
       this.atomicServiceList = list;
@@ -316,7 +318,12 @@ export default defineComponent({
   components: { WarningFilled },
   props: {
     ...commonAddEditDialogProps,
-    /** Atomic-service dropdown list. When the list page passes it in, it shares the same data as the search bar; we don't load it separately. */
+    /**
+     * Atomic-service dropdown list. When the list page passes it in, it shares the
+     * same data as the search bar so we don't load it separately.
+     * Only `code` and `name` are needed here; the full SysMicroServiceCacheItem shape
+     * is intentionally not required from the caller.
+     */
     atomicServiceList: {
       type: Array as () => { code: string; name: string }[],
       default: () => [],

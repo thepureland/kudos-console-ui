@@ -176,7 +176,8 @@ class AccountEffectivePermissionsDialog extends BaseDetailPage {
     return [{ i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' }];
   }
 
-  /** Skip the standard single-endpoint loadData; we use the aggregator below instead. */
+  /** Return an empty string so BaseDetailPage skips its default fetch;
+   *  actual data loading is done by the overridden loadData() below. */
   protected getDetailLoadUrl(): string {
     return '';
   }
@@ -320,10 +321,12 @@ export default defineComponent({
       t,
       ...toRefs(dialog),
       ...toRefs(dialog.state),
-      // Class methods aren't auto-exposed by toRefs.
+      // Class methods are not automatically exposed by toRefs(), and calling them directly
+      // on the reactive() proxy would lose the class's `this` binding — so we wrap them.
       formatResourceType: (code: unknown) => {
         const raw = (dialog as unknown as { formatResourceType: (c: unknown) => string }).formatResourceType(code);
-        // Backend dict items come as i18n keys (e.g. 'resource_type.1'); translate if so.
+        // transDict() may return a dotted i18n key (e.g. 'resource_type.MENU') when the
+        // dict item is stored as a key reference; run it through t() in that case.
         return raw && raw.includes('.') ? t(raw) : raw;
       },
     };

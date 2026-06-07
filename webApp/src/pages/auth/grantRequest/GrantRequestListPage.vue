@@ -244,6 +244,8 @@ class GrantRequestListPage extends BaseListPage {
     ]);
     const roleById = new Map(roleItems.map(i => [i.key, i.label]));
     const userById = new Map(userItems.map(i => [i.key, i.label]));
+    // Patch display-name properties onto each row. Falls back to the raw id when the
+    // name lookup returns nothing (e.g. the entity was deleted or is outside the user's scope).
     for (const r of rows) {
       r._roleName = roleById.get(String(r.roleId ?? '')) ?? r.roleId;
       r._userName = userById.get(String(r.userId ?? '')) ?? r.userId;
@@ -302,10 +304,15 @@ export default defineComponent({
         roleFilterLoading.value = false;
       }
     }
+    // Pre-populate the role dropdown immediately so the user sees options without typing first.
     void searchRoleFilter('');
 
     // -- "Mine Only" toggle: filter by the current logged-in user's requesterId --
     const mineOnly = ref(false);
+    /**
+     * Element Plus passes the new checkbox value as boolean | string | number depending on the
+     * binding, so we rely on truthiness rather than a strict boolean comparison.
+     */
     async function onMineOnlyChange(checked: boolean | string | number): Promise<void> {
       const sp = listPage.state.searchParams as Record<string, unknown>;
       if (checked) {
@@ -349,7 +356,7 @@ export default defineComponent({
       decisionDialogVisible.value = true;
     }
 
-    // -- Cancel (requester action; no comment) --
+    // -- Cancel (requester-only action; no approver comment required) --
     async function handleCancel(row: Record<string, unknown>): Promise<void> {
       try {
         await ElMessageBox.confirm(
@@ -358,10 +365,12 @@ export default defineComponent({
           { type: 'warning', confirmButtonText: t('grantRequestList.actions.cancel'), cancelButtonText: t('grantRequestList.actions.dismiss') },
         );
       } catch {
-        return; // user dismissed
+        return; // user clicked Cancel / pressed Escape — do nothing
       }
       const result = await backendRequest({ url: 'auth/roleGrantRequest/cancel', method: 'post', params: { id: String(row.id ?? '') } });
       if (!isApiSuccessResponse(result)) {
+        // resolveApiResponseMessage extracts a server-provided message; fall back to the
+        // synchronous helper then to a generic i18n string.
         ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || t('grantRequestList.messages.cancelFailed'));
         return;
       }

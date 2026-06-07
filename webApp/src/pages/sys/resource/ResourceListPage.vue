@@ -281,7 +281,7 @@ import { useTreeSplitResize } from '../../../components/pages/integration';
 import { ListPageLayout } from '../../../components/pages/ui';
 
 const MENU_I18N_CONFIG = [{ i18nTypeDictCode: 'view', namespaces: ['menu'], atomicServiceCode: 'sys' as const }];
-/** I18n that must be reloaded when this page's locale changes (matches getI18nConfig); ensures t('resource_type.*') etc. take effect under the new locale. */
+/** I18n namespaces used by this page (resource_type dict items + menu view strings); reloaded on locale change so resource-type labels and menu titles update reactively. */
 const RESOURCE_LIST_I18N_CONFIG = [
   { i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' },
   ...MENU_I18N_CONFIG,
@@ -331,7 +331,7 @@ class ResourceListPage extends BaseListPage {
   }
 
   protected initState(): Record<string, unknown> {
-        return {
+    return {
       resourceTreeProps: { label: 'name' },
       resourceTypeOptions: [] as Array<{ first: string; second: string }>,
       searchParams: {
@@ -367,12 +367,9 @@ class ResourceListPage extends BaseListPage {
     }
   }
 
-  /** I18n needed by this page: ListPage + FormPage (shared with the dialog). `menu` matches Sidebar's, providing menu strings for tree level 3 and below. */
+  /** I18n needed by this page: resource_type dict items (column/dropdown labels) + menu view strings (tree level ≥ 3 node titles, shared with Sidebar). */
   protected getI18nConfig() {
-    return [
-      { i18nTypeDictCode: 'dict-item', namespaces: ['resource_type'], atomicServiceCode: 'sys' },
-      ...MENU_I18N_CONFIG,
-    ];
+    return RESOURCE_LIST_I18N_CONFIG;
   }
 
   protected createSearchParams(): Record<string, unknown> | null {
@@ -405,7 +402,9 @@ class ResourceListPage extends BaseListPage {
 
   /**
    * pagingSearch params triggered by the search bar: omit level and parentId.
-   * Used when clicking Search/Reset, paginating, or sorting to fetch table data.
+   * pageNo/pageSize are included explicitly here (unlike the tree path) because
+   * this path drives full pagination; the tree path always fetches from the root.
+   * Used when clicking Search/Reset, paginating, or sorting.
    */
   private buildPagingSearchParamsForSearchBar(): Record<string, unknown> {
     const sp = this.state.searchParams as Record<string, unknown>;
@@ -454,9 +453,8 @@ class ResourceListPage extends BaseListPage {
     if (root && resolve) this.doLoadTree(root, resolve);
   }
 
-  protected doAfterEdit(params: any): void {
-    this.doAfterAdd(params);
-  }
+  /** After an edit, re-expand the tree root identically to after an add. */
+  protected doAfterEdit(params: any): void { this.doAfterAdd(params); }
 
   protected doAfterDelete(ids: string[]): void {
     super.doAfterDelete(ids);
@@ -535,10 +533,11 @@ class ResourceListPage extends BaseListPage {
 
   private doExpandTreeNode(nodeData: unknown, node: { level: number }): void {
     if (node.level === 0 || node.level === 1) return;
-    // If the current view is from a toolbar search, only expand the tree without refreshing the table, and keep searchSource as 'button' so the search results aren't lost when switching tabs.
+    // Toolbar-search active: update tree params without refreshing the table.
+    // searchSource stays 'button' (the assignment below is intentionally a no-op guard) so
+    // the search results aren't wiped when switching tabs or restoring state.
     if ((this.state as Record<string, unknown>).searchSource === 'button') {
       this.setParamsForTree(node as { level: number; data: unknown }, true);
-      (this.state as Record<string, unknown>).searchSource = 'button';
       return;
     }
     this.resetSearchFields();
@@ -550,10 +549,10 @@ class ResourceListPage extends BaseListPage {
 
   private async doClickTreeNode(nodeData: { id: string }, node: { level: number; data: unknown; parent?: { data: unknown } }): Promise<void> {
     if (node.level === 1 || node.level === 2) return;
-    // If the current view is from a toolbar search, only update the tree selection without refreshing the table, and keep searchSource as 'button' so the search results aren't lost when switching tabs.
+    // Toolbar-search active: update tree selection params without refreshing the table.
+    // searchSource stays 'button' so the search results survive tab switches.
     if ((this.state as Record<string, unknown>).searchSource === 'button') {
       this.setParamsForTree(node as { level: number; data: unknown }, false);
-      (this.state as Record<string, unknown>).searchSource = 'button';
       return;
     }
     this.resetSearchFields();
@@ -685,6 +684,7 @@ class ResourceListPage extends BaseListPage {
 }
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'resourceList.operationColumnPinned';
+/** NOTE: the class above references this key as a string literal — keep both in sync if the key ever changes. */
 const RESOURCE_LIST_STATE_STORAGE_KEY = 'resourceList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'resourceList.visibleColumns';
 const {
@@ -711,8 +711,7 @@ export default defineComponent({
       onFormClose,
       onFormResponse,
     } = useListPageFormSetup({ state, listPage });
-    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-    });
+    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {});
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
 
@@ -727,7 +726,11 @@ export default defineComponent({
       getColumnKeys: () => ALL_COLUMN_KEYS,
       getColumnLabel: columnLabel,
     });
-    /** Dict-item display: if there's an i18n key call t(key); otherwise don't call t('') to avoid an intlify error. */
+    /**
+     * Generic dict-item cell formatter: resolves the i18n key and translates it.
+     * Avoids calling t('') (which triggers an intlify warning) when no key is found.
+     * Exposed to the template for future column use; currently no column calls it directly.
+     */
     function formatDictCell(module: string, dictType: string, code: unknown): string {
       const key = listPage.transDict(module, dictType, code);
       return key ? t(key) : '—';
@@ -746,13 +749,7 @@ export default defineComponent({
       if (key && te(key)) return t(key);
       return (data.name != null ? String(data.name) : '') || (data.title != null ? String(data.title) : '') || (data.titleKey != null ? String(data.titleKey) : '');
     }
-    const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
-      autoWidthColumns,
-      tableDataRef,
-      columnWidths,
-    } = useTableAutoWidthContext({
+    const { columnWidths } = useTableAutoWidthContext({
       listPage,
       reservedWidthLeft: 89,
       reservedWidthRight: 140,

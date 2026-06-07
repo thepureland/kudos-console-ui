@@ -104,9 +104,8 @@ export function isWellFormedIpv6Full(s: string): boolean {
   const parts = n.split(':');
   if (parts.length !== 8) return false;
   for (const p of parts) {
+    // The regex already guarantees 1-4 hex digits, i.e. 0x0000–0xffff; no additional range check needed.
     if (!/^[0-9a-f]{1,4}$/.test(p)) return false;
-    const v = parseInt(p, 16);
-    if (!Number.isFinite(v) || v < 0 || v > 0xffff) return false;
   }
   return true;
 }

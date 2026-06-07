@@ -117,6 +117,8 @@ export default defineComponent({
       createPage: (p, c) => new MsgReceiverGroupFormPage(p, c),
       i18nKeyPrefix: 'msgReceiverGroupAddEdit',
       formHasContent(model: Record<string, unknown>) {
+        // 'active' is intentionally excluded: it is always a boolean with a default value (true)
+        // and does not indicate meaningful user input on its own.
         return hasAnyFormContent(model, {
           stringKeys: ['receiverGroupTypeDictCode', 'defineTable', 'nameColumn', 'remark'],
         });

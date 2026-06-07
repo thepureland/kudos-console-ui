@@ -23,7 +23,13 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** Sections: basic info, audit info, other info */
+/**
+ * Section boundaries for the detail dialog.
+ * `start` is the zero-based index into ROW_FIELDS where each section begins.
+ *   0 – basic info  (rows 0-2: id/dictId, itemCode/itemName, parentId/seqNo)
+ *   3 – audit info  (rows 3-4: createTime/updateTime, createUser/updateUser)
+ *   5 – other info  (rows 5-6: builtIn/active, remark)
+ */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'dictItemDetail.sections.basicInfo' },
   { start: 3, titleKey: 'dictItemDetail.sections.audit' },

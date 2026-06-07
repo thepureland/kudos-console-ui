@@ -84,6 +84,8 @@ interface Option {
   label: string;
 }
 
+// Label extractors: try the most-descriptive field first, fall back to id.
+// NOTE: identical copies live in GrantRequestDetailPage.vue — keep in sync if field names change.
 const roleLabel = (row: Record<string, unknown>) => String(row.roleName ?? row.name ?? row.roleCode ?? row.code ?? row.id ?? '');
 const userLabel = (row: Record<string, unknown>) => String(row.username ?? row.realName ?? row.id ?? '');
 
@@ -112,6 +114,19 @@ export default defineComponent({
       userId: [{ required: true, message: t('grantRequestForm.validation.requiredUser'), trigger: 'change' }],
     }));
 
+    /**
+     * Generic remote-search helper shared by both role and user selects.
+     *
+     * Sends a paged POST search, then maps the result rows to {id, label} Option pairs.
+     * On API error the dropdown is cleared rather than leaving stale options.
+     *
+     * @param searchUrl   - Backend path relative to the API base (e.g. 'auth/role/pagingSearch').
+     * @param keywordField - Request param name for the search keyword (e.g. 'name', 'username').
+     * @param keyword      - Raw text typed by the user; trimmed before sending.
+     * @param pickLabel    - Extracts a display string from a raw API row object.
+     * @param loadingRef   - Reactive boolean toggled while the request is in-flight.
+     * @param targetRef    - Reactive array updated with the resulting Option list.
+     */
     async function searchEntities(
       searchUrl: string,
       keywordField: string,
@@ -127,6 +142,7 @@ export default defineComponent({
         const result = await backendRequest({ url: searchUrl, method: 'post', params });
         if (!isApiSuccessResponse(result)) { targetRef.value = []; return; }
         const payload = getApiResponseData<{ data?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>>(result);
+        // The API may return either a plain array or a paginated wrapper { data: [...] }.
         const rows: Array<Record<string, unknown>> = Array.isArray(payload) ? payload : (payload?.data ?? []);
         targetRef.value = rows
           .map(r => ({ id: String(r.id ?? ''), label: pickLabel(r) }))
@@ -157,6 +173,7 @@ export default defineComponent({
         };
         const result = await backendRequest({ url: 'auth/roleGrantRequest/submit', method: 'post', params: payload });
         if (!isApiSuccessResponse(result)) {
+          // Prefer the resolved (translated/enriched) message, then raw message, then generic fallback.
           ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || t('grantRequestForm.messages.submitFailed'));
           return;
         }

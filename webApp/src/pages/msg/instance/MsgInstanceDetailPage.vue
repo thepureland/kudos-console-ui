@@ -61,6 +61,8 @@ class MsgInstanceDetailPage extends BaseDetailPage {
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
+      // Translate the raw dict code into a display-friendly string and expose it
+      // as a synthetic "_sendTypeText" field so the detail rows can reference it directly.
       const code = data.sendTypeDictCode;
       data._sendTypeText = code ? this.tr('msgTemplateCommon.sendType.' + code) : null;
       this.state.detail = data;

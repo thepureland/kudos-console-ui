@@ -383,7 +383,7 @@ class TenantListPage extends BaseListPage {
   }
 
   protected initState(): Record<string, unknown> {
-        return {
+    return {
       searchParams: {
         name: null as string | null,
         subSystemCode: null as string | null,
@@ -430,10 +430,12 @@ export default defineComponent({
       onFormClose,
       onFormResponse,
     } = useListPageFormSetup({ state, listPage });
-    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-    });
+    // useListPageLayout produces the base mount callback; useListPageVisibilityState wraps it so
+    // column-visibility logic runs first, then delegates to the layout callback.
+    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {});
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
+    // Fixed left = selection column (39) + index column (50) + name column (200); must match CSS overrides below.
     const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 200;
     const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
     const {
@@ -453,36 +455,30 @@ export default defineComponent({
       if (Array.isArray(val)) return val.map((c) => listPage.transAtomicService(c)).filter(Boolean).join(', ');
       return listPage.transAtomicService(val as string | null | undefined);
     }
-    const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
-      autoWidthColumns,
-      tableDataRef,
-      columnWidths,
-    } = useTableAutoWidthContext({
+    // reservedWidthLeft = selection(39) + index(50) + name(200); reservedWidthRight = operation column(140).
+    // autoWidthColumns and tableDataRef are consumed internally by useTableAutoWidthContext.
+    const { columnWidths } = useTableAutoWidthContext({
       listPage,
       reservedWidthLeft: 289,
       reservedWidthRight: 140,
-      createAutoWidthColumns: () =>
-      orderedColumnKeys.value.map((key) => ({
-        key,
-        getLabel: () => columnLabel(key),
-        sortable: true,
-        getCellText:
-          key === 'subSystemCodes'
-            ? (row: Record<string, unknown>) => formatSubSystemCodes(row.subSystemCodes)
-            : key === 'builtIn'
-              ? (row: Record<string, unknown>) => (row.builtIn ? t('tenantList.common.yes') : t('tenantList.common.no'))
-              : key === 'timezone'
-                ? (row: Record<string, unknown>) => String(row.timezone ?? '—')
-                : key === 'defaultLanguageCode'
-                  ? (row: Record<string, unknown>) => String(row.defaultLanguageCode ?? '—')
-                  : key === 'remark'
-                    ? (row: Record<string, unknown>) => String(row.remark ?? '—')
-                    : key === 'createTime'
-                    ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
-                    : () => '',
-      }))
+      createAutoWidthColumns: () => {
+        // Map each draggable column key to its cell-text extractor for width measurement.
+        type Row = Record<string, unknown>;
+        const cellTextGetters: Record<string, (row: Row) => string> = {
+          subSystemCodes: (row) => formatSubSystemCodes(row.subSystemCodes),
+          builtIn:        (row) => (row.builtIn ? t('tenantList.common.yes') : t('tenantList.common.no')),
+          timezone:       (row) => String(row.timezone ?? '—'),
+          defaultLanguageCode: (row) => String(row.defaultLanguageCode ?? '—'),
+          remark:         (row) => String(row.remark ?? '—'),
+          createTime:     (row) => listPage.formatDate(row.createTime),
+        };
+        return orderedColumnKeys.value.map((key) => ({
+          key,
+          getLabel: () => columnLabel(key),
+          sortable: true,
+          getCellText: cellTextGetters[key] ?? (() => ''),
+        }));
+      },
     });
 
     const visibleColumnKeys = useVisibleColumnKeys(listPage);

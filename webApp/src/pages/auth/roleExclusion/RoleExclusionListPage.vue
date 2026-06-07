@@ -146,11 +146,15 @@ import { BaseListPage } from '../../../components/pages/core';
 import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
 import { useListPageLayout, useValidationI18nCacheProvider, useListPageVisibilityState, useOperationColumnVisible } from '../../../components/pages/list';
 import { ListPageLayout } from '../../../components/pages/ui';
-import { backendRequest, getApiResponseData, isApiSuccessResponse } from '../../../utils/backendRequest';
 import { resolveAssignedItems, searchCandidates, type TransferItem } from '../_shared/assignmentTransferUtils';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'roleExclusionList.operationColumnPinned';
 
+/**
+ * Derive a human-readable label from a role search result row.
+ * Falls back through progressively less descriptive fields so that any
+ * partial response shape still produces a non-empty string.
+ */
 const roleLabel = (row: Record<string, unknown>) => String(row.roleName ?? row.name ?? row.roleCode ?? row.code ?? row.id ?? '');
 
 class RoleExclusionListPage extends BaseListPage {
@@ -222,6 +226,8 @@ export default defineComponent({
         roleFilterLoading.value = false;
       }
     }
+    // Pre-populate the role filter dropdown with the first page of active roles
+    // so users see options immediately without having to type a keyword first.
     void searchRoleFilter('');
 
     function onFormResponse(): void {

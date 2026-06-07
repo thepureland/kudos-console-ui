@@ -60,7 +60,14 @@ interface FormModel {
   roleName: string | null;
 }
 
-/** Extracted from BaseAddEditPage.getSavedIdFromResponse — same shape, kept local to avoid coupling to that base class. */
+/**
+ * Extract the new entity's id from whatever shape the backend returns.
+ * Mirrors BaseAddEditPage.getSavedIdFromResponse but kept local to avoid coupling to that class.
+ *
+ * Recursion terminates because `getApiResponseData` either unwraps one envelope level (returning
+ * a different reference) or returns the value unchanged — the `payload !== data` guard ensures we
+ * only recurse when the reference actually changed, preventing infinite loops.
+ */
 function extractSavedId(data: unknown): string | number | null {
   const payload = getApiResponseData(data);
   if (payload !== data) return extractSavedId(payload);
@@ -106,13 +113,15 @@ class RoleCopyDialog extends BaseDetailPage {
 
   protected postLoadDataSuccessfully(data: unknown): void {
     this.sourceDetail = (data && typeof data === 'object') ? data as Record<string, unknown> : null;
+    // Backend may return either roleCode/roleName or the shorter code/name aliases.
     const code = this.sourceDetail?.roleCode ?? this.sourceDetail?.code ?? '';
     const name = this.sourceDetail?.roleName ?? this.sourceDetail?.name ?? '';
     this.state.sourceLabel = `${name}${name && code ? ' / ' : ''}${code}`;
-    // Pre-fill suggested code/name with a "_copy" suffix.
+    // Pre-fill suggested code/name with a "_copy" suffix so the operator can adjust before saving.
     const sm = this.state.formModel as FormModel;
     if (code) sm.roleCode = `${code}_copy`;
     if (name) sm.roleName = `${name} (copy)`;
+    // Dismiss the loading spinner before calling super, which may trigger render().
     this.state.loading = false;
     super.postLoadDataSuccessfully(data);
   }
@@ -179,6 +188,8 @@ export default defineComponent({
       formRef,
       rules,
       submit: doSubmit,
+      // `visible` and `close` come from BasePage via toRefs(dialog); state fields (formModel,
+      // includeResources, submitting, loading, sourceLabel) come from toRefs(dialog.state).
       ...toRefs(dialog),
       ...toRefs(dialog.state),
     };

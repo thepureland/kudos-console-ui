@@ -60,12 +60,14 @@ class TenantDetailPage extends BaseDetailPage {
     return 'sys/tenant';
   }
 
+  /** Load atomic services before showing detail so subsystem codes can be translated. */
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
   }
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
+      // Normalise optional fields so templates never receive undefined
       if (data.updateTime == null) data.updateTime = null;
       if (data.createUser == null) data.createUser = '';
       if (data.updateUser == null) data.updateUser = '';
@@ -95,10 +97,17 @@ export default defineComponent({
       emptyKey: 'tenantDetail.empty',
       yesNoKey: 'tenantList.common',
     });
+    /**
+     * Custom renderer for `subSystemCodes`: translates each code via the
+     * atomic-service dictionary and joins with a comma separator.
+     * Falls back to the base formatter for all other fields.
+     * The single-string branch handles legacy records that store only one code.
+     */
     function formatFieldValue(field: FieldConfig): string {
       if (field.key === 'subSystemCodes') {
         const val = page.state.detail?.[field.key];
         if (Array.isArray(val)) return val.map((c) => page.transAtomicService(String(c ?? ''))).filter(Boolean).join(', ');
+        // Legacy record: single code stored as a plain string
         if (val != null && val !== '') return page.transAtomicService(String(val));
         return '';
       }

@@ -1,5 +1,4 @@
-import { computed, ref } from 'vue';
-import { nextTick } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
 /** Column drag-and-sort options. */
 export interface UseColumnOrderDragOptions {
@@ -57,6 +56,11 @@ export function useColumnOrderDrag(
 
   const columnOrder = ref<string[]>(loadColumnOrder());
 
+  /**
+   * Reactively re-derives the ordered key list from columnOrder.
+   * The filtering logic mirrors loadColumnOrder so that columns added after the stored order
+   * was saved are appended at the end rather than silently dropped.
+   */
   const orderedColumnKeys = computed(() => {
     const order = columnOrder.value;
     if (!order.length) return [...allColumnKeys];

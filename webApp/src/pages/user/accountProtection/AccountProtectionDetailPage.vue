@@ -20,6 +20,10 @@ import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync,
 import type { DetailPageViewModel } from '../../../components/pages/detail';
 import { type FieldConfig, type SectionConfig } from '../../../components/pages/detail';
 
+/**
+ * Maps row-index boundaries to labelled display sections.
+ * The `start` index refers to the corresponding entry in ROW_FIELDS below.
+ */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'accountProtectionDetail.sections.basicInfo' },
   { start: 2, titleKey: 'accountProtectionDetail.sections.questions' },
@@ -79,8 +83,8 @@ class AccountProtectionDetailPage extends BaseDetailPage {
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
-      if (data.createTime == null) data.createTime = null;
-      if (data.updateTime == null) data.updateTime = null;
+      // Normalise optional fields so the detail dialog always receives defined values.
+      // createTime/updateTime are intentionally left as-is (null is a valid display value).
       if (data.createUser == null) data.createUser = '';
       if (data.updateUser == null) data.updateUser = '';
       if (data.builtIn == null) data.builtIn = false;

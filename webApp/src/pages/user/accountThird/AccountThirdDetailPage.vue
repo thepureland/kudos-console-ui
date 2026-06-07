@@ -20,6 +20,14 @@ import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync,
 import type { DetailPageViewModel } from '../../../components/pages/detail';
 import { type FieldConfig, type SectionConfig } from '../../../components/pages/detail';
 
+/**
+ * Section headers for the detail dialog.
+ * `start` is the ROW_FIELDS row index at which each section begins.
+ *   0  basicInfo  — rows 0-2  (id/userId, provider, subject/unionId)
+ *   3  external   — rows 3-5  (displayName/email, avatarUrl, lastLoginTime/tenantId)
+ *   6  audit      — rows 6-7  (timestamps, create/update users)
+ *   8  otherInfo  — rows 8-9  (active/builtIn flags, remark)
+ */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'accountThirdDetail.sections.basicInfo' },
   { start: 3, titleKey: 'accountThirdDetail.sections.external' },
@@ -75,6 +83,9 @@ class AccountThirdDetailPage extends BaseDetailPage {
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
+      // Normalise optional fields to stable falsy values so the detail
+      // renderer never receives `undefined` (which it treats differently
+      // from an explicit null/empty string/false).
       if (data.createTime == null) data.createTime = null;
       if (data.updateTime == null) data.updateTime = null;
       if (data.lastLoginTime == null) data.lastLoginTime = null;
@@ -96,6 +107,8 @@ export default defineComponent({
   props: { ...commonDetailDialogProps },
   emits: commonDetailDialogEmits,
   setup(props: PageProps, context: PageContext) {
+    // Cast required so Vue's reactive proxy satisfies both the class and the
+    // view-model interface used by the composables below.
     const page = reactive(new AccountThirdDetailPage(props, context)) as AccountThirdDetailPage & DetailPageViewModel;
     const { rowsWithSections, formatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {
       emptyKey: 'accountThirdDetail.empty',

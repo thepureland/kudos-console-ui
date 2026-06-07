@@ -58,6 +58,8 @@ export function useAddEditDialogSetup(
     { immediate: true }
   );
 
+  // Primary trigger: open/close or rid change propagated through props.
+  // Handles both edit (rid present) and add (rid absent) transitions.
   watch(
     () => [props.modelValue, props.rid] as const,
     ([modelVal, r]) => {
@@ -76,6 +78,9 @@ export function useAddEditDialogSetup(
     { immediate: true }
   );
 
+  // Secondary trigger: page.visible can be set internally by the page class (e.g. after a
+  // nested navigation), independently of the modelValue prop.  Re-load data for edit mode
+  // when that internal flag flips to true so the form is never stale.
   watch(
     () => page.visible?.value,
     (visible) => {

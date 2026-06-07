@@ -1,3 +1,12 @@
+/**
+ * Minimal fetch wrapper used by the console UI.
+ * - GET/DELETE: params are serialized as query-string (arrays expanded as repeated keys).
+ * - POST/PUT/PATCH: params are JSON-stringified as the request body.
+ * - Attaches the Bearer token from localStorage when present.
+ * - Always resolves (never rejects on HTTP errors); non-2xx responses return a synthetic
+ *   `{ code, msg, data }` envelope so callers can check `response.code`.
+ */
+
 export type AjaxOptions = {
   url: string;
   method?: string;
@@ -40,7 +49,8 @@ export async function ajax(options: AjaxOptions): Promise<any> {
     requestUrl = buildUrl(requestUrl, options.params || undefined);
   } else if (options.params !== undefined) {
     headers['Content-Type'] = 'application/json';
-    body = JSON.stringify(options.params ?? {});
+    // options.params is guaranteed non-undefined here; null is a valid JSON value.
+    body = JSON.stringify(options.params);
   }
 
   const response = await fetch(requestUrl, {
@@ -59,6 +69,7 @@ export async function ajax(options: AjaxOptions): Promise<any> {
     }
   }
 
+  // Non-2xx: return a synthetic envelope; callers inspect `result.code` rather than catching.
   if (!response.ok) {
     return {
       code: response.status,

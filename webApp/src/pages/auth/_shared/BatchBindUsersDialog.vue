@@ -88,11 +88,16 @@ export default defineComponent({
   emits: ['update:modelValue', 'response'],
   setup(props, { emit }) {
     const { t } = useI18n();
+    // `visible` is always true on mount; the component is created fresh each time the parent opens
+    // the dialog, so we don't need to sync it from `modelValue` after mount.
     const visible = ref(true);
     const candidateItems = ref<TransferItem[]>([]);
+    // Initialized to 0; set to -1 only when the server omits a totalCount (rare), in which case
+    // the template renders '?' via the `candidateTotal < 0` check.
     const candidateTotal = ref(0);
     const selectedUserIds = ref<string[]>([]);
     const submitting = ref(false);
+    // Tracks the last query sent to the server so filterMethod can skip duplicate fetches.
     let lastKeyword = '';
 
     const title = computed(() => t(props.ownerKind === 'group' ? 'batchBindUsers.titleGroup' : 'batchBindUsers.titleRole'));
@@ -114,6 +119,9 @@ export default defineComponent({
 
     const debouncedSearch = debounce((kw: string) => { void refetch(kw); }, 300);
 
+    // el-transfer calls filterMethod on every keystroke for every visible item. We repurpose it as
+    // a side-channel to trigger server-side search: only fire when the query actually changes, and
+    // always return true so el-transfer shows all items (real filtering is done server-side).
     function filterMethod(query: string, _item: TransferItem): boolean {
       if (query !== lastKeyword) {
         lastKeyword = query;

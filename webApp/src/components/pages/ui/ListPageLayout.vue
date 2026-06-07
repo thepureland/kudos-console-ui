@@ -38,6 +38,12 @@
           >
             <slot name="columnVisibilityPanel" />
           </div>
+          <!--
+            fold-mouseleave is a no-op: the table-wrap's own mousemove/mouseleave
+            handlers own the hide schedule, so we suppress the toggle's built-in
+            leave event to prevent a double-trigger that would collapse the column
+            prematurely while moving from the toggle into the column itself.
+          -->
           <operation-column-fold-toggle
             :visible="showOperationColumn"
             :show-text="operationColumnShowText"
@@ -110,12 +116,22 @@ export default defineComponent({
     const showOperationColumn = computed(
       () => Boolean(listPage.state?.showOperationColumn)
     );
+    /**
+     * Monotonically incrementing counter; BaseListPage bumps it after a search
+     * that returns zero results so the watcher below can trigger the shake animation.
+     */
     const emptyShakeVersion = computed(() => Number(listPage.state?.emptyShakeVersion ?? 0));
 
     function toggleColumnVisibilityPanel() {
       (listPage as { toggleColumnVisibilityPanel: () => void }).toggleColumnVisibilityPanel?.();
     }
 
+    /**
+     * Close the column-visibility panel when the user clicks outside both the
+     * panel itself and the left-side toggle button (.table-corner-fold.is-left).
+     * Delegated to BaseListPage.applyColumnVisibilityOutsideClick so the panel
+     * state remains in the page layer rather than in this layout component.
+     */
     function handleGlobalPointerDown(event: MouseEvent) {
       (listPage as {
         applyColumnVisibilityOutsideClick: (
@@ -137,6 +153,12 @@ export default defineComponent({
       document.removeEventListener('mousedown', handleGlobalPointerDown);
     });
 
+    /**
+     * When BaseListPage signals an empty-result shake (by incrementing
+     * emptyShakeVersion), wait for the DOM to settle then restart the
+     * CSS shake animation on the table's empty-state elements.
+     * Version 0 is the initial value before any search, so we skip it.
+     */
     watch(
       emptyShakeVersion,
       (version) => {
@@ -147,6 +169,9 @@ export default defineComponent({
           const targets = host.querySelectorAll('.el-table__empty-block, .el-table__empty-text');
           targets.forEach((el) => {
             const node = el as HTMLElement;
+            // Remove then force a synchronous reflow via offsetWidth so the
+            // browser commits the removal before re-adding the class, which
+            // restarts the CSS animation from frame 0.
             node.classList.remove('is-empty-shaking');
             void node.offsetWidth;
             node.classList.add('is-empty-shaking');

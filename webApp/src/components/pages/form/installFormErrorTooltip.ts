@@ -114,11 +114,13 @@ export function installFormErrorTooltip(): void {
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'characterData') {
+        // Text inside an error node changed (e.g. validation message updated in-place).
         const parent = mutation.target.parentNode;
         if (parent instanceof HTMLElement && parent.matches('.el-form-item__error')) {
           bindTooltipEvents(parent);
           requestAnimationFrame(() => syncErrorTooltipForNode(parent));
-          return;
+          // NOTE: using `continue` (not `return`) so remaining mutations are still processed.
+          continue;
         }
         continue;
       }
@@ -126,17 +128,21 @@ export function installFormErrorTooltip(): void {
       if (mutation.type === 'childList') {
         const mutationTarget = mutation.target;
         if (mutationTarget instanceof HTMLElement && mutationTarget.matches('.el-form-item__error')) {
+          // The error node itself had child nodes added/removed (rare, but handle it).
           bindTooltipEvents(mutationTarget);
           requestAnimationFrame(() => syncErrorTooltipForNode(mutationTarget));
-          return;
+          // NOTE: using `continue` (not `return`) so remaining mutations are still processed.
+          continue;
         }
 
         mutation.addedNodes.forEach((node) => {
           if (!(node instanceof HTMLElement)) return;
           if (node.matches('.el-form-item__error')) {
+            // A new error node was added directly.
             bindTooltipEvents(node);
             requestAnimationFrame(() => syncErrorTooltipForNode(node));
           } else {
+            // A container was added; walk its subtree for any error nodes.
             requestAnimationFrame(() => syncErrorTooltip(node));
             node.querySelectorAll<HTMLElement>('.el-form-item__error').forEach((errorNode) => {
               bindTooltipEvents(errorNode);

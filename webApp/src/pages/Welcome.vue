@@ -52,10 +52,18 @@ const displayName = computed(() => {
   const name = typeof localStorage !== 'undefined' ? localStorage.getItem('current_username') : null;
   return name?.trim() || t('welcome.guest');
 });
+
+/**
+ * Derive hour once so greeting and heroTimeClass share the same snapshot.
+ * This component is not reactive to time changes; it simply reflects the
+ * time at which the page was first rendered.
+ */
+const currentHour = new Date().getHours();
+
+/** Time-of-day greeting label. */
 const greeting = computed(() => {
-  const h = new Date().getHours();
-  if (h < 12) return t('welcome.greetingMorning');
-  if (h < 18) return t('welcome.greetingAfternoon');
+  if (currentHour < 12) return t('welcome.greetingMorning');
+  if (currentHour < 18) return t('welcome.greetingAfternoon');
   return t('welcome.greetingEvening');
 });
 
@@ -68,12 +76,11 @@ const dateText = computed(() => {
   return `${date} · ${week}`;
 });
 
-/** Add a time-of-day class to the hero; the gradient is defined in CSS (so it actually applies and stays visible). */
+/** CSS modifier that drives the time-of-day hero gradient defined in <style>. */
 const heroTimeClass = computed(() => {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 11) return 'hero--time-morning';
-  if (h >= 11 && h < 17) return 'hero--time-afternoon';
-  if (h >= 17 && h < 21) return 'hero--time-evening';
+  if (currentHour >= 5 && currentHour < 11) return 'hero--time-morning';
+  if (currentHour >= 11 && currentHour < 17) return 'hero--time-afternoon';
+  if (currentHour >= 17 && currentHour < 21) return 'hero--time-evening';
   return 'hero--time-night';
 });
 

@@ -139,6 +139,7 @@ class ParamFormPage extends BaseAddEditPage {
     this.loadAtomicServices();
   }
 
+  /** Returns the blank form state used both for "add" mode and after a reset. */
   protected initState(): Record<string, unknown> {
     return {
       formModel: {
@@ -184,6 +185,7 @@ export default defineComponent({
       formHasContent(model: Record<string, unknown>) {
         return hasAnyFormContent(model, {
           stringKeys: ['atomicServiceCode', 'paramName', 'paramValue', 'defaultValue', 'remark'],
+          // orderNum defaults to 1; any other value means the user changed it.
           customChecks: [(m) => m.orderNum != null && m.orderNum !== 1],
         });
       },

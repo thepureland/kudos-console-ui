@@ -114,6 +114,8 @@ const {
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['token', 'lastUsed']);
+// Sum of fixed-left column widths: selection (39) + index (50) + username (160).
+// Must stay in sync with the CSS overrides at the bottom of this file.
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 160;
 
 export default defineComponent({

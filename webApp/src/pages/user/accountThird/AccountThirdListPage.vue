@@ -176,6 +176,8 @@ class AccountThirdListPage extends BaseListPage {
     const params = super.createSearchParams();
     if (params && this.state.searchParams) {
       const sp = this.state.searchParams as Record<string, unknown>;
+      // Pass `true` to filter active-only; pass `null` (omit) to return all records.
+      // We never want to explicitly filter for inactive-only, so false → null.
       (params as Record<string, unknown>).active = sp.active === true ? true : null;
     }
     return params;
@@ -189,6 +191,8 @@ const {
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['accountProviderDictCode', 'subject', 'externalDisplayName', 'externalEmail', 'lastLoginTime', 'active']);
+// Sum of fixed-left column widths: selection(39) + index(50) + userId(160).
+// Must stay in sync with the CSS overrides below (.el-table__fixed-left width: 249px).
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 160;
 
 export default defineComponent({
@@ -213,7 +217,9 @@ export default defineComponent({
 
     const { columnWidths } = useTableAutoWidthContext({
       listPage,
+      // reservedWidthLeft: fixed-left columns total (selection 39 + index 50 + userId 160 = 249px).
       reservedWidthLeft: 249,
+      // reservedWidthRight: operation column (68px) + scrollbar allowance (~72px) ≈ 140px.
       reservedWidthRight: 140,
       createAutoWidthColumns: () => [
         { key: 'accountProviderDictCode', getLabel: () => t('accountThirdList.columns.provider'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.accountProviderDictCode ?? '') },
@@ -221,6 +227,7 @@ export default defineComponent({
         { key: 'externalDisplayName', getLabel: () => t('accountThirdList.columns.externalDisplayName'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.externalDisplayName ?? '') },
         { key: 'externalEmail', getLabel: () => t('accountThirdList.columns.externalEmail'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.externalEmail ?? '') },
         { key: 'lastLoginTime', getLabel: () => t('accountThirdList.columns.lastLoginTime'), sortable: true, getCellText: (row: Record<string, unknown>) => listPage.formatDate(row.lastLoginTime) },
+        // 'active' renders as a switch, not text — return empty string so auto-width measures header only.
         { key: 'active', getLabel: () => t('accountThirdList.columns.active'), sortable: false, getCellText: () => '' },
       ],
     });

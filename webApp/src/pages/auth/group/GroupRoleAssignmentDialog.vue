@@ -50,7 +50,7 @@ import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { tGlobal } from '../../../i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
-import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import {
   type TransferItem,
   debounce,
@@ -64,6 +64,7 @@ const roleLabel = (row: Record<string, unknown>) => String(row.roleName ?? row.n
 
 class GroupRoleAssignmentDialog extends BaseDetailPage {
   private originalAssignedIds: Set<string> = new Set();
+  /** Last keyword pumped through el-transfer's filter input, for change-detection inside filterMethod. */
   private lastKeyword = '';
 
   constructor(props: any, context: any) {
@@ -76,8 +77,11 @@ class GroupRoleAssignmentDialog extends BaseDetailPage {
 
   protected initState(): any {
     return {
+      /** Candidates fetched server-side for the current keyword. */
       candidateItems: [] as TransferItem[],
+      /** Already-assigned items, fully resolved on load — pinned into transferData so they always show on the right. */
       assignedItems: [] as TransferItem[],
+      /** v-model for the transfer: the keys currently on the right side. */
       assignedRoleIds: [] as string[],
       candidateTotal: 0,
     };
@@ -111,6 +115,7 @@ class GroupRoleAssignmentDialog extends BaseDetailPage {
     });
   }
 
+  /** Fetch one page of candidates from the backend; called on open and on filter input change. */
   private async refetchCandidates(keyword: string): Promise<void> {
     const baseParams: Record<string, unknown> = { active: true };
     if (this.props.subSystemCode) baseParams.subSystemCode = this.props.subSystemCode;
@@ -128,6 +133,7 @@ class GroupRoleAssignmentDialog extends BaseDetailPage {
     this.state.candidateTotal = result.totalCount;
   }
 
+  /** Repurposed el-transfer filter-method: never filters client-side, only kicks off a debounced server fetch. */
   public filterMethod!: (query: string, item: TransferItem) => boolean;
 
   private debouncedSearch = debounce((kw: string) => { void this.refetchCandidates(kw); }, 300);
@@ -168,6 +174,7 @@ class GroupRoleAssignmentDialog extends BaseDetailPage {
     }
   }
 
+  // Discard unused item arg; el-transfer calls this for every (query, item) tuple.
   private doFilter(query: string, _item: TransferItem): boolean {
     if (query !== this.lastKeyword) {
       this.lastKeyword = query;

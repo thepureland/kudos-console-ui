@@ -146,6 +146,7 @@ const {
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['receiverGroupTypeDictCode', 'nameColumn', 'active', 'builtIn']);
+/** Sum of the three always-visible fixed-left columns: selection (39) + index (50) + defineTable (180). */
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 180;
 
 export default defineComponent({
@@ -157,6 +158,7 @@ export default defineComponent({
     const listPage = reactive(new MsgReceiverGroupListPage(props, context)) as MsgReceiverGroupListPage & { state: Record<string, unknown> };
     const state = listPage.state as Record<string, unknown>;
     const { formVisible, formRid, hasFormEverOpened, currentFormMode, onFormClose, onFormResponse } = useListPageFormSetup({ state, listPage, addHandlerName: 'doAfterAdd', editHandlerName: 'doAfterEdit' });
+    /** Dispatches the form-saved callback to the correct post-save handler based on the current mode. */
     function handleFormSaved(params: Record<string, unknown>) {
       (currentFormMode.value === 'add' ? listPage.doAfterAdd : listPage.doAfterEdit).call(listPage, params);
     }
@@ -165,6 +167,8 @@ export default defineComponent({
         storageKey: COLUMN_VISIBILITY_STORAGE_KEY,
         columnKeys: COLUMN_VISIBILITY_KEYS,
         defaultVisibleKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
+        // Maps column keys to their i18n labels. 'receiverGroupTypeDictCode' uses the shorter
+        // 'groupType' key because the i18n namespace mirrors the UI label, not the field name.
         getColumnLabel: (key) => (key === INDEX_COLUMN_KEY ? t('msgReceiverGroupList.columns.index') : t('msgReceiverGroupList.columns.' + (key === 'receiverGroupTypeDictCode' ? 'groupType' : key))),
       },
     });
@@ -173,9 +177,15 @@ export default defineComponent({
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
 
+    /**
+     * Translates a dict code to its display label.
+     * transDict returns an i18n key (e.g. "msg.receiver_group_type.internal") or a raw string.
+     * Returns an em dash when no mapping exists (e.g. null/unknown code).
+     */
     function formatDictCell(module: string, dictType: string, code: unknown): string {
       const key = listPage.transDict(module, dictType, code);
       if (!key) return '—';
+      // If it looks like a dotted i18n key, resolve it; otherwise use the raw value directly.
       return key.includes('.') ? t(key) : key;
     }
 

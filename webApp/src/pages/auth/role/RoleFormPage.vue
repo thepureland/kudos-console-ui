@@ -133,10 +133,6 @@ const roleLabel = (row: Record<string, unknown>) =>
   String(row.name ?? row.code ?? row.id ?? '');
 
 class RoleFormPage extends TenantSupportAddEditPage {
-  constructor(props: PageProps, context: PageContext) {
-    super(props, context);
-  }
-
   /** Tenant cascader can only select the second level (must pick a specific tenant); consistent with the role list. */
   protected isCheckStrictly(): boolean {
     return false;

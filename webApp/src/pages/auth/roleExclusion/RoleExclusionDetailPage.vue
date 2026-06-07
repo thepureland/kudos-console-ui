@@ -69,10 +69,6 @@ const roleLabel = (row: Record<string, unknown>) => String(row.roleName ?? row.n
 const userLabel = (row: Record<string, unknown>) => String(row.username ?? row.realName ?? row.id ?? '');
 
 class RoleExclusionDetailPage extends BaseDetailPage {
-  constructor(props: any, context: any) {
-    super(props, context);
-  }
-
   protected getRootActionPath(): string {
     return 'auth/roleExclusion';
   }
@@ -87,9 +83,8 @@ class RoleExclusionDetailPage extends BaseDetailPage {
     };
   }
 
-  protected getDetailLoadUrl(): string {
-    return this.getRootActionPath() + '/getDetail';
-  }
+  // getDetailLoadUrl() is intentionally not overridden — the base returns
+  // getRootActionPath() + '/getDetail', which is exactly what we need.
 
   protected postLoadDataSuccessfully(data: unknown): void {
     this.state.detail = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
@@ -109,6 +104,11 @@ class RoleExclusionDetailPage extends BaseDetailPage {
     this.state.roleBLabel = byId.get(String(d.roleBId ?? '')) ?? String(d.roleBId ?? '');
   }
 
+  /**
+   * Fetches current SoD violations (users holding both roles simultaneously) and resolves
+   * their display names. This is the last async step after detail + role-label loading, so
+   * it owns clearing the shared `loading` flag in its `finally` block.
+   */
   private async loadViolations(): Promise<void> {
     try {
       const result = await backendRequest({
@@ -128,6 +128,7 @@ class RoleExclusionDetailPage extends BaseDetailPage {
       const nameById = new Map(items.map(i => [i.key, i.label]));
       this.state.violationRows = userIds.map(uid => ({ userId: uid, username: nameById.get(uid) ?? uid }));
     } finally {
+      // Always clear the loading spinner, even when the violations call errors.
       this.state.loading = false;
     }
   }

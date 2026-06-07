@@ -95,12 +95,18 @@ class MsgUnreceivedListPage extends BaseListPage {
         return;
       }
       const payload = getApiResponseData<Array<Record<string, unknown>>>(result);
+      // Guard against unexpected non-array payloads from the backend.
       this.state.tableData = Array.isArray(payload) ? payload : [];
     } finally {
       this.state.loading = false;
     }
   }
 
+  /**
+   * Ask the operator to confirm, then POST resolve for the given failure row.
+   * ElMessageBox.confirm rejects with the string 'cancel' on dismissal, so we
+   * catch and re-use the value — only proceeding when it equals 'confirm'.
+   */
   async resolve(row: Record<string, unknown>): Promise<void> {
     const confirmed = await ElMessageBox.confirm(
       this.tr('msgUnreceivedList.messages.resolveConfirm'),
@@ -111,10 +117,16 @@ class MsgUnreceivedListPage extends BaseListPage {
     await this.runOp('msg/unreceived/resolve', row);
   }
 
+  /** Increment the retry counter for the given failure row without a confirmation dialog. */
   async bumpRetry(row: Record<string, unknown>): Promise<void> {
     await this.runOp('msg/unreceived/bumpRetry', row);
   }
 
+  /**
+   * Shared POST helper for resolve / bumpRetry.
+   * On success: show a toast and refresh the list.
+   * On failure: show the best available error message from the response.
+   */
   private async runOp(url: string, row: Record<string, unknown>): Promise<void> {
     const result = await backendRequest({ url, method: 'post', params: { id: this.getRowId(row) }, paramsInQuery: true });
     if (isApiSuccessResponse(result)) {
@@ -135,6 +147,12 @@ export default defineComponent({
     const { listLayoutRefs } = useListPageLayout(listPage, {});
     const tableWrapRef = ref<HTMLElement | null>(null);
 
+    /**
+     * Resolve a dict-code to its display label.
+     * `transDict` returns either a dot-separated i18n key (needs translation)
+     * or a bare string label (returned as-is). Falls back to an em dash when
+     * the code is unrecognised.
+     */
     function formatDictCell(module: string, dictType: string, code: unknown): string {
       const key = listPage.transDict(module, dictType, code);
       if (!key) return '—';

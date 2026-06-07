@@ -1,5 +1,4 @@
-import { computed, onMounted, onActivated, onDeactivated, watch } from 'vue';
-import { nextTick } from 'vue';
+import { computed, nextTick, onActivated, onDeactivated, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import type { BaseListPage } from '../core/BaseListPage';
 import { useTableMaxHeight } from './useTableMaxHeight';
@@ -64,10 +63,9 @@ export function useListPageLayout(
       })
     : undefined;
   const columnVisibilityOptions = columnVisibility
-    ? computed(() => [
-        { key: columnVisibility.columnKeys[0], label: columnVisibility.getColumnLabel(columnVisibility.columnKeys[0]) },
-        ...columnVisibility.columnKeys.slice(1).map((key) => ({ key, label: columnVisibility.getColumnLabel(key) })),
-      ])
+    ? computed(() =>
+        columnVisibility.columnKeys.map((key) => ({ key, label: columnVisibility.getColumnLabel(key) }))
+      )
     : undefined;
   /** Determine whether the given column key is in the visible-columns list */
   function isColumnVisible(key: string): boolean {
@@ -113,11 +111,16 @@ export function useListPageLayout(
     { deep: true }
   );
 
-  /** On locale change, reload this page's dict-item and other i18n so dropdowns using t(item.second) reflect the new language */
+  /**
+   * On locale change, reload this page's dict-item and other i18n so dropdowns using
+   * t(item.second) reflect the new language. getI18nConfig is an optional method defined by
+   * concrete list-page classes; the cast is needed because BaseListPage does not declare it.
+   */
   watch(
     () => getGlobalLocale(),
     () => {
-      const config = (listPage as unknown as { getI18nConfig?: () => { i18nTypeDictCode: string; namespaces: string[]; atomicServiceCode: string }[] }).getI18nConfig?.();
+      type WithI18nConfig = { getI18nConfig?: () => { i18nTypeDictCode: string; namespaces: string[]; atomicServiceCode: string }[] };
+      const config = (listPage as unknown as WithI18nConfig).getI18nConfig?.();
       if (config?.length) loadMessagesForConfig(config);
     },
     { immediate: false }

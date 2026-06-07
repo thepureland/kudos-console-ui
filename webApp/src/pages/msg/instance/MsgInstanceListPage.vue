@@ -155,6 +155,7 @@ const {
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['sendTypeDictCode', 'msgTypeDictCode', 'localeDictCode', 'validTimeStart', 'validTimeEnd']);
+// Sum of fixed-left column widths: selection (39) + index (50) + title (180)
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 180;
 
 export default defineComponent({
@@ -166,6 +167,7 @@ export default defineComponent({
     const listPage = reactive(new MsgInstanceListPage(props, context)) as MsgInstanceListPage & { state: Record<string, unknown> };
     const state = listPage.state as Record<string, unknown>;
     const { formVisible, formRid, hasFormEverOpened, currentFormMode, onFormClose, onFormResponse } = useListPageFormSetup({ state, listPage, addHandlerName: 'doAfterAdd', editHandlerName: 'doAfterEdit' });
+    // Dispatch to the appropriate post-save hook depending on whether the dialog was opened for add or edit.
     function handleFormSaved(params: Record<string, unknown>) {
       (currentFormMode.value === 'add' ? listPage.doAfterAdd : listPage.doAfterEdit).call(listPage, params);
     }

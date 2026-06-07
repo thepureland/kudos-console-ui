@@ -6,9 +6,6 @@
   </div>
 </template>
 
-<script setup lang="ts">
-</script>
-
 <style scoped>
 .not-found {
   display: flex;

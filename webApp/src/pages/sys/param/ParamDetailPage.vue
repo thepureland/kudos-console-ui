@@ -69,12 +69,22 @@ class ParamDetailPage extends BaseDetailPage {
     return 'sys/param';
   }
 
+  /**
+   * Normalises nullable API fields before handing data to the detail view.
+   * createTime / updateTime are intentionally kept as null when absent so the
+   * date formatter can display a dash rather than an empty string.
+   * The other fields are coerced to empty strings / false so the template
+   * renders a blank cell instead of "null" / "undefined".
+   */
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
+      // Date fields: null is the desired sentinel value — no coercion needed.
       if (data.createTime == null) data.createTime = null;
       if (data.updateTime == null) data.updateTime = null;
+      // User / text fields: coerce to empty string for clean display.
       if (data.createUser == null) data.createUser = '';
       if (data.updateUser == null) data.updateUser = '';
+      // Boolean fields: coerce to false when absent.
       if (data.builtIn == null) data.builtIn = false;
       if (data.remark == null) data.remark = '';
       this.state.detail = data;

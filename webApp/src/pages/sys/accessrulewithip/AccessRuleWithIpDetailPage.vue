@@ -28,12 +28,20 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
+/**
+ * Section dividers for the detail dialog.
+ * Each `start` index maps to the first row index in ROW_FIELDS that belongs to that section.
+ */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'accessRuleWithIpDetail.sections.rule' },
   { start: 4, titleKey: 'accessRuleWithIpDetail.sections.ip' },
   { start: 8, titleKey: 'accessRuleWithIpDetail.sections.audit' },
 ];
 
+/**
+ * Two-column field layout for the dialog body.
+ * Rows 0-3: access rule fields; rows 4-7: IP entry fields; row 8: audit/remark.
+ */
 const ROW_FIELDS: FieldConfig[][] = [
   [
     { labelKey: 'accessRuleWithIpDetail.fields.id', key: 'id' },
@@ -73,6 +81,7 @@ const ROW_FIELDS: FieldConfig[][] = [
 
 class AccessRuleWithIpDetailPage extends BaseDetailPage {
   protected async preLoad(): Promise<void> {
+    // The systemCode field renders as an atomic-service label, so the lookup map must be populated first.
     await this.loadAtomicServices();
   }
 
@@ -85,11 +94,7 @@ class AccessRuleWithIpDetailPage extends BaseDetailPage {
   }
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
-    if (data) {
-      this.state.detail = data;
-    } else {
-      this.state.detail = null;
-    }
+    this.state.detail = data ?? null;
     if (this.showAfterLoadData()) {
       this.render();
     }

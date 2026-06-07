@@ -111,6 +111,7 @@ class MenuPermissionListPage extends TenantSupportListPage {
     }
     const result = await backendRequest({ url: 'sys/resource/getMenus', method: 'get', params: { subSystemCode: pair.first } });
     if (!isApiSuccessResponse(result)) {
+      // Prefer resolved async message, fall back to sync payload message, then hard-coded i18n fallback.
       ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || this.tr('menuPermissionList.messages.loadFailed'));
       this.state.tableData = [];
       return;
@@ -124,14 +125,16 @@ class MenuPermissionListPage extends TenantSupportListPage {
   private async enrichRoleNames(): Promise<void> {
     const roots = this.state.tableData as MenuNode[];
     if (!Array.isArray(roots) || roots.length === 0) return;
+
+    // Iterative BFS/DFS flatten — avoids call-stack overflow on deep menu trees.
     const nodes: MenuNode[] = [];
-    const collect = (list: MenuNode[]): void => {
-      for (const n of list) {
-        nodes.push(n);
-        if (Array.isArray(n.children) && n.children.length) collect(n.children);
-      }
-    };
-    collect(roots);
+    const stack: MenuNode[] = [...roots];
+    while (stack.length) {
+      const n = stack.pop()!;
+      nodes.push(n);
+      if (Array.isArray(n.children) && n.children.length) stack.push(...n.children);
+    }
+
     const ids = nodes.map(n => String(n.id ?? '')).filter(Boolean);
     if (ids.length === 0) return;
     try {

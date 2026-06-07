@@ -23,7 +23,11 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** Sections: row index at which each section title appears (other info goes last). */
+/**
+ * Section header positions within ROW_FIELDS.
+ * Each entry marks the row index where that section's title is injected by SectionedDetailDialog.
+ * The last section ("otherInfo") captures all remaining rows after index 7.
+ */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'cacheDetail.sections.basicInfo' },
   { start: 1, titleKey: 'cacheDetail.sections.config' },
@@ -31,6 +35,10 @@ const SECTION_MAP: SectionConfig[] = [
   { start: 7, titleKey: 'cacheDetail.sections.otherInfo' },
 ];
 
+/**
+ * Field layout for the detail dialog — each inner array is one rendered row (up to 2 fields per row).
+ * Row indices must align with the `start` values in SECTION_MAP above.
+ */
 const ROW_FIELDS: FieldConfig[][] = [
   [
     { labelKey: 'cacheDetail.fields.id', key: 'id' },
@@ -86,7 +94,8 @@ export default defineComponent({
       yesNoKey: 'cacheList.common',
     });
 
-    // When the rid (current row id) passed in by the list changes, sync and reload the detail for that id.
+    // Watch the `rid` prop so that selecting a different row in the list immediately
+    // triggers a fresh detail fetch without having to close and reopen the dialog.
     useDetailPageRidSync(props, page);
 
     return {

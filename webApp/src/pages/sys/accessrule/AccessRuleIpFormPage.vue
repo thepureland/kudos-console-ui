@@ -208,6 +208,9 @@ class AccessRuleIpFormPage extends TenantSupportAddEditPage {
     const v6s = rowObject.ipv6StartStr;
     const v6e = rowObject.ipv6EndStr;
 
+    // Normalise IP address strings for the segmented input component.
+    // Prefer the pre-formatted *Str fields returned by the backend; fall back to
+    // the legacy numeric ipStart/ipEnd fields when the string fields are absent.
     if (typeCode === 'ipv4') {
       if (typeof v4s === 'string' && v4s.trim() !== '') {
         m.ipv4StartStr = uint32ToIpv4Padded(ipv4PaddedToUint32(v4s));
@@ -237,6 +240,7 @@ class AccessRuleIpFormPage extends TenantSupportAddEditPage {
       m.ipv4StartStr = uint32ToIpv4Padded(0);
       m.ipv4EndStr = uint32ToIpv4Padded(0);
     } else {
+      // Unknown / unset type — reset both protocol fields to their zero values.
       m.ipv4StartStr = uint32ToIpv4Padded(0);
       m.ipv4EndStr = uint32ToIpv4Padded(0);
       m.ipv6StartStr = IPV6_ZERO;
@@ -291,11 +295,10 @@ class AccessRuleIpFormPage extends TenantSupportAddEditPage {
     }
     delete params.subSystemCode;
     delete params.ipType;
-    const code = String(fm.ipTypeDictCode ?? '').trim().toLowerCase();
-    params.ipTypeDictCode =
-      fm.ipTypeDictCode != null && String(fm.ipTypeDictCode).trim() !== ''
-        ? String(fm.ipTypeDictCode).trim()
-        : null;
+    const rawType = fm.ipTypeDictCode != null ? String(fm.ipTypeDictCode).trim() : '';
+    const code = rawType.toLowerCase();
+    // Send the trimmed original casing to the backend; null when not selected.
+    params.ipTypeDictCode = rawType !== '' ? rawType : null;
     if (code === 'ipv4') {
       params.ipv4StartStr = fm.ipv4StartStr;
       params.ipv4EndStr = fm.ipv4EndStr;
@@ -316,6 +319,10 @@ class AccessRuleIpFormPage extends TenantSupportAddEditPage {
   }
 }
 
+/**
+ * Coerce a value that may be a JS number, a numeric string, or null/undefined into a JS number.
+ * Returns NaN for unrecognised input so callers can guard with Number.isFinite().
+ */
 function parseNumericLike(v: unknown): number {
   if (v == null) return NaN;
   if (typeof v === 'number') return v;
@@ -367,7 +374,9 @@ export default defineComponent({
       },
       onVisible: async (result, p) => {
         const rid = p.rid ? String(p.rid) : '';
+        // defaultParentRuleId is a component-level prop not part of the generic PageProps type.
         const defPid = (p as { defaultParentRuleId?: string }).defaultParentRuleId;
+        // In edit mode (rid present) the cascade is back-filled via fillForm; skip here.
         if (rid) return;
         if (defPid != null && String(defPid).trim() !== '') {
           const page = result.page as AccessRuleIpFormPage;
@@ -398,6 +407,11 @@ export default defineComponent({
     const validMsgIpv6FullPattern = () => t('valid-msg.default.Pattern::ipv6-full') as string;
     const validMsgNotBlank = () => t('valid-msg.default.NotBlank') as string;
 
+    /**
+     * Merge backend-provided validation rules (from page.state.rules) with
+     * client-side cross-field range validators that ensure end >= start for
+     * both IPv4 and IPv6.  Backend rules cover format; client validators cover ordering.
+     */
     const mergedRules = computed(() => {
       const raw = page.state.rules as Record<string, unknown> | null | undefined;
       const base =

@@ -373,23 +373,34 @@ import { uint32ToIpv4Padded } from '../../../utils/ipAddressNumeric';
 import IpSegmentedAddressInput from './IpSegmentedAddressInput.vue';
 
 const IPV6_ZERO = '0000:0000:0000:0000:0000:0000:0000:0000';
+/** Default IPv4 sentinel: all-zero dotted-decimal used when the user hasn't entered a range. */
+const IPV4_ZERO = uint32ToIpv4Padded(0);
 
+/** Returns true when both endpoints equal the all-zeros sentinel (i.e. the user left the range blank). */
 function isDefaultIpv4SearchRange(start: unknown, end: unknown): boolean {
-  const z = uint32ToIpv4Padded(0);
-  return String(start ?? '').trim() === z && String(end ?? '').trim() === z;
+  return String(start ?? '').trim() === IPV4_ZERO && String(end ?? '').trim() === IPV4_ZERO;
 }
 
+/** Returns true when both endpoints equal the all-zeros IPv6 sentinel. */
 function isDefaultIpv6SearchRange(start: unknown, end: unknown): boolean {
   return String(start ?? '').trim() === IPV6_ZERO && String(end ?? '').trim() === IPV6_ZERO;
 }
 
 type AccessRuleTableRow = Record<string, unknown>;
 
-/** Group the current page's flat detail rows by subsystem -> tenant -> rule type into el-table tree data. */
+/**
+ * Group the current page's flat detail rows by subsystem -> tenant -> rule type into el-table tree
+ * data. Sentinel strings are used as Map keys for rows that lack a value:
+ *   '__empty__'    — row has no systemCode
+ *   '__platform__' — row has no tenantId (platform-level rule)
+ *   '__unknown__'  — row has no accessRuleTypeDictCode
+ * These sentinels are translated back to null when building the actual node objects.
+ */
 function buildAccessRuleTree(rows: AccessRuleTableRow[]): AccessRuleTableRow[] {
   if (!rows?.length) return [];
   const bySys = new Map<string, AccessRuleTableRow[]>();
   for (const row of rows) {
+    // Use '__empty__' sentinel so rows without a system code still group together.
     const sc = row.systemCode != null && String(row.systemCode).trim() !== '' ? String(row.systemCode) : '__empty__';
     const list = bySys.get(sc);
     if (list) list.push(row);
@@ -399,6 +410,7 @@ function buildAccessRuleTree(rows: AccessRuleTableRow[]): AccessRuleTableRow[] {
   for (const [systemKey, sysRows] of bySys) {
     const byTenant = new Map<string, AccessRuleTableRow[]>();
     for (const r of sysRows) {
+      // Use '__platform__' sentinel for platform-level (tenant-less) rules.
       const tid =
         r.tenantId == null || String(r.tenantId).trim() === '' ? '__platform__' : String(r.tenantId);
       const list = byTenant.get(tid);
@@ -407,6 +419,7 @@ function buildAccessRuleTree(rows: AccessRuleTableRow[]): AccessRuleTableRow[] {
     }
     const tenantNodes: AccessRuleTableRow[] = [];
     for (const [tenantKey, tenantRows] of byTenant) {
+      // Resolve the display name from the first row; platform groups have no name.
       const tenantNameForGroup =
         tenantKey === '__platform__'
           ? null
@@ -416,6 +429,7 @@ function buildAccessRuleTree(rows: AccessRuleTableRow[]): AccessRuleTableRow[] {
             })();
       const byType = new Map<string, AccessRuleTableRow[]>();
       for (const r of tenantRows) {
+        // Use '__unknown__' sentinel for rows missing a rule-type code.
         const tc =
           r.accessRuleTypeDictCode != null && String(r.accessRuleTypeDictCode).trim() !== ''
             ? String(r.accessRuleTypeDictCode)
@@ -526,10 +540,13 @@ class AccessRuleListPage extends TenantSupportListPage {
       return null;
     }
     const sp = this.state.searchParams as Record<string, unknown>;
+
+    // The system-code dropdown takes priority over the cascader's parsed systemCode.
     const fromSelect = sp.systemCode != null && String(sp.systemCode).trim() !== '' ? String(sp.systemCode) : null;
     base.systemCode = fromSelect ?? pair.first;
     base.tenantId = pair.second;
     base.accessRuleTypeDictCode = sp.accessRuleTypeDictCode ?? null;
+    // Send parentActive=true to filter active rules only; omit the field otherwise to return all.
     base.parentActive = sp.parentActive === true ? true : null;
 
     const ipTypeRaw = sp.ipTypeDictCode;
@@ -537,40 +554,45 @@ class AccessRuleListPage extends TenantSupportListPage {
       ipTypeRaw != null && String(ipTypeRaw).trim() !== '' ? String(ipTypeRaw).trim() : null;
     if (ipType) {
       base.ipTypeDictCode = ipType;
-      const t = ipType.toLowerCase();
-      if (t === 'ipv4') {
+      const ipTypeLower = ipType.toLowerCase();
+      // Include ipStartStr/ipEndStr only when the user has entered a non-default range; otherwise
+      // omit them so the backend returns all IP entries for the selected type.
+      if (ipTypeLower === 'ipv4') {
         if (isDefaultIpv4SearchRange(sp.ipv4SearchStartStr, sp.ipv4SearchEndStr)) {
-          delete (base as Record<string, unknown>).ipStartStr;
-          delete (base as Record<string, unknown>).ipEndStr;
+          delete base.ipStartStr;
+          delete base.ipEndStr;
         } else {
           base.ipStartStr = String(sp.ipv4SearchStartStr ?? '');
           base.ipEndStr = String(sp.ipv4SearchEndStr ?? '');
         }
-      } else if (t === 'ipv6') {
+      } else if (ipTypeLower === 'ipv6') {
         if (isDefaultIpv6SearchRange(sp.ipv6SearchStartStr, sp.ipv6SearchEndStr)) {
-          delete (base as Record<string, unknown>).ipStartStr;
-          delete (base as Record<string, unknown>).ipEndStr;
+          delete base.ipStartStr;
+          delete base.ipEndStr;
         } else {
           base.ipStartStr = String(sp.ipv6SearchStartStr ?? '');
           base.ipEndStr = String(sp.ipv6SearchEndStr ?? '');
         }
       } else {
-        delete (base as Record<string, unknown>).ipStartStr;
-        delete (base as Record<string, unknown>).ipEndStr;
+        // Unknown IP type — omit range params to avoid sending stale values.
+        delete base.ipStartStr;
+        delete base.ipEndStr;
       }
     } else {
-      delete (base as Record<string, unknown>).ipTypeDictCode;
-      delete (base as Record<string, unknown>).ipStartStr;
-      delete (base as Record<string, unknown>).ipEndStr;
+      // No IP type selected — strip all IP-related params from the request.
+      delete base.ipTypeDictCode;
+      delete base.ipStartStr;
+      delete base.ipEndStr;
     }
 
-    delete (base as Record<string, unknown>).subSysOrTenant;
-    delete (base as Record<string, unknown>).subSystemCode;
-    delete (base as Record<string, unknown>).active;
-    delete (base as Record<string, unknown>).ipv4SearchStartStr;
-    delete (base as Record<string, unknown>).ipv4SearchEndStr;
-    delete (base as Record<string, unknown>).ipv6SearchStartStr;
-    delete (base as Record<string, unknown>).ipv6SearchEndStr;
+    // Remove UI-only / cascader-internal fields before sending to the backend.
+    delete base.subSysOrTenant;
+    delete base.subSystemCode;
+    delete base.active;
+    delete base.ipv4SearchStartStr;
+    delete base.ipv4SearchEndStr;
+    delete base.ipv6SearchStartStr;
+    delete base.ipv6SearchEndStr;
     return base;
   }
 
@@ -593,6 +615,8 @@ class AccessRuleListPage extends TenantSupportListPage {
 
   protected convertThis(): void {
     super.convertThis();
+    // Re-bind the action handlers expected by the base class template to our unified implementations
+    // that dispatch between IP rows and parent-rule rows based on the presence of `ipId`.
     const self = this as AccessRuleListPage;
     self.handleEdit = (row: Record<string, unknown>) => self.doHandleEditUnified(row);
     self.handleDelete = (row: Record<string, unknown>) => {
@@ -794,7 +818,11 @@ export default defineComponent({
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
 
-    /** Consistent with CacheListPage's cache-strategy handling: dict-item `second` is an i18n key, rendered via t(item.second); the table looks up options by `first`. */
+    /**
+     * Dict-item pairs follow the pattern { first: dictCode, second: i18nKey }.
+     * `second` is passed through t() for display; `first` is used as the option value in selects.
+     * Falls back to the raw code string when no matching option is found.
+     */
     type DictPairOpt = { first: string; second: string };
     function dictLabelFromOptions(code: unknown, options: DictPairOpt[] | null | undefined): string {
       const c = code != null && String(code).trim() !== '' ? String(code).trim() : '';
@@ -855,12 +883,14 @@ export default defineComponent({
     }
 
     function formatTreeTenant(tenantId: unknown, tenantName?: unknown): string {
+      // Platform-level rules have no tenant — show the localised "Platform" label.
       if (tenantId == null || String(tenantId).trim() === '') {
         return t('accessRuleList.treeGroup.platformTenant') as string;
       }
       if (tenantName != null && String(tenantName).trim() !== '') {
         return String(tenantName).trim();
       }
+      // Fall back to the raw tenantId when the name is unavailable.
       return String(tenantId);
     }
 

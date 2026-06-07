@@ -280,7 +280,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
+import { defineComponent, reactive, toRefs, ref, nextTick } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import DomainFormPage from './DomainFormPage.vue';
@@ -292,6 +292,7 @@ import { TenantSupportListPage } from '../../../components/pages/support';
 import { ListPageLayout } from '../../../components/pages/ui';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'domainList.operationColumnPinned';
+// Reserved for base-class query-state persistence; not referenced directly in this component.
 const DOMAIN_LIST_STATE_STORAGE_KEY = 'domainList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'domainList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'domainList.columnOrder';
@@ -317,10 +318,12 @@ class DomainListPage extends TenantSupportListPage {
   }
 
   protected initState(): Record<string, unknown> {
-        return {
+    return {
       searchParams: {
         domain: null as string | null,
+        /** Default to showing only active domains on first load. */
         active: true,
+        /** Cascader value: [subSystemCode] or [subSystemCode, tenantId]. Stripped before API call. */
         subSysOrTenant: null as string[] | null,
       },
     };
@@ -351,6 +354,7 @@ export default defineComponent({
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
+    // columnLabel maps prop keys to their i18n labels (with renames for systemCode→subSys, tenantName→tenant).
     const columnLabel = createI18nColumnLabelGetter(t, 'domainList.columns', { systemCode: 'subSys', tenantName: 'tenant' });
     const listPage = reactive(new DomainListPage(props, context)) as DomainListPage & { state: Record<string, unknown> };
     listPage.configureColumnVisibility(COLUMN_VISIBILITY_STORAGE_KEY, COLUMN_VISIBILITY_KEYS, DEFAULT_VISIBLE_COLUMN_KEYS);
@@ -366,6 +370,7 @@ export default defineComponent({
     });
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
+    // 39 (checkbox) + 50 (index) + 200 (domain) = 289 px — must stay in sync with the CSS overrides below.
     const FIXED_LEFT_TOTAL_WIDTH = 289;
     const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
     const {
@@ -381,21 +386,15 @@ export default defineComponent({
     } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS, {
       onOrderChange: () => nextTick(forceFixedLeftWidth),
     });
-    const getDomainColumnLabel = (key: string) => t('domainList.columns.' + (key === 'systemCode' ? 'subSys' : key === 'tenantName' ? 'tenant' : key));
-    const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
-      autoWidthColumns,
-      tableDataRef,
-      columnWidths,
-    } = useTableAutoWidthContext({
+    const { columnWidths } = useTableAutoWidthContext({
       listPage,
       reservedWidthLeft: 289,
       reservedWidthRight: 140,
       createAutoWidthColumns: () =>
       orderedColumnKeys.value.map((key) => ({
         key,
-        getLabel: () => getDomainColumnLabel(key),
+        // columnLabel handles the systemCode→subSys and tenantName→tenant renames internally.
+        getLabel: () => columnLabel(key),
         sortable: true,
         getCellText:
           key === 'systemCode'

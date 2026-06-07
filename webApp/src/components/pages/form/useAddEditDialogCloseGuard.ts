@@ -104,13 +104,12 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
     done?.();
   };
 
-  /** el-dialog before-close: if dirty, show a confirmation dialog and call done on confirm */
-  function handleBeforeClose(done: () => void): void {
-    if (!isFormDirty()) {
-      doClose(done);
-      return;
-    }
-    ElMessageBox.confirm(
+  /**
+   * Show the "unsaved changes" confirmation dialog.
+   * Resolves when the user confirms; the rejection (cancel) is swallowed intentionally.
+   */
+  function confirmClose(): Promise<void> {
+    return ElMessageBox.confirm(
       t(`${i18nKeyPrefix}.closeConfirm.message`),
       t(`${i18nKeyPrefix}.closeConfirm.title`),
       {
@@ -118,7 +117,16 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
         cancelButtonText: t(`${i18nKeyPrefix}.buttons.cancel`),
         type: 'warning',
       }
-    )
+    ).catch(() => Promise.reject()) as Promise<void>;
+  }
+
+  /** el-dialog before-close: if dirty, show a confirmation dialog and call done on confirm */
+  function handleBeforeClose(done: () => void): void {
+    if (!isFormDirty()) {
+      doClose(done);
+      return;
+    }
+    confirmClose()
       .then(() => doClose(done))
       .catch(() => {});
   }
@@ -129,15 +137,7 @@ export function useAddEditDialogCloseGuard(options: UseAddEditDialogCloseGuardOp
       page.close();
       return;
     }
-    ElMessageBox.confirm(
-      t(`${i18nKeyPrefix}.closeConfirm.message`),
-      t(`${i18nKeyPrefix}.closeConfirm.title`),
-      {
-        confirmButtonText: t(`${i18nKeyPrefix}.buttons.confirm`),
-        cancelButtonText: t(`${i18nKeyPrefix}.buttons.cancel`),
-        type: 'warning',
-      }
-    )
+    confirmClose()
       .then(() => page.close())
       .catch(() => {});
   }

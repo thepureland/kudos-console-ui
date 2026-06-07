@@ -89,7 +89,7 @@ function normalizeV4Cell(raw: string): string {
 
 /** Single IPv6 cell: hex only -> 0-ffff -> always a 4-digit lowercase hex string. */
 function normalizeV6Cell(raw: string): string {
-  let p = (raw ?? '').toLowerCase().replace(/[^0-9a-f]/g, '').slice(0, 4);
+  const p = (raw ?? '').toLowerCase().replace(/[^0-9a-f]/g, '').slice(0, 4);
   const n = parseInt(p || '0', 16);
   const v = Math.min(0xffff, Math.max(0, Number.isFinite(n) ? n : 0));
   return v.toString(16).padStart(4, '0');
@@ -393,9 +393,7 @@ export default defineComponent({
   flex: 1 1 0;
   min-width: 0;
 }
-.ip-segmented-address__cell--v6 {
-  flex: 1 1 0;
-}
+/* __cell--v6 inherits flex: 1 1 0 from __cell above; no additional overrides needed here */
 .ip-segmented-address__sep {
   flex: 0 0 auto;
   color: var(--el-text-color-regular);

@@ -199,6 +199,7 @@ export default defineComponent({
         ElMessage.warning(t('accountSecurity.freeze.timeRangeError'));
         return;
       }
+      // Only include optional fields when non-empty so the backend can distinguish "not provided" from "".
       const params: Record<string, unknown> = { id: props.rid, freezeType: freezeType.value };
       if (freezeTitle.value) params.freezeTitle = freezeTitle.value;
       if (freezeContent.value) params.freezeContent = freezeContent.value;

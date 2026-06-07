@@ -44,7 +44,15 @@ export function setGlobalLocale(locale: LocaleId): void {
 }
 
 /**
- * Matches ValidationRuleAdapter: backend four-segment keys (e.g. sys.valid-msg.default.DictItemCode) in vue-i18n typically use the path with the leading atomic-service segment dropped.
+ * Build the ordered list of i18n key candidates for a backend error message.
+ *
+ * Backend validation keys are typically four-segment dot paths where the first
+ * segment is an atomic-service prefix (e.g. "sys.valid-msg.default.DictItemCode").
+ * Vue-i18n locale files may omit that leading segment, so we try both the full
+ * key and the version with the first segment stripped.
+ *
+ * @param message - Raw backend message / key string.
+ * @returns Ordered array of candidate keys to look up; empty when message is blank.
  */
 function backendMessageCandidates(message: string): string[] {
   const text = String(message ?? '').trim();
@@ -58,8 +66,14 @@ function backendMessageCandidates(message: string): string[] {
   return out;
 }
 
+/** Singleton promise; reused across callers so app-level messages are fetched only once per locale switch. */
 let appMessagesLoadPromise: Promise<void> | null = null;
 
+/**
+ * Lazily load the app-level i18n messages exactly once.
+ * Subsequent calls while the load is in-flight return the same promise.
+ * If the load fails, the promise is cleared so the next call retries.
+ */
 export function ensureAppMessagesLoaded(): Promise<void> {
   if (appMessagesLoadPromise == null) {
     appMessagesLoadPromise = loadAppMessages(APP_DEFAULT_I18N_CONFIG).catch((error) => {
@@ -70,6 +84,10 @@ export function ensureAppMessagesLoaded(): Promise<void> {
   return appMessagesLoadPromise;
 }
 
+/**
+ * Global hook used by the shared Kotlin/JS layer to translate backend error messages.
+ * Attached to globalThis so the shared artifact can call it without importing this module directly.
+ */
 (globalThis as { __kudosTranslateBackendMessage?: (message: string) => string }).__kudosTranslateBackendMessage = (message: string) => {
   const text = String(message ?? '').trim();
   if (text === '') return text;
@@ -87,6 +105,11 @@ export function ensureAppMessagesLoaded(): Promise<void> {
   return text;
 };
 
+/**
+ * Async variant of __kudosTranslateBackendMessage.
+ * Ensures app-level messages are loaded before translating, used by the shared
+ * Kotlin/JS layer in contexts where message bundles may not yet be available.
+ */
 (globalThis as { __kudosTranslateBackendMessageAsync?: (message: string) => Promise<string> }).__kudosTranslateBackendMessageAsync = async (message: string) => {
   await ensureAppMessagesLoaded();
   const translator = (globalThis as { __kudosTranslateBackendMessage?: (message: string) => string }).__kudosTranslateBackendMessage;
@@ -105,7 +128,11 @@ export const loadMessagesForValidationPage = i18nService.loadMessagesForValidati
 /** Load app-level default i18n (called when App mounts) */
 export const loadAppMessages = i18nService.loadAppMessages.bind(i18nService);
 
-/** Switch language and persist to localStorage */
+/**
+ * Switch the active locale and persist it to localStorage.
+ * Clears the cached load-promise so ensureAppMessagesLoaded() re-fetches
+ * message bundles for the new locale on the next call.
+ */
 export function setLocale(locale: LocaleId): void {
   appMessagesLoadPromise = null;
   i18nService.setLocale(locale);

@@ -131,15 +131,24 @@ class MsgSendListPage extends BaseListPage {
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'msgSendList.operationColumnPinned';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'msgSendList.visibleColumns';
+
+/**
+ * Maps column keys whose i18n label key differs from the column key itself.
+ * Keys not listed here fall back to using the column key directly in `t('msgSendList.columns.<key>')`.
+ */
 const COLUMN_LABEL_KEY: Record<string, string> = {
   receiverGroupTypeDictCode: 'receiverGroupType',
   msgTypeDictCode: 'msgType',
 };
+
 const {
   indexColumnKey: INDEX_COLUMN_KEY,
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['receiverGroupTypeDictCode', 'msgTypeDictCode', 'successCount', 'failCount', 'createTime']);
+
+// Sum of the fixed-left columns: selection (39) + index (50) + sendStatus (120).
+// Used by useFixedLeftTableWidth to prevent layout jitter when columns are hidden.
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
 
 export default defineComponent({
@@ -162,6 +171,11 @@ export default defineComponent({
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
 
+    /**
+     * Translates a dict code to its display label.
+     * `transDict` returns either an i18n key (contains '.') or a raw string;
+     * only i18n keys are passed through `t()`.
+     */
     function formatDictCell(module: string, dictType: string, code: unknown): string {
       const key = listPage.transDict(module, dictType, code);
       if (!key) return '—';

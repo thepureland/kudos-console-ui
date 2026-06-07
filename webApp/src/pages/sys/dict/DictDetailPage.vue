@@ -133,9 +133,9 @@ class DictDetailPage extends BaseDetailPage {
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
+      // Backend may return dictId instead of id — normalise to id.
       if (data.id == null && data.dictId != null) data.id = data.dictId;
-      if (data.createTime == null) data.createTime = null;
-      if (data.updateTime == null) data.updateTime = null;
+      // Provide safe defaults so field renderers never receive undefined.
       if (data.createUser == null) data.createUser = '';
       if (data.updateUser == null) data.updateUser = '';
       if (data.builtIn == null) data.builtIn = false;
@@ -152,20 +152,30 @@ class DictDetailPage extends BaseDetailPage {
   protected async loadOthers(): Promise<void> {
     const rid = String(this.state.rid || this.props.rid || '');
     if (!rid) return;
+
+    // Cast once — BaseDetailPage.state is typed as unknown-valued for extensibility.
     const st = this.state as Record<string, unknown>;
     const pageNo = (st.itemsPageNo as number) ?? 1;
     const pageSize = (st.itemsPageSize as number) ?? 10;
+
     const result = await backendRequest({
       url: 'sys/dictItem/pagingSearchDictItem',
       method: 'post',
       params: { dictId: rid, pageNo, pageSize },
     });
+
     const payload = getApiResponseData<{ data?: Record<string, unknown>[]; totalCount?: number }>(result);
     if (payload != null && typeof payload === 'object' && Array.isArray(payload.data)) {
-      st.tableData = payload.data ?? [];
+      st.tableData = payload.data;
       st.itemsTotal = payload.totalCount ?? 0;
     } else {
-      ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || (i18n.global.t('dictDetail.messages.loadItemsFailed') as string) || 'Failed to load dictionary items!');
+      // Prefer a server-provided message, fall back to the i18n key, then a hard-coded sentinel.
+      ElMessage.error(
+        await resolveApiResponseMessage(result)
+        || getApiResponseMessage(result)
+        || (i18n.global.t('dictDetail.messages.loadItemsFailed') as string)
+        || 'Failed to load dictionary items!',
+      );
     }
   }
 }
@@ -194,18 +204,22 @@ export default defineComponent({
 
     useDetailPageRidSync(props, page, {
       onRidChanged: (p) => {
+        // Reset all derived state so stale data is not visible while loading.
         p.state.detail = null;
         const st = p.state as Record<string, unknown>;
         st.tableData = [];
         st.itemsPageNo = 1;
         st.itemsTotal = 0;
+        // Load the dict header first; then load its items (loadOthers is protected but
+        // accessible through the reactive proxy at runtime).
         Promise.resolve(p.loadData()).then(() => (p as unknown as { loadOthers: () => void }).loadOthers());
       },
     });
 
     function onItemsSizeChange(newSize: number) {
-      (page.state as Record<string, unknown>).itemsPageSize = newSize;
-      (page.state as Record<string, unknown>).itemsPageNo = 1;
+      const st = page.state as Record<string, unknown>;
+      st.itemsPageSize = newSize;
+      st.itemsPageNo = 1; // reset to first page whenever page-size changes
       page.loadOthers();
     }
     function onItemsPageChange(newPage: number) {

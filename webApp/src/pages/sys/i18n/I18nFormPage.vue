@@ -102,6 +102,7 @@ class I18nFormPage extends BaseAddEditPage {
 
   protected initState(): Record<string, unknown> {
     return {
+      /** Bound directly to the el-form; all fields start null (unset). */
       formModel: {
         key: null,
         value: null,
@@ -111,6 +112,7 @@ class I18nFormPage extends BaseAddEditPage {
         atomicServiceCode: null,
         remark: null,
       } as FormModel,
+      /** Populated after loadDicts resolves; each Pair holds (code, i18nKey). */
       localeOptions: [] as Array<{ first: string; second: string }>,
       i18nTypeDictOptions: [] as Array<{ first: string; second: string }>,
     };
@@ -120,7 +122,11 @@ class I18nFormPage extends BaseAddEditPage {
     return 'sys/i18n';
   }
 
-  /** Load dict-item translations for "i18n type" and "locale" so the form dropdowns can show t(item.second); all fetched from the backend. */
+  /**
+   * Fetches backend translations for the "i18n_type" and "locale" dict namespaces
+   * so that dropdown labels can be rendered via `t(item.second)` rather than raw codes.
+   * Using i18nTypeDictCode='dict-item' targets the dictionary-item translation entries.
+   */
   protected getI18nConfig() {
     return [
       { i18nTypeDictCode: 'dict-item', namespaces: ['i18n_type', 'locale'], atomicServiceCode: 'sys' },

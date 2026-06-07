@@ -37,7 +37,7 @@
             :placeholder="t('organizationAddEdit.placeholders.subSysOrTenant')"
             clearable
             class="form-select-full"
-            @change="(val) => onSubSysOrTenantChange(val)"
+            @change="onSubSysOrTenantChange"
           />
         </el-form-item>
         <el-form-item :label="t('organizationAddEdit.labels.parent')" prop="parent">
@@ -126,6 +126,7 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
         seqNo: 0 as number,
         remark: null as string | null,
       },
+      // checkStrictly:false so selecting a child implicitly includes its parent path
       subSysOrTenantCascaderProps: {
         value: 'value',
         label: 'label',
@@ -133,6 +134,7 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
         checkStrictly: false,
         expandTrigger: 'hover',
       },
+      // Populated by loadOrganizationTree after a tenant is selected; overridden in initVars too
       organizationTree: [] as unknown[],
     };
   }
@@ -200,6 +202,7 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     this.state.formModel.parent = parentIds;
     if (subSys) {
       this.loadOrganizationTreeForEdit(subSys, tenantId ?? null).then(() => {
+        // Defer one tick so the cascader re-renders with the new tree before we set the value
         setTimeout(() => {
           this.state.formModel.parent = [...parentIds];
         }, 0);

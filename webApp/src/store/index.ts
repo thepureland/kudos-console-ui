@@ -128,6 +128,7 @@ const store = createStore<RootState>({
     setAuthenticated(state: RootState, value: boolean) {
       state.isAuthenticated = value;
     },
+    /** Toggle sidebar collapsed state and persist the new value to localStorage. */
     handleCollapse(state: RootState, collapse: boolean) {
       state.collapse = collapse;
       if (typeof localStorage !== 'undefined') {
@@ -142,6 +143,7 @@ const store = createStore<RootState>({
         localStorage.setItem(STORAGE_KEYS.sidebarWidth, String(w));
       }
     },
+    /** Add a tag to the front of the list if it is not already present (deduplicates by resolved path). */
     setTagsItem(state: RootState, item: TagItem) {
       const path = resolvePath(item.path);
       const normalized = { ...item, path };
@@ -151,6 +153,7 @@ const store = createStore<RootState>({
         saveTagsList(state.tagsList);
       }
     },
+    /** Remove the tag at the given list index and persist the updated list. */
     delTagsItem(state: RootState, payload: { index: number }) {
       state.tagsList.splice(payload.index, 1);
       saveTagsList(state.tagsList);
@@ -159,6 +162,7 @@ const store = createStore<RootState>({
       state.tagsList = [];
       saveTagsList(state.tagsList);
     },
+    /** Close all tags except the first item in `curItems`; used by the "Close Other Tabs" context-menu action. */
     closeTagsOther(state: RootState, curItems: TagItem[]) {
       if (curItems && curItems.length > 0) {
         const current = curItems[0];
@@ -166,12 +170,15 @@ const store = createStore<RootState>({
         saveTagsList(state.tagsList);
       }
     },
+    /** Move a tag from `fromIndex` to `toIndex` (drag-to-reorder). Mutates the list in place and persists. */
     reorderTags(state: RootState, payload: { fromIndex: number; toIndex: number }) {
       const { fromIndex, toIndex } = payload;
       if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
       const list = state.tagsList;
       if (fromIndex >= list.length || toIndex >= list.length) return;
       const [item] = list.splice(fromIndex, 1);
+      // After splice removes the item, all indices after `fromIndex` shift left by one,
+      // so when moving forward (fromIndex < toIndex) the effective target is toIndex - 1.
       const insertIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
       list.splice(insertIndex, 0, item);
       saveTagsList(state.tagsList);

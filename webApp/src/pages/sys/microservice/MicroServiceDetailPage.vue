@@ -67,6 +67,10 @@ class MicroServiceDetailPage extends BaseDetailPage {
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
+      // Normalize undefined fields to explicit null/empty-string so the detail
+      // renderer never receives undefined (which Element Plus treats differently
+      // from null/'' for display purposes).  The `== null` check catches both
+      // null and undefined intentionally.
       if (data.createTime == null) data.createTime = null;
       if (data.updateTime == null) data.updateTime = null;
       if (data.createUser == null) data.createUser = '';

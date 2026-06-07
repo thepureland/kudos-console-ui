@@ -176,7 +176,12 @@ class MicroServiceFormPage extends BaseAddEditPage {
     return this.loadParentMicroServiceCodes();
   }
 
-  /** sys/microService/getAllActiveMicroServiceCodes */
+  /**
+   * Fetches all active microservice codes that are eligible parents
+   * (non-atomic, active) from the backend and repopulates the dropdown.
+   * Called on mount and whenever the user clicks the refresh button.
+   * Route: sys/microService/getAllActiveMicroServiceCodes
+   */
   private async loadParentMicroServiceCodes(): Promise<void> {
     (this.state as Record<string, unknown>).parentCodeOptionsLoading = true;
     try {
@@ -186,13 +191,26 @@ class MicroServiceFormPage extends BaseAddEditPage {
         ? payload.map((x) => String(x ?? '')).filter((c) => c !== '')
         : [];
     } catch {
+      // On network/API error, keep the dropdown empty rather than stale data.
       this.parentCodeOptionsRaw = [];
     } finally {
       (this.state as Record<string, unknown>).parentCodeOptionsLoading = false;
     }
+    // Sync after finally so the loading flag is already cleared before
+    // the reactive state update triggers a re-render.
     this.syncParentCodeOptions();
   }
 
+  /**
+   * Derives the visible parent-code dropdown list from the raw API data.
+   *
+   * Two adjustments are made:
+   *  1. Remove the current service's own code — a microservice cannot be
+   *     its own parent.
+   *  2. Re-insert the existing parentCode value if it no longer appears in
+   *     the API response (e.g. was deleted/deactivated since last load) so
+   *     the form does not silently lose the stored value.
+   */
   private syncParentCodeOptions(): void {
     const raw = this.parentCodeOptionsRaw;
     const selfCode = String((this.state.formModel as FormModel).code ?? '').trim();
@@ -226,6 +244,9 @@ export default defineComponent({
   },
   emits: commonAddEditDialogEmits,
   setup(props: AddEditDialogProps, context: AddEditDialogContext) {
+    // pageHolder gives setup() a typed reference to the page instance so
+    // template-exposed helpers (e.g. reloadParentMicroServiceCodes) can
+    // delegate to the class without coupling to the base-class internals.
     const pageHolder: { ref: MicroServiceFormPage | null } = { ref: null };
     const base = useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => {
@@ -237,7 +258,8 @@ export default defineComponent({
       formHasContent(model: Record<string, unknown>) {
         return hasAnyFormContent(model, {
           stringKeys: ['code', 'name', 'parentCode', 'context', 'remark'],
-          // atomicService defaults to true; switching it off counts as a change
+          // atomicService defaults to true in initState; treat toggling it
+          // off as a user change so the "unsaved changes" guard is triggered.
           customChecks: [(m) => m.atomicService === false],
         });
       },

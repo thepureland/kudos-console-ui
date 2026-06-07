@@ -114,19 +114,21 @@ const rules: FormRules = {
   ],
   totpCode: [
     { required: true, message: t('login.validation.requiredTotp'), trigger: 'blur' },
+    // `len` enforces exactly 6 characters; `pattern` separately enforces digits-only.
+    // Both reuse the same user-facing message intentionally.
     { len: 6, message: t('login.validation.totpLen'), trigger: 'blur' },
     { pattern: /^\d{6}$/, message: t('login.validation.totpLen'), trigger: 'blur' },
   ],
 };
 
 const loading = ref(false);
-// Rain-layer container ref (used to dynamically insert raindrops/ripples).
 
 function focusTotp() {
   totpInputRef.value?.focus();
 }
 
-
+// `async` is required so that Element Plus `validate` (called with a callback) returns a
+// settled promise; without it, an invalid form would throw an unhandled rejection.
 async function handleSubmit() {
   if (!formRef.value) return;
   await formRef.value.validate((valid) => {

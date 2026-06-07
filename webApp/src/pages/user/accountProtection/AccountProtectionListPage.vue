@@ -224,19 +224,24 @@ class AccountProtectionListPage extends BaseListPage {
     const params = super.createSearchParams();
     if (params && this.state.searchParams) {
       const sp = this.state.searchParams as Record<string, unknown>;
+      // Send `true` when the "active only" checkbox is checked; omit (null) otherwise so
+      // the API returns all records regardless of active status.
       (params as Record<string, unknown>).active = sp.active === true ? true : null;
     }
     return params;
   }
 }
 
+/** localStorage key controlling whether the operation column is pinned. */
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'accountProtectionList.operationColumnPinned';
+/** localStorage key persisting the user's column-visibility selection. */
 const COLUMN_VISIBILITY_STORAGE_KEY = 'accountProtectionList.visibleColumns';
 const {
   indexColumnKey: INDEX_COLUMN_KEY,
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['question1', 'totalValidateCount', 'matchQuestionCount', 'errorTimes', 'createTime', 'active']);
+/** Sum of the three fixed-left columns: selection (39) + index (50) + userId (160). */
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 160;
 
 export default defineComponent({
@@ -274,7 +279,9 @@ export default defineComponent({
 
     const { columnWidths } = useTableAutoWidthContext({
       listPage,
+      // reservedWidthLeft matches FIXED_LEFT_TOTAL_WIDTH (selection 39 + index 50 + userId 160).
       reservedWidthLeft: 249,
+      // reservedWidthRight reserves space for the pinned operation column.
       reservedWidthRight: 140,
       createAutoWidthColumns: () => [
         { key: 'question1', getLabel: () => t('accountProtectionList.columns.question1'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.question1 ?? '') },
@@ -282,6 +289,7 @@ export default defineComponent({
         { key: 'matchQuestionCount', getLabel: () => t('accountProtectionList.columns.matchQuestionCount'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.matchQuestionCount ?? '') },
         { key: 'errorTimes', getLabel: () => t('accountProtectionList.columns.errorTimes'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.errorTimes ?? '') },
         { key: 'createTime', getLabel: () => t('accountProtectionList.columns.createTime'), sortable: true, getCellText: (row: Record<string, unknown>) => listPage.formatDate(row.createTime) },
+        // 'active' renders an el-switch, so there is no meaningful text width to measure.
         { key: 'active', getLabel: () => t('accountProtectionList.columns.active'), sortable: false, getCellText: () => '' },
       ],
     });

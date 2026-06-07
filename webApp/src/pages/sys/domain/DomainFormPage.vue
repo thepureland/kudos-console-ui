@@ -82,6 +82,12 @@ import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEd
 import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 import { TenantSupportAddEditPage } from '../../../components/pages/support';
 
+/**
+ * Local form model. `subSysOrTenant` is the UI-only cascader value that gets
+ * split into `systemCode` / `tenantId` in beforeValidate before submission.
+ * `subSystemCode` may be populated from the API response on edit and is
+ * stripped from the submit payload by createSubmitParams.
+ */
 interface FormModel {
   domain: string | null;
   remark: string | null;
@@ -90,6 +96,7 @@ interface FormModel {
 }
 
 class DomainFormPage extends TenantSupportAddEditPage {
+  // No extra constructor logic; delegates entirely to the base class.
   constructor(props: PageProps, context: PageContext) {
     super(props, context);
   }
@@ -103,6 +110,8 @@ class DomainFormPage extends TenantSupportAddEditPage {
   }
 
   protected initState(): Record<string, unknown> {
+    // subSysOrTenant is intentionally absent here; it is set reactively by
+    // fillForm (edit mode) or left undefined until the user picks a value.
     return {
       formModel: {
         domain: null,
@@ -142,7 +151,12 @@ class DomainFormPage extends TenantSupportAddEditPage {
     return params;
   }
 
-  /** On back-fill, build subSysOrTenant from systemCode (or subSystemCode) and tenantId so the cascader can display it. */
+  /**
+   * On back-fill (edit mode), reconstruct the cascader value `subSysOrTenant`
+   * from the API response fields. The API may return either `systemCode` or the
+   * legacy `subSystemCode` name, so both are checked. If a tenantId is present
+   * it is appended as the second cascader level.
+   */
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
     const subSys = rowObject.systemCode ?? rowObject.subSystemCode ?? (this.state.formModel as Record<string, unknown>)?.subSystemCode;

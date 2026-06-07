@@ -1,4 +1,7 @@
-<!-- Message receive detail -->
+<!--
+ * Message receive detail dialog: shows the full delivery record for a single receiver entry.
+ * Opened from MsgReceiveListPage. Read-only; backed by /api/admin/msg/receive/getDetail.
+ -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -65,6 +68,8 @@ export default defineComponent({
     const page = reactive(new MsgReceiveDetailPage(props, context)) as MsgReceiveDetailPage & DetailPageViewModel;
     const { rowsWithSections, formatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {
       emptyKey: 'msgReceiveDetail.empty',
+      // yesNoKey intentionally references the list page's shared "common" namespace for
+      // yes/no labels — there is no boolean field here, but the key is required by the API.
       yesNoKey: 'msgReceiveList.common',
     });
     useDetailPageRidSync(props, page);

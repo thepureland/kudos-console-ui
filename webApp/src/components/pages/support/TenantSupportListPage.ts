@@ -32,7 +32,13 @@ export abstract class TenantSupportListPage extends BaseListPage {
         return null
     }
 
-    /** Load the first-level list (subsystem codes, etc.) from the given endpoint and write the result to state.firstLevelList and atomicServiceList, used by loadTenants and the table */
+    /**
+     * Load the first-level list (subsystem codes, etc.) from the given endpoint and write the result
+     * to state.firstLevelList and atomicServiceList, used by loadTenants and the table.
+     *
+     * NOTE: This logic is intentionally duplicated in TenantSupportAddEditPage because the two
+     * classes sit on different inheritance branches (List vs AddEdit) and cannot share a mixin.
+     */
     private async loadFirstLevel(url: string): Promise<void> {
         try {
             const result = await backendRequest({ url, method: "get" })
@@ -70,13 +76,22 @@ export abstract class TenantSupportListPage extends BaseListPage {
         this.state.tenantId = null
         this.state.subSysOrTenants = null
         this.state.firstLevelList = null
+
+        // Cache the result so we only call getFirstLevelApiUrl() once here
+        const useLazy = this.getFirstLevelApiUrl() != null
         const self = this
-        const useLazy = self.getFirstLevelApiUrl() != null
         this.state.cascaderProps = {
             multiple: false,
             checkStrictly: self.isCheckStrictly(),
             expandTrigger: "hover",
-            ...(useLazy ? { lazy: true, lazyLoad: (node: { level: number; value: string; data?: { value?: string } }, resolve: (children: Array<{ value: string; label: string; leaf?: boolean }>) => void) => self.lazyLoadTenants(node, resolve) } : {}),
+            // Lazy mode: root → subsystems from firstLevelList; children → tenants fetched on demand
+            ...(useLazy ? {
+                lazy: true,
+                lazyLoad: (
+                    node: { level: number; value: string; data?: { value?: string } },
+                    resolve: (children: Array<{ value: string; label: string; leaf?: boolean }>) => void
+                ) => self.lazyLoadTenants(node, resolve),
+            } : {}),
         }
     }
 
@@ -133,20 +148,14 @@ export abstract class TenantSupportListPage extends BaseListPage {
 
     /** Parse (subSystemCode, tenantId) from searchParams.subSysOrTenant; when required, the second level (tenant) must also be selected */
     protected parseSubSysOrTenant(): Pair | null {
-        const subSysOrTenant = this.state.searchParams.subSysOrTenant
+        const subSysOrTenant: string[] | null | undefined = this.state.searchParams.subSysOrTenant
         if (this.isRequireSubSysOrTenantForSearch() && (subSysOrTenant == null || subSysOrTenant.length < 2)) {
             ElMessage.error(tGlobal('listPage.selectSubSysTenantFirst'))
             return null
         }
-        const pair = new Pair(null, null)
-        if (subSysOrTenant) {
-            if (subSysOrTenant.length > 0) {
-                pair.first = subSysOrTenant[0]
-            }
-            if (subSysOrTenant.length > 1) {
-                pair.second = subSysOrTenant[1]
-            }
-        }
+        // Destructure up to two levels: [subSystemCode?, tenantId?]
+        const [first = null, second = null] = subSysOrTenant ?? []
+        const pair = new Pair(first, second)
         return pair
     }
 

@@ -118,7 +118,7 @@ class ResourceFormPage extends BaseAddEditPage {
         expandTrigger: 'hover',
         lazy: true,
         lazyLoad: (node: ParentCascaderNode, resolve: (nodes: ParentCascaderNode[]) => void) => {
-          (this as ResourceAddEditPage).lazyLoadParentCascader(node, resolve);
+          (this as ResourceFormPage).lazyLoadParentCascader(node, resolve);
         },
       },
     };
@@ -172,6 +172,8 @@ class ResourceFormPage extends BaseAddEditPage {
     }
     formModel.parent = parent.length > 0 ? parent.slice() : [];
     if (parent.length > 0) {
+      // Set synchronously so the UI is not momentarily blank, then re-set after
+      // nextTick so the El-Cascader internal state aligns with the new value.
       nextTick(() => {
         formModel.parent = parent.slice();
       });
@@ -272,6 +274,11 @@ class ResourceFormPage extends BaseAddEditPage {
     if (opts.length === 0) return;
     const metaMap = this.state.parentCascaderNodeMeta as Record<string, { resourceTypeDictCode: string; subSystemCode?: string; level: number }>;
     if (path.length >= 2) await loadMessagesForConfig(MENU_I18N_CONFIG);
+    // Import once outside the loop — the bundler caches the module, but hoisting
+    // makes the dependency explicit and avoids repeated async expressions.
+    const { i18n } = await import('../../../i18n');
+    const t = (k: string) => i18n.global.t(k) as string;
+    const te = (k: string) => i18n.global.te(k);
     for (let i = 0; i < path.length - 1; i++) {
       const parentNode = this.findNodeInOptions(opts, path.slice(0, i + 1));
       if (!parentNode) return;
@@ -299,9 +306,6 @@ class ResourceFormPage extends BaseAddEditPage {
       const result = await backendRequest({ url: 'sys/resource/loadDirectChildrenForTree', method: 'post', params });
       const rawList = getApiResponseData(result);
       const list = Array.isArray(rawList) ? rawList : [];
-      const { i18n } = await import('../../../i18n');
-      const t = (k: string) => i18n.global.t(k) as string;
-      const te = (k: string) => i18n.global.te(k);
       const typeCode = expandingLevel === 0 ? parentValue : (stored?.resourceTypeDictCode ?? path[0]);
       const subCode = expandingLevel === 1 ? parentValue : stored?.subSystemCode;
       const childrenLevel = expandingLevel + 1;
@@ -361,6 +365,7 @@ class ResourceFormPage extends BaseAddEditPage {
     const result = await backendRequest({ url: 'sys/resource/loadDirectChildrenForTree', method: 'post', params });
     const rawList = getApiResponseData(result);
     const list = Array.isArray(rawList) ? rawList : [];
+    // Bundler-cached; importing here ensures t/te are available before either branch below.
     const { i18n } = await import('../../../i18n');
     const t = (k: string) => i18n.global.t(k) as string;
     const te = (k: string) => i18n.global.te(k);
@@ -421,13 +426,22 @@ export default defineComponent({
         });
       },
       onVisible: async (result) => {
+        // `result` is a Vue reactive proxy, so a method may be either the function
+        // directly or wrapped in a ref-like { value: fn } object — handle both.
         const fn = (result as { ensureParentCascaderOptions?: (() => Promise<void>) | { value: () => Promise<void> } }).ensureParentCascaderOptions;
         const call = typeof fn === 'function' ? fn : (fn as { value: () => Promise<void> } | undefined)?.value;
         if (call) await call();
       },
     });
     const { t, te, locale } = useI18n();
-    /** Consistent with the list tree: call t(nameKey) at render time and re-evaluate when the locale changes. */
+    /**
+     * Re-apply i18n labels on every locale change. The raw options store a `nameKey`
+     * so we can call t() here rather than at load time, keeping labels reactive.
+     * `void locale.value` is intentional: it makes Vue track the locale ref so the
+     * computed re-runs whenever the language changes.
+     * The `'value' in raw` check unwraps the Vue reactive proxy that may wrap the
+     * array in a ref-like object depending on how the page class exposes state.
+     */
     const parentCascaderOptionsWithI18n = computed(() => {
       void locale.value;
       const raw = (result as { parentCascaderOptions?: { value: ParentCascaderNode[] } | ParentCascaderNode[] }).parentCascaderOptions;

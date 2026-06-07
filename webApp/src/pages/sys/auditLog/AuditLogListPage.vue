@@ -179,7 +179,7 @@ class AuditLogListPage extends BaseListPage {
 /** Render a long-encoded IPv4/IPv6 (BIGINT) back to dotted-decimal; legacy ipv4-only fallback. */
 function formatIpAddress(raw: unknown): string {
   if (raw == null || raw === '') return '';
-  const n = typeof raw === 'string' ? Number(raw) : Number(raw);
+  const n = Number(raw);
   if (!Number.isFinite(n) || n < 0) return String(raw);
   // 32-bit IPv4
   if (n <= 0xffffffff) {
@@ -221,7 +221,7 @@ export default defineComponent({
       showOperationColumn,
       dateRange,
       onDateRangeChange,
-      formatIp: (v: unknown) => formatIpAddress(v),
+      formatIp: formatIpAddress,
     };
   },
 });

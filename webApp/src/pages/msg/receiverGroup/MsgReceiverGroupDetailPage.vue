@@ -74,6 +74,7 @@ export default defineComponent({
     const page = reactive(new MsgReceiverGroupDetailPage(props, context)) as MsgReceiverGroupDetailPage & DetailPageViewModel;
     const { rowsWithSections, formatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {
       emptyKey: 'msgReceiverGroupDetail.empty',
+      // Reuses the yes/no labels from the list page's i18n namespace to avoid duplication.
       yesNoKey: 'msgReceiverGroupList.common',
     });
     useDetailPageRidSync(props, page);

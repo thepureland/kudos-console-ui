@@ -23,7 +23,10 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** Sections: which row to start showing each section title on (other info goes last) */
+/**
+ * Maps each section title to the row index at which it begins.
+ * Rows are zero-indexed; the section title is rendered above its first row.
+ */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'systemDetail.sections.basicInfo' },
   { start: 2, titleKey: 'systemDetail.sections.audit' },
@@ -58,10 +61,17 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class SystemDetailPage extends BaseDetailPage {
+  /** Vuex/API namespace for the system resource. */
   protected getRootActionPath(): string {
     return 'sys/system';
   }
 
+  /**
+   * Normalizes optional audit fields before storing the loaded record.
+   * The API may omit these fields entirely (undefined); the `== null` check
+   * catches both null and undefined so the detail object always has defined
+   * keys for every displayed field, preventing template binding issues.
+   */
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
       if (data.createTime == null) data.createTime = null;

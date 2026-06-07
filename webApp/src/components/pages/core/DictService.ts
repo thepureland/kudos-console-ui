@@ -56,31 +56,12 @@ export class DictService {
         const toLoad = dictTypes.filter((dt) => !this.cache.has(cacheKeyPrefix + dt));
         if (toLoad.length === 0) return;
 
-        const dictTypesByAtomicServiceCode: Record<string, string[]> = {
-            [atomicServiceCode]: toLoad,
-        };
         const result = await backendRequest({
             url: BATCH_GET_DICT_ITEM_MAP_URL,
             method: "post",
-            params: dictTypesByAtomicServiceCode,
+            params: { [atomicServiceCode]: toLoad },
         });
-
-        const data = this.normalizeBatchDictResponse(result);
-        if (data && typeof data === "object") {
-            const byAtomic = data as Record<string, Record<string, Record<string, string>>>;
-            for (const [atomic, dictTypeMap] of Object.entries(byAtomic)) {
-                if (dictTypeMap && typeof dictTypeMap === "object") {
-                    const prefix = atomic + "---";
-                    for (const [dictType, itemMap] of Object.entries(dictTypeMap)) {
-                        if (itemMap && typeof itemMap === "object") {
-                            this.cache.set(prefix + dictType, itemMap);
-                        }
-                    }
-                }
-            }
-        } else if (!isApiSuccessResponse(result)) {
-            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || "Failed to batch-load dictionary items!");
-        }
+        await this.applyBatchDictResponse(result);
     }
 
     /** Batch-load multiple dictionary groups (used when atomicServiceCode differs), merged into one POST */
@@ -100,23 +81,7 @@ export class DictService {
             method: "post",
             params: dictTypesByAtomicServiceCode,
         });
-
-        const data = this.normalizeBatchDictResponse(result);
-        if (data && typeof data === "object") {
-            const byAtomic = data as Record<string, Record<string, Record<string, string>>>;
-            for (const [atomic, dictTypeMap] of Object.entries(byAtomic)) {
-                if (dictTypeMap && typeof dictTypeMap === "object") {
-                    const prefix = atomic + "---";
-                    for (const [dictType, itemMap] of Object.entries(dictTypeMap)) {
-                        if (itemMap && typeof itemMap === "object") {
-                            this.cache.set(prefix + dictType, itemMap);
-                        }
-                    }
-                }
-            }
-        } else if (!isApiSuccessResponse(result)) {
-            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || "Failed to batch-load dictionary items!");
-        }
+        await this.applyBatchDictResponse(result);
     }
 
     /** Parse batch dictionary API response: may be { code, data } or data directly */
@@ -131,17 +96,34 @@ export class DictService {
         return null;
     }
 
+    /**
+     * Write a parsed batch-dict response into the local cache, and show an error message on failure.
+     * Extracted to avoid duplicating the loop and error-handling logic in loadDicts / loadDictsBatch.
+     */
+    private async applyBatchDictResponse(result: unknown): Promise<void> {
+        const data = this.normalizeBatchDictResponse(result);
+        if (data && typeof data === "object") {
+            for (const [atomic, dictTypeMap] of Object.entries(data)) {
+                if (dictTypeMap && typeof dictTypeMap === "object") {
+                    const prefix = atomic + "---";
+                    for (const [dictType, itemMap] of Object.entries(dictTypeMap)) {
+                        if (itemMap && typeof itemMap === "object") {
+                            this.cache.set(prefix + dictType, itemMap);
+                        }
+                    }
+                }
+            }
+        } else if (!isApiSuccessResponse(result)) {
+            ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || "Failed to batch-load dictionary items!");
+        }
+    }
+
     /** Returns dictionary item list [Pair(code, name)] for use by el-select, etc.; requires prior loadDict/loadDicts */
     getDictItems(atomicServiceCode: string, dictType: string): Array<Pair> {
         const key = this.toCacheKey(atomicServiceCode, dictType);
         const map = this.cache.get(key);
-        const pairs: Array<Pair> = [];
-        if (map) {
-            for (const k in map) {
-                pairs.push(new Pair(k, map[k]));
-            }
-        }
-        return pairs;
+        if (!map) return [];
+        return Object.entries(map).map(([k, v]) => new Pair(k, v));
     }
 
     private toCacheKey(atomicServiceCode: string, dictType: string): string {

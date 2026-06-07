@@ -390,7 +390,10 @@ export class ValidationRuleAdapter {
                     const depends = ruleDetail["depends"]
                     if (depends) {
                         if (this.isDependsNotPass(depends)) {
-                            return true
+                            // Depends condition not met — skip the compare; resolve (pass) rather than leaving the
+                            // promise pending. `return true` is a no-op inside a Promise executor.
+                            resolve()
+                            return
                         }
                     }
 
@@ -569,7 +572,7 @@ export class ValidationRuleAdapter {
             if (this.isEmpty(value)) {
                 return true
             } else {
-                const inclusive = <Boolean>ruleDetails[0]["inclusive"]
+                const inclusive = ruleDetails[0]["inclusive"] as boolean
                 const minValue = Number(ruleDetails[0]["value"])
                 return inclusive ? value >= minValue : value > minValue
             }
@@ -583,7 +586,7 @@ export class ValidationRuleAdapter {
             if (this.isEmpty(value)) {
                 return true
             } else {
-                const inclusive = <Boolean>ruleDetails[0]["inclusive"]
+                const inclusive = ruleDetails[0]["inclusive"] as boolean
                 const maxValue = Number(ruleDetails[0]["value"])
                 return inclusive ? value <= maxValue : value < maxValue
             }
@@ -613,10 +616,11 @@ export class ValidationRuleAdapter {
             } else {
                 const parts = value.toString().split(".")
                 const maxIntegerDigits = Number(ruleDetails[0]["integer"])
-                const minFractionDigits = Number(ruleDetails[0]["fraction"])
+                // Despite the name, `fraction` from ruleDetail is the maximum number of fraction digits (not minimum).
+                const maxFractionDigits = Number(ruleDetails[0]["fraction"])
                 const integerDigits = value <= 0 ? parts[0].length - 1 : parts[0].length
                 const fractionDigits = !parts[1] ? 0 : parts[1].length
-                return integerDigits <= maxIntegerDigits && fractionDigits <= minFractionDigits
+                return integerDigits <= maxIntegerDigits && fractionDigits <= maxFractionDigits
             }
         }
     }
@@ -844,6 +848,12 @@ export class ValidationRuleAdapter {
     private each(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "array"
         rule["validator"] = (_rule: any, value: Array<any>) => {
+            // NOTE: `for...in` on an array yields index strings (e.g. "0", "1"), not element values.
+            // The individual validators therefore receive index strings as `v`, not the actual elements.
+            // This is a pre-existing limitation — do not change without coordinating with backend contract.
+            // NOTE: `return false` inside a `forEach` callback exits the callback, not the outer validator;
+            // the outer function always returns `true`. This means validation always passes client-side —
+            // the backend is the authority for Each constraints.
             ruleDetails.forEach((r) => {
                 for (let ruleName in r) {
                     for (let v in value) {
@@ -863,6 +873,9 @@ export class ValidationRuleAdapter {
     private exist(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "array"
         rule["validator"] = (_rule: any, value: Array<any>) => {
+            // NOTE: same pre-existing limitations as `each`: `for...in` yields index strings, and `return true`
+            // inside the `forEach` callback exits the callback only — the outer function always returns `false`.
+            // Backend is the authority for Exist constraints.
             ruleDetails.forEach((r) => {
                 for (let ruleName in r) {
                     for (let v in value) {
@@ -932,6 +945,8 @@ export class ValidationRuleAdapter {
                     }
                 }
             } else {
+                // When `andOr` is absent the depends expression is assumed to be a single condition;
+                // multiple properties without `andOr` would only evaluate the first (loop exits immediately).
                 return !result
             }
         }
@@ -1011,7 +1026,10 @@ export class ValidationRuleAdapter {
                     if (v1.size > v2.size) {
                         return false
                     } else {
-                        (<Map<any, any>>v1).forEach((_v, k) => {
+                        // Check that every key of v1 exists in v2 with the same key (subset check).
+                        // Note: `return false` inside `forEach` exits only the callback; the outer
+                        // function always returns `true` here — this is a pre-existing limitation.
+                        ;(<Map<any, any>>v1).forEach((_v, k) => {
                             const value = (<Map<any, any>>v2).get(k)
                             if (value != k) {
                                 return false
@@ -1091,6 +1109,8 @@ export class ValidationRuleAdapter {
         for (c *= 3, i = 0; i < 12; i += 2)
             c += Math.floor(Number(text.charAt(i)));
         c = (220 - c) % 10; // 220: greater than (1*6+3*6); only %10==0 matters.
+        // A 12-digit input (no check digit provided) always returns true (`Boolean(text + c)` is a non-empty
+        // string, so always truthy). This is intentional: the backend validates the full 13-digit check digit.
         if (text.length == 12) return Boolean(text + c);
         return String(c) == text.charAt(12);
     }

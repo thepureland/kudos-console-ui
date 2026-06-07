@@ -118,21 +118,20 @@ class AccessRuleFormPage extends TenantSupportAddEditPage {
     return 'sys/system/getAllActiveSubSystemCodes';
   }
 
-  /** Before validation, split the cascader; the tenant (leaf) must be selected, matching the cascader's checkStrictly: false. */
+  /** Before validation, split the cascader value into subSystemCode + tenantId.
+   *  A tenant (leaf, depth 2) must be selected — checkStrictly is false so intermediate
+   *  nodes are not selectable anyway, but this guard handles a cleared/null cascader. */
   protected beforeValidate(): void {
-    const subSysOrTenant = (this.state.formModel as AccessRuleFormModel).subSysOrTenant;
     const fm = this.state.formModel as AccessRuleFormModel;
-    if (!subSysOrTenant || subSysOrTenant.length === 0) {
+    const sst = fm.subSysOrTenant;
+    if (!sst || sst.length === 0) {
       fm.subSystemCode = null;
       fm.tenantId = null;
       return;
     }
-    fm.subSystemCode = subSysOrTenant[0];
-    if (subSysOrTenant.length > 1) {
-      fm.tenantId = subSysOrTenant[1];
-    } else {
-      fm.tenantId = null;
-    }
+    fm.subSystemCode = sst[0];
+    // sst[1] is the tenant segment; absent when only the sub-system node is set (edge case)
+    fm.tenantId = sst.length > 1 ? sst[1] : null;
   }
 
   protected initState(): Record<string, unknown> {
@@ -156,18 +155,19 @@ class AccessRuleFormPage extends TenantSupportAddEditPage {
     return 'accessRuleAddEdit.messages.loadFailed';
   }
 
-  /** Backend edit back-fill: only merge the cascader when a tenant exists; platform-level rules (no tenantId) leave the cascader empty so the user must pick a tenant before saving. */
+  /** Back-fill on edit: reconstruct the cascader array from the loaded record.
+   *  Platform-level rules (no tenantId) leave the cascader null so the user must
+   *  explicitly pick a tenant — preventing an accidental save without a scope. */
   protected fillForm(rowObject: Record<string, unknown>): void {
     BaseAddEditPage.prototype.fillForm.call(this, rowObject);
     const fm = this.state.formModel as AccessRuleFormModel;
+    // Backend may return either "systemCode" or "subSystemCode" depending on API version
     const sys = rowObject.systemCode ?? rowObject.subSystemCode;
     if (sys == null || sys === '') return;
     const tid = rowObject.tenantId;
-    if (tid != null && String(tid).trim() !== '') {
-      fm.subSysOrTenant = [String(sys), String(tid)];
-    } else {
-      fm.subSysOrTenant = null;
-    }
+    // Only populate the cascader when a tenant is present; coerce to string for type safety
+    fm.subSysOrTenant =
+      tid != null && String(tid).trim() !== '' ? [String(sys), String(tid)] : null;
   }
 
   public resetFormForAdd(): void {
@@ -228,8 +228,10 @@ export default defineComponent({
         required: true,
         trigger: 'change',
         validator: (_rule: unknown, value: unknown, callback: (e?: Error) => void) => {
+          // Require exactly two segments [subSystemCode, tenantId]; a single-level
+          // selection (sub-system only) is not a valid scope for an access rule.
           if (value == null || !Array.isArray(value) || value.length < 2) {
-            callback(new Error(t('accessRuleAddEdit.validation.tenantRequired') as string));
+            callback(new Error(t('accessRuleAddEdit.validation.tenantRequired')));
             return;
           }
           callback();
@@ -237,6 +239,8 @@ export default defineComponent({
       },
     ]);
 
+    // Props are widened to Record<string, unknown> because the extra list-page props are not
+    // part of the shared AddEditDialogProps type but are passed through at runtime.
     const cascaderOptionsList = computed(
       () => (props as Record<string, unknown>).listSubSysOrTenants ?? page.state.subSysOrTenants
     );
@@ -244,6 +248,7 @@ export default defineComponent({
       const base =
         ((props as Record<string, unknown>).listCascaderProps as Record<string, unknown> | undefined) ??
         (page.state.cascaderProps as Record<string, unknown> | undefined);
+      // Enforce leaf-only selection: checkStrictly: false prevents picking an intermediate node
       return { ...base, checkStrictly: false };
     });
 

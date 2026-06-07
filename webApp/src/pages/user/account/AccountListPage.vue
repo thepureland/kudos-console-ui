@@ -411,7 +411,7 @@ class AccountListPage extends TenantSupportListPage {
   }
 
   protected initState(): Record<string, unknown> {
-        return {
+    return {
       searchParams: {
         username: null as string | null,
       },
@@ -593,6 +593,7 @@ export default defineComponent({
     });
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
+    // Fixed-left total width: selection col (39) + index col (50) + username col (120).
     const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
     const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
     const {
@@ -624,10 +625,6 @@ export default defineComponent({
       return key.includes('.') ? t(key) : key;
     }
     const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
-      autoWidthColumns,
-      tableDataRef,
       columnWidths,
     } = useTableAutoWidthContext({
       listPage,
@@ -663,10 +660,12 @@ export default defineComponent({
       getColumnLabel: columnLabel,
     });
 
+    // Template-bound wrappers — keep the class method private and expose only plain functions to the template.
     function onOrgNodeClick(nodeData: { id?: string }) {
       listPage.onOrganizationNodeClick(nodeData);
     }
 
+    /** Changing the subsystem/tenant cascader resets the org-tree selection and triggers a fresh search. */
     function onSubSysOrTenantChange() {
       (listPage.state as Record<string, unknown>).selectedOrgId = null;
       listPage.search();

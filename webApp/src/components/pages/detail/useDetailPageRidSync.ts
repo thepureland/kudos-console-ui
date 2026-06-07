@@ -24,6 +24,7 @@ export function useDetailPageRidSync(
       const id = newRid ? String(newRid) : '';
       const oldId = oldRid != null ? String(oldRid) : undefined;
       page.state.rid = id;
+      // Skip refresh on: initial mount (oldId undefined), empty new id, or same id (no real change)
       if (oldId === undefined || !id || id === oldId) return;
       if (options.onRidChanged) {
         options.onRidChanged(page, id, oldId);

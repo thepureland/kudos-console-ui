@@ -132,6 +132,8 @@ const {
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['receiverId', 'sendId', 'createTime']);
+// Sum of fixed-left column widths: selection(39) + index(50) + receiveStatus(120).
+// Used by useFixedLeftTableWidth to prevent layout thrash when columns are toggled.
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 120;
 
 export default defineComponent({
@@ -154,6 +156,11 @@ export default defineComponent({
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
 
+    /**
+     * Translate a dictionary code to its display label.
+     * transDict returns either a dotted i18n key (e.g. "msg.receive_status.sent") or a raw
+     * display string. Only pass dotted values through the i18n translator.
+     */
     function formatDictCell(module: string, dictType: string, code: unknown): string {
       const key = listPage.transDict(module, dictType, code);
       if (!key) return '—';

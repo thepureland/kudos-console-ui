@@ -18,7 +18,6 @@ import {
   type FieldConfig,
   type SectionConfig,
 } from '../../../components/pages/detail';
-import { Pair } from '../../../components/model/Pair';
 import { BaseDetailPage } from '../../../components/pages/core';
 import type { PageContext, PageProps } from '../../../components/pages/core';
 import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, SectionedDetailDialog } from '../../../components/pages/detail';

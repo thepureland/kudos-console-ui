@@ -27,11 +27,12 @@ import type { PageContext, PageProps } from '../../../components/pages/core';
 import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, useDetailDialogVisibility, SectionedDetailDialog } from '../../../components/pages/detail';
 import type { DetailPageViewModel, FieldConfig, SectionConfig } from '../../../components/pages/detail';
 
+// `start` is a 0-based index into ROW_FIELDS; each section begins at that row.
 const SECTION_MAP: SectionConfig[] = [
-  { start: 0, titleKey: 'auditLogDetail.sections.summary' },
-  { start: 3, titleKey: 'auditLogDetail.sections.context' },
-  { start: 6, titleKey: 'auditLogDetail.sections.client' },
-  { start: 8, titleKey: 'auditLogDetail.sections.payload' },
+  { start: 0, titleKey: 'auditLogDetail.sections.summary' },   // rows 0-2: id, operator, user type
+  { start: 3, titleKey: 'auditLogDetail.sections.context' },   // rows 3-5: module, operation, tenant
+  { start: 6, titleKey: 'auditLogDetail.sections.client' },    // rows 6-7: IP, OS/browser
+  { start: 8, titleKey: 'auditLogDetail.sections.payload' },   // rows 8+: description, URL, params
 ];
 
 const ROW_FIELDS: FieldConfig[][] = [
@@ -93,6 +94,7 @@ class AuditLogDetailPage extends BaseDetailPage {
   }
 
   protected async preLoad(): Promise<void> {
+    // Populate the atomic-service lookup used by fields with type:'atomicService' (e.g. subSysCode).
     await this.loadAtomicServices();
   }
 }

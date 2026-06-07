@@ -301,7 +301,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick,  watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -527,7 +527,8 @@ class DictListPage extends BaseListPage {
   }
 
   protected getBatchDeleteMessage(rows: Record<string, unknown>[]): string {
-    const existDict = rows.findIndex((row) => (row as { itemCode?: unknown }).itemCode == null) !== -1;
+    // A row is a dict (not a dict-item) when itemCode is absent.
+    const existDict = rows.some((row) => (row as { itemCode?: unknown }).itemCode == null);
     if (existDict) {
       return this.tr('dictList.messages.batchDeleteConfirm') + super.getBatchDeleteMessage(rows);
     }
@@ -855,6 +856,7 @@ export default defineComponent({
     const itemFormVisible = computed(() => !!(state.addItemDialogVisible || state.editItemDialogVisible));
     const itemFormRid = computed(() => (state.editItemDialogVisible ? String(state.rid ?? '') : ''));
     const hasItemFormEverOpened = ref(false);
+    // immediate: true ensures the component is pre-mounted on SSR or if visibility is already true at setup time.
     watch(itemFormVisible, (v) => { if (v) hasItemFormEverOpened.value = true; }, { immediate: true });
     const currentItemFormMode = ref<'add' | 'edit'>('add');
     watch(() => state.addItemDialogVisible, (v) => { if (v) currentItemFormMode.value = 'add'; }, { immediate: true });
@@ -917,7 +919,8 @@ export default defineComponent({
       { key: 'parentCode', getLabel: () => t('dictList.columns.parentCode'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.parentCode ?? '') },
       { key: 'orderNum', getLabel: () => t('dictList.columns.orderNum'), sortable: true, getCellText: (row: Record<string, unknown>) => String(row.orderNum ?? '') },
       { key: 'remark', getLabel: () => t('dictList.columns.remark'), sortable: false, getCellText: (row: Record<string, unknown>) => String(row.remark ?? '') },
-      { key: 'active', getLabel: () => t('dictList.columns.active'), sortable: false, getCellText: (row: Record<string, unknown>) => '' },
+      // active is rendered as a switch widget; plain text width measurement is not needed, so getCellText returns ''.
+      { key: 'active', getLabel: () => t('dictList.columns.active'), sortable: false, getCellText: (_row: Record<string, unknown>) => '' },
     ],
     });
 

@@ -1,4 +1,4 @@
-import { ref, watch, nextTick, onUnmounted } from 'vue';
+import { nextTick, onUnmounted, ref, watch } from 'vue';
 import type { Ref } from 'vue';
 
 /** Per-column config for auto-width calculation. */
@@ -75,15 +75,18 @@ export function useTableColumnAutoWidth(options: UseTableColumnAutoWidthOptions)
     const th = container.querySelector('.el-table th .cell, .el-table th');
     if (th) {
       const style = window.getComputedStyle(th);
-      const font = style.getPropertyValue('font-size') && style.getPropertyValue('font-family')
-        ? `${style.fontSize} ${style.fontFamily}`
-        : FALLBACK_FONT;
-      return font;
+      // Use the resolved shorthand font string; fall back if either part is empty.
+      if (style.fontSize && style.fontFamily) {
+        return `${style.fontSize} ${style.fontFamily}`;
+      }
     }
     return FALLBACK_FONT;
   }
 
-  /** Render text inside the measurement element with the given font and return the width in px */
+  /**
+   * Render text inside the off-screen measurement element with the given font and return the
+   * scrolled pixel width. The font is restored after measurement so callers can share the element.
+   */
   function measureText(text: string, font: string): number {
     if (text == null || text === '') return 0;
     const el = getMeasureEl();
@@ -130,7 +133,8 @@ export function useTableColumnAutoWidth(options: UseTableColumnAutoWidthOptions)
       headerWidths[i] = Math.max(minColumnWidth, Math.ceil(headerW));
 
       let contentW = 0;
-      if (col.getCellText && Array.isArray(data) && data.length > 0) {
+      // data is already guaranteed to be an array above; skip the redundant Array.isArray check.
+      if (col.getCellText && data.length > 0) {
         for (let r = 0; r < data.length; r++) {
           const cellText = col.getCellText(data[r] as Record<string, unknown>);
           const w = measureText(String(cellText ?? ''), font) + cellPadding;
@@ -164,7 +168,7 @@ export function useTableColumnAutoWidth(options: UseTableColumnAutoWidthOptions)
         let extra = availableWidth - totalHeaderMin;
         for (let i = 0; i < cols.length; i++) {
           const headerMin = headerWidths[i];
-          const need = Math.max(0, (desiredWidths[i] ?? headerMin) - headerMin);
+          const need = Math.max(0, desiredWidths[i] - headerMin);
           const give = Math.min(need, extra);
           const w = headerMin + give;
           const clamped =

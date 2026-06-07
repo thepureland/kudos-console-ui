@@ -20,6 +20,12 @@ import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync,
 import type { DetailPageViewModel } from '../../../components/pages/detail';
 import { type FieldConfig, type SectionConfig } from '../../../components/pages/detail';
 
+/**
+ * Section boundaries index into ROW_FIELDS (0-based row number):
+ *   0 – routing section  (rows 0-3: id/sendType, eventType/msgType, locale/receiverGroup, tenantId)
+ *   4 – content section  (rows 4-5: title, content)
+ *   6 – defaults section (rows 6-8: defaultActive, defaultTitle, defaultContent)
+ */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'msgTemplateDetail.sections.routing' },
   { start: 4, titleKey: 'msgTemplateDetail.sections.content' },

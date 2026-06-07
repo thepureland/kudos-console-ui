@@ -56,10 +56,6 @@ import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 
 class GroupRoleListDialog extends BaseDetailPage {
-  constructor(props: any, context: any) {
-    super(props, context);
-  }
-
   protected getRootActionPath(): string {
     return 'auth/group';
   }
@@ -70,19 +66,23 @@ class GroupRoleListDialog extends BaseDetailPage {
     };
   }
 
+  /** Overrides the default `/getDetail` endpoint — this dialog fetches the role-id list instead. */
   protected getDetailLoadUrl(): string {
     return this.getRootActionPath() + '/listRoleIds';
   }
 
+  /** Backend expects `groupId`, not the generic `id` used by BaseDetailPage. */
   protected createDetailLoadParams(): any {
     return { groupId: this.props.rid };
   }
 
+  /** Atomic services must be loaded before rendering so subSystemCode labels resolve correctly. */
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
   }
 
   protected postLoadDataSuccessfully(data: unknown): void {
+    // The backend may return the id set as a JSON array or as a plain object whose values are the ids.
     const ids: string[] = Array.isArray(data)
       ? data.map(String)
       : (data && typeof data === 'object'
@@ -96,9 +96,16 @@ class GroupRoleListDialog extends BaseDetailPage {
     super.postLoadDataSuccessfully(data);
   }
 
+  /**
+   * Fetches full role metadata for the given id list via the role search endpoint,
+   * then filters down to only the rows whose id is in the id set (the search endpoint
+   * may return extras when the result set is larger than the page size floor of 50).
+   */
   private async resolveRoles(ids: string[]): Promise<Array<Record<string, unknown>>> {
     const params: Record<string, unknown> = {
       pageNo: 1,
+      // Request at least 50 rows so small groups don't trigger unnecessary paging,
+      // but always request enough to cover the actual id count.
       pageSize: Math.max(ids.length, 50),
       ids,
     };
@@ -107,6 +114,7 @@ class GroupRoleListDialog extends BaseDetailPage {
       ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.loadFailed'));
       return [];
     }
+    // The search endpoint may return either a bare array or a paged envelope { data: [...] }.
     const payload = getApiResponseData<{ data?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>>(result);
     const rows: Array<Record<string, unknown>> = Array.isArray(payload)
       ? payload

@@ -41,10 +41,15 @@ class BackendApiExposed {
     }
 
     private fun fullPath(url: String): String {
+        // Ensure the path starts with "/" so concatenation is always valid.
         val path = if (url.startsWith("/")) url else "/$url"
         return baseUrl() + "/api/admin" + path
     }
 
+    /**
+     * Deserialises [paramsJson] and appends each key/value pair via [append].
+     * Only JSON objects are valid as query-parameter sources; arrays or primitives are silently ignored.
+     */
     private fun appendJsonToUrlBuilder(
         paramsJson: String?,
         append: (name: String, value: String) -> Unit
@@ -55,10 +60,16 @@ class BackendApiExposed {
             is JsonObject -> element.forEach { (key, value) ->
                 appendJsonValue(key, value, append)
             }
-            else -> { /* GET/DELETE only supports object parameters. */ }
+            else -> { /* GET/DELETE only supports top-level JSON object parameters. */ }
         }
     }
 
+    /**
+     * Recursively converts a single JSON element to one or more query-parameter entries.
+     * - Primitives  → single "key=value" entry.
+     * - Arrays      → repeated "key=value" entries (multi-value param), matching Spring's default binding.
+     * - Objects     → serialised as a JSON string under the key (last-resort; rarely needed).
+     */
     private fun appendJsonValue(
         key: String,
         value: JsonElement,
@@ -134,18 +145,27 @@ class BackendApiExposed {
                     }.body<String>()
                 }
             }
+            // Unrecognised method: fall back to GET so the call never throws silently.
             else -> client.get(path).body<String>()
         }
         val t2 = perfNow()
         val total = (t2 - t0).toInt()
+        // Warn in the browser console when end-to-end time exceeds 1 s so slow
+        // endpoints are immediately visible during development.
         if (total > 1000) {
             logSlow("[BackendApi] slow request ${total}ms: $method $url | fullPath=${(t1 - t0).toInt()}ms network=${(t2 - t1).toInt()}ms")
         }
         response
     }
 
+    /** Wraps `performance.now()` via raw JS because the Kotlin stdlib has no multiplatform equivalent here. */
     private fun perfNow(): Double = js("performance.now()").unsafeCast<Double>()
 
+    /**
+     * Issues a `console.warn` via explicit JS interop.
+     * `js("console").warn(msg)` shorthand is avoided because the Kotlin/JS compiler
+     * does not guarantee the `this` binding is preserved in that form.
+     */
     private fun logSlow(msg: String) {
         js("console.warn").call(js("console"), msg)
     }

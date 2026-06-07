@@ -180,9 +180,12 @@ class DictItemFormPage extends BaseAddEditPage {
     const model = this.state.formModel as FormModel;
     const parent = model?.parent;
     if (parent && parent.length > 0) {
+      // parent[0] = atomic-service code, parent[1] = dict ID (level 1 node),
+      // parent[last] = immediate parent item ID (null when selecting the dict root itself).
       params.module = parent[0];
       params.parentId = parent.length === 1 ? null : parent[parent.length - 1];
       params.dictId = parent.length === 1 ? null : parent[1];
+      // parentCache maps dict ID -> dictType string, populated during cascader lazy-load (level 1).
       params.dictType =
         parent.length === 1 ? null : (this.state.parentCache as Record<string, string>)[parent[1]] ?? null;
     }
@@ -213,12 +216,39 @@ class DictItemFormPage extends BaseAddEditPage {
     model.parent = parents;
   }
 
-  /** Names for level-3 and deeper (dict items): prefer dict-item i18n via t(dictType.itemCode); otherwise itemName/code. Requires loadMessagesForConfig first. */
+  /**
+   * Resolve a display name for a dict item.
+   * Looks up `dictType.itemCode` in the i18n catalogue first; falls back to
+   * the stored itemName, then the raw itemCode.  loadMessagesForConfig must
+   * have been called for this dictType before this method is invoked.
+   */
   private transDictItemName(dictType: string, itemCode: string, itemName: string): string {
     if (!itemCode) return itemName || '';
-    const key = dictType + '.' + itemCode;
+    const key = `${dictType}.${itemCode}`;
     const translated = i18n.global.t(key) as string;
+    // i18n returns the key itself when no translation is found — treat that as a miss.
     return (translated !== key ? translated : null) ?? itemName ?? itemCode;
+  }
+
+  /**
+   * Map a raw API item list into cascader-node objects for dict items.
+   * Shared by level-2 (direct children of a dict) and level-3+ (children of an item).
+   */
+  private mapDictItemNodes(
+    list: Array<{ id: string; itemCode?: string; itemName?: string }>,
+    dictType: string,
+    atomicServiceCode: string,
+  ): Array<Record<string, unknown>> {
+    return list.map((item) => {
+      const code = item.itemCode ?? '';
+      return {
+        id: item.id,
+        code,
+        name: this.transDictItemName(dictType, code, item.itemName ?? ''),
+        atomicServiceCode,
+        dictType,
+      };
+    });
   }
 
   /** Parent-cascader data loading mirrors the list page's tree: level 0 atomic service -> level 1 dict type -> level 2 dict items -> level 3+ child items. */
@@ -269,19 +299,10 @@ class DictItemFormPage extends BaseAddEditPage {
         });
         const payload = getApiResponseData<unknown[]>(result);
         const list = Array.isArray(payload) ? payload : [];
-        const nodes = list.map((item: { id: string; itemCode?: string; itemName?: string }) => {
-          const code = item.itemCode ?? '';
-          return {
-            id: item.id,
-            code,
-            name: this.transDictItemName(dictType, code, item.itemName ?? ''),
-            atomicServiceCode,
-            dictType,
-          };
-        });
-        resolve(nodes);
+        resolve(this.mapDictItemNodes(list as Array<{ id: string; itemCode?: string; itemName?: string }>, dictType, atomicServiceCode));
         return;
       }
+      // Level 3+ — children of a dict item.
       const atomicServiceCode = (node.data?.atomicServiceCode ?? '') as string;
       const dictType = (node.data?.dictType ?? '') as string;
       const itemCode = (node.data?.code ?? '') as string;
@@ -293,17 +314,7 @@ class DictItemFormPage extends BaseAddEditPage {
       });
       const payload = getApiResponseData<unknown[]>(result);
       const list = Array.isArray(payload) ? payload : [];
-      const nodes = list.map((item: { id: string; itemCode?: string; itemName?: string }) => {
-        const code = item.itemCode ?? '';
-        return {
-          id: item.id,
-          code,
-          name: this.transDictItemName(dictType, code, item.itemName ?? ''),
-          atomicServiceCode,
-          dictType,
-        };
-      });
-      resolve(nodes);
+      resolve(this.mapDictItemNodes(list as Array<{ id: string; itemCode?: string; itemName?: string }>, dictType, atomicServiceCode));
     } catch {
       ElMessage.error((i18n.global.t('dictAddEdit.messages.loadTreeFailed') as string) || 'Failed to load dictionary tree!');
       resolve([]);

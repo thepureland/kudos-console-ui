@@ -23,7 +23,11 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** Sections: which row to start showing each section title on (other info goes last) */
+/**
+ * Maps row indices to section headings.
+ * Each entry declares the first row index (`start`) at which its section title
+ * should be rendered.  Rows with no matching entry inherit the previous section.
+ */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'dataSourceDetail.sections.basicInfo' },
   { start: 4, titleKey: 'dataSourceDetail.sections.config' },
@@ -78,6 +82,11 @@ const ROW_FIELDS: FieldConfig[][] = [
 ];
 
 class DataSourceDetailPage extends BaseDetailPage {
+  /**
+   * Fetches atomic-service (sub-system) lookup data before the detail record
+   * loads, so that the `atomicService` renderer for `subSystemCode` has its
+   * options available when the dialog opens.
+   */
   protected async preLoad(): Promise<void> {
     await this.loadAtomicServices();
   }
@@ -95,13 +104,17 @@ export default defineComponent({
   },
   emits: commonDetailDialogEmits,
   setup(props: PageProps, context: PageContext) {
+    // `reactive` wrapping + cast makes Vue track class-instance properties while
+    // retaining the class type so TypeScript callers keep full method signatures.
     const page = reactive(new DataSourceDetailPage(props, context)) as DataSourceDetailPage & DetailPageViewModel;
 
     const { rowsWithSections, formatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {
       emptyKey: 'dataSourceDetail.empty',
+      // Reuse the common yes/no labels from the list page's i18n namespace.
       yesNoKey: 'dataSourceList.common',
     });
 
+    // Keeps the dialog's `rid` in sync whenever the parent passes a new record ID.
     useDetailPageRidSync(props, page);
 
     return {

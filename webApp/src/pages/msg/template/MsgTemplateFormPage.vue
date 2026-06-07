@@ -129,6 +129,11 @@ export default defineComponent({
     const vm = useAddEditDialogSetupWithVisible(props, context, {
       createPage: (p, c) => new MsgTemplateFormPage(p, c),
       i18nKeyPrefix: 'msgTemplateAddEdit',
+      /**
+       * Determines whether the form has unsaved user input (used to show a close confirmation).
+       * `defaultActive` is intentionally excluded: it defaults to `true` and toggling it alone
+       * is not considered meaningful "content" for the unsaved-changes guard.
+       */
       formHasContent(model: Record<string, unknown>) {
         return hasAnyFormContent(model, {
           stringKeys: ['sendTypeDictCode', 'eventTypeDictCode', 'msgTypeDictCode', 'localeDictCode', 'receiverGroupCode', 'title', 'content', 'defaultTitle', 'defaultContent'],

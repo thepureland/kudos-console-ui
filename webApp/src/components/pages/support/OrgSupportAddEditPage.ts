@@ -62,11 +62,9 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
         if (rowObject.tenantId) {
             parents.push(rowObject.tenantId)
         }
-        const parentIds = rowObject.parentIds
-        if (parentIds) {
-            for (let parentId of parentIds) {
-                parents.push(parentId)
-            }
+        // Spread ancestor ids (if any) into the cascade path array
+        if (Array.isArray(rowObject.parentIds) && rowObject.parentIds.length > 0) {
+            parents.push(...rowObject.parentIds)
         }
         this.state.formModel.parent = parents
     }
@@ -118,6 +116,7 @@ export abstract class OrgSupportAddEditPage extends TenantSupportAddEditPage {
 
     /** Return null when the current node is at the tenant level or the root (no parent id); otherwise return the current node id as parentId */
     protected getParentId(node: any): string | null {
+        // Loose equality (== undefined) intentionally catches both null and undefined for node.parent
         if (node.data.organization === false || node.parent == undefined) {
             return null
         }

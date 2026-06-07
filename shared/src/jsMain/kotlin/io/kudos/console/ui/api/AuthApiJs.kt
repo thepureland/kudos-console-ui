@@ -47,6 +47,18 @@ class AuthApiExposed {
     fun logout() = TokenStorage.clear()
 }
 
+/**
+ * JS-facing factory that lets TypeScript code obtain API handles without holding
+ * references to Kotlin objects directly.
+ *
+ * Each call to [getAuthApi] / [getBackendApi] creates a new instance with its own
+ * [MainScope] and Ktor client; callers should cache the returned object rather than
+ * calling the factory repeatedly.
+ *
+ * Note: [getInstance] returns the singleton object itself. It exists purely for
+ * symmetry with other factory patterns in the JS layer that expect a getInstance()
+ * call; it is a no-op in terms of construction.
+ */
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 object AuthApiFactory {

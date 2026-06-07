@@ -430,7 +430,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed } from 'vue';
 import { Clock, CopyDocument, Delete, Edit, Filter, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
@@ -447,7 +447,6 @@ import RoleTemporalGrantDialog from './RoleTemporalGrantDialog.vue';
 import RoleTemporalGrantsDialog from './RoleTemporalGrantsDialog.vue';
 import BatchBindUsersDialog from '../_shared/BatchBindUsersDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
-import { Pair } from '../../../components/model/Pair';
 import type { PageContext, PageProps, ListPageContext, ListPageProps } from '../../../components/pages/core';
 import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup, useListPageVisibilityState, useOperationColumnVisible, useColumnVisibilityOptions, useVisibleColumnKeys, useTableAutoWidthContext, createI18nColumnLabelGetter, useColumnOrderDrag } from '../../../components/pages/list';
 import { TenantSupportListPage } from '../../../components/pages/support';
@@ -737,34 +736,36 @@ export default defineComponent({
       onTableDrop,
     } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS);
 
-    const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
-      autoWidthColumns,
-      tableDataRef,
-      columnWidths,
-    } = useTableAutoWidthContext({
+    const { columnWidths } = useTableAutoWidthContext({
       listPage,
       reservedWidthLeft: 39 + 50 + 120,
       reservedWidthRight: 340,
       createAutoWidthColumns: () =>
-      orderedColumnKeys.value.map((key) => ({
-        key,
-        getLabel: () => columnLabel(key),
-        sortable: key === 'roleName' || key === 'subSystemCode' || key === 'createTime',
-        getCellText:
-          key === 'subSystemCode'
-            ? (row: Record<string, unknown>) => listPage.transAtomicService(row.subSystemCode)
-            : key === 'dataScope'
-              ? (row: Record<string, unknown>) => String(row.dataScope ?? 'ALL')
-              : key === 'roleName'
-                ? (row: Record<string, unknown>) => String(row.roleName ?? '')
-                : key === 'remark'
-                  ? (row: Record<string, unknown>) => String(row.remark ?? '')
-                  : key === 'createTime'
-                    ? (row: Record<string, unknown>) => listPage.formatDate(row.createTime)
-                  : () => '',
-      }))
+      orderedColumnKeys.value.map((key) => {
+        // Derive the per-cell text extractor for each dynamic column so the
+        // auto-width context can measure rendered content without touching the DOM.
+        type Row = Record<string, unknown>;
+        let getCellText: (row: Row) => string;
+        if (key === 'subSystemCode') {
+          getCellText = (row) => listPage.transAtomicService(row.subSystemCode);
+        } else if (key === 'dataScope') {
+          getCellText = (row) => String(row.dataScope ?? 'ALL');
+        } else if (key === 'roleName') {
+          getCellText = (row) => String(row.roleName ?? '');
+        } else if (key === 'remark') {
+          getCellText = (row) => String(row.remark ?? '');
+        } else if (key === 'createTime') {
+          getCellText = (row) => listPage.formatDate(row.createTime);
+        } else {
+          getCellText = () => '';
+        }
+        return {
+          key,
+          getLabel: () => columnLabel(key),
+          sortable: key === 'roleName' || key === 'subSystemCode' || key === 'createTime',
+          getCellText,
+        };
+      })
     });
 
     const visibleColumnKeys = useVisibleColumnKeys(listPage);

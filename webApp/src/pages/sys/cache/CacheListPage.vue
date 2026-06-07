@@ -479,7 +479,7 @@ class CacheListPage extends BaseListPage {
 
   /** Initialize page state: search params, key dialog visibility, current operation, current row */
   protected initState(): Record<string, unknown> {
-        return {
+    return {
       searchParams: {
         name: null,
         atomicServiceCode: null,
@@ -816,11 +816,9 @@ export default defineComponent({
       strategyDictCode: 'strategy',
       ttl: 'ttlSeconds',
     });
+    // RESERVED_WIDTH_LEFT, RESERVED_WIDTH_RIGHT are echoed-back input constants (not forwarded to template).
+    // autoWidthColumns and tableDataRef are reactive refs used internally by the composable's watchers.
     const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
-      autoWidthColumns,
-      tableDataRef,
       columnWidths,
     } = useTableAutoWidthContext({
       listPage,
@@ -880,10 +878,8 @@ export default defineComponent({
       return listPage.formatBoolean(value, t('cacheList.common.yes'), t('cacheList.common.no'));
     }
 
-    /** Check whether a column is checked in "column visibility". */
-
     /** When table column filters change, sync to searchParams and reload the list. */
-    function       handleTableFilterChange(filters: Record<string, Array<string | number | boolean>>) {
+    function handleTableFilterChange(filters: Record<string, Array<string | number | boolean>>) {
       listPage.applyRemoteTableFilters(filters, {
         strategyDictCode: { paramName: 'strategyDictCode', emptyValue: null },
         active: listPage.createBooleanFilterMapping('active'),

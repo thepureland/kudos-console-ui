@@ -26,7 +26,12 @@ import type { PageContext, PageProps } from '../../../components/pages/core';
 import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, SectionedDetailDialog } from '../../../components/pages/detail';
 import type { DetailPageViewModel } from '../../../components/pages/detail';
 
-/** Sections: row index at which each section title appears (other info goes last). */
+/**
+ * Section break points into ROW_FIELDS (0-indexed row numbers):
+ *   rows 0-2  → basicInfo   (id/domain, subSystemCode/tenantId, tenantName)
+ *   rows 3-4  → audit       (createTime/updateTime, createUser/updateUser)
+ *   rows 5+   → otherInfo   (active/builtIn, remark)
+ */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'domainDetail.sections.basicInfo' },
   { start: 3, titleKey: 'domainDetail.sections.audit' },
@@ -75,6 +80,11 @@ class DomainDetailPage extends BaseDetailPage {
     return { id: String(this.state.rid || this.props.rid || ''), pageNo: 1, pageSize: 1 };
   }
 
+  /**
+   * Fetches the domain record by id. The endpoint returns a single object
+   * (not a list), so we validate the shape before handing off to
+   * postLoadDataSuccessfully. Any non-object payload is treated as an error.
+   */
   protected async loadData(): Promise<void> {
     const params = this.createDetailLoadParams();
     const result = await backendRequest({ url: this.getDetailLoadUrl(), method: 'get', params });
@@ -86,6 +96,10 @@ class DomainDetailPage extends BaseDetailPage {
     }
   }
 
+  /**
+   * Normalises optional fields that the template always renders so that the
+   * detail dialog never shows "undefined" or blank-renders a boolean cell.
+   */
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
       if (data.updateTime == null) data.updateTime = null;
@@ -111,6 +125,8 @@ export default defineComponent({
   },
   emits: commonDetailDialogEmits,
   setup(props: PageProps, context: PageContext) {
+    // reactive() wraps the class instance so Vue tracks mutations to this.state
+    // inside class methods. The cast restores the concrete type for type-checking.
     const page = reactive(new DomainDetailPage(props, context)) as DomainDetailPage & DetailPageViewModel;
 
     const { rowsWithSections, formatFieldValue, pageRefs, stateRefs } = useDetailPageSetupBase(page, ROW_FIELDS, SECTION_MAP, {

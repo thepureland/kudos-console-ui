@@ -13,7 +13,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, watch } from 'vue';
+import { defineComponent, reactive } from 'vue';
 import { BaseDetailPage } from '../../../components/pages/core';
 import type { PageContext, PageProps } from '../../../components/pages/core';
 import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, useDetailDialogVisibility, SectionedDetailDialog } from '../../../components/pages/detail';
@@ -23,12 +23,17 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
+/**
+ * Maps row-index ranges to section headings.
+ * start=0 → rows 0-3 (basic info), start=4 → rows 4-5 (audit), start=6 → rows 6+ (other).
+ */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'i18nDetail.sections.basicInfo' },
   { start: 4, titleKey: 'i18nDetail.sections.audit' },
   { start: 6, titleKey: 'i18nDetail.sections.otherInfo' },
 ];
 
+/** Each inner array is one display row; fields render left-to-right within the row. */
 const ROW_FIELDS: FieldConfig[][] = [
   [
     { labelKey: 'i18nDetail.fields.id', key: 'id' },
@@ -62,6 +67,7 @@ const ROW_FIELDS: FieldConfig[][] = [
   ],
 ];
 
+/** Thin subclass — only the store action path differs from the generic detail page. */
 class I18nDetailPage extends BaseDetailPage {
   protected getRootActionPath(): string {
     return 'sys/i18n';

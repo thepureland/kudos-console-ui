@@ -104,17 +104,23 @@ export default defineComponent({
       set: (v) => context.emit('update:modelValue', v),
     });
 
+    /**
+     * Map a grant row to an Element Plus tag type.
+     * Active grants → success (green); future grants → primary (blue); expired → info (grey).
+     * ISO string lexicographic comparison works correctly for UTC timestamps.
+     */
     function statusType(row: GrantRow): 'success' | 'info' | 'primary' {
       if (!row.active) {
-        // Distinguish expired (past end) from future (not started)
+        // Distinguish expired (past end) from future (not yet started).
         const now = new Date().toISOString();
-        if (row.endTime && row.endTime < now) return 'info';      // expired
-        if (row.startTime && row.startTime > now) return 'primary'; // future
+        if (row.endTime && row.endTime < now) return 'info';       // expired
+        if (row.startTime && row.startTime > now) return 'primary'; // future / pending
         return 'info';
       }
       return 'success';
     }
 
+    /** Human-readable status label matching the colour returned by statusType. */
     function statusLabel(row: GrantRow): string {
       if (!row.active) {
         const now = new Date().toISOString();
@@ -138,10 +144,13 @@ export default defineComponent({
         const data = getApiResponseData<GrantRow[]>(res);
         rows.value = Array.isArray(data) ? data : [];
         if (rows.value.length > 0) {
+          // Deduplicate user ids before fetching (a user can hold the same role multiple times
+          // with different time windows) then annotate each row with the resolved display name.
           const userIds = [...new Set(rows.value.map(r => r.userId))];
           const items = await resolveAssignedItems({ searchUrl: 'user/account/pagingSearch', ids: userIds, pickLabel: userLabel });
           const byId = new Map(items.map(i => [i.key, i.label]));
           for (const r of rows.value) {
+            // _username is a client-side decoration; fall back to the raw userId if not found.
             r._username = byId.get(r.userId) ?? r.userId;
           }
         }
@@ -158,6 +167,7 @@ export default defineComponent({
 
     return {
       t, visible, loading, rows, formatDate, statusType, statusLabel, close,
+      // Typed wrapper so the template can call emit('regrant', userId) without a direct context ref.
       emit: (event: string, payload: unknown) => context.emit(event as 'update:modelValue' | 'regrant', payload as string),
     };
   },

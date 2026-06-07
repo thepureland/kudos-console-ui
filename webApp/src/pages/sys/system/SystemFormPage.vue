@@ -185,7 +185,8 @@ class SystemFormPage extends BaseAddEditPage {
   private syncParentCodeOptions(): void {
     const raw = this.parentCodeOptionsRaw;
     const selfCode = String((this.state.formModel as FormModel).code ?? '').trim();
-    let list = selfCode ? raw.filter((c) => c !== selfCode) : [...raw];
+    // When editing, exclude the row's own code so a system cannot select itself as parent.
+    let list = selfCode ? raw.filter((c) => c !== selfCode) : raw.slice();
     const pc = (this.state.formModel as FormModel).parentCode?.trim();
     if (pc && !list.includes(pc)) {
       list = [...list, pc];
@@ -195,6 +196,8 @@ class SystemFormPage extends BaseAddEditPage {
 
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
+    // Re-sync after the form model is populated so the current code is excluded
+    // from the parent dropdown and any pre-existing parentCode is back-filled.
     this.syncParentCodeOptions();
   }
 

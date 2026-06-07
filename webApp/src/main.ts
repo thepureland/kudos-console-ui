@@ -13,6 +13,9 @@ import { i18n } from './i18n';
 import { backendRequest } from './utils/backendRequest';
 import { installFormErrorTooltip } from './components/pages/form';
 
+// Apply the persisted theme to <html> before mounting to avoid a flash of
+// unstyled/wrong-theme content.  Element Plus dark mode also requires the
+// "dark" class on the root element, which is toggled here in lock-step.
 const VALID_THEMES = ['a-light', 'a-dark', 'b-light', 'b-dark', 'c-light', 'c-dark', 'd-light', 'd-dark'];
 const rawTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('theme') : null;
 const themeId = rawTheme && VALID_THEMES.includes(rawTheme) ? rawTheme : 'a-light';
@@ -29,6 +32,7 @@ app.use(ElementPlus);
 // Vuex 4's runtime is a Vue plugin; the current dependency's types don't fully match Vue 3.5's Plugin generic, so adapt once here at the entry point.
 app.use(store as unknown as Plugin);
 app.use(router);
+// Register the global form-error tooltip directive (must run before mount).
 installFormErrorTooltip();
 // Route everything through `shared`: point global ajax at backendRequest.
 (window as unknown as { ajax?: typeof backendRequest }).ajax = backendRequest;

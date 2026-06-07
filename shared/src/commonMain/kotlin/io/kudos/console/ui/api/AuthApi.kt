@@ -16,15 +16,18 @@ import io.ktor.http.HttpHeaders
  */
 class AuthApi(private val client: HttpClient) {
 
+    /** Authenticates with credentials and returns a JWT token together with the resolved [User]. */
     suspend fun login(request: LoginRequest): LoginResponse =
         client.post("/api/auth/login") {
             header(HttpHeaders.ContentType, ContentType.Application.Json)
             setBody(request)
         }.body<LoginResponse>()
 
+    /** Returns the currently authenticated user's profile from the server. */
     suspend fun getMe(): User =
         client.get("/api/me").body<User>()
 
+    /** Returns the menu tree that is permitted for the current user's roles. */
     suspend fun getMenus(): List<MenuItem> =
         client.get("/api/menus").body<List<MenuItem>>()
 }

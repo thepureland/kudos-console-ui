@@ -63,12 +63,8 @@ export abstract class BasePage {
     }
 
     protected render() {
-        const v = this.visible as unknown as { value?: boolean } | boolean
-        if (v && typeof v === 'object' && 'value' in v) {
-            v.value = true
-        } else {
-            ;(this as unknown as { visible: boolean }).visible = true
-        }
+        // visible is always a Ref<boolean> (created via ref(false)), so set its .value directly.
+        this.visible.value = true
     }
 
     protected getI18nConfig(): I18nLoadConfig[] | undefined {
@@ -138,7 +134,8 @@ export abstract class BasePage {
     }
 
     public getAtomicServices = (): SysMicroServiceCacheItem[] => {
-        return (this.state?.atomicServiceList ?? this.atomicServiceList) ?? []
+        // state.atomicServiceList is kept in sync with this.atomicServiceList; prefer state copy for reactivity.
+        return this.state?.atomicServiceList ?? this.atomicServiceList ?? []
     }
 
     public transAtomicService = (code: string | null | undefined): string => {
@@ -164,22 +161,17 @@ export abstract class BasePage {
     public close!: () => void
 
     protected doClose() {
-        const v = this.visible as unknown as { value?: boolean } | boolean
-        if (v && typeof v === 'object' && 'value' in v) {
-            v.value = false
-        } else {
-            ;(this as unknown as { visible: boolean }).visible = false
-        }
+        // visible is always a Ref<boolean> (created via ref(false)), so set its .value directly.
+        this.visible.value = false
         this.context.emit('update:modelValue', false)
     }
 
     protected convertThis() {
-        this.transDict = (atomicServiceCode: string, type: string, code: string) => {
-            return this.dictService.transDict(atomicServiceCode, type, code)
-        }
-        this.close = () => {
-            this.doClose()
-        }
+        // Bind public method fields here so subclass constructors can safely override them
+        // before the template accesses them (Vue calls setup() once; arrow fields capture `this`).
+        this.transDict = (atomicServiceCode, type, code) =>
+            this.dictService.transDict(atomicServiceCode, type, code)
+        this.close = () => this.doClose()
     }
 
     private toDate(value: unknown): Date | null {

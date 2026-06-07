@@ -20,6 +20,9 @@ import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync,
 import type { DetailPageViewModel } from '../../../components/pages/detail';
 import { type FieldConfig, type SectionConfig } from '../../../components/pages/detail';
 
+// Section boundaries reference ROW_FIELDS indices.
+// start:0 = rows 0-3 (id/status, receiverGroup, instance/msgType, locale/tenant).
+// start:4 = rows 4-6 (success/fail counts, jobId, timestamps).
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'msgSendDetail.sections.basicInfo' },
   { start: 4, titleKey: 'msgSendDetail.sections.result' },

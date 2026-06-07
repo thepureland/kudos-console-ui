@@ -49,7 +49,7 @@ import { tGlobal } from '../../../i18n';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
-import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import {
   type TransferItem,
   debounce,

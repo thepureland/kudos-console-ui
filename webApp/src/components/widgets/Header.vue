@@ -250,6 +250,14 @@ function isLocalhost(): boolean {
   const h = typeof window !== 'undefined' ? window.location?.hostname : '';
   return h === 'localhost' || h === '127.0.0.1';
 }
+
+/** Apply a local-dev placeholder when no real user data is available. */
+function applyDevFallback() {
+  username.value = 'Admin';
+  message.value = 2;
+  localStorage.setItem('current_username', 'Admin');
+}
+
 async function fetchUser() {
   if (!AuthApiFactory.getInstance().hasToken()) return;
   try {
@@ -262,16 +270,11 @@ async function fetchUser() {
       message.value = count;
       localStorage.setItem('current_username', name);
     } else if (isLocalhost()) {
-      username.value = 'Admin';
-      message.value = 2;
-      localStorage.setItem('current_username', 'Admin');
+      applyDevFallback();
     }
   } catch {
-    if (isLocalhost()) {
-      username.value = 'Admin';
-      message.value = 2;
-      localStorage.setItem('current_username', 'Admin');
-    }
+    // Network or auth error — fall back to a placeholder on localhost only.
+    if (isLocalhost()) applyDevFallback();
   }
 }
 async function handleCommand(command: string) {
@@ -310,7 +313,8 @@ const themeList: { id: string; label: string; color: string }[] = [
   { id: 'd-light', label: 'Warm Brand · Light', color: '#F97316' },
   { id: 'd-dark', label: 'Warm Brand · Dark', color: '#7C2D12' },
 ];
-const VALID_THEME_IDS = ['a-light', 'a-dark', 'b-light', 'b-dark', 'c-light', 'c-dark', 'd-light', 'd-dark'];
+/** Derive the valid ID set from themeList so the two cannot drift apart. */
+const VALID_THEME_IDS = themeList.map((th) => th.id);
 const DEFAULT_THEME = 'a-light';
 
 function getInitialTheme(): string {
@@ -319,7 +323,7 @@ function getInitialTheme(): string {
   return raw && VALID_THEME_IDS.includes(raw) ? raw : DEFAULT_THEME;
 }
 const currentThemeId = ref(getInitialTheme());
-const currentThemeLabel = computed(() => themeList.find((th) => th.id === currentThemeId.value)?.label ?? 'Classic Blue · Light');
+/** Resolved color for the small theme-preview swatch shown in the trigger button. */
 const currentThemeColor = computed(() => themeList.find((th) => th.id === currentThemeId.value)?.color ?? '#2563EB');
 function handleThemeCommand(themeId: string) {
   if (typeof document === 'undefined') return;
@@ -356,6 +360,7 @@ function onFullscreenChange() {
 }
 
 // ---------- Sidebar collapse ----------
+/** Toggle sidebar collapsed state. Called on mount for narrow viewports; not bound to any template element. */
 const collapseChange = () => store.commit('handleCollapse', !collapse.value);
 
 onMounted(() => {

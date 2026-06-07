@@ -39,7 +39,12 @@ export const localeOptions: { id: LocaleId; flag: string; label: string }[] = [
   { id: 'en-US', flag: '🇺🇸', label: 'English (US)' },
 ];
 
-/** Date-time display formats per locale (used by formatDate / d('datetime')). */
+/**
+ * Date-time display formats per locale (used by formatDate / d('datetime')).
+ * zh-CN and zh-TW share the same structure but are kept separate so each
+ * locale can diverge independently in the future (e.g. different separators).
+ * en-US uses 12-hour clock; the two Chinese locales use 24-hour clock.
+ */
 const datetimeFormats: Record<LocaleId, Intl.DateTimeFormatOptions> = {
   'zh-CN': {
     year: 'numeric',
@@ -277,10 +282,10 @@ export class I18nService {
 
   /**
    * Load application-level default i18n (called when the app mounts).
-   * Default namespaces can be configured; skips the request when empty.
+   * Default namespaces can be configured; skips the request when empty or omitted.
    */
   async loadAppMessages(configs?: I18nLoadConfig[]): Promise<void> {
-    await this.loadMessagesForConfig(configs ?? []);
+    if (configs?.length) await this.loadMessagesForConfig(configs);
   }
 
   /** Switch the locale and persist it to localStorage. */

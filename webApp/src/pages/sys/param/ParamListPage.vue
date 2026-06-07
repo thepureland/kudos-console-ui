@@ -292,7 +292,6 @@ const COLUMN_VISIBILITY_STORAGE_KEY = 'paramList.visibleColumns';
 /** Columns with configurable visibility (order column, remark column, etc.); paramName is fixed on the left and not included. */
 const {
   indexColumnKey: INDEX_COLUMN_KEY,
-  allColumnKeys: ALL_COLUMN_KEYS,
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['paramValue', 'defaultValue', 'atomicServiceCode', 'orderNum', 'remark', 'active']);
@@ -346,13 +345,9 @@ export default defineComponent({
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
 
-    const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
-      autoWidthColumns,
-      tableDataRef,
-      columnWidths,
-    } = useTableAutoWidthContext({
+    // reservedWidthLeft = selection(39) + index(50) + paramName(120); reservedWidthRight = operation column(140).
+    // autoWidthColumns and tableDataRef are consumed internally by useTableAutoWidthContext.
+    const { columnWidths } = useTableAutoWidthContext({
       listPage,
       reservedWidthLeft: 209,
       reservedWidthRight: 140,

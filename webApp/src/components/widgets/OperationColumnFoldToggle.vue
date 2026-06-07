@@ -18,6 +18,15 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 
+/**
+ * A small triangular fold-corner button placed at the top-left or top-right of a table's
+ * operation column. Hovering temporarily reveals the column; clicking pins or unpins it.
+ *
+ * Emits:
+ *   - fold-mouseenter — pointer/focus entered the button (used by parent to show column temporarily)
+ *   - fold-mouseleave — pointer/focus left the button (used by parent to hide column again)
+ *   - toggle-pin     — user clicked the button to toggle the pinned-visible state
+ */
 export default defineComponent({
   name: 'OperationColumnFoldToggle',
   props: {

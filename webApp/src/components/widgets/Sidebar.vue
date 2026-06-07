@@ -255,7 +255,11 @@ const menuDataDisplay = computed(() =>
 
 const DEFAULT_SUB_SYSTEM_CODE = 'default-sub-system';
 
-/** Prefer the backend sys/resource/getMenus endpoint; fall back to AuthApi.getMenus on failure (also applies when not using mocks) */
+/**
+ * Attempt to load menus from the real backend first (sys/resource/getMenus), then fall back to
+ * AuthApi.getMenus. Despite the "Mock" suffix in the name this function targets live endpoints;
+ * the name is kept to avoid breaking any external references.
+ */
 async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {
   try {
     const result = await backendRequest({
@@ -313,6 +317,9 @@ async function loadMenuData() {
   } catch {
     // Continue
   }
+  // NOTE: this retries loadMenusFromSharedMock (sys/resource/getMenus + AuthApi) which already
+  // ran above without success; in practice both will fail again, leaving menuData empty.
+  // Kept for historical compatibility — removing it would change the load sequence.
   const fallback = await loadMenusFromSharedMock();
   menuData.value = fallback ?? [];
   store.commit('setMenuData', menuData.value);
@@ -323,7 +330,7 @@ onMounted(() => loadMenuData());
 /** After switching locale, re-fetch menu namespace translations (setLocale clears the I18nService cache; this requests with the new locale) */
 watch(locale, () => {
   loadMessagesForConfig(MENU_I18N_CONFIG);
-}, { immediate: false });
+});
 </script>
 
 <style scoped>

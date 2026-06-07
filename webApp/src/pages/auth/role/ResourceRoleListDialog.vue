@@ -46,6 +46,7 @@ import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccess
 
 class ResourceRoleListDialog extends BaseDetailPage {
   constructor(props: any, context: any) {
+    // No extra setup here; base class handles the rid-triggered data load.
     super(props, context);
   }
 
@@ -72,6 +73,8 @@ class ResourceRoleListDialog extends BaseDetailPage {
   }
 
   protected postLoadDataSuccessfully(data: unknown): void {
+    // The backend returns the granted role IDs as either an array or a Set-like object.
+    // Normalise to a plain string array before fetching role details.
     const ids: string[] = Array.isArray(data)
       ? data.map(String)
       : (data && typeof data === 'object'
@@ -85,9 +88,14 @@ class ResourceRoleListDialog extends BaseDetailPage {
     super.postLoadDataSuccessfully(data);
   }
 
+  /**
+   * Fetches full role records for the given IDs via a paging search, then
+   * filters the result down to exactly those IDs (the search may return extras).
+   */
   private async resolveRoles(ids: string[]): Promise<Array<Record<string, unknown>>> {
     const params: Record<string, unknown> = {
       pageNo: 1,
+      // Request at least 50 to avoid a tiny page-size when there are few IDs.
       pageSize: Math.max(ids.length, 50),
       ids,
     };
@@ -96,10 +104,12 @@ class ResourceRoleListDialog extends BaseDetailPage {
       ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.loadFailed'));
       return [];
     }
+    // The paging response may wrap records under a `data` property or return them directly.
     const payload = getApiResponseData<{ data?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>>(result);
     const rows: Array<Record<string, unknown>> = Array.isArray(payload)
       ? payload
       : (payload?.data ?? []);
+    // Guard against the search returning roles outside the requested ID set.
     const idSet = new Set(ids.map(String));
     return rows.filter(r => idSet.has(String(r.id ?? '')));
   }

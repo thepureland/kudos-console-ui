@@ -358,7 +358,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, ref, computed, nextTick, watch } from 'vue';
+import { defineComponent, reactive, toRefs, ref, computed } from 'vue';
 import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { backendRequest, getApiResponseData, isApiSuccessResponse } from '../../../utils/backendRequest';
@@ -377,6 +377,8 @@ import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup
 import { ListPageLayout } from '../../../components/pages/ui';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'userGroupList.operationColumnPinned';
+// NOTE: query-state persistence is intentionally disabled for this page —
+// pass USER_GROUP_LIST_STATE_STORAGE_KEY as stateStorageKey in useListPageLayout to enable it.
 const USER_GROUP_LIST_STATE_STORAGE_KEY = 'userGroupList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'userGroupList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'userGroupList.columnOrder';
@@ -399,7 +401,7 @@ class UserGroupListPage extends TenantSupportListPage {
   }
 
   protected initState(): Record<string, unknown> {
-        return {
+    return {
       searchParams: {
         subSysOrTenant: null as string[] | null,
         groupCode: null as string | null,
@@ -483,6 +485,8 @@ class UserGroupListPage extends TenantSupportListPage {
   /** Backed by auth/group/getDeleteImpact — single POST replaces the 2N fan-out the page used to make. */
   private async fetchImpactByIds(groupIds: string[]): Promise<{ users: number | string; roles: number | string }> {
     if (groupIds.length === 0) return { users: 0, roles: 0 };
+    // `backendRequest` types params as a plain object, but the API accepts a
+    // bare array body — the cast is intentional and matches the backend contract.
     const result = await backendRequest({
       url: 'auth/group/getDeleteImpact',
       method: 'post',
@@ -499,11 +503,19 @@ class UserGroupListPage extends TenantSupportListPage {
   private _cachedDeleteMessage: string | null = null;
   private _cachedBatchDeleteMessage: string | null = null;
 
-  onUserCommand(commandValue: { item: number; row: Record<string, unknown> }): void {
-    const { item, row } = commandValue;
+  /**
+   * Shared setup for both user and role dropdown commands: resolves the target
+   * row and populates rid/subSystemCode/tenantId on the shared state.
+   */
+  private applyCommandRow(row: Record<string, unknown>): void {
     this.state.rid = this.getRowId(row);
     this.state.subSystemCode = row.subSystemCode ?? null;
     this.state.tenantId = row.tenantId ?? null;
+  }
+
+  onUserCommand(commandValue: { item: number; row: Record<string, unknown> }): void {
+    const { item, row } = commandValue;
+    this.applyCommandRow(row);
     if (item === 1) {
       this.state.userAssignmentDialogVisible = true;
     } else {
@@ -513,9 +525,7 @@ class UserGroupListPage extends TenantSupportListPage {
 
   onRoleCommand(commandValue: { item: number; row: Record<string, unknown> }): void {
     const { item, row } = commandValue;
-    this.state.rid = this.getRowId(row);
-    this.state.subSystemCode = row.subSystemCode ?? null;
-    this.state.tenantId = row.tenantId ?? null;
+    this.applyCommandRow(row);
     if (item === 1) {
       this.state.roleAssignmentDialogVisible = true;
     } else {
@@ -559,8 +569,7 @@ export default defineComponent({
       onFormClose,
       onFormResponse,
     } = useListPageFormSetup({ state, listPage });
-    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-    });
+    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {});
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
     const {
@@ -575,13 +584,7 @@ export default defineComponent({
       onTableDrop,
     } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS);
 
-    const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
-      autoWidthColumns,
-      tableDataRef,
-      columnWidths,
-    } = useTableAutoWidthContext({
+    const { columnWidths } = useTableAutoWidthContext({
       listPage,
       reservedWidthLeft: 39 + 50 + 120,
       reservedWidthRight: 140,
@@ -640,7 +643,7 @@ export default defineComponent({
       onTableDrop,
       showOperationColumn,
       onTableWrapMounted,
-      commandValue: (item: number, row: Record<string, unknown>) => listPage.commandValue(item, row),
+      commandValue: listPage.commandValue.bind(listPage),
       onUserCommand: (cmd: { item: number; row: Record<string, unknown> }) => listPage.onUserCommand(cmd),
       onRoleCommand: (cmd: { item: number; row: Record<string, unknown> }) => listPage.onRoleCommand(cmd),
       openBatchBindUsers: () => listPage.openBatchBindUsers(),

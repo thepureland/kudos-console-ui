@@ -28,13 +28,23 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
+/**
+ * Section boundaries (by row index) used by SectionedDetailDialog to render
+ * titled group headers above the corresponding rows.
+ */
 const SECTION_MAP: SectionConfig[] = [
-  { start: 0, titleKey: 'accessRuleIpDetail.sections.basicInfo' },
-  { start: 3, titleKey: 'accessRuleIpDetail.sections.audit' },
-  { start: 5, titleKey: 'accessRuleIpDetail.sections.otherInfo' },
+  { start: 0, titleKey: 'accessRuleIpDetail.sections.basicInfo' }, // rows 0-2: ids + IP range + type/expiry
+  { start: 3, titleKey: 'accessRuleIpDetail.sections.audit' },     // rows 3-4: create/update time & user
+  { start: 5, titleKey: 'accessRuleIpDetail.sections.otherInfo' }, // row  5:   active flag + remark
 ];
 
+/**
+ * Two-column field layout passed to SectionedDetailDialog.
+ * Each inner array is one dialog row; `type` controls value formatting,
+ * and `valueSpan: 3` lets the remark value span the remaining columns.
+ */
 const ROW_FIELDS: FieldConfig[][] = [
+  // --- Basic info ---
   [
     { labelKey: 'accessRuleIpDetail.fields.id', key: 'id' },
     { labelKey: 'accessRuleIpDetail.fields.parentRuleId', key: 'parentRuleId' },
@@ -47,6 +57,7 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'accessRuleIpDetail.fields.ipTypeDictCode', key: 'ipTypeDictCode' },
     { labelKey: 'accessRuleIpDetail.fields.expirationDate', key: 'expirationDate', type: 'date' },
   ],
+  // --- Audit ---
   [
     { labelKey: 'accessRuleIpDetail.fields.createTime', key: 'createTime', type: 'date' },
     { labelKey: 'accessRuleIpDetail.fields.updateTime', key: 'updateTime', type: 'date' },
@@ -55,6 +66,7 @@ const ROW_FIELDS: FieldConfig[][] = [
     { labelKey: 'accessRuleIpDetail.fields.createUser', key: 'createUserName' },
     { labelKey: 'accessRuleIpDetail.fields.updateUser', key: 'updateUserName' },
   ],
+  // --- Other info ---
   [
     { labelKey: 'accessRuleIpDetail.fields.active', key: 'active', type: 'boolean' },
     { labelKey: 'accessRuleIpDetail.fields.remark', key: 'remark', valueSpan: 3 },
@@ -66,10 +78,15 @@ class AccessRuleIpDetailPage extends BaseDetailPage {
     return 'sys/accessRuleIp';
   }
 
+  /**
+   * Called by BaseDetailPage after a successful API fetch. Normalises optional
+   * string fields to empty strings so the template never renders "null" or
+   * "undefined". Timestamp fields are left as-is (null is a valid "not set"
+   * signal for the date formatter).
+   */
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
-      if (data.createTime == null) data.createTime = null;
-      if (data.updateTime == null) data.updateTime = null;
+      // Ensure optional user-facing strings default to empty rather than null.
       if (data.createUserName == null) data.createUserName = '';
       if (data.updateUserName == null) data.updateUserName = '';
       if (data.remark == null) data.remark = '';

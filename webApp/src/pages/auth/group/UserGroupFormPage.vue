@@ -1,4 +1,4 @@
-<!-- User group add/edit -->
+<!-- User group add / edit dialog -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -86,10 +86,6 @@ interface FormModel {
 }
 
 class UserGroupFormPage extends BaseAddEditPage {
-  constructor(props: PageProps, context: PageContext) {
-    super(props, context);
-  }
-
   protected initState(): Record<string, unknown> {
     return {
       formModel: {

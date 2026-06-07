@@ -130,6 +130,7 @@ class ContactWayListPage extends BaseListPage {
     const params = super.createSearchParams();
     if (params && this.state.searchParams) {
       const sp = this.state.searchParams as Record<string, unknown>;
+      // Send `true` when the "active only" checkbox is checked; send `null` (no filter) otherwise.
       (params as Record<string, unknown>).active = sp.active === true ? true : null;
     }
     return params;
@@ -143,6 +144,7 @@ const {
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['contactWayDictCode', 'contactWayValue', 'contactWayStatusDictCode', 'priority', 'createTime', 'active']);
+// 39 = selection column, 50 = index column, 160 = userId column
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 160;
 
 export default defineComponent({

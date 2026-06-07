@@ -75,7 +75,6 @@
 import { defineComponent, ref } from 'vue';
 import { tGlobal } from '../../../i18n';
 import { ElMessage } from 'element-plus';
-import { Pair } from '../../../components/model/Pair';
 import { backendRequest, getApiResponseData, getApiResponseMessage, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import '../../../styles/add-edit-dialog-common.css';
 import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEditDialogProps, hasAnyFormContent, useCloseDropdownOnChange } from '../../../components/pages/form';
@@ -141,7 +140,11 @@ class AccountFormPage extends OrgSupportAddEditPage {
     return 'accountAddEdit.messages.loadFailed';
   }
 
-  /** When the subsystem/tenant changes, reload the organization tree and clear the selected org (the @change handler may pass the selected value so we don't rely on v-model being in sync yet) */
+  /**
+   * Thin wrapper kept for symmetry; the template's @change handler actually calls the
+   * setup-level closure (which delegates to loadOrganizationTree) so this method is not
+   * invoked at runtime. loadOrganizationTree is the single source of truth.
+   */
   onSubSysOrTenantChange(selectionFromChange?: string[]): void {
     this.loadOrganizationTree(selectionFromChange);
   }
@@ -168,7 +171,11 @@ class AccountFormPage extends OrgSupportAddEditPage {
     this.state.formModel.parent = [];
   }
 
-  /** During edit, load the organization tree from the back-filled subSystemCode/tenantId (called after fillForm) */
+  /**
+   * Variant of loadOrganizationTree used during edit back-fill. Unlike the change-handler
+   * path, this does NOT reset formModel.parent on success (the caller re-applies the saved
+   * parentIds after the tree is ready) and silently clears the tree on API failure.
+   */
   async loadOrganizationTreeForEdit(subSystemCode: string, tenantId: string | null): Promise<void> {
     const params = { subSystemCode, tenantId };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
@@ -190,6 +197,9 @@ class AccountFormPage extends OrgSupportAddEditPage {
     const tenantId = (rowObject.tenantId as string | undefined) ?? null;
     this.state.formModel.parent = parentIds;
     if (subSys) {
+      // Load the org tree first, then re-apply parentIds in a microtask flush so the
+      // cascader options are fully rendered before the selection is set (avoids a race
+      // where the cascader tries to match ids against an empty option list).
       this.loadOrganizationTreeForEdit(subSys, tenantId ?? null).then(() => {
         setTimeout(() => {
           this.state.formModel.parent = [...parentIds];

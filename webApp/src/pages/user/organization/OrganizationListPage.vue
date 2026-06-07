@@ -312,7 +312,7 @@ class OrganizationListPage extends TenantSupportListPage {
   }
 
   protected initState(): Record<string, unknown> {
-        return {
+    return {
       searchParams: {
         subSysOrTenant: null as string[] | null,
         active: true,
@@ -391,8 +391,7 @@ export default defineComponent({
       onFormClose,
       onFormResponse,
     } = useListPageFormSetup({ state, listPage });
-    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {
-    });
+    const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {});
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout?: () => void } | null>(null);
     const {
@@ -407,9 +406,8 @@ export default defineComponent({
       onTableDrop,
     } = useColumnOrderDrag(COLUMN_ORDER_STORAGE_KEY, ALL_COLUMN_KEYS);
 
+    // autoWidthColumns and tableDataRef are kept to maintain the hook's internal reactive subscriptions.
     const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
       autoWidthColumns,
       tableDataRef,
       columnWidths,

@@ -20,6 +20,7 @@ import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync,
 import type { DetailPageViewModel } from '../../../components/pages/detail';
 import { type FieldConfig, type SectionConfig } from '../../../components/pages/detail';
 
+// Each `start` is a zero-based index into ROW_FIELDS that begins a new section header.
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'contactWayDetail.sections.basicInfo' },
   { start: 3, titleKey: 'contactWayDetail.sections.audit' },
@@ -65,6 +66,8 @@ class ContactWayDetailPage extends BaseDetailPage {
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
     if (data) {
+      // Normalise optional fields that may be absent from the API response so the
+      // detail template always receives well-typed values (never undefined).
       if (data.createTime == null) data.createTime = null;
       if (data.updateTime == null) data.updateTime = null;
       if (data.createUser == null) data.createUser = '';

@@ -179,13 +179,7 @@
             show-overflow-tooltip
           >
             <template #default="scope">
-              {{ (() => {
-                const code = scope.row.i18nTypeDictCode;
-                if (!code) return '';
-                const opts = (listPage.state.i18nTypeDictOptions || []) as Array<{ first: string; second: string }>;
-                const item = opts.find(o => o.first === code);
-                return item ? t(item.second) : code;
-              })() }}
+              {{ formatI18nType(scope.row.i18nTypeDictCode) }}
             </template>
           </el-table-column>
           <el-table-column
@@ -365,6 +359,7 @@ import { useListPageLayout, useValidationI18nCacheProvider, useListPageFormSetup
 import { ListPageLayout } from '../../../components/pages/ui';
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'i18nList.operationColumnPinned';
+/** Reserved for future use or base-class lookup via a storage-key convention. */
 const I18N_LIST_STATE_STORAGE_KEY = 'i18nList.queryState';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'i18nList.visibleColumns';
 const COLUMN_ORDER_STORAGE_KEY = 'i18nList.columnOrder';
@@ -387,7 +382,7 @@ class I18nListPage extends BaseListPage {
   }
 
   protected initState(): Record<string, unknown> {
-        return {
+    return {
       searchParams: {
         key: null as string | null,
         namespace: null as string | null,
@@ -454,7 +449,9 @@ export default defineComponent({
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
 
+    // Sum of fixed-left column widths: selection(39) + key(180) + value(200) + locale(100) + i18nType(140) + namespace(120).
     const FIXED_LEFT_BASE = 39 + 180 + 200 + 100 + 140 + 120;
+    // When the optional index column is visible it adds another 50px.
     const FIXED_LEFT_WITH_INDEX = FIXED_LEFT_BASE + 50;
     function forceFixedLeftWidth() {
       nextTick(() => {
@@ -484,8 +481,6 @@ export default defineComponent({
     });
 
     const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
       autoWidthColumns,
       tableDataRef,
       columnWidths,
@@ -521,6 +516,14 @@ export default defineComponent({
       return listPage.formatBoolean(value, t('i18nList.common.yes'), t('i18nList.common.no'));
     }
 
+    /** Translate an i18n-type dict code to its display label via the loaded dict options; falls back to the raw code when unrecognised. */
+    function formatI18nType(code: unknown): string {
+      if (!code) return '';
+      const opts = (listPage.state.i18nTypeDictOptions || []) as Array<{ first: string; second: string }>;
+      const item = opts.find(o => o.first === code);
+      return item ? t(item.second) : String(code);
+    }
+
     useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
 
     return {
@@ -535,6 +538,7 @@ export default defineComponent({
       ...toRefs(listPage),
       t,
       formatBoolText,
+      formatI18nType,
       listLayoutRefs,
       tableRef,
       visibleColumnKeys,

@@ -47,7 +47,13 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         return null
     }
 
-    /** Load the first-level list (subsystem codes, etc.) from the given endpoint and write the result to state.firstLevelList and atomicServiceList */
+    /**
+     * Load the first-level list (subsystem codes, etc.) from the given endpoint and write the result
+     * to state.firstLevelList and atomicServiceList.
+     *
+     * NOTE: This logic is intentionally duplicated from TenantSupportListPage because the two
+     * classes sit on different inheritance branches (List vs AddEdit) and cannot share a mixin.
+     */
     private async loadFirstLevel(url: string): Promise<void> {
         try {
             const result = await backendRequest({ url, method: "get" })
@@ -111,13 +117,22 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
         this.state.tenantId = null
         this.state.subSysOrTenants = null
         this.state.firstLevelList = null
+
+        // Cache the result so we only call getFirstLevelApiUrl() once here
+        const useLazy = this.getFirstLevelApiUrl() != null
         const self = this
-        const useLazy = self.getFirstLevelApiUrl() != null
         this.state.cascaderProps = {
             multiple: false,
             checkStrictly: self.isCheckStrictly(),
             expandTrigger: "hover",
-            ...(useLazy ? { lazy: true, lazyLoad: (node: { level: number; value: string; data?: { value?: string } }, resolve: (children: Array<{ value: string; label: string; leaf?: boolean }>) => void) => self.lazyLoadTenants(node, resolve) } : {}),
+            // Lazy mode: root → subsystems from firstLevelList; children → tenants fetched on demand
+            ...(useLazy ? {
+                lazy: true,
+                lazyLoad: (
+                    node: { level: number; value: string; data?: { value?: string } },
+                    resolve: (children: Array<{ value: string; label: string; leaf?: boolean }>) => void
+                ) => self.lazyLoadTenants(node, resolve),
+            } : {}),
         }
     }
 

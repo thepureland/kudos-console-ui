@@ -13,7 +13,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, watch } from 'vue';
+import { defineComponent, reactive } from 'vue';
 import { BaseDetailPage } from '../../../components/pages/core';
 import type { PageContext, PageProps } from '../../../components/pages/core';
 import { commonDetailDialogEmits, commonDetailDialogProps, useDetailPageRidSync, useDetailPageSetupBase, useDetailDialogVisibility, SectionedDetailDialog } from '../../../components/pages/detail';
@@ -23,7 +23,7 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** Same convention as CacheDetail: at most 2 fields per row; other info goes last and remark follows the built-in fields. */
+/** Section boundaries within ROW_FIELDS — at most 2 fields per row; audit fields follow basic info, remaining fields go last. */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'userGroupDetail.sections.basicInfo' },
   { start: 2, titleKey: 'userGroupDetail.sections.audit' },

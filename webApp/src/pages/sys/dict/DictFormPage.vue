@@ -144,6 +144,7 @@ class DictFormPage extends BaseAddEditPage {
   }
 
   protected createSubmitParams(): Record<string, unknown> {
+    // Base already serialises dictName and remark; add the dict-specific fields here.
     const params = super.createSubmitParams() as Record<string, unknown>;
     const model = this.state.formModel as FormModel;
     if (model?.atomicServiceCode) {
@@ -155,7 +156,10 @@ class DictFormPage extends BaseAddEditPage {
 
   protected doSubmit(): void {
     const model = this.state.formModel as FormModel;
-    if (!model?.atomicServiceCode || String(model.atomicServiceCode).trim() === '') {
+    // atomicServiceCode is required; a falsy value already covers both null and blank string,
+    // so the trim() branch below is a safety net for whitespace-only input.
+    const code = model?.atomicServiceCode;
+    if (!code || String(code).trim() === '') {
       ElMessage.error(i18n.global.t('dictAddEdit.validation.requiredAtomicService') as string);
       return;
     }
@@ -167,6 +171,7 @@ class DictFormPage extends BaseAddEditPage {
     const model = this.state.formModel as FormModel;
     model.dictType = rowObject.dictType as string;
     model.dictName = rowObject.dictName as string;
+    // Fall back to the legacy "module" field for records created before the rename.
     model.atomicServiceCode = (rowObject.atomicServiceCode ?? rowObject.module) as string;
   }
 
@@ -192,11 +197,17 @@ export default defineComponent({
         });
       },
       onVisible: async (result) => {
-        if (typeof (result as { loadAtomicServices?: () => Promise<void> }).loadAtomicServices === 'function') {
-          await (result as { loadAtomicServices: () => Promise<void> }).loadAtomicServices();
-          if (!props.rid && props.atomicServiceCode) {
-            const state = (result as { state?: { formModel?: { atomicServiceCode?: string | null } } }).state;
-            if (state?.formModel) state.formModel.atomicServiceCode = String(props.atomicServiceCode);
+        // The page instance exposes loadAtomicServices() when the mixin is applied; guard before calling.
+        type PageWithLoader = {
+          loadAtomicServices?: () => Promise<void>;
+          state?: { formModel?: { atomicServiceCode?: string | null } };
+        };
+        const page = result as PageWithLoader;
+        if (typeof page.loadAtomicServices === 'function') {
+          await page.loadAtomicServices();
+          // Pre-fill the atomic-service selector when opening in "add" mode with a pre-selected service.
+          if (!props.rid && props.atomicServiceCode && page.state?.formModel) {
+            page.state.formModel.atomicServiceCode = String(props.atomicServiceCode);
           }
         }
       },

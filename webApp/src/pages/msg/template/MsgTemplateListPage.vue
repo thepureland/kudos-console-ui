@@ -141,6 +141,8 @@ class MsgTemplateListPage extends BaseListPage {
 
 const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'msgTemplateList.operationColumnPinned';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'msgTemplateList.visibleColumns';
+
+/** Maps column prop keys to their i18n sub-keys under msgTemplateList.columns.* */
 const COLUMN_LABEL_KEY: Record<string, string> = {
   sendTypeDictCode: 'sendType',
   eventTypeDictCode: 'eventType',
@@ -153,6 +155,8 @@ const {
   columnVisibilityKeys: COLUMN_VISIBILITY_KEYS,
   defaultVisibleColumnKeys: DEFAULT_VISIBLE_COLUMN_KEYS,
 } = createColumnVisibilityConfig(['sendTypeDictCode', 'eventTypeDictCode', 'msgTypeDictCode', 'localeDictCode', 'receiverGroupCode']);
+
+/** Sum of fixed-left column widths: selection(39) + index(50) + title(180) = 269px. */
 const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 180;
 
 export default defineComponent({
@@ -164,6 +168,10 @@ export default defineComponent({
     const listPage = reactive(new MsgTemplateListPage(props, context)) as MsgTemplateListPage & { state: Record<string, unknown> };
     const state = listPage.state as Record<string, unknown>;
     const { formVisible, formRid, hasFormEverOpened, currentFormMode, onFormClose, onFormResponse } = useListPageFormSetup({ state, listPage, addHandlerName: 'doAfterAdd', editHandlerName: 'doAfterEdit' });
+    /**
+     * Called by MsgTemplateFormPage when a record is saved.
+     * Delegates to the appropriate post-save hook based on whether we opened in add or edit mode.
+     */
     function handleFormSaved(params: Record<string, unknown>) {
       (currentFormMode.value === 'add' ? listPage.doAfterAdd : listPage.doAfterEdit).call(listPage, params);
     }

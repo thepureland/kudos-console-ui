@@ -62,10 +62,6 @@ class MenuAuthorization extends BaseDetailPage {
   /** Snapshot of the assigned set as loaded; doSubmit() diffs against this. */
   private originalAssignedIds: Set<string> = new Set();
 
-  constructor(props: any, context: any) {
-    super(props, context);
-  }
-
   protected getRootActionPath(): string {
     return 'auth/role';
   }
@@ -155,6 +151,11 @@ class MenuAuthorization extends BaseDetailPage {
     });
   }
 
+  /**
+   * Recursively collect only leaf ids that are in the assigned set.
+   * After buildTree→normalize, children is either undefined or a non-empty array,
+   * so the `length > 0` guard is redundant but kept for clarity.
+   */
   private collectLeafChecks(nodes: MenuNode[] | undefined, assigned: Set<string>, sink: string[]): void {
     if (!nodes) return;
     for (const n of nodes) {
@@ -171,7 +172,7 @@ class MenuAuthorization extends BaseDetailPage {
   protected async doSave(): Promise<void> {
     const tree = this.treeRef.value;
     if (!tree) return;
-    // Include parent nodes whose entire subtree is selected by passing leafOnly=false.
+    // getCheckedKeys(false) returns ALL fully-checked nodes (both leaves and parents).
     const checked = new Set<string>((tree.getCheckedKeys(false) as Array<string | number>).map(k => String(k)));
     const halfChecked = new Set<string>((tree.getHalfCheckedKeys() as Array<string | number>).map(k => String(k)));
     // Persist both fully and partially checked parents — partial means "some children granted",
@@ -210,7 +211,12 @@ class MenuAuthorization extends BaseDetailPage {
     }
   }
 
-  /** Local i18n helper; t() isn't directly accessible from a class method. */
+  /**
+   * Local i18n helper for use inside class methods.
+   * vue-i18n's t() is returned from useI18n() inside setup() and is not available on the
+   * class instance, so we fall back to a window-level translate function injected by the
+   * app bootstrap if present, and return the raw key as a last resort.
+   */
   private tr(key: string): string {
     try {
       const win = window as unknown as { __kudosI18nTranslate?: (k: string) => string };

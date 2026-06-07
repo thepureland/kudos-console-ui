@@ -8,7 +8,14 @@ import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
-// Mock is opt-in via window flag; defaults to localhost for dev ergonomics.
+/**
+ * Returns true when the mock engine should be used instead of real HTTP.
+ *
+ * Resolution order:
+ *   1. `window.__KUDOS_USE_MOCK__` (boolean) — explicit override, useful in E2E/Storybook.
+ *   2. Hostname is `localhost` or `127.0.0.1` — defaults to mock during local development
+ *      so the UI can be started without a running backend.
+ */
 private fun shouldUseMock(): Boolean {
     val window = rawWindow()
     val forced = window.__KUDOS_USE_MOCK__ as? Boolean
@@ -17,6 +24,16 @@ private fun shouldUseMock(): Boolean {
     return hostname == "localhost" || hostname == "127.0.0.1"
 }
 
+/**
+ * Shared Ktor client configuration applied to every client instance.
+ *
+ * Notes:
+ * - `ignoreUnknownKeys` keeps deserialization resilient to server-side additions.
+ * - `defaultRequest.url(origin)` sets the scheme+host so relative paths work
+ *   (individual requests can still override with an absolute URL).
+ * - The Authorization header is read from [TokenStorage] at call time, so token
+ *   refreshes are picked up without recreating the client.
+ */
 private fun HttpClientConfig<*>.applyKudosDefaults() {
     install(ContentNegotiation) {
         json(Json {
@@ -24,7 +41,6 @@ private fun HttpClientConfig<*>.applyKudosDefaults() {
         })
     }
     defaultRequest {
-        // Base URL and auth are applied consistently for all requests.
         url(rawWindow().location.origin.unsafeCast<String>())
         TokenStorage.get()?.let { header("Authorization", "Bearer $it") }
     }

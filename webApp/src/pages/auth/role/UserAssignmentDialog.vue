@@ -49,7 +49,7 @@ import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { tGlobal } from '../../../i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
-import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import {
   type TransferItem,
   debounce,
@@ -98,16 +98,13 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
     const ids = normalizeIdSet(data);
     this.originalAssignedIds = new Set(ids);
     this.state.assignedUserIds = [...ids];
-    this.resolveAssigned(ids).then(items => { this.state.assignedItems = items; });
-    super.postLoadDataSuccessfully(data);
-  }
-
-  private async resolveAssigned(ids: string[]): Promise<TransferItem[]> {
-    return resolveAssignedItems({
+    // Fetch display labels for the already-assigned users; errors are surfaced by resolveAssignedItems.
+    void resolveAssignedItems({
       searchUrl: 'user/account/pagingSearch',
       ids,
       pickLabel: userLabel,
-    });
+    }).then(items => { this.state.assignedItems = items; });
+    super.postLoadDataSuccessfully(data);
   }
 
   private async refetchCandidates(keyword: string): Promise<void> {
@@ -176,7 +173,8 @@ class RoleUserAssignmentDialog extends BaseDetailPage {
 
   protected convertThis(): void {
     super.convertThis();
-    this.submit = () => { this.doSubmit(); };
+    // Wrap async methods for template binding; `void` discards the promise (errors are handled inside).
+    this.submit = () => { void this.doSubmit(); };
     this.filterMethod = (query: string, item: TransferItem) => this.doFilter(query, item);
   }
 }

@@ -132,32 +132,47 @@ class AccountDetailPage extends BaseDetailPage {
     }
   }
 
-  private async fetchRoleNames(userId: string): Promise<string[]> {
-    const idsResult = await backendRequest({ url: 'auth/role/listRoleIdsByUser', method: 'get', params: { userId } });
+  /**
+   * Fetch the IDs assigned to a user from the given list endpoint, then resolve each ID to a
+   * display name via the search endpoint.  The `pickLabel` callback handles the field-priority
+   * (preferred name field → fallback name field → code → id) per entity type.
+   */
+  private async fetchAssignedNames(
+    listUrl: string,
+    searchUrl: string,
+    pickLabel: (row: Record<string, unknown>) => string,
+    userId: string,
+  ): Promise<string[]> {
+    const idsResult = await backendRequest({ url: listUrl, method: 'get', params: { userId } });
     if (!isApiSuccessResponse(idsResult)) return [];
     const idsPayload = getApiResponseData<unknown>(idsResult);
+    // The backend may return an array or a Set serialized as a plain object (keys = values).
     const ids: string[] = Array.isArray(idsPayload)
       ? idsPayload.map(String)
       : (idsPayload && typeof idsPayload === 'object'
           ? Array.from(Object.values(idsPayload as Record<string, unknown>)).map(String)
           : []);
     if (ids.length === 0) return [];
-    const rows = await this.resolveByIds('auth/role/pagingSearch', ids);
-    return rows.map(r => String((r as Record<string, unknown>).roleName ?? (r as Record<string, unknown>).name ?? (r as Record<string, unknown>).roleCode ?? (r as Record<string, unknown>).id ?? ''));
+    const rows = await this.resolveByIds(searchUrl, ids);
+    return rows.map(r => pickLabel(r as Record<string, unknown>));
+  }
+
+  private async fetchRoleNames(userId: string): Promise<string[]> {
+    return this.fetchAssignedNames(
+      'auth/role/listRoleIdsByUser',
+      'auth/role/pagingSearch',
+      r => String(r.roleName ?? r.name ?? r.roleCode ?? r.id ?? ''),
+      userId,
+    );
   }
 
   private async fetchGroupNames(userId: string): Promise<string[]> {
-    const idsResult = await backendRequest({ url: 'auth/group/listGroupIdsByUser', method: 'get', params: { userId } });
-    if (!isApiSuccessResponse(idsResult)) return [];
-    const idsPayload = getApiResponseData<unknown>(idsResult);
-    const ids: string[] = Array.isArray(idsPayload)
-      ? idsPayload.map(String)
-      : (idsPayload && typeof idsPayload === 'object'
-          ? Array.from(Object.values(idsPayload as Record<string, unknown>)).map(String)
-          : []);
-    if (ids.length === 0) return [];
-    const rows = await this.resolveByIds('auth/group/pagingSearch', ids);
-    return rows.map(r => String((r as Record<string, unknown>).groupName ?? (r as Record<string, unknown>).name ?? (r as Record<string, unknown>).groupCode ?? (r as Record<string, unknown>).id ?? ''));
+    return this.fetchAssignedNames(
+      'auth/group/listGroupIdsByUser',
+      'auth/group/pagingSearch',
+      r => String(r.groupName ?? r.name ?? r.groupCode ?? r.id ?? ''),
+      userId,
+    );
   }
 
   private async resolveByIds(url: string, ids: string[]): Promise<unknown[]> {

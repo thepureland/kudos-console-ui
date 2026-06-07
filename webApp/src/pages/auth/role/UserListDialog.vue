@@ -89,6 +89,8 @@ class UserListDialog extends BaseDetailPage {
   }
 
   protected postLoadDataSuccessfully(data: unknown): void {
+    // The backend returns the assigned user IDs as either an array or a Set-like object.
+    // Normalise to a plain string array before fetching user details.
     const ids: string[] = Array.isArray(data)
       ? data.map(String)
       : (data && typeof data === 'object'
@@ -102,9 +104,14 @@ class UserListDialog extends BaseDetailPage {
     super.postLoadDataSuccessfully(data);
   }
 
+  /**
+   * Fetches full user records for the given IDs via a paging search, then
+   * filters the result down to exactly those IDs (the search may return extras).
+   */
   private async resolveUsers(ids: string[]): Promise<Array<Record<string, unknown>>> {
     const params: Record<string, unknown> = {
       pageNo: 1,
+      // Request at least 50 to avoid a tiny page-size when there are few IDs.
       pageSize: Math.max(ids.length, 50),
       ids,
     };
@@ -113,10 +120,12 @@ class UserListDialog extends BaseDetailPage {
       ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.loadFailed'));
       return [];
     }
+    // The paging response may wrap records under a `data` property or return them directly.
     const payload = getApiResponseData<{ data?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>>(result);
     const rows: Array<Record<string, unknown>> = Array.isArray(payload)
       ? payload
       : (payload?.data ?? []);
+    // Guard against the search returning users outside the requested ID set.
     const idSet = new Set(ids.map(String));
     return rows.filter(r => idSet.has(String(r.id ?? r.userId ?? '')));
   }

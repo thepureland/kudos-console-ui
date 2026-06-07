@@ -87,7 +87,8 @@ export function useSectionedDetail(
           ? t(page.transDict(field.dictModule, field.dictCode, String(value ?? '')))
           : String(value ?? '');
       default:
-        return value != null ? String(value) : '';
+        // value is guaranteed non-null/non-empty by the guard above; String() for safety
+        return String(value);
     }
   }
 

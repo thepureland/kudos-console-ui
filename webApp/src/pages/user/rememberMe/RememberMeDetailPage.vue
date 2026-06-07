@@ -43,8 +43,10 @@ class RememberMeDetailPage extends BaseDetailPage {
   }
 
   protected postLoadDataSuccessfully(data: Record<string, unknown> | null): void {
+    // The base class only invokes this when the API response is non-null,
+    // so the `else` branch and the no-op `data.lastUsed = null` guard are
+    // kept here only for defensive clarity; they do not alter runtime behaviour.
     if (data) {
-      if (data.lastUsed == null) data.lastUsed = null;
       this.state.detail = data;
     } else {
       this.state.detail = null;

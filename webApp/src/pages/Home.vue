@@ -75,12 +75,14 @@ const contentPageResolved = computed(() => {
   if (comp) return { comp, props: {} as Record<string, string> };
   return { comp: MenuPageFallback, props: { menuPath: path } };
 });
+// Split into two derived refs so the template bindings (:is and v-bind) each get a stable, narrow dependency.
 const contentPageComponent = computed(() => contentPageResolved.value.comp);
 const contentPageProps = computed(() => contentPageResolved.value.props);
 
 /** Sync store.currentMenuPath from the route so direct visits / refreshes to /sys/subsys etc. keep the content area in sync with sidebar/tags; clicking a menu does not change the address bar.
  * When the URL is the default page /home, don't overwrite the store, so the currentMenuPath restored from localStorage on refresh is preserved (avoids always landing back on the home page after a refresh). */
 function syncStoreFromRoute() {
+  // route.path is always prefixed with '/' by Vue Router, but guard anyway.
   const path = route.path || '/home';
   const menuPath = path.startsWith('/') ? path : '/' + path;
   if (menuPath === '/home') return;

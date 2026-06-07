@@ -88,6 +88,7 @@ export default defineComponent({
           params: { id: props.requestId, comment: comment.value || null },
         });
         if (!isApiSuccessResponse(result)) {
+          // Prefer the resolved (translated/enriched) message, then raw message, then generic fallback.
           ElMessage.error(await resolveApiResponseMessage(result) || getApiResponseMessage(result)
             || (isApprove.value ? t('grantRequestDecision.messages.approveFailed') : t('grantRequestDecision.messages.rejectFailed')));
           return;

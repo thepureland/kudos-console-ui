@@ -10,10 +10,10 @@ export abstract class BaseDetailPage extends BasePage {
             this.state.rid = String(props.rid)
             const promise = this.preLoad()
             if (promise) {
-                const self = this
-                promise.then(function () {
-                    self.loadData()
-                    self.loadOthers()
+                // Wait for any pre-load work (e.g. loading dictionaries) before fetching the record.
+                promise.then(() => {
+                    this.loadData()
+                    this.loadOthers()
                 })
             } else {
                 this.loadData()
@@ -33,9 +33,11 @@ export abstract class BaseDetailPage extends BasePage {
     protected initState(): any {
     }
 
+    /** Override to perform async work (e.g. load dictionaries) before loadData() is called. */
     protected async preLoad(): Promise<void> {
     }
 
+    /** Detail pages are hidden until data is fetched; render() is called from postLoadDataSuccessfully(). */
     protected showAfterLoadData(): boolean {
         return true
     }
@@ -68,11 +70,8 @@ export abstract class BaseDetailPage extends BasePage {
         }
     }
 
+    /** Override to load supplementary data (e.g. related lists) after the main record is loaded. */
     protected async loadOthers() {
-    }
-
-    protected convertThis() {
-        super.convertThis()
     }
 
 }

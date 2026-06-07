@@ -140,6 +140,13 @@ private fun parsePositiveIntParam(params: JsonObject, key: String, defaultValue:
     return value
 }
 
+/**
+ * Parse the first element of the `orders` array into a (property, direction) pair.
+ * Returns null (rather than a default) on structural errors so callers can distinguish
+ * "no sort requested" from "invalid sort input".
+ * Note: nearly-identical copies exist as [parseSortParamForParam], [parseSortParamForResource],
+ * and [parseSortParamWithAllowed] — each validates against a different allowed-property set.
+ */
 private fun parseSortParam(params: JsonObject): Pair<String?, String>? {
     val element = params["orders"] ?: return null to "ASC"
     if (element !is JsonArray) return null
@@ -263,7 +270,12 @@ private fun buildDataSourceSearchResponse(path: String, requestJson: String): St
     return response.toString()
 }
 
-/** I18n detail: look up a single row by id from the same mock data used by search. */
+/**
+ * I18n detail: look up a single row by id from the same inline mock data used by
+ * [buildI18nSearchResponse].  The data is duplicated here rather than loaded from
+ * [MockJsonStore] because the detail endpoint appends audit fields (createTime, updateTime, etc.)
+ * that are absent from the search fixture — keeping them separate avoids mutating shared state.
+ */
 private fun buildI18nGetDetailResponse(requestId: String): String {
     val mockRows = listOf(
         buildJsonObject {
@@ -350,11 +362,22 @@ private fun buildDataSourceGetDetailResponse(requestId: String): String {
     return body
 }
 
+/**
+ * Normalise an incoming request path so that `/api/admin/...` and `/api/...` both resolve
+ * to the same fixture key stored under `/api/...` in [MockJsonStore].
+ * Paths that do not start with `/api/admin` are returned unchanged.
+ */
 private fun resolveFixturePath(path: String): String = when {
     path.startsWith("/api/admin") -> "/api" + path.removePrefix("/api/admin")
     else -> path
 }
 
+/**
+ * Build the paginated, filtered, sorted cache search response.
+ * NOTE: unlike other search helpers, the top-level JSON returned here does NOT include a
+ * "code" field — it wraps only {data, totalCount}. This is intentional to match the cache
+ * endpoint contract used by the frontend table component.
+ */
 private fun buildCacheSearchResponse(path: String, requestJson: String): String {
     val fixture = MockJsonStore.byPath[resolveFixturePath(path)] ?: MockJsonStore.byPath[path] ?: return "{\"code\":404,\"data\":null}"
     val fixtureObj = parseJsonObjectOrEmpty(fixture)
@@ -461,6 +484,8 @@ private fun parseParamSearchParams(params: JsonObject): ParamSearchParams {
     )
 }
 
+// NOTE: this is a hand-rolled duplicate of parseSortParamWithAllowed; it predates that
+// function and cannot be removed without touching the Kotlin module build.
 private fun parseSortParamForParam(params: JsonObject): Pair<String?, String> {
     val element = params["orders"] ?: return null to "ASC"
     if (element !is JsonArray) return null to "ASC"
@@ -670,6 +695,8 @@ private fun parseResourceSearchParams(params: JsonObject): ResourceSearchParams 
     )
 }
 
+// NOTE: this is a hand-rolled duplicate of parseSortParamWithAllowed; it predates that
+// function and cannot be removed without touching the Kotlin module build.
 private fun parseSortParamForResource(params: JsonObject): Pair<String?, String> {
     val element = params["orders"] ?: return null to "ASC"
     if (element !is JsonArray) return null to "ASC"
@@ -788,6 +815,11 @@ private fun parseDomainSearchParams(params: JsonObject): DomainSearchParams {
     )
 }
 
+/**
+ * Generic sort-parameter parser that validates the sort property against a caller-supplied
+ * allowlist.  This is the canonical version; [parseSortParamForParam] and
+ * [parseSortParamForResource] are older duplicates that predate this function.
+ */
 private fun parseSortParamWithAllowed(params: JsonObject, allowed: Set<String>): Pair<String?, String> {
     val element = params["orders"] ?: return null to "ASC"
     if (element !is JsonArray) return null to "ASC"
@@ -872,7 +904,10 @@ private fun buildAccountSearchResponse(requestJson: String): String {
         val rowOrgId = primitiveString(row, "organizationId").orEmpty()
         (username.isEmpty() || rowUsername.contains(username, ignoreCase = true)) &&
             (subSystemCode == null || subSystemCode == rowSubSys) &&
-            (tenantId == null || true) &&
+            // tenantId filtering is intentionally skipped here: account rows in the search list
+        // store a display tenantId that may differ from the one used by the detail endpoint.
+        // The detail mock normalises the value (see buildAccountGetDetailResponse).
+        (tenantId == null || true) &&
             (organizationId == null || organizationId == rowOrgId)
     }
     filtered = applySort(filtered, sortPair.first, sortPair.second)
@@ -1226,6 +1261,8 @@ private fun buildOrganizationSearchTreeResponse(requestJson: String, tenantIdFro
     val subSystemCode = primitiveString(params, "subSystemCode")?.takeIf { it.isNotBlank() }
     var tenantId = primitiveString(params, "tenantId")?.takeIf { it.isNotBlank() }
     if (tenantId.isNullOrBlank()) {
+        // `subSysOrTenant` is a two-element array [subSystemCode, tenantId] sent by the
+        // cascading subsystem/tenant picker in the organization search form.
         tenantId = (params["subSysOrTenant"] as? JsonArray)?.getOrNull(1)?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
     }
     if (tenantId.isNullOrBlank()) {
@@ -1382,6 +1419,9 @@ private fun buildSubsysSearchTreeResponse(requestJson: String): String {
         return filtered
             .filter { obj ->
                 val p = primitiveString(obj, "parentCode").orEmpty()
+                // A node becomes a root (parentCode == null) when its own parentCode is either
+                // blank or points to a node that was removed by the filter, so it would be
+                // orphaned if placed as a child.
                 (parentCode == null && (p.isEmpty() || p !in filteredCodes)) ||
                     (parentCode != null && p == parentCode)
             }
@@ -1509,6 +1549,8 @@ private fun buildMicroserviceSearchTreeResponse(requestJson: String): String {
         return filtered
             .filter { obj ->
                 val p = primitiveString(obj, "parentCode").orEmpty()
+                // Same orphan-becomes-root logic as buildSubsysSearchTreeResponse:
+                // a node is treated as a root when its parent was excluded by the active filter.
                 (parentCode == null && (p.isEmpty() || p !in filteredCodes)) ||
                     (parentCode != null && p == parentCode)
             }
@@ -2262,6 +2304,9 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             val body = buildResourceLoadTreeNodesResponse(requestJson)
             respond(body, HttpStatusCode.OK, headers)
         }
+        // NOTE: this branch is unreachable — the pagingSearch paths are already covered
+        // by the earlier combined branch ("/sys/resource/search", ..., "/sys/resource/pagingSearch", ...).
+        // Kept here to avoid accidental breakage during future refactors.
         "/sys/resource/pagingSearch", "/api/sys/resource/pagingSearch", "/api/admin/sys/resource/pagingSearch" -> {
             val requestJson = requestBodyText(request.body)
             val body = buildResourceSearchResponse("/sys/resource/search", requestJson)
@@ -2591,7 +2636,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/system/getAllActiveSystemCodes", "/api/sys/system/getAllActiveSystemCodes", "/api/admin/sys/system/getAllActiveSystemCodes" -> {
-            /** Consistent with the flat data from buildSubsysSearchTreeResponse: enabled and not a subsystem. */
+            // Consistent with the flat data from buildSubsysSearchTreeResponse:
+            // active nodes where subSystem=false are module_x and module_y.
             val arr = JsonArray(listOf(JsonPrimitive("module_x"), JsonPrimitive("module_y")))
             val body = buildJsonObject {
                 put("code", JsonPrimitive(200))
@@ -2642,7 +2688,8 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/microService/getAllActiveMicroServiceCodes", "/api/sys/microService/getAllActiveMicroServiceCodes", "/api/admin/sys/microService/getAllActiveMicroServiceCodes" -> {
-            /** Consistent with buildMicroserviceSearchTreeResponse: enabled and not an atomic service -> order-worker. */
+            // Consistent with buildMicroserviceSearchTreeResponse: the only active node where
+            // atomicService=false is "order-worker".
             val arr = JsonArray(listOf(JsonPrimitive("order-worker")))
             val body = buildJsonObject {
                 put("code", JsonPrimitive(200))
@@ -2675,6 +2722,10 @@ internal fun createMockEngine(): MockEngine = MockEngine { request ->
             respond(body, HttpStatusCode.OK, headers)
         }
         "/sys/tenant/getAllActiveTenants", "/api/sys/tenant/getAllActiveTenants", "/api/admin/sys/tenant/getAllActiveTenants" -> {
+            // Returns Map<atomicServiceCode, Map<tenantId, tenantName>>.
+            // Each service gets a primary tenant whose id is "t{index+1}" (e.g. sys -> t1, user -> t2 …).
+            // "console" and "service_a" get additional tenants to exercise the multi-tenant picker
+            // and to keep tenant ids consistent with buildAccountGetDetailResponse and buildDomainGetResponse.
             val data = buildJsonObject {
                 ATOMIC_SERVICE_CODES_ORDERED.forEachIndexed { index, code ->
                     put(code, buildJsonObject {

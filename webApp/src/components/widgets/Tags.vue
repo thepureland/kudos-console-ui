@@ -142,13 +142,24 @@ function measureMaxVisible() {
     return;
   }
   const availableWidth = wrap.clientWidth - LIST_PADDING_RIGHT;
-  const moreIndex = total;
-  const moreWidth = (ul.children[moreIndex] as HTMLElement)?.offsetWidth ?? 80;
+  const moreWidth = (ul.children[total] as HTMLElement)?.offsetWidth ?? 80;
+
+  // Pre-compute prefix widths (including per-item gap) so the search below is O(n) instead of O(n²).
+  // prefixW[i] = total rendered width of the first i tags (with gaps between them, no trailing gap).
+  const prefixW: number[] = new Array(total + 1);
+  prefixW[0] = 0;
+  for (let i = 0; i < total; i++) {
+    const itemW = (ul.children[i] as HTMLElement).offsetWidth;
+    prefixW[i + 1] = prefixW[i] + itemW + (i > 0 ? GAP : 0);
+  }
+
+  // Find the largest n such that showing n tags (+ "more" button when n < total) fits in availableWidth.
   for (let n = total; n >= 0; n--) {
-    let w = 0;
-    for (let i = 0; i < n; i++) w += (ul.children[i] as HTMLElement).offsetWidth + GAP;
-    if (n < total) w += moreWidth;
-    else if (n > 0) w -= GAP;
+    // Width of n visible tags: prefix sum already includes gaps between items.
+    // When showing all tags (n === total) no "more" button is needed; otherwise add moreWidth + gap.
+    const w = n === total
+      ? prefixW[n]
+      : prefixW[n] + (n > 0 ? GAP : 0) + moreWidth;
     if (w <= availableWidth) {
       maxVisibleCount.value = n;
       return;
@@ -170,7 +181,8 @@ onMounted(() => {
 });
 onUnmounted(() => {
   document.removeEventListener('dragend', onDragEnd, true);
-  if (resizeObserver && wrapRef.value) {
+  // disconnect() does not require the observed element to still be in the DOM.
+  if (resizeObserver) {
     resizeObserver.disconnect();
     resizeObserver = null;
   }
@@ -258,7 +270,9 @@ function closeTags(index: number) {
     clearPersistedStateByPath(delItem.path);
     store.commit('addListStateResetPath', delItem.path);
   }
+  // Vuex mutations are synchronous; tagsList updates immediately after the commit.
   store.commit('delTagsItem', { index });
+  // After removal, prefer the tag now at the same index (i.e. the next one); fall back to the previous.
   const next = tagsList.value[index] ?? tagsList.value[index - 1];
   if (next) {
     if (delItem.path === currentMenuPath.value) store.commit('setCurrentMenuPath', next.path);
@@ -289,6 +303,7 @@ function handleTags(command: string) {
   command === 'other' ? closeOther() : closeAll();
 }
 function goToTag(cmd: { item: TagItem; visibleIndex: number }) {
+  // Promote the selected "more" item to position 0 so it becomes immediately visible in the tag bar.
   if (cmd.visibleIndex > 0) {
     store.commit('reorderTags', { fromIndex: cmd.visibleIndex, toIndex: 0 });
   }

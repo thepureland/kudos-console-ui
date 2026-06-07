@@ -43,8 +43,9 @@ function getBackendApi() {
 }
 
 /** In development, log slow requests (>1s) and per-phase timing to help diagnose proxy/backend latency. */
-const LOG_SLOW_REQUESTS = typeof import.meta !== "undefined" && import.meta.env?.DEV === true;
+const LOG_SLOW_REQUESTS = import.meta.env?.DEV === true;
 
+/** Returns a high-resolution timestamp (ms), falling back to Date.now() outside browser/Node environments. */
 function now(): number {
   return typeof performance !== "undefined" ? performance.now() : Date.now();
 }
@@ -88,7 +89,11 @@ function asRecord(o: unknown): Record<string, unknown> | null {
   return o as Record<string, unknown>
 }
 
-/** Align with the various `success` shapes the backend/gateway may return (including string booleans and 0/1). */
+/**
+ * Align with the various `success` shapes the backend/gateway may return (including string booleans and 0/1).
+ * Some legacy endpoints return numeric 0/1 instead of booleans; some gateways serialize as "true"/"false" strings.
+ * Returns undefined when the field is absent or has an unrecognised value.
+ */
 function readApiSuccessFlag(o: Record<string, unknown>): boolean | undefined {
   const s = o.success
   if (s === true || s === false) return s
@@ -99,6 +104,11 @@ function readApiSuccessFlag(o: Record<string, unknown>): boolean | undefined {
   return undefined
 }
 
+/**
+ * Attempt to parse a JSON string only when it looks like an object or array (starts with `{` or `[`).
+ * Used to unwrap double-encoded `data` fields from gateway responses without eagerly parsing plain strings.
+ * Compare `parseMaybeJson`, which tries to parse any string value unconditionally.
+ */
 function parseNestedJson(value: unknown): unknown {
   if (typeof value !== "string") return value
   const t = value.trim()
@@ -213,6 +223,10 @@ export function isApiSuccessResponse(result: unknown): boolean {
   return readApiSuccessFlag(body as Record<string, unknown>) === true
 }
 
+/**
+ * Synchronous message extractor — tries `message` then `msg` on the unwrapped response envelope.
+ * `resolveApiResponseMessage` is the async mirror that goes through i18n loading before translating.
+ */
 export function getApiResponseMessage(result: unknown): string | null {
   const body = unwrapApiResult(result)
   if (isApiResponse(body)) {
@@ -366,6 +380,11 @@ function extractErrorPayload(error: unknown): unknown {
   return undefined
 }
 
+/**
+ * Attempt to parse any string value as JSON; non-strings and unparseable strings are returned as-is.
+ * Unlike `parseNestedJson`, this does not restrict to object/array shapes — used for error payload extraction
+ * where the entire body might be a plain string error message.
+ */
 function parseMaybeJson(value: unknown): unknown {
   if (typeof value !== "string") return value
   try {

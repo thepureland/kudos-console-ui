@@ -1,4 +1,4 @@
-<!-- Organization detail -->
+<!-- Organization detail — read-only dialog that displays a single org record. -->
 <template>
   <SectionedDetailDialog
     :model-value="visible"
@@ -24,7 +24,7 @@ import {
   type SectionConfig,
 } from '../../../components/pages/detail';
 
-/** Mirrors CacheDetail: up to 2 fields per row; other info goes last and remark gets its own row. */
+/** Section boundaries: up to 2 fields per row; audit info in its own section, other/remark last. */
 const SECTION_MAP: SectionConfig[] = [
   { start: 0, titleKey: 'organizationDetail.sections.basicInfo' },
   { start: 2, titleKey: 'organizationDetail.sections.audit' },

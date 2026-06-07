@@ -382,6 +382,8 @@ class DataSourceListPage extends TenantSupportListPage {
     const params = super.createSearchParams();
     if (params && this.state.searchParams) {
       const sp = this.state.searchParams as Record<string, unknown>;
+      // Send `true` only when the checkbox is explicitly checked; send `null` (no filter) otherwise.
+      // Strict `=== true` avoids sending the string "true" if the value is ever coerced.
       (params as Record<string, unknown>).active = sp.active === true ? true : null;
       (params as Record<string, unknown>).microServiceCode = sp.microServiceCode ?? null;
     }
@@ -484,6 +486,12 @@ export default defineComponent({
       onAfterPersist: updateNameInputWidth,
     });
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
+    /**
+     * Keep 'microservice' immediately after 'tenantName' when both are present.
+     * This constraint exists because microservice records belong to a tenant, so
+     * displaying them adjacent makes the relationship obvious. If 'tenantName' is
+     * hidden or absent the order is left unchanged.
+     */
     function normalizeColumnOrder(order: string[]): string[] {
       const tenantIdx = order.indexOf('tenantName');
       const microIdx = order.indexOf('microservice');
@@ -526,13 +534,9 @@ export default defineComponent({
       getColumnKeys: () => orderedColumnKeys.value,
       getColumnLabel: columnLabel,
     });
-    const {
-      RESERVED_WIDTH_LEFT,
-      RESERVED_WIDTH_RIGHT,
-      autoWidthColumns,
-      tableDataRef,
-      columnWidths,
-    } = useTableAutoWidthContext({
+    // Only `columnWidths` is needed here; the other returned values (RESERVED_WIDTH_LEFT,
+    // RESERVED_WIDTH_RIGHT, autoWidthColumns, tableDataRef) are unused in this component.
+    const { columnWidths } = useTableAutoWidthContext({
       listPage,
       reservedWidthLeft: 39 + 50 + 120,
       reservedWidthRight: 140,
@@ -555,7 +559,7 @@ export default defineComponent({
                     : () => '',
       }))
     });
-        useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
+    useFixedLeftRelayoutWatcher(listPage, forceFixedLeftWidth);
     return {
       listPage,
       OPERATION_COLUMN_PINNED_STORAGE_KEY,

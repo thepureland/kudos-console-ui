@@ -43,14 +43,12 @@ import { useI18n } from 'vue-i18n';
 import { BaseDetailPage } from '../../../components/pages/core/BaseDetailPage';
 import { resolveAssignedItems } from '../_shared/assignmentTransferUtils';
 
+// Label extractors: try the most-descriptive field first, fall back to id.
+// NOTE: identical copies live in GrantRequestFormPage.vue — keep in sync if field names change.
 const roleLabel = (row: Record<string, unknown>) => String(row.roleName ?? row.name ?? row.roleCode ?? row.code ?? row.id ?? '');
 const userLabel = (row: Record<string, unknown>) => String(row.username ?? row.realName ?? row.id ?? '');
 
 class GrantRequestDetailPage extends BaseDetailPage {
-  constructor(props: any, context: any) {
-    super(props, context);
-  }
-
   protected getRootActionPath(): string {
     return 'auth/roleGrantRequest';
   }
@@ -72,6 +70,7 @@ class GrantRequestDetailPage extends BaseDetailPage {
 
   protected postLoadDataSuccessfully(data: unknown): void {
     this.state.detail = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
+    // Kick off label resolution in parallel with the super call; loading flag cleared after both.
     void this.resolveLabels();
     super.postLoadDataSuccessfully(data);
     this.state.loading = false;

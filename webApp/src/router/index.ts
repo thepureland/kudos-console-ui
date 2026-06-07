@@ -49,6 +49,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'sys/i18n', name: 'sys-i18n', component: I18nListPage, meta: { titleKey: 'route.sysI18n', icon: 'Setting' } },
       { path: 'sys/accessrule', name: 'sys-accessrule', component: AccessRuleListPage, meta: { titleKey: 'route.sysAccessRule', icon: 'Lock' } },
       { path: 'sys/auditlog', name: 'sys-auditlog', component: AuditLogListPage, meta: { titleKey: 'route.sysAuditLog', icon: 'Document' } },
+      // Backwards-compat: old separate "IP-only" and "with-IP" access-rule routes merged into a single page.
       { path: 'sys/accessruleip', redirect: '/sys/accessrule' },
       { path: 'sys/accessrulewithip', redirect: '/sys/accessrule' },
       { path: 'user/account', name: 'user-account', component: AccountListPage, meta: { titleKey: 'route.userAccount', icon: 'UserFilled' } },
@@ -64,6 +65,7 @@ const routes: RouteRecordRaw[] = [
       // Backwards-compat: existing bookmarks / external links to /rbac/role and /rbac/group keep working.
       { path: 'rbac/role', redirect: '/auth/role' },
       { path: 'rbac/group', redirect: '/auth/group' },
+      // Placeholder route used as a dev/demo sandbox; kept so existing nav-menu entries remain valid.
       { path: 'tabs', name: 'tabs', component: Placeholder, meta: { titleKey: 'route.tabs', icon: 'Bell' } },
     ],
   },
