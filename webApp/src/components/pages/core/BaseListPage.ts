@@ -125,10 +125,16 @@ export abstract class BaseListPage extends BasePage {
 
     /** Public stub bound to doSearch() in convertThis(). Call this to trigger a pagingSearch. */
     public search!: () => void
+    /** Monotonic id of the most recent search request, used to discard stale responses. */
+    private searchSequence = 0
     protected async doSearch() {
         const params = this.createSearchParams()
         if (!params) return
+        const seq = ++this.searchSequence
         const result = await backendRequest({url: this.getSearchUrl(), method: "post", params})
+        // A newer search was issued while this one was in flight — drop the stale response
+        // so rapid filter/pagination changes never show outdated rows.
+        if (seq !== this.searchSequence) return
         // Unwrap the standard API envelope when present; fall back to the raw result for
         // legacy endpoints that return a plain array/page-object at the top level.
         const apiSuccess = isApiSuccessResponse(result)
@@ -150,6 +156,19 @@ export abstract class BaseListPage extends BasePage {
      */
     protected postSearchSuccessfully(data: any) {
         if (data && Array.isArray(data.data) && typeof data.totalCount === "number") {
+            // The current page is past the last page (e.g. the only row on the last page was
+            // deleted, or a narrower filter shrank the result set) — step back to the last
+            // non-empty page and re-fetch instead of showing an empty page.
+            const pagination = this.state.pagination
+            if (data.data.length === 0 && data.totalCount > 0 && pagination && Number(pagination.pageNo) > 1) {
+                const lastPage = Math.max(1, Math.ceil(data.totalCount / Number(pagination.pageSize || 10)))
+                if (lastPage < Number(pagination.pageNo)) {
+                    pagination.pageNo = lastPage
+                    pagination.total = data.totalCount
+                    this.doSearch()
+                    return
+                }
+            }
             this.state.tableData = data.data
             this.state.pagination.total = data.totalCount
             return
@@ -391,7 +410,12 @@ export abstract class BaseListPage extends BasePage {
         const subSystemCode = row.subSystemCode
         if (subSystemCode) params["subSystemCode"] = subSystemCode
         const result = await backendRequest({url: this.getUpdateActiveUrl(), method: 'put', params, paramsInQuery: true})
-        if (!isApiSuccessResponse(result)) ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.updateActiveFailed'))
+        if (!isApiSuccessResponse(result)) {
+            // The el-switch v-model already toggled the row optimistically; revert it so the
+            // UI does not show a state the backend rejected.
+            row.active = !row.active
+            ElMessage.error(await resolveApiFailureMessage(result) || getApiFailureMessage(result) || getApiResponseMessage(result) || tGlobal('listPage.updateActiveFailed'))
+        }
     }
     /** Opens the edit dialog for the given row, setting state.rid to the row's ID. */
     public handleEdit!: (row: any) => void

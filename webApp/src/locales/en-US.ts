@@ -229,6 +229,10 @@ export default {
     messages: {
       requestOperationFailed: 'Operation request failed!',
       activeChangeTakesEffectAfterRestart: 'Active status changes take effect after restart.',
+      keyExists: 'The specified cache key exists.',
+      keyNotExists: 'The specified cache key does not exist.',
+      operationSucceeded: '{action} succeeded.',
+      confirmClearAll: 'Clear all data of cache "{name}"? This cannot be undone!',
     },
   },
   cacheDetail: {

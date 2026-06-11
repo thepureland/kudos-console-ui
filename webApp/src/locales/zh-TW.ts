@@ -229,6 +229,10 @@ export default {
     messages: {
       requestOperationFailed: '請求操作失敗！',
       activeChangeTakesEffectAfterRestart: '更改啟用狀態僅在重啟應用後才生效！',
+      keyExists: '指定的快取key存在',
+      keyNotExists: '指定的快取key不存在',
+      operationSucceeded: '{action}成功！',
+      confirmClearAll: '確定要清除快取 "{name}" 的所有資料嗎？此操作不可恢復！',
     },
   },
   cacheDetail: {

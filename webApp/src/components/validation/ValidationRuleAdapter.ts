@@ -844,28 +844,29 @@ export class ValidationRuleAdapter {
         }
     }
 
+    /**
+     * Builds one inner validator per constraint contained in `ruleDetails`,
+     * for use by the Each / Exist array-element validators.
+     */
+    private buildElementValidators(propName: string, ruleDetails: Array<any>): Array<ValidatorRule> {
+        const validators: Array<ValidatorRule> = []
+        for (const r of ruleDetails) {
+            for (const ruleName in r) {
+                const inner: ValidatorRule = {}
+                this.doParseRule(ruleName, propName, r[ruleName], inner)
+                if (typeof inner["validator"] === "function") validators.push(inner)
+            }
+        }
+        return validators
+    }
+
     /** Apply Constraints to every element of an array; only when every element passes does the whole rule pass. */
     private each(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "array"
         rule["validator"] = (_rule: any, value: Array<any>) => {
-            // NOTE: `for...in` on an array yields index strings (e.g. "0", "1"), not element values.
-            // The individual validators therefore receive index strings as `v`, not the actual elements.
-            // This is a pre-existing limitation — do not change without coordinating with backend contract.
-            // NOTE: `return false` inside a `forEach` callback exits the callback, not the outer validator;
-            // the outer function always returns `true`. This means validation always passes client-side —
-            // the backend is the authority for Each constraints.
-            ruleDetails.forEach((r) => {
-                for (let ruleName in r) {
-                    for (let v in value) {
-                        const rule: ValidatorRule = {}
-                        this.doParseRule(ruleName, propName, r[ruleName], rule)
-                        if (!rule["validator"](rule, v)) {
-                            return false
-                        }
-                    }
-                }
-            })
-            return true
+            if (!Array.isArray(value)) return true
+            const validators = this.buildElementValidators(propName, ruleDetails)
+            return value.every((elem) => validators.every((inner) => inner["validator"](inner, elem)))
         }
     }
 
@@ -873,21 +874,9 @@ export class ValidationRuleAdapter {
     private exist(propName: string, ruleDetails: Array<any>, rule: any) {
         rule["type"] = "array"
         rule["validator"] = (_rule: any, value: Array<any>) => {
-            // NOTE: same pre-existing limitations as `each`: `for...in` yields index strings, and `return true`
-            // inside the `forEach` callback exits the callback only — the outer function always returns `false`.
-            // Backend is the authority for Exist constraints.
-            ruleDetails.forEach((r) => {
-                for (let ruleName in r) {
-                    for (let v in value) {
-                        const rule: ValidatorRule = {}
-                        this.doParseRule(ruleName, propName, r[ruleName], rule)
-                        if (rule["validator"](rule, v)) {
-                            return true
-                        }
-                    }
-                }
-            })
-            return false
+            if (!Array.isArray(value)) return true
+            const validators = this.buildElementValidators(propName, ruleDetails)
+            return value.some((elem) => validators.every((inner) => inner["validator"](inner, elem)))
         }
     }
 
@@ -1011,11 +1000,12 @@ export class ValidationRuleAdapter {
                     return this.compareTwoValue("LIKE", v2, v1)
                 }
                 if (v2 instanceof Array) {
-                    if (v1 ! instanceof Array) {
+                    if (!(v1 instanceof Array)) {
                         return (<Array<any>>v2).indexOf(v1) != -1
                     } else {
-                        for (const _elem in v1) {
-                            if ((<Array<any>>v2).indexOf(v1) != -1) {
+                        // Array v1 is IN array v2 when every element of v1 is contained in v2.
+                        for (const elem of v1 as Array<any>) {
+                            if ((<Array<any>>v2).indexOf(elem) == -1) {
                                 return false
                             }
                         }

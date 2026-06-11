@@ -440,7 +440,7 @@
 
 <script lang="ts">
 import {computed, defineComponent, nextTick,  reactive, ref, toRefs, watch} from 'vue';
-import {ElMessage} from 'element-plus';
+import {ElMessage, ElMessageBox} from 'element-plus';
 import {Delete, Edit, Plus, RefreshLeft, Search, Tickets} from '@element-plus/icons-vue';
 import {useI18n} from 'vue-i18n';
 import CacheFormPage from './CacheFormPage.vue';
@@ -575,7 +575,7 @@ class CacheListPage extends BaseListPage {
         let message: string;
         if (operation === 'existsKey') {
           const exists = (result as { data?: unknown })?.data === true;
-          message = exists ? 'Specified cache key exists' : 'Specified cache key does not exist';
+          message = exists ? this.tr('cacheList.messages.keyExists') : this.tr('cacheList.messages.keyNotExists');
         } else {
           const rawMessage =
             await resolveApiResponseMessage(result)
@@ -616,7 +616,7 @@ class CacheListPage extends BaseListPage {
     };
     const actionKey = actionKeyMap[operation];
     const actionText = actionKey ? this.tr(actionKey) : this.tr('cacheList.actions.manage');
-    return `${actionText} succeeded`;
+    return this.tr('cacheList.messages.operationSucceeded', { action: actionText });
   }
 
   /** Reload single key: record current row and operation, open the key input dialog. */
@@ -643,8 +643,14 @@ class CacheListPage extends BaseListPage {
     s.keyDialogVisible = true;
   }
 
-  /** Clear the whole cache: no key required, submit directly. */
-  private clear(row: Record<string, unknown>): void {
+  /** Clear the whole cache: destructive, so ask for confirmation before submitting. */
+  private async clear(row: Record<string, unknown>): Promise<void> {
+    const confirmResult = await ElMessageBox.confirm(
+      this.tr('cacheList.messages.confirmClearAll', { name: String(row?.name ?? '') }),
+      this.tr('listPage.confirmTitle'),
+      { confirmButtonText: this.tr('listPage.confirmButton'), cancelButtonText: this.tr('listPage.cancelButton'), type: 'warning' }
+    ).catch((err: unknown) => err);
+    if (confirmResult !== 'confirm') return;
     const s = this.state as Record<string, unknown>;
     s.currentRow = row;
     s.cacheOperation = 'evictAll';

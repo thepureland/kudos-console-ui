@@ -54,7 +54,7 @@
         </el-form-item>
         <el-form-item :label="t('organizationAddEdit.labels.orgTypeDictCode')" prop="orgTypeDictCode" class="is-required">
           <el-select v-model="formModel.orgTypeDictCode" :placeholder="t('organizationAddEdit.placeholders.orgTypeDictCode')" clearable filterable class="form-select-full">
-            <el-option v-for="item in getDictItems('share', 'organization_type')" :key="item.first" :value="item.first" :label="t(item.second)" />
+            <el-option v-for="item in getDictItems('user', 'organization_type')" :key="item.first" :value="item.first" :label="t(item.second)" />
           </el-select>
         </el-form-item>
         <el-form-item :label="t('organizationAddEdit.labels.seqNo')" prop="seqNo">
@@ -95,7 +95,7 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     parentCascader: { value?: { getCheckedNodes: () => unknown[] } }
   ) {
     super(props, context, parentCascader);
-    this.loadDicts(['organization_type'], 'share');
+    this.loadDicts(['organization_type'], 'user');
   }
 
   /** Tenant cascade behaves like the list page: non-strict mode */
@@ -143,9 +143,9 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     return 'user/organization';
   }
 
-  /** Organization-type dict-item translations are fetched from the backend (share atomic service) */
+  /** Organization-type dict-item translations are fetched from the backend (user atomic service) */
   protected getI18nConfig() {
-    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['organization_type'], atomicServiceCode: 'share' }];
+    return [{ i18nTypeDictCode: 'dict-item', namespaces: ['organization_type'], atomicServiceCode: 'user' }];
   }
 
   protected getLoadFailedMessageKey(): string {

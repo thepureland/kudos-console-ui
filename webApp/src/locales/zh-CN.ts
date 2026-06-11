@@ -229,6 +229,10 @@ export default {
     messages: {
       requestOperationFailed: '请求操作失败！',
       activeChangeTakesEffectAfterRestart: '更改启用状态仅在重启应用后才生效！',
+      keyExists: '指定的缓存key存在',
+      keyNotExists: '指定的缓存key不存在',
+      operationSucceeded: '{action}成功！',
+      confirmClearAll: '确定要清除缓存 "{name}" 的所有数据吗？此操作不可恢复！',
     },
   },
   cacheDetail: {
