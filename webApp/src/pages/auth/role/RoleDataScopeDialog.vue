@@ -12,7 +12,8 @@
  * the tenant/subsystem needed to scope the org tree. The CUSTOM org picker is only shown (and the
  * tree only loaded) when the scope is CUSTOM.
  *
- * @author: K
+ * @author K
+ * @author AI: Claude
  * @since 1.0.0
  -->
 <template>
@@ -35,6 +36,24 @@
           </el-select>
         </el-form-item>
         <el-alert :title="scopeDescription" type="info" :closable="false" show-icon class="rds-desc" />
+        <!-- v-if on a wrapper rather than on the same node as v-for: in Vue 3 v-if is evaluated
+             first, so sharing an element with v-for is a footgun even when it happens to work. -->
+        <template v-if="scope === 'CUSTOM'">
+          <el-form-item v-for="dim in extraDimensions" :key="dim" :label="dim" class="rds-orgs-item">
+            <!-- A dimension nobody registered a picker for still has to be editable, so free-text
+                 tags: the framework cannot know what a `region` or `brand` value looks like. -->
+            <el-select
+              v-model="extraScopeValues[dim]"
+              multiple
+              filterable
+              allow-create
+              default-first-option
+              :reserve-keyword="false"
+              :placeholder="t('roleDataScope.placeholders.dimensionValues')"
+              class="rds-full"
+            />
+          </el-form-item>
+        </template>
         <el-form-item v-if="scope === 'CUSTOM'" :label="t('roleDataScope.labels.orgs')" class="rds-orgs-item">
           <el-tree-select
             v-model="selectedOrgIds"
@@ -64,7 +83,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted } from 'vue';
+import { defineComponent, ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { tGlobal } from '../../../i18n';
@@ -88,6 +107,12 @@ export default defineComponent({
     const selectedOrgIds = ref<string[]>([]);
     const orgTree = ref<Array<Record<string, unknown>>>([]);
     const subSystemCode = ref<string | null>(null);
+    /**
+     * Dimensions other than `org`, discovered from the backend rather than hardcoded — an
+     * application that registers `region` gets an editor here without the console being changed.
+     */
+    const extraDimensions = ref<string[]>([]);
+    const extraScopeValues = reactive<Record<string, string[]>>({});
     const tenantId = ref<string | null>(null);
     const treeProps = { label: 'name', children: 'children' };
 
@@ -121,12 +146,21 @@ export default defineComponent({
         subSystemCode.value = (detail.subsysCode ?? null) as string | null;
         tenantId.value = (detail.tenantId ?? null) as string | null;
 
-        // 2) When already CUSTOM, load the tree first (so labels render) then the current grants.
+        // 2) Which dimensions this deployment actually has. `org` is rendered by the tree picker
+        //    below; anything else gets a generic editor.
+        const dimRes = await backendRequest({ url: 'auth/roleDataScope/listDimensions', method: 'get' });
+        const dims = getApiResponseData<string[]>(dimRes);
+        extraDimensions.value = (Array.isArray(dims) ? dims : []).filter(d => d !== 'org');
+
+        // 3) When already CUSTOM, load the tree first (so labels render) then the current grants.
         if (scope.value === 'CUSTOM') {
           await loadOrgTree();
-          const orgRes = await backendRequest({ url: 'auth/roleDataScope/getRoleOrgIds', method: 'get', params: { roleId: props.rid } });
-          const orgIds = getApiResponseData<string[]>(orgRes);
-          selectedOrgIds.value = Array.isArray(orgIds) ? orgIds.map(String) : [];
+          const scopesRes = await backendRequest({ url: 'auth/roleDataScope/getRoleScopes', method: 'get', params: { roleId: props.rid } });
+          const scopes = getApiResponseData<Record<string, string[]>>(scopesRes) ?? {};
+          selectedOrgIds.value = (scopes.org ?? []).map(String);
+          extraDimensions.value.forEach(dim => {
+            extraScopeValues[dim] = (scopes[dim] ?? []).map(String);
+          });
         }
       } finally {
         loading.value = false;
@@ -151,16 +185,24 @@ export default defineComponent({
           ElMessage.error(await resolveApiResponseMessage(scopeRes) || getApiResponseMessage(scopeRes) || t('roleDataScope.messages.failed'));
           return;
         }
-        // Only CUSTOM carries explicit org grants; other scopes ignore the auth_role_org table.
+        // Only CUSTOM carries explicit grants; other scopes ignore auth_role_scope entirely.
+        // Each dimension is written separately because replace semantics are per dimension — one
+        // combined call would make saving this screen wipe dimensions it never showed.
         if (scope.value === 'CUSTOM') {
-          const bindRes = await backendRequest({
-            url: 'auth/roleDataScope/bindRoleOrgs',
-            method: 'post',
-            params: { roleId: props.rid, orgIds: selectedOrgIds.value },
-          });
-          if (!isApiSuccessResponse(bindRes)) {
-            ElMessage.error(await resolveApiResponseMessage(bindRes) || getApiResponseMessage(bindRes) || t('roleDataScope.messages.failed'));
-            return;
+          const writes: Array<{ dimension: string; values: string[] }> = [
+            { dimension: 'org', values: selectedOrgIds.value },
+            ...extraDimensions.value.map(dim => ({ dimension: dim, values: extraScopeValues[dim] ?? [] })),
+          ];
+          for (const write of writes) {
+            const bindRes = await backendRequest({
+              url: 'auth/roleDataScope/bindRoleScope',
+              method: 'post',
+              data: { roleId: props.rid, dimension: write.dimension, values: write.values },
+            });
+            if (!isApiSuccessResponse(bindRes)) {
+              ElMessage.error(await resolveApiResponseMessage(bindRes) || getApiResponseMessage(bindRes) || t('roleDataScope.messages.failed'));
+              return;
+            }
           }
         }
         ElMessage.success(t('roleDataScope.messages.success'));
@@ -182,6 +224,8 @@ export default defineComponent({
       submitting,
       scope,
       selectedOrgIds,
+      extraDimensions,
+      extraScopeValues,
       orgTree,
       treeProps,
       scopeOptions,

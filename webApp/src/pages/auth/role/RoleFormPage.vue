@@ -1,4 +1,15 @@
-<!-- Role add/edit -->
+<!--
+ * Role add/edit.
+ *
+ * Besides the basics, the form carries the two grant-governance switches, because neither can be set
+ * anywhere else: `approvalRequired` (assignment must go through the grant-request workflow) and
+ * `delegableMax` (the ceiling on how far a grant of this role may ever be delegated onwards — 0
+ * forbids re-delegation, which is the default).
+ *
+ * @author K
+ * @author AI: Claude
+ * @since 1.0.0
+ -->
 <template>
   <el-dialog
     :model-value="props.modelValue"
@@ -83,6 +94,17 @@
         </el-form-item>
       </section>
       <section class="form-section">
+        <div class="form-section__title">{{ t('roleAddEdit.sections.governance') }}</div>
+        <el-form-item :label="t('roleAddEdit.labels.approvalRequired')" prop="approvalRequired">
+          <el-switch v-model="formModel.approvalRequired" />
+          <span class="form-item-hint">{{ t('roleAddEdit.hints.approvalRequired') }}</span>
+        </el-form-item>
+        <el-form-item :label="t('roleAddEdit.labels.delegableMax')" prop="delegableMax">
+          <el-input-number v-model="formModel.delegableMax" :min="0" :max="8" :step="1" controls-position="right" />
+          <span class="form-item-hint">{{ t('roleAddEdit.hints.delegableMax') }}</span>
+        </el-form-item>
+      </section>
+      <section class="form-section">
         <div class="form-section__title">{{ t('roleAddEdit.sections.other') }}</div>
         <el-form-item :label="t('roleAddEdit.labels.remark')" prop="remark">
           <el-input
@@ -144,6 +166,8 @@ class RoleFormPage extends TenantSupportAddEditPage {
         roleCode: null,
         roleName: null,
         parentId: null,
+        approvalRequired: false,
+        delegableMax: 0,
         remark: null,
       } as FormModel,
     };

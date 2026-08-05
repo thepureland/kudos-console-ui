@@ -2,7 +2,9 @@
  * Account list: organization tree on the left and table on the right; supports filtering by tenant and username; the table supports column visibility, operation-column fold, and i18n.
  *
  * @author K
+ * @author K
  * @author AI: Cursor
+ * @author AI: Claude
  * @since 1.0.0
  -->
 <template>
@@ -292,6 +294,12 @@
                       <el-button size="small" @click="openPermissionsDialog(scope.row)">
                         {{ t('accountList.actions.permissions') }}
                       </el-button>
+                      <el-button size="small" @click="openExplainDialog(scope.row)">
+                        {{ t('accountList.actions.explain') }}
+                      </el-button>
+                      <el-button size="small" @click="openDataScopeExplainDialog(scope.row)">
+                        {{ t('accountList.actions.dataScopeExplain') }}
+                      </el-button>
                       <el-dropdown trigger="click" @command="(cmd: string) => onSecurityCommand(cmd, scope.row)">
                         <el-button size="small" type="warning">
                           {{ t('accountSecurity.trigger') }}<el-icon class="el-icon--right"><ArrowDown /></el-icon>
@@ -361,6 +369,20 @@
       v-model="permissionsDialogVisible"
       :rid="rid"
     />
+    <!-- "Why does this user have (or not have) X" — the decision point's own evidence. -->
+    <permission-explain-dialog
+      v-if="explainDialogVisible"
+      v-model="explainDialogVisible"
+      :user-id="rid"
+      :user-name="explainUserName"
+    />
+    <!-- "Which data can they see, and why" — the companion to the permission explanation. -->
+    <data-scope-explain-dialog
+      v-if="dataScopeExplainVisible"
+      v-model="dataScopeExplainVisible"
+      :user-id="rid"
+      :user-name="explainUserName"
+    />
     <account-security-dialog
       v-if="securityDialogVisible"
       v-model="securityDialogVisible"
@@ -382,6 +404,8 @@ import AccountDetailPage from './AccountDetailPage.vue';
 import AccountRolesDialog from './AccountRolesDialog.vue';
 import AccountGroupsDialog from './AccountGroupsDialog.vue';
 import AccountEffectivePermissionsDialog from './AccountEffectivePermissionsDialog.vue';
+import PermissionExplainDialog from '../../auth/authz/PermissionExplainDialog.vue';
+import DataScopeExplainDialog from '../../auth/authz/DataScopeExplainDialog.vue';
 import AccountSecurityDialog from './AccountSecurityDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
@@ -425,6 +449,9 @@ class AccountListPage extends TenantSupportListPage {
       rolesDialogVisible: false,
       groupsDialogVisible: false,
       permissionsDialogVisible: false,
+      explainDialogVisible: false,
+      dataScopeExplainVisible: false,
+      explainUserName: '',
       /** Security-operations dialog (reset password / 2FA / freeze) */
       securityDialogVisible: false,
       securityMode: '' as string,
@@ -452,6 +479,18 @@ class AccountListPage extends TenantSupportListPage {
   openPermissionsDialog(row: Record<string, unknown>): void {
     this.state.rid = this.getRowId(row);
     this.state.permissionsDialogVisible = true;
+  }
+
+  openExplainDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.explainUserName = String(row.displayName ?? row.username ?? '');
+    this.state.explainDialogVisible = true;
+  }
+
+  openDataScopeExplainDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.explainUserName = String(row.displayName ?? row.username ?? '');
+    this.state.dataScopeExplainVisible = true;
   }
 
   /** Dispatch the per-row security dropdown: input-driven ops open a dialog; the rest run inline after a confirm. */
@@ -575,7 +614,7 @@ class AccountListPage extends TenantSupportListPage {
 
 export default defineComponent({
   name: 'AccountListPage',
-  components: { AccountFormPage, AccountDetailPage, AccountRolesDialog, AccountGroupsDialog, AccountEffectivePermissionsDialog, AccountSecurityDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus, ArrowDown },
+  components: { AccountFormPage, AccountDetailPage, AccountRolesDialog, AccountGroupsDialog, AccountEffectivePermissionsDialog, PermissionExplainDialog, DataScopeExplainDialog, AccountSecurityDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus, ArrowDown },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
@@ -706,6 +745,8 @@ export default defineComponent({
       openRolesDialog: (row: Record<string, unknown>) => listPage.openRolesDialog(row),
       openGroupsDialog: (row: Record<string, unknown>) => listPage.openGroupsDialog(row),
       openPermissionsDialog: (row: Record<string, unknown>) => listPage.openPermissionsDialog(row),
+      openExplainDialog: (row: Record<string, unknown>) => listPage.openExplainDialog(row),
+      openDataScopeExplainDialog: (row: Record<string, unknown>) => listPage.openDataScopeExplainDialog(row),
       onSecurityCommand: (cmd: string, row: Record<string, unknown>) => listPage.onSecurityCommand(cmd, row),
     };
   },

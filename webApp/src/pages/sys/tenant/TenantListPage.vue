@@ -281,7 +281,7 @@
             :label="t('tenantList.columns.operation')"
             align="center"
             fixed="right"
-            min-width="68"
+            min-width="92"
             class-name="operation-column"
           >
             <template #header>
@@ -304,6 +304,11 @@
                     <Tickets />
                   </el-icon>
                 </el-tooltip>
+                <el-tooltip :content="t('tenantList.actions.bootstrap')" placement="top" :enterable="false">
+                  <el-icon :size="20" class="operate-column-icon" @click="openBootstrap(scope.row)">
+                    <MagicStick />
+                  </el-icon>
+                </el-tooltip>
               </div>
             </template>
           </el-table-column>
@@ -323,6 +328,16 @@
       </template>
     </list-page-layout>
 
+    <!-- Bootstrap: seeding the tenant's built-in roles and appointing its first administrator. Kept
+         off the form because it is not an edit of the tenant row — it is what makes the tenant
+         usable, and it needs to stay reachable after the row has stopped changing. -->
+    <tenant-bootstrap-dialog
+      v-if="bootstrapEverOpened"
+      v-model="bootstrapVisible"
+      :tid="bootstrapTenantId"
+      :tenant-name="bootstrapTenantName"
+    />
+
     <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
       <tenant-form-page
@@ -338,9 +353,10 @@
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
-import { Delete, Edit, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { Delete, Edit, MagicStick, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import TenantFormPage from './TenantFormPage.vue';
+import TenantBootstrapDialog from './TenantBootstrapDialog.vue';
 import TenantDetailPage from './TenantDetailPage.vue';
 import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
@@ -415,7 +431,7 @@ class TenantListPage extends BaseListPage {
 
 export default defineComponent({
   name: 'TenantListPage',
-  components: { TenantFormPage, TenantDetailPage, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { TenantFormPage, TenantDetailPage, TenantBootstrapDialog, ListPageLayout, Edit, Delete, Tickets, MagicStick, Search, RefreshLeft, Plus },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
@@ -435,6 +451,19 @@ export default defineComponent({
     const { listLayoutRefs, onTableWrapMounted: layoutOnTableWrapMounted } = useListPageLayout(listPage, {});
     const { isColumnVisible, onTableWrapMounted } = useListPageVisibilityState(listPage, layoutOnTableWrapMounted);
     const tableRef = ref<{ doLayout: () => void; $el?: HTMLElement } | null>(null);
+
+    // Mounted lazily like the form dialog: most sessions never open it, and mounting it per row
+    // would put one dialog per page of tenants into the tree.
+    const bootstrapVisible = ref(false);
+    const bootstrapEverOpened = ref(false);
+    const bootstrapTenantId = ref('');
+    const bootstrapTenantName = ref('');
+    function openBootstrap(row: Record<string, unknown>): void {
+      bootstrapTenantId.value = String(row.id ?? '');
+      bootstrapTenantName.value = String(row.name ?? row.id ?? '');
+      bootstrapEverOpened.value = true;
+      bootstrapVisible.value = true;
+    }
     // Fixed left = selection column (39) + index column (50) + name column (200); must match CSS overrides below.
     const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 200;
     const forceFixedLeftWidth = useFixedLeftTableWidth(tableRef, FIXED_LEFT_TOTAL_WIDTH);
@@ -499,6 +528,11 @@ export default defineComponent({
       hasFormEverOpened,
       onFormClose,
       onFormResponse,
+      bootstrapVisible,
+      bootstrapEverOpened,
+      bootstrapTenantId,
+      bootstrapTenantName,
+      openBootstrap,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,

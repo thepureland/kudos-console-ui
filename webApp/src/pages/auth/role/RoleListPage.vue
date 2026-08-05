@@ -1,8 +1,9 @@
 <!--
  * Role list: filter by subsystem/tenant, role code, role name, and active-only; the table supports column visibility, an operation-column fold toggle, drag-reorder of columns, and i18n.
  *
- * @author: K
+ * @author K
  * @author: AI: Cursor
+ * @author AI: Claude
  * @since 1.0.0
  -->
 <template>
@@ -317,6 +318,16 @@
                     <Filter />
                   </el-icon>
                 </el-tooltip>
+                <el-tooltip :content="t('roleList.actions.permissionCodes')" placement="top" :enterable="false">
+                  <el-icon :size="20" class="operate-column-icon" @click="openPermissionCodeDialog(scope.row)">
+                    <Key />
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip :content="t('roleList.actions.delegate')" placement="top" :enterable="false">
+                  <el-icon :size="20" class="operate-column-icon" @click="openDelegationDialog(scope.row)">
+                    <Share />
+                  </el-icon>
+                </el-tooltip>
                 <el-tooltip :content="t('roleList.actions.temporalGrants')" placement="top" :enterable="false">
                   <el-icon :size="20" class="operate-column-icon" @click="openTemporalGrantsDialog(scope.row)">
                     <Clock />
@@ -404,6 +415,22 @@
       :rid="rid"
       @response="onDataScopeResponse"
     />
+    <!-- Code-addressed bindings: effect + condition, which the resource tree cannot express. -->
+    <role-permission-code-dialog
+      v-if="permissionCodeDialogVisible"
+      v-model="permissionCodeDialogVisible"
+      :rid="rid"
+      :role-name="delegationRoleName"
+      @response="onPermissionCodeResponse"
+    />
+    <!-- Delegate the role on the current operator's own authority (screened + chained). -->
+    <role-delegation-dialog
+      v-if="delegationDialogVisible"
+      v-model="delegationDialogVisible"
+      :rid="rid"
+      :role-name="delegationRoleName"
+      @response="onDelegationResponse"
+    />
     <!-- View all grants for a role -->
     <role-temporal-grants-dialog
       v-if="temporalGrantsDialogVisible"
@@ -431,7 +458,7 @@
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed } from 'vue';
-import { Clock, CopyDocument, Delete, Edit, Filter, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { Clock, CopyDocument, Delete, Edit, Filter, Key, Plus, RefreshLeft, Search, Share, Tickets } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
 import { useI18n } from 'vue-i18n';
@@ -443,6 +470,8 @@ import UserAssignmentDialog from './UserAssignmentDialog.vue';
 import RoleResourceAssignmentDialog from './RoleResourceAssignmentDialog.vue';
 import RoleCopyDialog from './RoleCopyDialog.vue';
 import RoleDataScopeDialog from './RoleDataScopeDialog.vue';
+import RoleDelegationDialog from './RoleDelegationDialog.vue';
+import RolePermissionCodeDialog from './RolePermissionCodeDialog.vue';
 import RoleTemporalGrantDialog from './RoleTemporalGrantDialog.vue';
 import RoleTemporalGrantsDialog from './RoleTemporalGrantsDialog.vue';
 import BatchBindUsersDialog from '../_shared/BatchBindUsersDialog.vue';
@@ -486,6 +515,9 @@ class RoleListPage extends TenantSupportListPage {
       resourceTypeLabelKey: null as string | null,
       copyDialogVisible: false,
       dataScopeDialogVisible: false,
+      delegationDialogVisible: false,
+      permissionCodeDialogVisible: false,
+      delegationRoleName: '',
       temporalGrantsDialogVisible: false,
       temporalGrantDialogVisible: false,
       batchBindUsersVisible: false,
@@ -521,6 +553,26 @@ class RoleListPage extends TenantSupportListPage {
 
   onDataScopeResponse(): void {
     // Refresh so the (potentially) changed scope is reflected in the row.
+    this.search();
+  }
+
+  openPermissionCodeDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.delegationRoleName = String(row.name ?? row.code ?? '');
+    this.state.permissionCodeDialogVisible = true;
+  }
+
+  onPermissionCodeResponse(): void {
+    // Bindings drive the decision point; nothing on the row changes, so no reload is needed.
+  }
+
+  openDelegationDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.delegationRoleName = String(row.name ?? row.code ?? '');
+    this.state.delegationDialogVisible = true;
+  }
+
+  onDelegationResponse(): void {
     this.search();
   }
 
@@ -692,12 +744,16 @@ export default defineComponent({
     RoleResourceAssignmentDialog,
     RoleCopyDialog,
     RoleDataScopeDialog,
+    RoleDelegationDialog,
+    RolePermissionCodeDialog,
     RoleTemporalGrantDialog,
     RoleTemporalGrantsDialog,
     BatchBindUsersDialog,
     CopyDocument,
     Filter,
     Clock,
+    Share,
+    Key,
     ListPageLayout,
     Edit,
     Delete,

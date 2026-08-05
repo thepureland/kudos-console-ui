@@ -12,6 +12,12 @@ const PATH_REDIRECTS: Record<string, string> = {
 const PATH_OVERRIDES: Record<string, string> = {
   '/home': 'Welcome.vue',
   '/tabs': 'Placeholder.vue',
+  // Menu pages that are not lists. The convention below only picks up `*ListPage.vue`, so a page
+  // named anything else is routable but *not reachable* — the content area resolves through this
+  // map, not through <router-view>, so a missing entry here shows the previous page rather than
+  // failing. Anything added to router/index.ts as a menu destination must be listed here too.
+  '/auth/rowscope': 'auth/authz/RowScopeShadowPage.vue',
+  '/auth/instancegrant': 'auth/instance/InstanceGrantPage.vue',
 };
 
 /** Only include components that can serve as menu main pages; avoids form/detail dialogs being mistakenly bundled into menu page async chunks. */
@@ -19,6 +25,11 @@ const PAGE_MODULES = import.meta.glob<{ default: Component }>([
   '../pages/**/*ListPage.vue',
   '../pages/Welcome.vue',
   '../pages/Placeholder.vue',
+  // Listed individually rather than by a broader `*Page.vue` glob: that would also sweep in the
+  // form and detail pages, which are dialogs mounted by their list page and must not become menu
+  // chunks of their own.
+  '../pages/auth/authz/RowScopeShadowPage.vue',
+  '../pages/auth/instance/InstanceGrantPage.vue',
 ]);
 
 /**

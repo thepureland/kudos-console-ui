@@ -26,6 +26,8 @@ const RoleListPage = () => import('../pages/auth/role/RoleListPage.vue');
 const UserGroupListPage = () => import('../pages/auth/group/UserGroupListPage.vue');
 const RoleExclusionListPage = () => import('../pages/auth/roleExclusion/RoleExclusionListPage.vue');
 const GrantRequestListPage = () => import('../pages/auth/grantRequest/GrantRequestListPage.vue');
+const RowScopeShadowPage = () => import('../pages/auth/authz/RowScopeShadowPage.vue');
+const InstanceGrantPage = () => import('../pages/auth/instance/InstanceGrantPage.vue');
 const Login = () => import('../components/Login/Login.vue');
 const NotFound = () => import('../pages/404.vue');
 
@@ -62,6 +64,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'auth/group', name: 'auth-group', component: UserGroupListPage, meta: { titleKey: 'route.authGroup', icon: 'User' } },
       { path: 'auth/roleexclusion', name: 'auth-roleexclusion', component: RoleExclusionListPage, meta: { titleKey: 'route.authRoleExclusion', icon: 'CircleClose' } },
       { path: 'auth/grantrequest', name: 'auth-grantrequest', component: GrantRequestListPage, meta: { titleKey: 'route.authGrantRequest', icon: 'DocumentChecked' } },
+      { path: 'auth/rowscope', name: 'auth-rowscope', component: RowScopeShadowPage, meta: { titleKey: 'route.authRowScope', icon: 'Filter' } },
+      { path: 'auth/instancegrant', name: 'auth-instancegrant', component: InstanceGrantPage, meta: { titleKey: 'route.authInstanceGrant', icon: 'Share' } },
       // Backwards-compat: existing bookmarks / external links to /rbac/role and /rbac/group keep working.
       { path: 'rbac/role', redirect: '/auth/role' },
       { path: 'rbac/group', redirect: '/auth/group' },

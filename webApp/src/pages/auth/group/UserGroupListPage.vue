@@ -1,8 +1,9 @@
 <!--
  * User group list: filter by group code, group name, and active-only; the table supports column visibility, an operation-column fold toggle, drag-reorder of columns, and i18n.
  *
- * @author: K
+ * @author K
  * @author: AI: Cursor
+ * @author AI: Claude
  * @since 1.0.0
  -->
 <template>
@@ -281,6 +282,7 @@
                     <el-dropdown-menu>
                       <el-dropdown-item :command="commandValue(1, scope.row)">{{ t('userGroupList.actions.assignUser') }}</el-dropdown-item>
                       <el-dropdown-item :command="commandValue(2, scope.row)">{{ t('userGroupList.actions.viewUser') }}</el-dropdown-item>
+                      <el-dropdown-item :command="commandValue(3, scope.row)">{{ t('userGroupList.actions.membership') }}</el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
@@ -334,6 +336,14 @@
       v-model="userListDialogVisible"
       :rid="rid"
     />
+    <!-- Memberships with validity windows: a membership must be able to expire, or joining the
+         group becomes the way around an expiry set on a direct grant. -->
+    <group-membership-dialog
+      v-if="membershipDialogVisible"
+      v-model="membershipDialogVisible"
+      :gid="rid"
+      :group-name="membershipGroupName"
+    />
     <group-role-assignment-dialog
       v-if="roleAssignmentDialogVisible"
       v-model="roleAssignmentDialogVisible"
@@ -367,6 +377,7 @@ import UserGroupFormPage from './UserGroupFormPage.vue';
 import UserGroupDetailPage from './UserGroupDetailPage.vue';
 import GroupUserAssignmentDialog from './GroupUserAssignmentDialog.vue';
 import GroupUserListDialog from './GroupUserListDialog.vue';
+import GroupMembershipDialog from './GroupMembershipDialog.vue';
 import GroupRoleAssignmentDialog from './GroupRoleAssignmentDialog.vue';
 import GroupRoleListDialog from './GroupRoleListDialog.vue';
 import BatchBindUsersDialog from '../_shared/BatchBindUsersDialog.vue';
@@ -410,6 +421,8 @@ class UserGroupListPage extends TenantSupportListPage {
       },
       userAssignmentDialogVisible: false,
       userListDialogVisible: false,
+      membershipDialogVisible: false,
+      membershipGroupName: '',
       roleAssignmentDialogVisible: false,
       roleListDialogVisible: false,
       subSystemCode: null as string | null,
@@ -518,6 +531,9 @@ class UserGroupListPage extends TenantSupportListPage {
     this.applyCommandRow(row);
     if (item === 1) {
       this.state.userAssignmentDialogVisible = true;
+    } else if (item === 3) {
+      this.state.membershipGroupName = String(row.name ?? row.code ?? '');
+      this.state.membershipDialogVisible = true;
     } else {
       this.state.userListDialogVisible = true;
     }
@@ -554,7 +570,7 @@ class UserGroupListPage extends TenantSupportListPage {
 
 export default defineComponent({
   name: 'UserGroupListPage',
-  components: { UserGroupFormPage, UserGroupDetailPage, GroupUserAssignmentDialog, GroupUserListDialog, GroupRoleAssignmentDialog, GroupRoleListDialog, BatchBindUsersDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
+  components: { UserGroupFormPage, UserGroupDetailPage, GroupUserAssignmentDialog, GroupUserListDialog, GroupMembershipDialog, GroupRoleAssignmentDialog, GroupRoleListDialog, BatchBindUsersDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
