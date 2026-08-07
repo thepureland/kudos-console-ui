@@ -85,8 +85,8 @@ export function ensureAppMessagesLoaded(): Promise<void> {
 }
 
 /**
- * Global hook used by the shared Kotlin/JS layer to translate backend error messages.
- * Attached to globalThis so the shared artifact can call it without importing this module directly.
+ * Global hook used by the request and page layers to translate backend error messages.
+ * Attached to globalThis to avoid coupling the low-level request helper to Vue i18n.
  */
 (globalThis as { __kudosTranslateBackendMessage?: (message: string) => string }).__kudosTranslateBackendMessage = (message: string) => {
   const text = String(message ?? '').trim();
@@ -107,8 +107,8 @@ export function ensureAppMessagesLoaded(): Promise<void> {
 
 /**
  * Async variant of __kudosTranslateBackendMessage.
- * Ensures app-level messages are loaded before translating, used by the shared
- * Kotlin/JS layer in contexts where message bundles may not yet be available.
+ * Ensures app-level messages are loaded before translating when message bundles
+ * may not yet be available.
  */
 (globalThis as { __kudosTranslateBackendMessageAsync?: (message: string) => Promise<string> }).__kudosTranslateBackendMessageAsync = async (message: string) => {
   await ensureAppMessagesLoaded();

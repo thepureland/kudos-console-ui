@@ -35,14 +35,10 @@ function createProxyOptions(target: string) {
 
 /**
  * Split large, size-stable dependencies into separate chunks to reduce the entry-bundle size and improve browser cache hits.
- * `shared` is a Kotlin/JS workspace artifact; its path may appear as either a package name or a local build directory — both are handled.
  */
 function manualChunks(id: string): string | undefined {
   if (id.includes('@element-plus/icons-vue')) return 'element-icons';
   if (id.includes('element-plus')) return 'element-plus';
-  if (id.includes('build/shared/dist/js/developmentLibrary') || id.includes('/node_modules/shared/')) {
-    return 'shared-kotlin';
-  }
   if (
     id.includes('/node_modules/vue/') ||
     id.includes('/node_modules/vue-router/') ||

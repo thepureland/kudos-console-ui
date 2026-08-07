@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "webApp",
-    "build/shared/dist/js/developmentLibrary"
+    "webApp"
   ],
   "scripts": {
     "build": "cd webApp && npm run build",

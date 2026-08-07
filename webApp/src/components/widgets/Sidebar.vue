@@ -1,7 +1,8 @@
 <!--
  * Left navigation sidebar
  *
- * @author: K
+ * @author K
+ * @author AI: Codex
  * @since 1.0.0
  -->
 <template>
@@ -84,7 +85,7 @@ import { computed, markRaw, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
-import { AuthApiFactory } from 'shared';
+import { authApi } from '../../api/authApi';
 import { REQUIRE_AUTH } from '../../config/auth';
 import { extractMenuPathFromBackend, resolvePath } from '../../config/menuPathToComponent';
 import { backendRequest, getApiResponseData } from '../../utils/backendRequest';
@@ -213,7 +214,7 @@ function coerceBackendMenuTree(nodes: unknown): MenuItem[] {
 }
 
 /** Compatible with AuthApi.getMenus: path, name, icon, children (path may be a full URL) */
-function mapMenusFromShared(items: Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>): MenuItem[] {
+function mapAuthMenus(items: Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>): MenuItem[] {
   return items.map((it) => {
     const index = extractMenuPathFromBackend(it.path) ?? resolvePath(it.path);
     return {
@@ -221,7 +222,7 @@ function mapMenusFromShared(items: Array<{ path: string; name: string; icon?: st
       title: it.name,
       titleKey: it.name,
       icon: (it.icon as string) ?? undefined,
-      children: it.children?.length ? mapMenusFromShared(it.children as Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>) : undefined,
+      children: it.children?.length ? mapAuthMenus(it.children as Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>) : undefined,
     };
   });
 }
@@ -257,10 +258,9 @@ const DEFAULT_SUB_SYSTEM_CODE = 'default-sub-system';
 
 /**
  * Attempt to load menus from the real backend first (sys/resource/getMenus), then fall back to
- * AuthApi.getMenus. Despite the "Mock" suffix in the name this function targets live endpoints;
- * the name is kept to avoid breaking any external references.
+ * AuthApi.getMenus.
  */
-async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {
+async function loadMenus(): Promise<MenuItem[] | null> {
   try {
     const result = await backendRequest({
       url: 'sys/resource/getMenus',
@@ -274,10 +274,9 @@ async function loadMenusFromSharedMock(): Promise<MenuItem[] | null> {
     // Continue and try AuthApi.getMenus
   }
   try {
-    const api = AuthApiFactory.getInstance().getAuthApi();
-    const menus = await api.getMenus();
+    const menus = await authApi.getMenus();
     if (menus && menus.length > 0) {
-      return mapMenusFromShared(menus as Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>);
+      return mapAuthMenus(menus as Array<{ path: string; name: string; icon?: string | null; children?: unknown[] }>);
     }
   } catch {
     // ignore
@@ -294,13 +293,13 @@ const MENU_I18N_CONFIG = [{ i18nTypeDictCode: 'view', namespaces: ['menu'], atom
  */
 async function loadMenuData() {
   await loadMessagesForConfig(MENU_I18N_CONFIG);
-  const fromGetMenus = await loadMenusFromSharedMock();
+  const fromGetMenus = await loadMenus();
   if (fromGetMenus && fromGetMenus.length > 0) {
     menuData.value = fromGetMenus;
     store.commit('setMenuData', fromGetMenus);
     return;
   }
-  if (REQUIRE_AUTH && !AuthApiFactory.getInstance().hasToken()) {
+  if (REQUIRE_AUTH && !authApi.hasToken()) {
     menuData.value = [];
     store.commit('setMenuData', []);
     return;
@@ -317,10 +316,10 @@ async function loadMenuData() {
   } catch {
     // Continue
   }
-  // NOTE: this retries loadMenusFromSharedMock (sys/resource/getMenus + AuthApi) which already
+  // NOTE: this retries loadMenus (sys/resource/getMenus + AuthApi) which already
   // ran above without success; in practice both will fail again, leaving menuData empty.
   // Kept for historical compatibility — removing it would change the load sequence.
-  const fallback = await loadMenusFromSharedMock();
+  const fallback = await loadMenus();
   menuData.value = fallback ?? [];
   store.commit('setMenuData', menuData.value);
 }

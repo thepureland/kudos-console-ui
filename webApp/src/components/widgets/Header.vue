@@ -1,3 +1,10 @@
+<!--
+ * Console application header.
+ *
+ * @author K
+ * @author AI: Codex
+ * @since 1.0.0
+ -->
 <template>
   <div class="header" :class="headerTimeClass">
     <!-- Left: logo + breadcrumb; right: fullscreen / theme / language / messages / user dropdown; sidebar collapse is toggled at the divider between sidebar and content -->
@@ -157,7 +164,7 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 import { Bell, CaretBottom, FullScreen } from '@element-plus/icons-vue';
-import { AuthApiFactory } from 'shared';
+import { authApi } from '../../api/authApi';
 import { resolvePath } from '../../config/menuPathToComponent';
 import { REQUIRE_AUTH } from '../../config/auth';
 import { localeOptions, setLocale, type LocaleId } from '../../i18n';
@@ -259,10 +266,9 @@ function applyDevFallback() {
 }
 
 async function fetchUser() {
-  if (!AuthApiFactory.getInstance().hasToken()) return;
+  if (!authApi.hasToken()) return;
   try {
-    const api = AuthApiFactory.getInstance().getAuthApi();
-    const me = await api.getMe();
+    const me = await authApi.getMe();
     const name = me.displayName || me.username;
     const count = (me as { unreadMessageCount?: number }).unreadMessageCount ?? 0;
     if (name) {
@@ -289,7 +295,7 @@ async function handleCommand(command: string) {
           type: 'warning',
         }
       );
-      AuthApiFactory.getInstance().getAuthApi().logout();
+      authApi.logout();
       store.commit('setAuthenticated', false);
       localStorage.removeItem('current_username');
       router.push('/login');

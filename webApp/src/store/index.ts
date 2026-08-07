@@ -1,6 +1,14 @@
 import { createStore } from 'vuex';
-import { AuthApiFactory } from 'shared';
+import { authApi } from '../api/authApi';
 import { resolvePath, VALID_MENU_PATHS } from '../config/menuPathToComponent';
+
+/**
+ * Global console state.
+ *
+ * @author K
+ * @author AI: Codex
+ * @since 1.0.0
+ */
 
 export type TagItem = {
   name?: string;
@@ -108,7 +116,7 @@ function findMenuItemByPath(items: MenuItem[], targetPath: string): MenuItem | u
 
 const store = createStore<RootState>({
   state: {
-    isAuthenticated: AuthApiFactory.getInstance().hasToken(),
+    isAuthenticated: authApi.hasToken(),
     collapse: savedCollapse,
     sidebarWidth: loadSavedSidebarWidth(),
     tagsList: loadSavedTags(),

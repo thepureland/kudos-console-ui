@@ -16,7 +16,8 @@
  * Rows carry only ids (roleId / userId / requesterId / approverId); display names are resolved in
  * one batched pagingSearch per entity after each page loads and patched onto the rows.
  *
- * @author: K
+ * @author K
+ * @author AI: Codex
  * @since 1.0.0
  -->
 <template>
@@ -188,7 +189,7 @@
 import { defineComponent, reactive, toRefs, ref, computed } from 'vue';
 import { Check, Close, Plus, RefreshLeft, Remove, Search, Tickets } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { AuthApiFactory } from 'shared';
+import { authApi } from '../../../api/authApi';
 import { useI18n } from 'vue-i18n';
 import GrantRequestFormPage from './GrantRequestFormPage.vue';
 import GrantRequestDetailPage from './GrantRequestDetailPage.vue';
@@ -205,6 +206,13 @@ const OPERATION_COLUMN_PINNED_STORAGE_KEY = 'grantRequestList.operationColumnPin
 const roleLabel = (row: Record<string, unknown>) => String(row.roleName ?? row.name ?? row.roleCode ?? row.code ?? row.id ?? '');
 const userLabel = (row: Record<string, unknown>) => String(row.username ?? row.realName ?? row.id ?? '');
 
+/**
+ * Role-grant approval list state and backend workflow.
+ *
+ * @author K
+ * @author AI: Codex
+ * @since 1.0.0
+ */
 class GrantRequestListPage extends BaseListPage {
   constructor(props: PageProps, context: PageContext) {
     super(props, context);
@@ -317,8 +325,7 @@ export default defineComponent({
       const sp = listPage.state.searchParams as Record<string, unknown>;
       if (checked) {
         try {
-          const api = AuthApiFactory.getInstance().getAuthApi();
-          const me = await api.getMe();
+          const me = await authApi.getMe();
           sp.requesterId = (me as unknown as { id?: string })?.id ?? null;
         } catch {
           sp.requesterId = null;

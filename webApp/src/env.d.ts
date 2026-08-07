@@ -1,8 +1,6 @@
 /**
- * Options accepted by the global `ajax` helper that bridges Vue components to
- * the Kotlin Multiplatform "shared" BackendApi.  Assigned to `window.ajax` in
- * main.ts so the prebuilt shared artifact can call it without importing
- * anything from the UI layer.
+ * Options accepted by the legacy global `ajax` helper. Assigned to `window.ajax`
+ * in main.ts for older pages while new code imports backendRequest directly.
  */
 export type AjaxOptions = {
   url: string;
@@ -19,7 +17,7 @@ declare global {
   // files without an explicit window prefix.
   const ajax: (options: AjaxOptions) => Promise<any>;
   interface Window {
-    // Optional on Window because it is assigned after the shared module loads.
+    // Optional on Window because it is assigned during application startup.
     ajax?: (options: AjaxOptions) => Promise<any>;
   }
 }

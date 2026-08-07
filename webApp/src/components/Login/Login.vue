@@ -1,3 +1,10 @@
+<!--
+ * Console login page.
+ *
+ * @author K
+ * @author AI: Codex
+ * @since 1.0.0
+ -->
 <template>
   <div class="login-page">
     <RainEffect />
@@ -86,7 +93,7 @@ import { useI18n } from 'vue-i18n';
 import { User, Lock, Key } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
-import { LoginRequest, AuthApiFactory } from 'shared';
+import { authApi, LoginRequest } from '../../api/authApi';
 import RainEffect from './RainEffect.vue';
 import './Login.css';
 
@@ -150,8 +157,7 @@ async function doLogin() {
 
   loading.value = true;
   try {
-    const api = AuthApiFactory.getInstance().getAuthApi();
-    await api.login(request);
+    await authApi.login(request);
     store.commit('setAuthenticated', true);
     ElMessage.success(t('login.loginSuccess'));
     await router.push('/home');

@@ -34,6 +34,6 @@ app.use(store as unknown as Plugin);
 app.use(router);
 // Register the global form-error tooltip directive (must run before mount).
 installFormErrorTooltip();
-// Route everything through `shared`: point global ajax at backendRequest.
+// Keep the legacy global ajax contract for pages that have not yet adopted imports.
 (window as unknown as { ajax?: typeof backendRequest }).ajax = backendRequest;
 app.mount('#root');

@@ -1,4 +1,4 @@
-import { AuthApiFactory } from "shared"
+import { requestText } from '../api/httpClient'
 
 export type ApiErrorDetail = {
   code?: string | null
@@ -28,18 +28,15 @@ export type BackendRequestOptions = {
 }
 
 /**
- * Call the backend via the Kotlin BackendApi (Ktor HttpClient) in `shared`, using the same origin and token as Auth.
+ * Call an admin backend endpoint through the native TypeScript HTTP client, using the
+ * same origin and token as authentication.
  *
  * @author K
+ * @author AI: Codex
  * @since 1.0.0
  */
-function getBackendApi() {
-  const factory = AuthApiFactory.getInstance()
-  const api = factory.getBackendApi()
-  if (!api || typeof api.request !== "function") {
-    throw new Error("[backendRequest] shared BackendApi is unavailable; make sure `shared` is built correctly and exposes getBackendApi")
-  }
-  return api
+function backendPath(url: string): string {
+  return `/api/admin/${url.replace(/^\/+/, '')}`
 }
 
 /** In development, log slow requests (>1s) and per-phase timing to help diagnose proxy/backend latency. */
@@ -307,15 +304,17 @@ export function getApiResponseData<T = unknown>(result: unknown): T | null {
 
 export async function backendRequest(options: BackendRequestOptions): Promise<any> {
   const t0 = LOG_SLOW_REQUESTS ? now() : 0;
-  const api = getBackendApi();
   const t1 = LOG_SLOW_REQUESTS ? now() : 0;
-  const method = (options.method ?? "get").toLowerCase();
-  const paramsJson =
-    options.params != null ? JSON.stringify(options.params) : null;
+  const method = (options.method ?? "get").toUpperCase();
   const paramsInQuery = options.paramsInQuery === true;
   let raw: unknown
   try {
-    raw = await api.request(options.url, method, paramsJson, paramsInQuery);
+    const useQuery = method === 'GET' || method === 'DELETE' || paramsInQuery;
+    const query = useQuery && options.params != null && !Array.isArray(options.params)
+      ? options.params
+      : null;
+    const body = useQuery ? undefined : options.params ?? {};
+    raw = await requestText(backendPath(options.url), { method, query, body });
   } catch (error) {
     const recovered = extractErrorPayload(error)
     if (recovered !== undefined) {
@@ -341,13 +340,13 @@ export async function backendRequest(options: BackendRequestOptions): Promise<an
     const total = Math.round(t3 - t0);
     if (total > 1000) {
       const getApi = Math.round(t1 - t0);
-      const ktor = Math.round(t2 - t1);
+      const network = Math.round(t2 - t1);
       const parse = Math.round(t3 - t2);
       console.warn(
         `[backendRequest] slow request ${total}ms: ${options.method ?? "GET"} ${options.url}`,
         "\n  phase timings:",
-        `getBackendApi=${getApi}ms`,
-        `ktorRequest=${ktor}ms`,
+        `prepare=${getApi}ms`,
+        `network=${network}ms`,
         `JSON.parse=${parse}ms`
       );
     }
