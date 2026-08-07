@@ -13,6 +13,7 @@
  * that a list of current members would hide.
  *
  * @author K
+ * @author AI: Codex
  * @author AI: Claude
  * @since 1.0.0
  -->
@@ -180,10 +181,10 @@ export default defineComponent({
         const result = await backendRequest({
           url: 'user/account/search',
           method: 'post',
-          data: { username: keyword || null, pageNo: 1, pageSize: 20 },
+          params: { username: keyword || null, pageNo: 1, pageSize: 20 },
         });
-        const payload = getApiResponseData<{ rows?: Array<Record<string, unknown>> }>(result);
-        const rows = Array.isArray(payload?.rows) ? payload!.rows! : [];
+        const payload = getApiResponseData<{ rows?: Array<Record<string, unknown>>; data?: Array<Record<string, unknown>> }>(result);
+        const rows = Array.isArray(payload?.rows) ? payload.rows : Array.isArray(payload?.data) ? payload.data : [];
         userCandidates.value = rows.map(row => ({
           id: String(row.id ?? ''),
           label: String(row.displayName ?? row.username ?? row.id ?? ''),
@@ -206,7 +207,7 @@ export default defineComponent({
         const result = await backendRequest({
           url: 'auth/group/bindUserTemporal',
           method: 'post',
-          data: {
+          params: {
             groupId: props.gid,
             userId: draftUserId.value,
             startTime: draftWindow.value?.[0] ?? null,

@@ -208,10 +208,12 @@ export default defineComponent({
         const result = await backendRequest({
           url: 'user/account/search',
           method: 'post',
-          data: { username: keyword || null, pageNo: 1, pageSize: 20 },
+          params: { username: keyword || null, pageNo: 1, pageSize: 20 },
         });
-        const payload = getApiResponseData<{ rows?: Array<Record<string, unknown>> }>(result);
-        const list = Array.isArray(payload?.rows) ? payload!.rows! : [];
+        const payload = getApiResponseData<{ rows?: Array<Record<string, unknown>>; data?: Array<Record<string, unknown>> }>(result);
+        const list = Array.isArray(payload?.rows)
+          ? payload.rows
+          : Array.isArray(payload?.data) ? payload.data : [];
         userCandidates.value = list.map(row => ({
           id: String(row.id ?? ''),
           label: String(row.displayName ?? row.username ?? row.id ?? ''),

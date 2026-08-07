@@ -172,10 +172,12 @@ async function searchPrincipals(keyword: string): Promise<void> {
     const result = await backendRequest({
       url: 'user/account/search',
       method: 'post',
-      data: { username: keyword || null, pageNo: 1, pageSize: 20 },
+      params: { username: keyword || null, pageNo: 1, pageSize: 20 },
     });
-    const payload = getApiResponseData<{ rows?: Array<Record<string, unknown>> }>(result);
-    const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+    const payload = getApiResponseData<{ rows?: Array<Record<string, unknown>>; data?: Array<Record<string, unknown>> }>(result);
+    const rows = Array.isArray(payload?.rows)
+      ? payload.rows
+      : Array.isArray(payload?.data) ? payload.data : [];
     principalCandidates.value = rows.map(row => ({
       id: String(row.id ?? ''),
       label: String(row.displayName ?? row.username ?? row.id ?? ''),
@@ -192,7 +194,7 @@ async function submitShare(): Promise<void> {
     const result = await backendRequest({
       url: 'auth/instanceGrant/share',
       method: 'post',
-      data: {
+      params: {
         principalId: draft.principalId,
         principalType: props.principalType,
         tenantId: draft.tenantId.trim(),

@@ -213,7 +213,7 @@ export default defineComponent({
             const bindRes = await backendRequest({
               url: 'auth/roleDataScope/bindRoleScope',
               method: 'post',
-              data: { roleId: props.rid, dimension: write.dimension, values: write.values },
+              params: { roleId: props.rid, dimension: write.dimension, values: write.values },
             });
             if (!isApiSuccessResponse(bindRes)) {
               ElMessage.error(await resolveApiResponseMessage(bindRes) || getApiResponseMessage(bindRes) || t('roleDataScope.messages.failed'));

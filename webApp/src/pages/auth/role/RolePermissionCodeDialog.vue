@@ -170,7 +170,7 @@ export default defineComponent({
         const result = await backendRequest({
           url: 'auth/role/savePermissionBinding',
           method: 'post',
-          data: {
+          params: {
             roleId: props.rid,
             permissionCode: draft.permissionCode.trim(),
             effect: draft.effect,
