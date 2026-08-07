@@ -13,6 +13,7 @@
  * tree only loaded) when the scope is CUSTOM.
  *
  * @author K
+ * @author AI: Codex
  * @author AI: Claude
  * @since 1.0.0
  -->
@@ -42,7 +43,19 @@
           <el-form-item v-for="dim in extraDimensions" :key="dim" :label="dim" class="rds-orgs-item">
             <!-- A dimension nobody registered a picker for still has to be editable, so free-text
                  tags: the framework cannot know what a `region` or `brand` value looks like. -->
+            <component
+              :is="dimensionPicker(dim)?.component"
+              v-if="dimensionPicker(dim)"
+              v-model="extraScopeValues[dim]"
+              v-bind="dimensionPicker(dim)?.componentProps"
+              :dimension="dim"
+              :role-id="props.rid"
+              :tenant-id="tenantId"
+              :sub-system-code="subSystemCode"
+              class="rds-full"
+            />
             <el-select
+              v-else
               v-model="extraScopeValues[dim]"
               multiple
               filterable
@@ -86,6 +99,7 @@
 import { defineComponent, ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
+import { getDataScopeDimensionPicker } from '../../../extensions/auth/dataScopeDimensionPickers';
 import { tGlobal } from '../../../i18n';
 import '../../../styles/add-edit-dialog-common.css';
 import { backendRequest, getApiResponseData, getApiResponseMessage, isApiSuccessResponse, resolveApiResponseMessage } from '../../../utils/backendRequest';
@@ -118,6 +132,8 @@ export default defineComponent({
 
     const scopeOptions = computed(() => SCOPE_CODES.map(code => ({ value: code, label: t(`roleDataScope.scopes.${code}`) })));
     const scopeDescription = computed(() => t(`roleDataScope.descriptions.${scope.value}`));
+
+    const dimensionPicker = (dimension: string) => getDataScopeDimensionPicker(dimension);
 
     async function loadOrgTree(): Promise<void> {
       if (orgTree.value.length > 0) return;
@@ -230,6 +246,7 @@ export default defineComponent({
       treeProps,
       scopeOptions,
       scopeDescription,
+      dimensionPicker,
       onScopeChange,
       handleClose,
       submit,

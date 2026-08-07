@@ -1,3 +1,10 @@
+<!--
+ * Open-page tags and route icon fallbacks.
+ *
+ * @author K
+ * @author AI: Codex
+ * @since 1.0.0
+ -->
 <template>
   <div class="tags" v-if="showTags">
     <!-- Visible tags + "more" dropdown + options (close others/close all); auto "more" when width is insufficient, supports drag and double-click to close -->
@@ -221,6 +228,12 @@ const pathToIcon: Record<string, string> = {
   '/user/organization': 'OfficeBuilding',
   '/auth/role': 'Key',
   '/auth/group': 'User',
+  '/auth/roleexclusion': 'CircleClose',
+  '/auth/menupermission': 'Menu',
+  '/auth/resourcepermission': 'List',
+  '/auth/grantrequest': 'DocumentChecked',
+  '/auth/instancegrant': 'Share',
+  '/auth/rowscope': 'Filter',
 };
 
 /** When a tag is closed, clear that page's list query state so "close and reopen" returns to the initial state; switching tags does not close them, so their state is preserved */

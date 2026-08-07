@@ -2,7 +2,7 @@
  * Account list: organization tree on the left and table on the right; supports filtering by tenant and username; the table supports column visibility, operation-column fold, and i18n.
  *
  * @author K
- * @author K
+ * @author AI: Codex
  * @author AI: Cursor
  * @author AI: Claude
  * @since 1.0.0
@@ -315,6 +315,9 @@
                             <el-dropdown-item command="cleanAuthKey">{{ t('accountSecurity.menu.cleanAuthKey') }}</el-dropdown-item>
                             <el-dropdown-item command="freeze" divided>{{ t('accountSecurity.menu.freeze') }}</el-dropdown-item>
                             <el-dropdown-item command="unfreeze">{{ t('accountSecurity.menu.unfreeze') }}</el-dropdown-item>
+                            <el-dropdown-item command="permissionVersion" divided>
+                              {{ t('accountSecurity.menu.revokeAllTokens') }}
+                            </el-dropdown-item>
                           </el-dropdown-menu>
                         </template>
                       </el-dropdown>
@@ -391,6 +394,12 @@
       :mode="securityMode"
       @response="search"
     />
+    <account-token-version-dialog
+      v-if="tokenVersionDialogVisible"
+      v-model="tokenVersionDialogVisible"
+      :user-id="rid"
+      :user-name="securityUsername"
+    />
   </div>
 </template>
 
@@ -407,6 +416,7 @@ import AccountEffectivePermissionsDialog from './AccountEffectivePermissionsDial
 import PermissionExplainDialog from '../../auth/authz/PermissionExplainDialog.vue';
 import DataScopeExplainDialog from '../../auth/authz/DataScopeExplainDialog.vue';
 import AccountSecurityDialog from './AccountSecurityDialog.vue';
+import AccountTokenVersionDialog from './AccountTokenVersionDialog.vue';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -456,6 +466,7 @@ class AccountListPage extends TenantSupportListPage {
       securityDialogVisible: false,
       securityMode: '' as string,
       securityUsername: '' as string,
+      tokenVersionDialogVisible: false,
       /** Subsystem / tenant pulled from the clicked row — separate from the toolbar cascader's selection. */
       rowSubSystemCode: null as string | null,
       rowTenantId: null as string | null,
@@ -499,6 +510,9 @@ class AccountListPage extends TenantSupportListPage {
       case 'toggleActive': void this.doToggleActive(row); break;
       case 'cleanAuthKey': void this.doCleanAuthKey(row); break;
       case 'unfreeze': void this.doUnfreeze(row); break;
+      case 'permissionVersion':
+        this.openTokenVersionDialog(row);
+        break;
       case 'resetPassword':
       case 'resetSecurityPassword':
       case 'resetAuthKey':
@@ -506,6 +520,12 @@ class AccountListPage extends TenantSupportListPage {
         this.openSecurityDialog(command, row);
         break;
     }
+  }
+
+  private openTokenVersionDialog(row: Record<string, unknown>): void {
+    this.state.rid = this.getRowId(row);
+    this.state.securityUsername = String(row.username ?? '');
+    this.state.tokenVersionDialogVisible = true;
   }
 
   private openSecurityDialog(mode: string, row: Record<string, unknown>): void {
@@ -614,7 +634,7 @@ class AccountListPage extends TenantSupportListPage {
 
 export default defineComponent({
   name: 'AccountListPage',
-  components: { AccountFormPage, AccountDetailPage, AccountRolesDialog, AccountGroupsDialog, AccountEffectivePermissionsDialog, PermissionExplainDialog, DataScopeExplainDialog, AccountSecurityDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus, ArrowDown },
+  components: { AccountFormPage, AccountDetailPage, AccountRolesDialog, AccountGroupsDialog, AccountEffectivePermissionsDialog, PermissionExplainDialog, DataScopeExplainDialog, AccountSecurityDialog, AccountTokenVersionDialog, ListPageLayout, Edit, Delete, Tickets, Search, RefreshLeft, Plus, ArrowDown },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();

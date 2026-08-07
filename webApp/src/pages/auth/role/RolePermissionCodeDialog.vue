@@ -12,6 +12,7 @@
  * the wrong shape for the overwhelming majority of nodes that are a plain ALLOW.
  *
  * @author K
+ * @author AI: Codex
  * @author AI: Claude
  * @since 1.0.0
  -->
@@ -45,12 +46,7 @@
         </el-select>
       </el-form-item>
       <el-form-item :label="t('rolePermissionCode.labels.condition')">
-        <el-input
-          v-model="draft.condition"
-          :placeholder="t('rolePermissionCode.placeholders.condition')"
-          clearable
-          style="width: 220px"
-        />
+        <permission-condition-editor v-model="draft.condition" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" :loading="saving" :disabled="!draft.permissionCode" @click="save">
@@ -97,6 +93,7 @@
 import { defineComponent, ref, reactive, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
+import PermissionConditionEditor from '../../../components/auth/PermissionConditionEditor.vue';
 import '../../../styles/add-edit-dialog-common.css';
 import {
   backendRequest,
@@ -115,6 +112,7 @@ interface PermissionBinding {
 
 export default defineComponent({
   name: 'RolePermissionCodeDialog',
+  components: { PermissionConditionEditor },
   props: {
     modelValue: { type: Boolean, required: true },
     rid: { type: String, required: true },

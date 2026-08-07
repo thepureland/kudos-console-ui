@@ -17,6 +17,7 @@
  * in the console can answer.
  *
  * @author K
+ * @author AI: Codex
  * @author AI: Claude
  * @since 1.0.0
  -->
@@ -101,72 +102,14 @@
       </template>
     </el-table>
 
-    <!-- Share editor -->
-    <el-dialog
+    <instance-grant-dialog
+      v-if="shareVisible"
       v-model="shareVisible"
-      :title="t('instanceGrant.share.title')"
-      width="620px"
-      center
-      class="add-edit-dialog"
-      align-center
-      :append-to-body="false"
-      :close-on-click-modal="false"
-    >
-      <el-form label-width="120px" label-position="right" class="add-edit-dialog-form">
-        <el-form-item :label="t('instanceGrant.labels.principal')" class="is-required">
-          <el-select
-            v-model="draft.principalId"
-            filterable
-            remote
-            clearable
-            :remote-method="searchUsers"
-            :loading="userLoading"
-            :placeholder="t('instanceGrant.placeholders.principal')"
-            class="ig-full"
-          >
-            <el-option v-for="u in userCandidates" :key="u.id" :value="u.id" :label="u.label" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('instanceGrant.labels.tenantId')" class="is-required">
-          <el-input v-model="draft.tenantId" :placeholder="t('instanceGrant.placeholders.tenantId')" clearable />
-        </el-form-item>
-        <el-form-item :label="t('instanceGrant.labels.resourceType')" class="is-required">
-          <el-input v-model="draft.resourceType" :placeholder="t('instanceGrant.placeholders.resourceType')" clearable />
-        </el-form-item>
-        <el-form-item :label="t('instanceGrant.labels.instanceId')" class="is-required">
-          <el-input v-model="draft.instanceId" :placeholder="t('instanceGrant.placeholders.instanceId')" clearable />
-        </el-form-item>
-        <el-form-item :label="t('instanceGrant.labels.action')" class="is-required">
-          <el-input v-model="draft.action" :placeholder="t('instanceGrant.placeholders.action')" clearable />
-          <span class="ig-hint">{{ t('instanceGrant.hints.action') }}</span>
-        </el-form-item>
-        <el-form-item :label="t('instanceGrant.labels.effect')">
-          <el-select v-model="draft.effect" style="width: 120px">
-            <el-option value="ALLOW" label="ALLOW" />
-            <el-option value="DENY" label="DENY" />
-          </el-select>
-          <span class="ig-hint">{{ t('instanceGrant.hints.effect') }}</span>
-        </el-form-item>
-        <el-form-item :label="t('instanceGrant.labels.window')">
-          <el-date-picker
-            v-model="draft.window"
-            type="datetimerange"
-            :start-placeholder="t('instanceGrant.placeholders.startTime')"
-            :end-placeholder="t('instanceGrant.placeholders.endTime')"
-            value-format="YYYY-MM-DDTHH:mm:ss"
-            class="ig-full"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="add-edit-dialog-footer">
-          <el-button @click="shareVisible = false">{{ t('instanceGrant.actions.cancel') }}</el-button>
-          <el-button type="primary" :loading="sharing" :disabled="!canShare" @click="submitShare">
-            {{ t('instanceGrant.actions.confirm') }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
+      :principal-id="shareDefaults.principalId"
+      :resource-type="shareDefaults.resourceType"
+      :instance-id="shareDefaults.instanceId"
+      @shared="onShared"
+    />
   </div>
 </template>
 
@@ -174,7 +117,7 @@
 import { defineComponent, ref, reactive, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
-import '../../../styles/add-edit-dialog-common.css';
+import InstanceGrantDialog from '../../../components/auth/InstanceGrantDialog.vue';
 import {
   backendRequest,
   getApiResponseData,
@@ -204,10 +147,10 @@ interface UserOption {
 
 export default defineComponent({
   name: 'InstanceGrantPage',
+  components: { InstanceGrantDialog },
   setup() {
     const { t } = useI18n();
     const loading = ref(false);
-    const sharing = ref(false);
     const userLoading = ref(false);
     const shareVisible = ref(false);
     // By-principal is the default because it is the direction no other console screen can answer.
@@ -215,24 +158,12 @@ export default defineComponent({
     const rows = ref<InstanceGrantRow[]>([]);
     const userCandidates = ref<UserOption[]>([]);
     const query = reactive({ principalId: '', resourceType: '', instanceId: '' });
-    const draft = reactive({
-      principalId: '',
-      tenantId: '',
-      resourceType: '',
-      instanceId: '',
-      action: '',
-      effect: 'ALLOW',
-      window: null as string[] | null,
-    });
+    const shareDefaults = reactive({ principalId: '', resourceType: '', instanceId: '' });
 
     const canQuery = computed(() =>
       direction.value === 'principal'
         ? Boolean(query.principalId)
         : Boolean(query.resourceType && query.instanceId),
-    );
-
-    const canShare = computed(() =>
-      Boolean(draft.principalId && draft.tenantId && draft.resourceType && draft.instanceId && draft.action),
     );
 
     // An empty table says opposite things before and after a query; saying which avoids reading a
@@ -293,42 +224,14 @@ export default defineComponent({
     function openShareDialog(): void {
       // Carry over whatever the operator has already typed — they are usually sharing the very
       // thing they were just looking at.
-      draft.principalId = direction.value === 'principal' ? query.principalId : '';
-      draft.resourceType = query.resourceType;
-      draft.instanceId = direction.value === 'instance' ? query.instanceId : '';
-      draft.action = '';
-      draft.effect = 'ALLOW';
-      draft.window = null;
+      shareDefaults.principalId = direction.value === 'principal' ? query.principalId : '';
+      shareDefaults.resourceType = query.resourceType;
+      shareDefaults.instanceId = direction.value === 'instance' ? query.instanceId : '';
       shareVisible.value = true;
     }
 
-    async function submitShare(): Promise<void> {
-      sharing.value = true;
-      try {
-        const result = await backendRequest({
-          url: 'auth/instanceGrant/share',
-          method: 'post',
-          data: {
-            principalId: draft.principalId,
-            tenantId: draft.tenantId.trim(),
-            resourceType: draft.resourceType.trim(),
-            instanceId: draft.instanceId.trim(),
-            action: draft.action.trim(),
-            effect: draft.effect,
-            startTime: draft.window?.[0] ?? null,
-            endTime: draft.window?.[1] ?? null,
-          },
-        });
-        if (isApiSuccessResponse(result)) {
-          ElMessage.success(t('instanceGrant.messages.shared'));
-          shareVisible.value = false;
-          await load();
-        } else {
-          ElMessage.error(resolveApiResponseMessage(result, t('instanceGrant.messages.shareFailed')));
-        }
-      } finally {
-        sharing.value = false;
-      }
+    async function onShared(): Promise<void> {
+      await load();
     }
 
     async function unshare(row: InstanceGrantRow): Promise<void> {
@@ -369,22 +272,20 @@ export default defineComponent({
     return {
       t,
       loading,
-      sharing,
       userLoading,
       shareVisible,
       direction,
       rows,
       userCandidates,
       query,
-      draft,
+      shareDefaults,
       canQuery,
-      canShare,
       emptyDescription,
       onDirectionChange,
       load,
       searchUsers,
       openShareDialog,
-      submitShare,
+      onShared,
       unshare,
       formatWindow,
     };
@@ -413,13 +314,4 @@ export default defineComponent({
   flex-wrap: wrap;
 }
 
-.ig-full {
-  width: 100%;
-}
-
-.ig-hint {
-  margin-left: 10px;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-}
 </style>

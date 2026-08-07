@@ -7,7 +7,8 @@
  *
  * Per-row "view roles" opens ResourceRoleListDialog (read-only list of the granting roles).
  *
- * @author: K
+ * @author K
+ * @author AI: Codex
  * @author AI: Claude
  * @since 1.0.0
  -->

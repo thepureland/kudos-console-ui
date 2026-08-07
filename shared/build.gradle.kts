@@ -51,6 +51,13 @@ kotlin {
     }
 }
 
+/**
+ * Generates a Kotlin lookup table from JSON mock resources.
+ *
+ * @author K
+ * @author AI: Codex
+ * @since 1.0.0
+ */
 abstract class GenerateMockData : DefaultTask() {
     @get:InputDirectory
     abstract val mockDir: DirectoryProperty
@@ -87,6 +94,7 @@ abstract class GenerateMockData : DefaultTask() {
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\$", "\\$")
+                .replace("\r", "")
                 .replace("\n", "\\n")
             listOf(
                 "\"/api/$noExt\" to \"$escaped\"",

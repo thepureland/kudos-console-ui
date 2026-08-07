@@ -80,20 +80,56 @@
     ]
   },
   {
-    "path": "/rbac",
-    "name": "menu.rbac",
+    "path": "/auth",
+    "name": "menu.auth",
     "icon": "Lock",
     "children": [
       {
-        "path": "/rbac/role",
-        "name": "menu.rbacRole",
+        "path": "/auth/role",
+        "name": "menu.authRole",
         "icon": "Key",
         "children": null
       },
       {
-        "path": "/rbac/group",
-        "name": "menu.rbacGroup",
+        "path": "/auth/group",
+        "name": "menu.authGroup",
         "icon": "User",
+        "children": null
+      },
+      {
+        "path": "/auth/roleexclusion",
+        "name": "menu.authRoleExclusion",
+        "icon": "CircleClose",
+        "children": null
+      },
+      {
+        "path": "/auth/menupermission",
+        "name": "menu.authMenuPermission",
+        "icon": "Menu",
+        "children": null
+      },
+      {
+        "path": "/auth/resourcepermission",
+        "name": "menu.authResourcePermission",
+        "icon": "List",
+        "children": null
+      },
+      {
+        "path": "/auth/grantrequest",
+        "name": "menu.authGrantRequest",
+        "icon": "DocumentChecked",
+        "children": null
+      },
+      {
+        "path": "/auth/instancegrant",
+        "name": "menu.authInstanceGrant",
+        "icon": "Share",
+        "children": null
+      },
+      {
+        "path": "/auth/rowscope",
+        "name": "menu.authRowScope",
+        "icon": "Filter",
         "children": null
       }
     ]
