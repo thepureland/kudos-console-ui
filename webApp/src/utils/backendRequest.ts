@@ -302,6 +302,38 @@ export function getApiResponseData<T = unknown>(result: unknown): T | null {
   return (body ?? null) as T | null
 }
 
+/**
+ * Reduce a response to its business payload, throwing when the envelope reports failure.
+ *
+ * Callers that consume a payload directly — rather than inspecting `success` themselves the way the list/form
+ * pages do — need both halves of the contract in one step:
+ *
+ * - **Unwrapping.** The backend wraps every controller return value in an `ApiResponse`, so the payload lives
+ *   under `data`. Endpoints that are still served by the mock backend return bare fixtures instead, and those
+ *   must keep working untouched; `getApiResponseData` passes a non-envelope body through unchanged.
+ * - **Failure detection.** A declined business rule arrives as **HTTP 200 with `success: false`** (that is what
+ *   a wrong password is). Unwrapping alone would hand such a response back as `data: null`, and the caller
+ *   would report whatever "the payload is empty" means in its own terms — describing the symptom while hiding
+ *   the cause the backend already stated.
+ *
+ * The failure message goes through {@link resolveApiFailureMessage}, so an i18n key like
+ * `sys.error-msg.default.4002` reaches the user translated rather than raw.
+ *
+ * @param result raw parsed response body
+ * @param fallbackMessage used when the envelope reports failure without a usable message
+ * @returns the business payload, or null when the response carries none
+ * @throws Error when the envelope explicitly reports failure
+ */
+export async function resolveApiPayload<T = unknown>(result: unknown, fallbackMessage: string): Promise<T | null> {
+  const body = unwrapApiResult(result)
+  // `isApiResponse` first: for a bare payload `isApiSuccessResponse` is also false, so testing success alone
+  // would reject exactly the mock-backed responses this needs to leave alone.
+  if (isApiResponse(body) && !isApiSuccessResponse(body)) {
+    throw new Error(await resolveApiFailureMessage(body) ?? fallbackMessage)
+  }
+  return getApiResponseData<T>(body)
+}
+
 export async function backendRequest(options: BackendRequestOptions): Promise<any> {
   const t0 = LOG_SLOW_REQUESTS ? now() : 0;
   const t1 = LOG_SLOW_REQUESTS ? now() : 0;
