@@ -10,15 +10,15 @@
     "start:sys": "vite --mode sys"
   },
   "dependencies": {
-    "element-plus": "^2.13.2",
-    "vue": "^3.5.28",
-    "vue-i18n": "^9.14.5",
-    "vue-router": "^4.3.2",
+    "element-plus": "^2.14.6",
+    "vue": "^3.5.43",
+    "vue-i18n": "^11.4.12",
+    "vue-router": "^5.3.1",
     "vuex": "^4.1.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.3",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.6"
+    "@vitejs/plugin-vue": "^6.0.9",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
   }
 }

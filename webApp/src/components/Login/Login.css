@@ -40,7 +40,7 @@ body {
   backdrop-filter: blur(4px);
 }
 
-.login-card :deep(.el-card__header) {
+.login-card .el-card__header {
   padding: 28px 24px 16px;
   border-bottom: none;
 }
@@ -66,11 +66,11 @@ body {
   padding: 8px 0 0;
 }
 
-.login-form :deep(.el-form-item) {
+.login-form .el-form-item {
   margin-bottom: 20px;
 }
 
-.login-form :deep(.el-form-item__label) {
+.login-form .el-form-item__label {
   font-weight: 500;
   color: #303133;
 }

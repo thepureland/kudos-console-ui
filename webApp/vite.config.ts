@@ -67,9 +67,6 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    optimizeDeps: {
-      esbuildOptions: { sourcemap: false },
-    },
     server: {
       port: 8888,
       host: true,
