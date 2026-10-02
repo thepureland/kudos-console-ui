@@ -27,6 +27,9 @@ export class MockBackend {
 
   async dispatch(url: URL, request: MockRequest): Promise<MockResponse> {
     const route = normalizeRoute(url.pathname);
+    if (route === 'public/auth/sessions/current' && request.method === 'DELETE') {
+      return { status: 200, body: { success: true, code: 200, data: true } };
+    }
     if ((route === 'me' || route === 'menus') && !readAuthorization(request.headers)) {
       return { status: 401, body: {} };
     }

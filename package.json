@@ -9,6 +9,7 @@
     "webApp"
   ],
   "scripts": {
+    "test:security": "node --experimental-strip-types --test webApp/test/*.test.mjs",
     "build": "cd webApp && npm run build",
     "build:sys": "cd webApp && npm run build:sys",
     "start": "cd webApp && npm run start",

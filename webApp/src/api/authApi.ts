@@ -146,8 +146,16 @@ export class AuthApi {
     return menus ?? [];
   }
 
-  logout(): void {
-    TokenStorage.clear();
+  async logout(): Promise<void> {
+    try {
+      await requestAuthPayload<boolean>(
+        '/api/public/auth/sessions/current',
+        { method: 'DELETE' },
+        'Failed to revoke the current authentication session',
+      );
+    } finally {
+      TokenStorage.clear();
+    }
   }
 
   hasToken(): boolean {

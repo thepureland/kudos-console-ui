@@ -3,6 +3,7 @@ import zhCN from '../locales/zh-CN';
 import zhTW from '../locales/zh-TW';
 import enUS from '../locales/en-US';
 import { backendRequest } from '../utils/backendRequest';
+import { flatMessagesToNested, isSafeMessagePath, messageDictionary } from './safeMessages';
 
 export type LocaleId = 'zh-CN' | 'zh-TW' | 'en-US';
 
@@ -114,18 +115,7 @@ export class I18nService {
 
   /** Convert flat keys (e.g. "columns.name") to a nested object. */
   private flatToNested(flat: Record<string, string>): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(flat)) {
-      const parts = key.split('.');
-      let cur: Record<string, unknown> = result;
-      for (let i = 0; i < parts.length - 1; i++) {
-        const p = parts[i];
-        if (!(p in cur) || typeof cur[p] !== 'object') cur[p] = {};
-        cur = cur[p] as Record<string, unknown>;
-      }
-      cur[parts[parts.length - 1]] = value;
-    }
-    return result;
+    return flatMessagesToNested(flat);
   }
 
   /**
@@ -134,11 +124,12 @@ export class I18nService {
    * - `dict-item`: the namespace (dict type code) is merged at the root level so t('cache_strategy.SINGLE_LOCAL') and the like use the backend translation instead of the frontend locale.
    */
   private mergeBatchResponse(data: Record<string, Record<string, Record<string, string>>>): Record<string, unknown> {
-    const merged: Record<string, unknown> = {};
+    const merged = messageDictionary();
     for (const [i18nType, namespaceMap] of Object.entries(data)) {
-      const typeObj: Record<string, unknown> = {};
+      if (!isSafeMessagePath(i18nType) || !namespaceMap || typeof namespaceMap !== 'object') continue;
+      const typeObj = messageDictionary();
       for (const [namespace, keyValueMap] of Object.entries(namespaceMap)) {
-        if (keyValueMap && typeof keyValueMap === 'object') {
+        if (isSafeMessagePath(namespace) && keyValueMap && typeof keyValueMap === 'object') {
           const nested = this.flatToNested(keyValueMap);
           if (Object.keys(nested).length > 0) {
             typeObj[namespace] = nested;
@@ -161,8 +152,8 @@ export class I18nService {
     atomicServiceCode: string
   ): Record<string, unknown> {
     const atomic = String(atomicServiceCode ?? '').trim();
-    if (atomic === '') return messages;
-    const aliasSource: Record<string, unknown> = {};
+    if (atomic === '' || !isSafeMessagePath(atomic)) return messages;
+    const aliasSource = messageDictionary();
     for (const [key, value] of Object.entries(messages)) {
       if (key === 'dict-item') continue;
       if (value != null && typeof value === 'object' && !Array.isArray(value)) {
@@ -267,7 +258,8 @@ export class I18nService {
     const byAtomic = new Map<string, Record<string, string[]>>();
     for (const c of configs) {
       const atomic = c.atomicServiceCode ?? '';
-      const map = byAtomic.get(atomic) ?? {};
+      if (!isSafeMessagePath(c.i18nTypeDictCode) || (atomic !== '' && !isSafeMessagePath(atomic))) continue;
+      const map = byAtomic.get(atomic) ?? Object.create(null) as Record<string, string[]>;
       const existing = map[c.i18nTypeDictCode] ?? [];
       map[c.i18nTypeDictCode] = [...new Set([...existing, ...c.namespaces])];
       byAtomic.set(atomic, map);

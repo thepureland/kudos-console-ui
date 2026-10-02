@@ -11,6 +11,7 @@ export default {
     language: '語言',
     logoutConfirm: '確認登出',
     logoutConfirmMessage: '確定要登出嗎？',
+    logoutServerUnavailable: '已清除本機登入資訊，但未能撤銷服務端工作階段。請在服務恢復後重試。',
     confirmOk: '確定',
     cancel: '取消',
   },

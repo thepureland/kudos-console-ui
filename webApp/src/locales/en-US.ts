@@ -11,6 +11,7 @@ export default {
     language: 'Language',
     logoutConfirm: 'Confirm Logout',
     logoutConfirmMessage: 'Are you sure you want to log out?',
+    logoutServerUnavailable: 'Local sign-out completed. The server session could not be revoked; retry when the service is available.',
     confirmOk: 'OK',
     cancel: 'Cancel',
   },

@@ -162,7 +162,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
-import { ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Bell, CaretBottom, FullScreen } from '@element-plus/icons-vue';
 import { authApi } from '../../api/authApi';
 import { resolvePath } from '../../config/menuPathToComponent';
@@ -295,12 +295,17 @@ async function handleCommand(command: string) {
           type: 'warning',
         }
       );
-      authApi.logout();
+    } catch {
+      return;
+    }
+    try {
+      await authApi.logout();
+    } catch {
+      ElMessage.warning(t('header.logoutServerUnavailable'));
+    } finally {
       store.commit('setAuthenticated', false);
       localStorage.removeItem('current_username');
       router.push('/login');
-    } catch {
-      // User cancelled; do not log out
     }
   } else if (command === 'user') {
     store.commit('setCurrentMenuPath', resolvePath('/user/account'));

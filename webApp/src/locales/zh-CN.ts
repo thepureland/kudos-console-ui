@@ -11,6 +11,7 @@ export default {
     language: '语言',
     logoutConfirm: '确认退出',
     logoutConfirmMessage: '确定要退出登录吗？',
+    logoutServerUnavailable: '已清除本机登录信息，但未能撤销服务端会话。请在服务恢复后重试。',
     confirmOk: '确定',
     cancel: '取消',
   },
