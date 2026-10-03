@@ -9,6 +9,10 @@
 - 服务端通信：浏览器原生 `fetch`，统一封装在 `webApp/src/api/` 与 `webApp/src/utils/backendRequest.ts`。
 - 工程构建：npm + Vite，不需要 JDK、Gradle 或 Kotlin 工具链。
 
+## 设计文档
+
+- [组织共享账号与租户权限控制台设计](webApp/docs/ORGANIZATION_TENANT_PERMISSION_DESIGN.md)：范围切换（含组织范围）、成员默认角色与各 tenant 角色覆盖、tenant 开放、组织管理员与管理角色，以及对应接口。实施中。
+
 ## 开发期无后端支持
 在没有真实服务端的情况下，项目也要能完整跑通，因此开发期会 mock 服务端数据。
 

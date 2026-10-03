@@ -51,8 +51,12 @@ const INITIAL_TABLES: Record<string, Row[]> = {
     row('domain-2', 'portal.localhost', '门户域名', { domain: 'portal.localhost', subSystemCode: 'portal', tenantId: 'tenant-2', tenantName: '华东租户' }),
   ],
   'sys/tenant': [
-    row('tenant-1', 'demo', '示例租户', { subSystemCode: 'console', timezone: 'Asia/Taipei', defaultLocale: 'zh-CN' }),
-    row('tenant-2', 'east', '华东租户', { subSystemCode: 'portal', timezone: 'Asia/Shanghai', defaultLocale: 'zh-CN' }),
+    row('tenant-1', 'demo', '示例租户', { subSystemCode: 'console', subSystemCodes: ['console'], timezone: 'Asia/Taipei', defaultLocale: 'zh-CN' }),
+    row('tenant-2', 'east', '华东租户', { subSystemCode: 'portal', subSystemCodes: ['portal'], timezone: 'Asia/Shanghai', defaultLocale: 'zh-CN' }),
+    row('tenant-a', 'org-a', '组织甲 · A 站', { subSystemCode: 'console', subSystemCodes: ['console', 'portal'], timezone: 'Asia/Taipei', defaultLocale: 'zh-TW' }),
+    row('tenant-b', 'org-b', '组织甲 · B 站', { subSystemCode: 'console', subSystemCodes: ['console', 'portal'], timezone: 'Asia/Taipei', defaultLocale: 'zh-TW' }),
+    row('tenant-c', 'org-c', '组织甲 · C 站', { subSystemCode: 'console', subSystemCodes: ['console'], timezone: 'Asia/Taipei', defaultLocale: 'zh-TW' }),
+    row('tenant-d', 'org-d', '组织甲 · D 站', { subSystemCode: 'console', subSystemCodes: ['console'], timezone: 'Asia/Taipei', defaultLocale: 'zh-TW' }),
   ],
   'sys/system': [
     row('system-1', 'console', '管理控制台', { subSystem: true, context: '/console' }),
@@ -76,8 +80,14 @@ const INITIAL_TABLES: Record<string, Row[]> = {
     row('i18n-2', 'common.cancel', '取消', { key: 'common.cancel', value: '取消', locale: 'zh-CN', i18nTypeDictCode: 'UI', namespace: 'common', atomicServiceCode: 'console' }),
   ],
   'user/account': [
-    row('account-1', 'admin', '系统管理员', { username: 'admin', realName: '系统管理员', nickname: '管理员', email: 'admin@example.com', mobile: '13800000001', statusDictCode: 'ACTIVE', userTypeDictCode: 'INTERNAL', orgName: '平台研发部' }),
-    row('account-2', 'auditor', '安全审计员', { username: 'auditor', realName: '安全审计员', nickname: '审计员', email: 'audit@example.com', mobile: '13800000002', statusDictCode: 'ACTIVE', userTypeDictCode: 'INTERNAL', orgName: '安全合规部' }),
+    row('account-1', 'admin', '系统管理员', { username: 'admin', realName: '系统管理员', nickname: '管理员', email: 'admin@example.com', mobile: '13800000001', statusDictCode: 'ACTIVE', userTypeDictCode: 'INTERNAL', orgName: '平台研发部', organizationId: null }),
+    row('account-2', 'auditor', '安全审计员', { username: 'auditor', realName: '安全审计员', nickname: '审计员', email: 'audit@example.com', mobile: '13800000002', statusDictCode: 'ACTIVE', userTypeDictCode: 'INTERNAL', orgName: '安全合规部', organizationId: null }),
+    // Platform accounts above (no organization); members of organization org-1, matching the organization authorization mock.
+    row('user-wang', 'wang', '小王', { username: 'wang', realName: '小王', statusDictCode: 'ACTIVE', userTypeDictCode: 'INTERNAL', orgName: '平台研发部', orgId: 'org-2' }),
+    row('user-lin', 'lin', '小林', { username: 'lin', realName: '小林', statusDictCode: 'ACTIVE', userTypeDictCode: 'INTERNAL', orgName: '平台研发部', orgId: 'org-2' }),
+    row('user-zhang', 'zhang', '张组织管理员', { username: 'zhang', realName: '张组织管理员', statusDictCode: 'ACTIVE', userTypeDictCode: 'INTERNAL', orgName: 'Kudos 集团', orgId: 'org-1' }),
+    row('user-li', 'li', '李权限管理员', { username: 'li', realName: '李权限管理员', statusDictCode: 'ACTIVE', userTypeDictCode: 'INTERNAL', orgName: '安全合规部', orgId: 'org-3' }),
+    row('user-chen', 'chen', '陈站点管理员', { username: 'chen', realName: '陈站点管理员', statusDictCode: 'ACTIVE', userTypeDictCode: 'INTERNAL', orgName: '安全合规部', orgId: 'org-3' }),
   ],
   'user/organization': [
     row('org-1', 'ROOT', 'Kudos 集团', { shortName: '集团', typeDictCode: 'COMPANY', parentId: null, seqNo: 1 }),
@@ -138,6 +148,13 @@ export class MockDatabase {
     Object.entries(INITIAL_TABLES).forEach(([key, value]) => {
       this.tables.set(key, value.map((item) => ({ ...item })));
     });
+    // Organization mode: people, departments, roles and groups belong to org-1. Tenant ownership and
+    // opening are held by the organization mock and merged into tenant rows by MockBackend.
+    for (const root of ['user/account','user/organization','auth/role','auth/group']) {
+      for (const item of this.tables.get(root) ?? []) if (!('organizationId' in item)) item.organizationId='org-1';
+    }
+    for (const item of this.tables.get('user/organization') ?? []) item.nodeKind=item.parentId==null?'ORGANIZATION':'DEPARTMENT';
+    this.tables.set('user/org', this.tables.get('user/organization') ?? []);
   }
 
   dispatch(url: URL, request: MockRequest): MockResponse | null {
@@ -158,7 +175,7 @@ export class MockDatabase {
       const filtered = filterRows(rows, params);
       return ok(page(filtered, params));
     }
-    if (/^(searchTree|loadTree|lazyLoadTree|loadTreeNodes|loadDirectChildrenForTree)$/i.test(operation)) {
+    if (/^(getOrgTree|searchTree|loadTree|lazyLoadTree|loadTreeNodes|loadDirectChildrenForTree)$/i.test(operation)) {
       return ok(buildTree(filterRows(rows, params)));
     }
     if (/^(get|getDetail|getEdit|detail|findById)$/i.test(operation)) {

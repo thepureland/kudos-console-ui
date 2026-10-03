@@ -25,17 +25,8 @@
         <el-form-item :label="t('accountAddEdit.labels.username')" prop="username" class="is-required">
           <el-input v-model="formModel.username" :placeholder="t('accountAddEdit.placeholders.username')" clearable size="default" />
         </el-form-item>
-        <el-form-item :label="t('accountAddEdit.labels.subSysOrTenant')" prop="subSysOrTenant" class="is-required">
-          <el-cascader
-            ref="subSysOrTenantCascaderRef"
-            v-model="formModel.subSysOrTenant"
-            :options="subSysOrTenants || []"
-            :props="subSysOrTenantCascaderProps"
-            :placeholder="t('accountAddEdit.placeholders.subSysOrTenant')"
-            clearable
-            class="form-select-full"
-            @change="(val) => onSubSysOrTenantChange(val)"
-          />
+        <el-form-item :label="t('organizationConsole.organization')" prop="organizationId" class="is-required">
+          <organization-owner-field v-model="formModel.organizationId" :disabled="!!props.rid" @update:model-value="() => onSubSysOrTenantChange()" />
         </el-form-item>
         <el-form-item :label="t('accountAddEdit.labels.parent')" prop="parent" class="is-required">
           <el-cascader
@@ -89,6 +80,7 @@ class AccountFormPage extends OrgSupportAddEditPage {
   ) {
     super(props, context, parentCascader);
     this.loadDicts(['user_type'], 'user');
+    void this.loadOrganizationTree();
   }
 
   /** Tenant cascade behaves like the list page: non-strict mode, auto-collapse after picking a leaf node */
@@ -151,15 +143,12 @@ class AccountFormPage extends OrgSupportAddEditPage {
 
   /** Load the organization tree based on the currently selected subsystem/tenant (matches the list page's loadTree). Optionally pass the selection so we don't rely on formModel being updated yet at change time. */
   async loadOrganizationTree(selectionOverride?: string[]): Promise<void> {
-    const arr = (selectionOverride ?? this.state.formModel?.subSysOrTenant) as string[] | undefined;
-    if (!arr?.length) {
+    if (!this.state.formModel.organizationId) {
       this.state.organizationTree = [];
       this.state.formModel.parent = [];
       return;
     }
-    const subSystemCode = arr[0];
-    const tenantId = arr.length > 1 ? arr[1] : null;
-    const params = { subSystemCode, tenantId } as { subSystemCode: string; tenantId: string | null };
+    const params = { organizationId: this.state.formModel.organizationId };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
     const payload = getApiResponseData<Record<string, unknown>[]>(result);
     if (Array.isArray(payload)) {
@@ -177,7 +166,7 @@ class AccountFormPage extends OrgSupportAddEditPage {
    * parentIds after the tree is ready) and silently clears the tree on API failure.
    */
   async loadOrganizationTreeForEdit(subSystemCode: string, tenantId: string | null): Promise<void> {
-    const params = { subSystemCode, tenantId };
+    const params = { organizationId: this.state.formModel.organizationId };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
     const payload = getApiResponseData<Record<string, unknown>[]>(result);
     if (Array.isArray(payload)) {
@@ -190,17 +179,17 @@ class AccountFormPage extends OrgSupportAddEditPage {
   protected fillForm(rowObject: Record<string, unknown>): void {
     super.fillForm(rowObject);
     let parentIds = (rowObject.parentIds as string[] | undefined) ?? [];
-    if (parentIds.length === 0 && rowObject.organizationId) {
-      parentIds = [String(rowObject.organizationId)];
+    if (parentIds.length === 0 && rowObject.orgId) {
+      parentIds = [String(rowObject.orgId)];
     }
     const subSys = rowObject.subSystemCode as string | undefined;
     const tenantId = (rowObject.tenantId as string | undefined) ?? null;
     this.state.formModel.parent = parentIds;
-    if (subSys) {
+    if (this.state.formModel.organizationId) {
       // Load the org tree first, then re-apply parentIds in a microtask flush so the
       // cascader options are fully rendered before the selection is set (avoids a race
       // where the cascader tries to match ids against an empty option list).
-      this.loadOrganizationTreeForEdit(subSys, tenantId ?? null).then(() => {
+      this.loadOrganizationTreeForEdit(subSys ?? '', tenantId ?? null).then(() => {
         setTimeout(() => {
           this.state.formModel.parent = [...parentIds];
         }, 0);
@@ -218,8 +207,12 @@ class AccountFormPage extends OrgSupportAddEditPage {
     }
     const parent = fm.parent;
     if (parent?.length) {
-      params.parentId = parent[parent.length - 1];
+      params.orgId = parent[parent.length - 1];
     }
+    params.organizationId = this.state.formModel.organizationId;
+    delete params.tenantId;
+    delete params.subSystemCode;
+    delete params.parentId;
     return params;
   }
 }
@@ -265,4 +258,3 @@ export default defineComponent({
   },
 });
 </script>
-

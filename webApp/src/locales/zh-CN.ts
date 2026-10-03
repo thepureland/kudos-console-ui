@@ -1,4 +1,6 @@
+import { zhCN as organizationConsole } from './organizationConsole';
 export default {
+  organizationConsole,
   header: {
     appName: '控制中心',
     fullscreen: '全屏',

@@ -21,6 +21,7 @@
       class="add-edit-dialog-form"
     >
       <section class="form-section">
+        <el-form-item :label="t('organizationConsole.organization')" prop="organizationId" required><organization-owner-field v-model="formModel.organizationId" :disabled="!!props.rid" /></el-form-item>
         <div class="form-section__title">{{ t('userGroupAddEdit.sections.basicInfo') }}</div>
         <el-form-item :label="t('userGroupAddEdit.labels.groupCode')" prop="groupCode" class="is-required">
           <el-row :gutter="12" class="form-item-row">
@@ -73,6 +74,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { getRequestContext } from '../../../api/requestContext';
 import '../../../styles/add-edit-dialog-common.css';
 import { BaseAddEditPage } from '../../../components/pages/core';
 import type { PageContext, PageProps } from '../../../components/pages/core';
@@ -80,6 +82,7 @@ import { useAddEditDialogSetupWithVisible, commonAddEditDialogEmits, commonAddEd
 import type { AddEditDialogContext, AddEditDialogProps } from '../../../components/pages/form';
 
 interface FormModel {
+  organizationId: string | null;
   groupCode: string | null;
   groupName: string | null;
   remark: string | null;
@@ -89,6 +92,7 @@ class UserGroupFormPage extends BaseAddEditPage {
   protected initState(): Record<string, unknown> {
     return {
       formModel: {
+        organizationId: getRequestContext()?.organizationId ?? null,
         groupCode: null,
         groupName: null,
         remark: null,
@@ -124,4 +128,3 @@ export default defineComponent({
   },
 });
 </script>
-

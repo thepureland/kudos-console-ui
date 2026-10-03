@@ -33,6 +33,7 @@
     >
       <section class="form-section">
         <div class="form-section__title">{{ t('roleAddEdit.sections.basicInfo') }}</div>
+        <el-form-item :label="t('organizationConsole.organization')" prop="organizationId" required><organization-owner-field v-model="formModel.organizationId" :disabled="!!props.rid" /></el-form-item>
         <el-form-item :label="t('roleAddEdit.labels.roleCode')" prop="roleCode" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
@@ -57,7 +58,7 @@
             </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item :label="t('roleAddEdit.labels.subSysOrTenant')" prop="subSysOrTenant" class="is-required">
+        <el-form-item :label="t('organizationConsole.system')" prop="subSysOrTenant" class="is-required">
           <el-row :gutter="12" class="form-item-row">
             <el-col :span="24">
               <el-cascader
@@ -292,4 +293,3 @@ export default defineComponent({
   width: 100%;
 }
 </style>
-

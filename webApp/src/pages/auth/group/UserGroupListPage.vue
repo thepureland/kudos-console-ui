@@ -8,6 +8,7 @@
  -->
 <template>
   <div class="user-group-list-page list-page-common">
+    <organization-scope-banner />
     <list-page-layout
       :table-wrap-ref="listLayoutRefs.tableWrapRef"
       :list-page="listPage"

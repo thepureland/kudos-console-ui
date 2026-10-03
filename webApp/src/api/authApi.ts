@@ -91,6 +91,8 @@ export class LoginRequest {
 
 export type User = {
   id: string;
+  organizationId?: string;
+  tenantId?: string;
   username: string;
   displayName: string;
   roles: string[];

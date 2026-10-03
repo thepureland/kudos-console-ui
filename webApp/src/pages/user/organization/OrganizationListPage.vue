@@ -7,6 +7,7 @@
  -->
 <template>
   <div class="organization-list-page list-page-common">
+    <organization-scope-banner />
     <list-page-layout
       :table-wrap-ref="listLayoutRefs.tableWrapRef"
       :list-page="listPage"
@@ -18,7 +19,7 @@
       @table-wrap-mounted="onTableWrapMounted"
     >
       <template #toolbar>
-        <div class="toolbar-cell toolbar-cascader">
+        <div v-if="false" class="toolbar-cell toolbar-cascader">
           <el-cascader
             v-model="searchParams.subSysOrTenant"
             :options="subSysOrTenants || []"

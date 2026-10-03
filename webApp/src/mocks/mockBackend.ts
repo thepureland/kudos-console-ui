@@ -1,5 +1,6 @@
 import { MockDatabase } from './mockDatabase';
 import type { MockRequest, MockResponse } from './mockDatabase';
+import { OrganizationAuthorizationMock } from './organizationAuthorizationMock';
 
 export type { MockResponse } from './mockDatabase';
 
@@ -24,9 +25,12 @@ Object.entries(fixtureModules).forEach(([file, load]) => {
  */
 export class MockBackend {
   private readonly database = new MockDatabase();
+  private readonly organizations = new OrganizationAuthorizationMock();
 
   async dispatch(url: URL, request: MockRequest): Promise<MockResponse> {
     const route = normalizeRoute(url.pathname);
+    const organizationResponse = this.organizations.dispatch(url, request);
+    if (organizationResponse) return organizationResponse;
     if (route === 'public/auth/sessions/current' && request.method === 'DELETE') {
       return { status: 200, body: { success: true, code: 200, data: true } };
     }
@@ -46,7 +50,7 @@ export class MockBackend {
 
     if (!/^(auth\/login|me$|menus$|version$)/.test(route)) {
       const databaseResponse = this.database.dispatch(url, request);
-      if (databaseResponse) return databaseResponse;
+      if (databaseResponse) return route.startsWith('sys/tenant/') ? this.decorateTenants(databaseResponse) : databaseResponse;
     }
 
     const loadFixture = fixtures.get(route);
@@ -74,6 +78,21 @@ export class MockBackend {
       return { status: 200, body: { success: true, code: 200, data: true } };
     }
     return { status: 404, body: {} };
+  }
+
+  /** Tenant rows carry the organization ownership and opening state the organization mock holds. */
+  private decorateTenants(response: MockResponse): MockResponse {
+    const body = asRecord(response.body);
+    if (!body) return response;
+    const decorate = (value: unknown): unknown => {
+      const row = asRecord(value);
+      return row && 'id' in row ? this.organizations.decorateTenantRow(row) : value;
+    };
+    const data = body.data;
+    const page = asRecord(data);
+    if (Array.isArray(data)) return { ...response, body: { ...body, data: data.map(decorate) } };
+    if (page && Array.isArray(page.data)) return { ...response, body: { ...body, data: { ...page, data: page.data.map(decorate) } } };
+    return { ...response, body: { ...body, data: decorate(data) } };
   }
 }
 

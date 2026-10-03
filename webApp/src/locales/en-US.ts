@@ -1,4 +1,6 @@
+import { en as organizationConsole } from './organizationConsole';
 export default {
+  organizationConsole,
   header: {
     appName: 'Control Center',
     fullscreen: 'Fullscreen',

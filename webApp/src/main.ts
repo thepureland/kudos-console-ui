@@ -12,6 +12,9 @@ import store from './store';
 import { i18n } from './i18n';
 import { backendRequest } from './utils/backendRequest';
 import { installFormErrorTooltip } from './components/pages/form';
+import OrganizationScopeBanner from './components/auth/OrganizationScopeBanner.vue';
+import OrganizationOwnerField from './components/auth/OrganizationOwnerField.vue';
+import OrganizationConfigurationButton from './components/auth/OrganizationConfigurationButton.vue';
 
 // Apply the persisted theme to <html> before mounting to avoid a flash of
 // unstyled/wrong-theme content.  Element Plus dark mode also requires the
@@ -27,6 +30,9 @@ if (themeId.endsWith('-dark')) {
 }
 
 const app = createApp(App);
+app.component('OrganizationScopeBanner', OrganizationScopeBanner);
+app.component('OrganizationOwnerField', OrganizationOwnerField);
+app.component('OrganizationConfigurationButton', OrganizationConfigurationButton);
 app.use(i18n);
 app.use(ElementPlus);
 // Vuex 4's runtime is a Vue plugin; the current dependency's types don't fully match Vue 3.5's Plugin generic, so adapt once here at the entry point.

@@ -9,6 +9,7 @@
  -->
 <template>
   <div class="account-list-page list-page-common">
+    <organization-scope-banner />
     <el-card class="account-list-card">
       <el-row :gutter="6" class="account-list-row">
         <el-col :span="3" class="account-tree-col">
@@ -38,7 +39,7 @@
             @table-wrap-mounted="onTableWrapMounted"
           >
             <template #toolbar>
-              <div class="toolbar-cell toolbar-cascader">
+              <div v-if="false" class="toolbar-cell toolbar-cascader">
                 <el-cascader
                   v-model="searchParams.subSysOrTenant"
                   :options="subSysOrTenants || []"
@@ -288,6 +289,7 @@
                       <el-button size="small" type="primary" @click="openRolesDialog(scope.row)">
                         {{ t('accountList.actions.assignRoles') }}
                       </el-button>
+                      <organization-configuration-button :user-id="String(scope.row.id)" />
                       <el-button size="small" type="primary" @click="openGroupsDialog(scope.row)">
                         {{ t('accountList.actions.assignGroups') }}
                       </el-button>
@@ -587,7 +589,7 @@ class AccountListPage extends TenantSupportListPage {
     if (!params) return null;
     const orgId = (this.state as Record<string, unknown>).selectedOrgId as string | null | undefined;
     if (orgId != null && orgId !== '') {
-      params.organizationId = orgId;
+      params.orgId = orgId;
     }
     return params;
   }

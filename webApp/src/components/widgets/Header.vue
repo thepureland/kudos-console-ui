@@ -34,6 +34,7 @@
       </nav>
     </div>
     <div class="header-right">
+      <organization-context-selector />
       <a
         href="#"
         class="icon-btn"
@@ -165,6 +166,8 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Bell, CaretBottom, FullScreen } from '@element-plus/icons-vue';
 import { authApi } from '../../api/authApi';
+import OrganizationContextSelector from '../auth/OrganizationContextSelector.vue';
+import { clearOrganizationContext } from '../../store/organizationContext';
 import { resolvePath } from '../../config/menuPathToComponent';
 import { REQUIRE_AUTH } from '../../config/auth';
 import { localeOptions, setLocale, type LocaleId } from '../../i18n';
@@ -303,6 +306,7 @@ async function handleCommand(command: string) {
     } catch {
       ElMessage.warning(t('header.logoutServerUnavailable'));
     } finally {
+      clearOrganizationContext();
       store.commit('setAuthenticated', false);
       localStorage.removeItem('current_username');
       router.push('/login');

@@ -2,7 +2,7 @@
   <!-- Home layout: Header + Sidebar + draggable divider + (Tags + main content). content-box's left tracks collapse/sidebarWidth. -->
   <div class="home">
     <v-header />
-    <v-sidebar />
+    <v-sidebar v-if="consoleReady" :key="organizationContext.generation" />
     <!-- Divider between sidebar and content area: the button toggles collapse/expand (< when expanded, > when collapsed); width is only draggable while expanded. -->
     <div
       class="resizer"
@@ -40,12 +40,13 @@
           </div>
         </div>
         <div
+          v-if="consoleReady"
           class="content-inner"
           :class="{ 'content-inner--visible': !contentLoading }"
         >
           <transition name="move" mode="out-in">
             <keep-alive :max="30">
-              <component :is="contentPageComponent" v-bind="contentPageProps" :key="currentMenuPath" />
+              <component :is="contentPageComponent" v-bind="contentPageProps" :key="`${organizationContext.generation}:${currentMenuPath}`" />
             </keep-alive>
           </transition>
         </div>
@@ -59,6 +60,7 @@ import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore } from 'vuex';
 import { getComponentForPath, VALID_MENU_PATHS } from '../config/menuPathToComponent';
+import { organizationContext, isConsoleReady } from '../store/organizationContext';
 import vHeader from '../components/widgets/Header.vue';
 import vSidebar from '../components/widgets/Sidebar.vue';
 import vTags from '../components/widgets/Tags.vue';
@@ -67,6 +69,8 @@ import MenuPageFallback from './MenuPageFallback.vue';
 const store = useStore();
 const route = useRoute();
 const currentMenuPath = computed(() => store.state.currentMenuPath);
+/** Organization mode: TENANT scope with a system, or the ORGANIZATION (management) scope; legacy mode renders as before. */
+const consoleReady = computed(() => isConsoleReady());
 
 /** When the menu path has no mapped page (e.g. a group-only path like /sys/basic), render a placeholder so keep-alive doesn't get an empty child and trigger the transition shapeFlag error. */
 const contentPageResolved = computed(() => {

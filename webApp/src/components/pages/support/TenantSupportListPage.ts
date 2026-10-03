@@ -4,6 +4,7 @@ import { tGlobal } from '../../../i18n';
 import { Pair } from "../../model/Pair"
 import { backendRequest, getApiResponseData } from "../../../utils/backendRequest"
 import type { SysMicroServiceCacheItem } from "../core/BasePage"
+import { getRequestContext } from '../../../api/requestContext';
 
 /**
  * Abstract base class for list pages that support multi-tenant.
@@ -17,6 +18,15 @@ export abstract class TenantSupportListPage extends BaseListPage {
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         this.initTenantVars()
+        if (this.isOrganizationScoped()) {
+            const current = getRequestContext()
+            this.state.searchParams.subSysOrTenant = current?.subSystemCode ? [current.subSystemCode] : []
+            backendRequest({url:'sys/system/getAllActiveSubSystemCodes'}).then(result => {
+                const codes=getApiResponseData<string[]>(result) ?? []
+                this.state.subSysOrTenants = codes.map(code => ({value:code,label:code}))
+            }).catch(() => { this.state.subSysOrTenants=[] })
+            return
+        }
         const firstLevelUrl = this.getFirstLevelApiUrl()
         if (firstLevelUrl != null) {
             this.loadFirstLevel(firstLevelUrl).then(() => {
@@ -30,6 +40,10 @@ export abstract class TenantSupportListPage extends BaseListPage {
     /** Return the URL when the first level uses the subsystem API (e.g. sys/system/getAllActiveSubSystemCodes); return null to use atomic services. Subclasses can override. */
     protected getFirstLevelApiUrl(): string | null {
         return null
+    }
+
+    protected isOrganizationScoped(): boolean {
+        return ['user/account','user/organization','user/org','auth/role','auth/group'].includes(this.getRootActionPath())
     }
 
     /**
@@ -142,6 +156,10 @@ export abstract class TenantSupportListPage extends BaseListPage {
             this.state.tenantId = pair.second
             params.subSystemCode = pair.first
             params.tenantId = pair.second
+            if (this.isOrganizationScoped()) {
+                params.organizationId = getRequestContext()?.organizationId
+                delete params.tenantId
+            }
             return params
         }
     }
@@ -149,7 +167,7 @@ export abstract class TenantSupportListPage extends BaseListPage {
     /** Parse (subSystemCode, tenantId) from searchParams.subSysOrTenant; when required, the second level (tenant) must also be selected */
     protected parseSubSysOrTenant(): Pair | null {
         const subSysOrTenant: string[] | null | undefined = this.state.searchParams.subSysOrTenant
-        if (this.isRequireSubSysOrTenantForSearch() && (subSysOrTenant == null || subSysOrTenant.length < 2)) {
+        if (!this.isOrganizationScoped() && this.isRequireSubSysOrTenantForSearch() && (subSysOrTenant == null || subSysOrTenant.length < 2)) {
             ElMessage.error(tGlobal('listPage.selectSubSysTenantFirst'))
             return null
         }

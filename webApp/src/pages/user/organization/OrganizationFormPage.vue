@@ -28,19 +28,11 @@
         <el-form-item :label="t('organizationAddEdit.labels.abbrName')" prop="abbrName">
           <el-input v-model="formModel.abbrName" :placeholder="t('organizationAddEdit.placeholders.abbrName')" clearable size="default" />
         </el-form-item>
-        <el-form-item :label="t('organizationAddEdit.labels.subSysOrTenant')" prop="subSysOrTenant" class="is-required">
-          <el-cascader
-            ref="subSysOrTenantCascaderRef"
-            v-model="formModel.subSysOrTenant"
-            :options="subSysOrTenants || []"
-            :props="subSysOrTenantCascaderProps"
-            :placeholder="t('organizationAddEdit.placeholders.subSysOrTenant')"
-            clearable
-            class="form-select-full"
-            @change="onSubSysOrTenantChange"
-          />
+        <el-form-item :label="t('organizationConsole.nodeKind')" prop="nodeKind" required>
+          <el-select v-model="formModel.nodeKind" :disabled="!!props.rid"><el-option value="ORGANIZATION" :label="t('organizationConsole.root')" /><el-option value="DEPARTMENT" :label="t('organizationConsole.department')" /></el-select>
         </el-form-item>
-        <el-form-item :label="t('organizationAddEdit.labels.parent')" prop="parent">
+        <el-form-item v-if="formModel.nodeKind === 'DEPARTMENT'" :label="t('organizationConsole.organization')" prop="organizationId" required><organization-owner-field v-model="formModel.organizationId" :disabled="!!props.rid" @update:model-value="() => onSubSysOrTenantChange()" /></el-form-item>
+        <el-form-item v-if="formModel.nodeKind === 'DEPARTMENT'" :label="t('organizationAddEdit.labels.parent')" prop="parent">
           <el-cascader
             ref="parentCascaderRef"
             v-model="formModel.parent"
@@ -96,6 +88,7 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
   ) {
     super(props, context, parentCascader);
     this.loadDicts(['organization_type'], 'user');
+    void this.loadOrganizationTree();
   }
 
   /** Tenant cascade behaves like the list page: non-strict mode */
@@ -121,6 +114,7 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     return {
       formModel: {
         name: null as string | null,
+        nodeKind: 'DEPARTMENT',
         abbrName: null as string | null,
         orgTypeDictCode: null as string | null,
         seqNo: 0 as number,
@@ -159,15 +153,12 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
 
   /** Load the organization tree from the currently selected tenant (matches the list page's loadTree) */
   async loadOrganizationTree(selectionOverride?: string[]): Promise<void> {
-    const arr = (selectionOverride ?? this.state.formModel?.subSysOrTenant) as string[] | undefined;
-    if (!arr?.length) {
+    if (!this.state.formModel.organizationId) {
       this.state.organizationTree = [];
       this.state.formModel.parent = [];
       return;
     }
-    const subSystemCode = arr[0];
-    const tenantId = arr.length > 1 ? arr[1] : null;
-    const params = { subSystemCode, tenantId } as { subSystemCode: string; tenantId: string | null };
+    const params = { organizationId: this.state.formModel.organizationId };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
     const payload = getApiResponseData<Record<string, unknown>[]>(result);
     if (Array.isArray(payload)) {
@@ -181,7 +172,7 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
 
   /** During edit, load the organization tree from the back-filled subSystemCode/tenantId */
   async loadOrganizationTreeForEdit(subSystemCode: string, tenantId: string | null): Promise<void> {
-    const params = { subSystemCode, tenantId };
+    const params = { organizationId: this.state.formModel.organizationId };
     const result = await backendRequest({ url: 'user/organization/loadTree', params });
     const payload = getApiResponseData<Record<string, unknown>[]>(result);
     if (Array.isArray(payload)) {
@@ -200,8 +191,8 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     const subSys = rowObject.subSystemCode as string | undefined;
     const tenantId = (rowObject.tenantId as string | undefined) ?? null;
     this.state.formModel.parent = parentIds;
-    if (subSys) {
-      this.loadOrganizationTreeForEdit(subSys, tenantId ?? null).then(() => {
+    if (this.state.formModel.organizationId) {
+      this.loadOrganizationTreeForEdit(subSys ?? '', tenantId ?? null).then(() => {
         // Defer one tick so the cascader re-renders with the new tree before we set the value
         setTimeout(() => {
           this.state.formModel.parent = [...parentIds];
@@ -222,6 +213,12 @@ class OrganizationFormPage extends OrgSupportAddEditPage {
     if (parent?.length) {
       params.parentId = parent[parent.length - 1];
     }
+    params.organizationId = this.state.formModel.nodeKind === 'ORGANIZATION' ? params.id : this.state.formModel.organizationId;
+    params.parentId = this.state.formModel.nodeKind === 'ORGANIZATION' ? null : params.parentId ?? params.organizationId;
+    params.shortName = params.abbrName;
+    params.sortNum = params.seqNo;
+    delete params.tenantId;
+    delete params.subSystemCode;
     return params;
   }
 }
@@ -268,4 +265,3 @@ export default defineComponent({
   },
 });
 </script>
-

@@ -2,6 +2,7 @@ import { nextTick } from "vue"
 import { BaseAddEditPage } from "../core/BaseAddEditPage"
 import { backendRequest, getApiResponseData } from "../../../utils/backendRequest"
 import type { SysMicroServiceCacheItem } from "../core/BasePage"
+import { getRequestContext } from '../../../api/requestContext';
 
 /**
  * Abstract base class for add/edit pages that support multi-tenant.
@@ -15,6 +16,16 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
     protected constructor(props: Record<string, any>, context: { emit: (event: string, ...args: any[]) => void }) {
         super(props, context)
         this.initVars()
+        if (this.isOrganizationScoped()) {
+            const current = getRequestContext()
+            this.state.formModel.organizationId = current?.organizationId ?? null
+            this.state.formModel.subSysOrTenant = current?.subSystemCode ? [current.subSystemCode] : []
+            backendRequest({url:'sys/system/getAllActiveSubSystemCodes'}).then(result => {
+                const codes=getApiResponseData<string[]>(result) ?? []
+                this.state.subSysOrTenants=codes.map(code => ({value:code,label:code}))
+            }).catch(() => {this.state.subSysOrTenants=[]})
+            return
+        }
         if (this.useListTenantBootstrap()) {
             // Don't write the list's options into state: once the list's loadTenants finishes it will replace the whole subSysOrTenants reference; just skip the request. Subclass templates merge-bind props with state.
         } else {
@@ -40,6 +51,19 @@ export abstract class TenantSupportAddEditPage extends BaseAddEditPage {
             p.listCascaderProps !== undefined &&
             p.listAtomicServiceList !== undefined
         )
+    }
+
+    protected isOrganizationScoped(): boolean {
+        return ['user/account','user/organization','user/org','auth/role'].includes(this.getRootActionPath())
+    }
+
+    protected createSubmitParams(): any {
+        const params = super.createSubmitParams()
+        if (this.isOrganizationScoped()) {
+            params.organizationId = this.state.formModel.organizationId ?? getRequestContext()?.organizationId
+            delete params.tenantId
+        }
+        return params
     }
 
     /** Return the URL when the first level uses the subsystem API (e.g. sys/system/getAllActiveSubSystemCodes); return null to use atomic services instead. Subclasses can override. */

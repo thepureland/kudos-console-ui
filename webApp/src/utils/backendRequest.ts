@@ -1,4 +1,6 @@
 import { requestText } from '../api/httpClient'
+import { getRequestContext, StaleContextError } from '../api/requestContext'
+import { organizationRequest } from '../api/organizationRequests'
 
 export type ApiErrorDetail = {
   code?: string | null
@@ -335,6 +337,8 @@ export async function resolveApiPayload<T = unknown>(result: unknown, fallbackMe
 }
 
 export async function backendRequest(options: BackendRequestOptions): Promise<any> {
+  const adapted = organizationRequest(options.url, options.params, getRequestContext()?.organizationId)
+  options = { ...options, url: adapted.url, params: adapted.params as BackendRequestOptions['params'], ...(adapted.url === 'user/org/getOrgTree' ? { method:'get' } : {}) }
   const t0 = LOG_SLOW_REQUESTS ? now() : 0;
   const t1 = LOG_SLOW_REQUESTS ? now() : 0;
   const method = (options.method ?? "get").toUpperCase();
@@ -348,6 +352,7 @@ export async function backendRequest(options: BackendRequestOptions): Promise<an
     const body = useQuery ? undefined : options.params ?? {};
     raw = await requestText(backendPath(options.url), { method, query, body });
   } catch (error) {
+    if (error instanceof StaleContextError) throw error
     const recovered = extractErrorPayload(error)
     if (recovered !== undefined) {
       raw = recovered

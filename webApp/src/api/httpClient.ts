@@ -1,4 +1,5 @@
 import { dispatchMockRequest, shouldUseMockBackend } from '../mocks/mockBackend';
+import { getRequestContext, getRequestGeneration, assertRequestGeneration } from './requestContext';
 
 const TOKEN_KEY = 'kudos_token';
 
@@ -111,6 +112,7 @@ function extractMessage(data: unknown): string | null {
  * @since 1.0.0
  */
 export async function requestText(path: string, options: HttpRequestOptions = {}): Promise<string> {
+  const requestGeneration = getRequestGeneration();
   const method = String(options.method ?? 'GET').toUpperCase();
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const url = new URL(`${apiBaseUrl()}${normalizedPath}`);
@@ -118,6 +120,8 @@ export async function requestText(path: string, options: HttpRequestOptions = {}
 
   const token = TokenStorage.get();
   const headers: Record<string, string> = { ...options.headers };
+  const context = getRequestContext();
+  if (context?.contextVersion) headers['X-Kudos-Context-Version'] = context.contextVersion;
   if (token) headers.Authorization = `Bearer ${token}`;
   if (options.body !== undefined && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
@@ -138,6 +142,7 @@ export async function requestText(path: string, options: HttpRequestOptions = {}
     text = await response.text();
   }
 
+  assertRequestGeneration(requestGeneration);
   if (options.throwOnHttpError && (status < 200 || status >= 300)) {
     throw new HttpResponseError(status, parseResponseBody(text), `HTTP ${status}`);
   }

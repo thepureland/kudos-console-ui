@@ -276,12 +276,29 @@
               </template>
             </el-table-column>
           </template>
+          <!-- Organization mode: ownership and opening state, present when the backend returns them. -->
+          <el-table-column
+            v-if="hasOrganizationColumn"
+            :label="t('organizationConsole.tenantList.organization')"
+            min-width="170"
+            show-overflow-tooltip
+          >
+            <template #default="scope">
+              <template v-if="scope.row.organizationId">
+                {{ organizationName(scope.row.organizationId) }}
+                <el-tag size="small" :type="scope.row.organizationOpen ? 'success' : 'info'" class="organization-open-tag">
+                  {{ scope.row.organizationOpen ? t('organizationConsole.open') : t('organizationConsole.closed') }}
+                </el-tag>
+              </template>
+              <el-text v-else type="info" size="small">{{ t('organizationConsole.tenantList.notAssociated') }}</el-text>
+            </template>
+          </el-table-column>
           <el-table-column
             v-if="showOperationColumn"
             :label="t('tenantList.columns.operation')"
             align="center"
             fixed="right"
-            min-width="92"
+            min-width="156"
             class-name="operation-column"
           >
             <template #header>
@@ -304,11 +321,24 @@
                     <Tickets />
                   </el-icon>
                 </el-tooltip>
-                <el-tooltip :content="t('tenantList.actions.bootstrap')" placement="top" :enterable="false">
+                <!-- Per-tenant bootstrap only applies to tenants outside organization mode. -->
+                <el-tooltip v-if="!scope.row.organizationId" :content="t('tenantList.actions.bootstrap')" placement="top" :enterable="false">
                   <el-icon :size="20" class="operate-column-icon" @click="openBootstrap(scope.row)">
                     <MagicStick />
                   </el-icon>
                 </el-tooltip>
+                <template v-if="hasOrganizationColumn">
+                  <el-tooltip v-if="!scope.row.organizationId" :content="t('organizationConsole.tenantList.associate')" placement="top" :enterable="false">
+                    <el-icon :size="20" class="operate-column-icon" @click="openAssociation(scope.row)">
+                      <Link />
+                    </el-icon>
+                  </el-tooltip>
+                  <el-tooltip v-else :content="t('organizationConsole.tenantList.dissociate')" placement="top" :enterable="false">
+                    <el-icon :size="20" class="operate-column-icon" @click="dissociate(scope.row)">
+                      <Remove />
+                    </el-icon>
+                  </el-tooltip>
+                </template>
               </div>
             </template>
           </el-table-column>
@@ -337,6 +367,13 @@
       :tid="bootstrapTenantId"
       :tenant-name="bootstrapTenantName"
     />
+    <tenant-organization-dialog
+      v-if="associationEverOpened"
+      v-model="associationVisible"
+      :tenant-id="associationTenantId"
+      :tenant-name="associationTenantName"
+      @response="search"
+    />
 
     <!-- Add/edit share a single form; mounted on first open of either; v-if/v-show is applied to a plain div to avoid the ElDialog non-element root-node directive warning. -->
     <div v-if="hasFormEverOpened" v-show="formVisible">
@@ -353,12 +390,16 @@
 
 <script lang="ts">
 import { defineComponent, reactive, toRefs, ref, computed, nextTick } from 'vue';
-import { Delete, Edit, MagicStick, Plus, RefreshLeft, Search, Tickets } from '@element-plus/icons-vue';
+import { Delete, Edit, Link, MagicStick, Plus, RefreshLeft, Remove, Search, Tickets } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import TenantFormPage from './TenantFormPage.vue';
 import TenantBootstrapDialog from './TenantBootstrapDialog.vue';
+import TenantOrganizationDialog from './TenantOrganizationDialog.vue';
+import { organizationAuthorizationApi } from '../../../api/organizationAuthorizationApi';
+import { organizationErrorText } from '../../../components/auth/organizationMessages';
 import TenantDetailPage from './TenantDetailPage.vue';
-import { backendRequest, getApiResponseData } from '../../../utils/backendRequest';
+import { backendRequest, getApiResponseData, resolveApiPayload } from '../../../utils/backendRequest';
 import { createColumnVisibilityConfig } from '../../../components/pages/list';
 import { Pair } from '../../../components/model/Pair';
 import { BaseListPage } from '../../../components/pages/core';
@@ -431,7 +472,7 @@ class TenantListPage extends BaseListPage {
 
 export default defineComponent({
   name: 'TenantListPage',
-  components: { TenantFormPage, TenantDetailPage, TenantBootstrapDialog, ListPageLayout, Edit, Delete, Tickets, MagicStick, Search, RefreshLeft, Plus },
+  components: { TenantFormPage, TenantDetailPage, TenantBootstrapDialog, TenantOrganizationDialog, ListPageLayout, Edit, Delete, Tickets, MagicStick, Link, Remove, Search, RefreshLeft, Plus },
   setup(props: ListPageProps, context: ListPageContext) {
     useValidationI18nCacheProvider();
     const { t } = useI18n();
@@ -463,6 +504,55 @@ export default defineComponent({
       bootstrapTenantName.value = String(row.name ?? row.id ?? '');
       bootstrapEverOpened.value = true;
       bootstrapVisible.value = true;
+    }
+
+    // Organization mode (platform): associate / dissociate. Rows carry organizationId and
+    // organizationOpen only when the backend runs organization mode, so the column follows the data.
+    const hasOrganizationColumn = computed(() => ((listPage.state.tableData as Array<Record<string, unknown>> | undefined) ?? [])
+      .some((row) => row != null && 'organizationId' in row));
+    const organizationNames = ref<Record<string, string>>({});
+    async function loadOrganizationNames(): Promise<void> {
+      try {
+        const raw = await backendRequest({ url: 'user/org/pagingSearch', method: 'post', params: { nodeKind: 'ORGANIZATION', pageNo: 1, pageSize: 200 } });
+        const page = await resolveApiPayload<{ data?: Array<{ id: string; name: string }> }>(raw, 'Unable to load organizations');
+        organizationNames.value = Object.fromEntries((page?.data ?? []).map((item) => [String(item.id), String(item.name)]));
+      } catch {
+        organizationNames.value = {};
+      }
+    }
+    void loadOrganizationNames();
+    const organizationName = (id: unknown): string => organizationNames.value[String(id)] ?? String(id);
+    const associationVisible = ref(false);
+    const associationEverOpened = ref(false);
+    const associationTenantId = ref('');
+    const associationTenantName = ref('');
+    function openAssociation(row: Record<string, unknown>): void {
+      associationTenantId.value = String(row.id ?? '');
+      associationTenantName.value = String(row.name ?? row.id ?? '');
+      associationEverOpened.value = true;
+      associationVisible.value = true;
+    }
+    async function dissociate(row: Record<string, unknown>): Promise<void> {
+      const tenant = String(row.name ?? row.id ?? '');
+      let reason = '';
+      try {
+        const answer = await ElMessageBox.prompt(t('organizationConsole.tenantList.confirmDissociate', { tenant }), t('organizationConsole.tenantList.dissociate'), {
+          type: 'warning',
+          inputPlaceholder: t('organizationConsole.reasonPlaceholder'),
+          confirmButtonText: t('organizationConsole.confirm'),
+          cancelButtonText: t('organizationConsole.cancel'),
+        });
+        reason = String((answer as { value?: string }).value ?? '').trim();
+      } catch {
+        return;
+      }
+      try {
+        await organizationAuthorizationApi.dissociateTenant(String(row.id ?? ''), reason || undefined);
+        ElMessage.success(t('organizationConsole.tenantList.dissociated'));
+        listPage.search();
+      } catch (err) {
+        ElMessage.error(organizationErrorText(t, err));
+      }
     }
     // Fixed left = selection column (39) + index column (50) + name column (200); must match CSS overrides below.
     const FIXED_LEFT_TOTAL_WIDTH = 39 + 50 + 200;
@@ -533,6 +623,14 @@ export default defineComponent({
       bootstrapTenantId,
       bootstrapTenantName,
       openBootstrap,
+      hasOrganizationColumn,
+      organizationName,
+      associationVisible,
+      associationEverOpened,
+      associationTenantId,
+      associationTenantName,
+      openAssociation,
+      dissociate,
       ...toRefs(listPage.state),
       ...toRefs(listPage),
       t,
@@ -571,6 +669,9 @@ export default defineComponent({
 .table-drag-drop-zone {
   flex: 1;
   min-height: 0;
+}
+.organization-open-tag {
+  margin-left: 6px;
 }
 :deep(.pagination-right) {
   margin-top: 8px;
